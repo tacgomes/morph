@@ -59,9 +59,6 @@ class MorphologyTests(unittest.TestCase):
     def test_raises_exception_for_kind_that_has_unknown_kind(self):
         self.assertRaisesSchemaError({ 'name': 'hello', 'kind': 'x' })
 
-    def test_raises_exception_for_chunk_without_source(self):
-        self.assertRaisesSchemaError({ 'name': 'hello', 'kind': 'chunk' })
-
     def test_raises_exception_for_chunk_with_nondict_source(self):
         self.assertRaisesSchemaError({
             'name': 'hello', 
@@ -230,11 +227,6 @@ class MorphologyTests(unittest.TestCase):
                             {
                                 "name": "hello",
                                 "kind": "chunk", 
-                                "source": 
-                                    {
-                                        "repo": "foo",
-                                        "ref": "ref"
-                                    },
                                 "configure-commands": ["./configure"],
                                 "build-commands": ["make"],
                                 "test-commands": ["make check"],
@@ -383,43 +375,6 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.filename, 'mockfile')
 
 
-class ChunkRepoTests(unittest.TestCase):
-
-    def chunk(self, repo):
-        return morphlib.morphology.Morphology(
-                          MockFile('''
-                            {
-                                "name": "hello",
-                                "kind": "chunk", 
-                                "source": 
-                                    {
-                                        "repo": "%s",
-                                        "ref": "HEAD"
-                                    },
-                                "configure-commands": ["./configure"],
-                                "build-commands": ["make"],
-                                "test-commands": ["make check"],
-                                "install-commands": ["make install"]
-                            }''' % repo),
-                            baseurl='git://git.baserock.org/')
-
-    def test_returns_repo_with_schema_as_is(self):
-        self.assertEqual(self.chunk('git://git.baserock.org/foo/').manifest,
-                         [('git://git.baserock.org/foo/', 'HEAD')])
-
-    def test_prepends_baseurl_to_repo_without_schema(self):
-        self.assertEqual(self.chunk('foo').manifest,
-                         [('git://git.baserock.org/foo/', 'HEAD')])
-
-    def test_leaves_absolute_repo_in_source_dict_as_is(self):
-        chunk = self.chunk('git://git.baserock.org/foo/')
-        self.assertEqual(chunk.source['repo'], 'git://git.baserock.org/foo/')
-
-    def test_makes_relative_repo_url_absolute_in_source_dict(self):
-        chunk = self.chunk('foo')
-        self.assertEqual(chunk.source['repo'], 'git://git.baserock.org/foo/')
-
-
 class StratumRepoTests(unittest.TestCase):
 
     def stratum(self, repo):
@@ -437,14 +392,6 @@ class StratumRepoTests(unittest.TestCase):
                                     }
                             }''' % repo),
                             baseurl='git://git.baserock.org/')
-
-    def test_returns_repo_with_schema_as_is(self):
-        self.assertEqual(self.stratum('git://git.baserock.org/foo/').manifest,
-                         [('git://git.baserock.org/foo/', 'HEAD')])
-
-    def test_prepends_baseurl_to_repo_without_schema(self):
-        self.assertEqual(self.stratum('foo').manifest,
-                         [('git://git.baserock.org/foo/', 'HEAD')])
 
     def test_leaves_absolute_repo_in_source_dict_as_is(self):
         stratum = self.stratum('git://git.baserock.org/foo/')

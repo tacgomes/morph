@@ -47,7 +47,6 @@ class Morphology(object):
 
         if self.kind == 'chunk':
             self._validate_chunk()
-            self.source['repo'] = self._join_with_baseurl(self.source['repo'])
         elif self.kind == 'stratum':
             self._validate_stratum()
             for source in self.sources.itervalues():
@@ -59,34 +58,9 @@ class Morphology(object):
         self.filename = self._fp.name
 
     def _validate_chunk(self):
-        valid_toplevel_keys = ['name', 'kind', 'source', 'configure-commands',
+        valid_toplevel_keys = ['name', 'kind', 'configure-commands',
                                'build-commands', 'test-commands',
                                'install-commands']
-
-        if 'source' not in self._dict:
-            raise self._error('chunks must have "source" field')
-
-        if type(self.source) != dict:
-            raise self._error('"source" must be a dictionary')
-
-        if len(self.source) == 0:
-            raise self._error('"source" must not be empty')
-            
-        if 'repo' not in self.source:
-            raise self._error('"source" must contain "repo"')
-            
-        if not self.source['repo']:
-            raise self._error('"source" must contain non-empty "repo"')
-            
-        if 'ref' not in self.source:
-            raise self._error('"source" must contain "ref"')
-            
-        if not self.source['ref']:
-            raise self._error('"source" must contain non-empty "ref"')
-
-        for key in self.source.keys():
-            if key not in ('repo', 'ref'):
-                raise self._error('unknown key "%s" in "source"' % key)
 
         cmdlists = [
             (self.configure_commands, 'configure-commands'),
@@ -149,10 +123,6 @@ class Morphology(object):
         return self._dict['kind']
 
     @property
-    def source(self):
-        return self._dict['source']
-
-    @property
     def sources(self):
         return self._dict['sources']
 
@@ -171,14 +141,6 @@ class Morphology(object):
     @property
     def install_commands(self):
         return self._dict.get('install-commands', [])
-
-    @property
-    def manifest(self):
-        if self.kind == 'chunk':
-            return [(self.source['repo'], self.source['ref'])]
-        else:
-            return [(source['repo'], source['ref'])
-                     for source in self.sources.itervalues()]
 
     def _join_with_baseurl(self, url):
         is_relative = (':' not in url or
