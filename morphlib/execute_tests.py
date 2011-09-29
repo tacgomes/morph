@@ -23,7 +23,7 @@ import morphlib
 class ExecuteTests(unittest.TestCase):
 
     def setUp(self):
-        self.e = morphlib.execute.Execute('/')
+        self.e = morphlib.execute.Execute('/', lambda msg: None)
 
     def test_has_same_path_as_environment(self):
         self.assertEqual(self.e.env['PATH'], os.environ['PATH'])
