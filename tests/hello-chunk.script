@@ -17,6 +17,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+set -e
+
 tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
 ./morph build "$DATADIR/hello/hello.morph" \
     --chunk-repo="file://$DATADIR/hello" --chunk-ref=master
