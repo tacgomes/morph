@@ -28,3 +28,31 @@ class CacheDirTests(unittest.TestCase):
     def test_sets_dirname_attribute(self):
         self.assertEqual(self.cachedir.dirname, self.dirname)
 
+    def test_generates_string_key_for_arbitrary_dict_key(self):
+        key = self.cachedir.key({
+            'foo': 'bar',
+            'xyzzy': 'plugh',
+        })
+        self.assertEqual(type(key), str)
+        self.assertNotEqual(key, '')
+
+    def test_generates_same_string_key_twice(self):
+        dict_key = {
+            'foo': 'bar',
+            'xyzzy': 'plugh',
+        }
+        self.assertEqual(self.cachedir.key(dict_key), 
+                         self.cachedir.key(dict_key))
+
+    def test_generates_different_string_keys(self):
+        dict_key_1 = {
+            'foo': 'bar',
+            'xyzzy': 'plugh',
+        }
+        dict_key_2 = {
+            'foo': 'foobar',
+            'xyzzy': 'stevenage',
+        }
+        self.assertNotEqual(self.cachedir.key(dict_key_1), 
+                            self.cachedir.key(dict_key_2))
+

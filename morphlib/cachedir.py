@@ -14,9 +14,29 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import hashlib
+
+
 class CacheDir(object):
 
     '''Manage Baserock cached binaries.'''
     
     def __init__(self, dirname):
         self.dirname = dirname
+        
+    def key(self, dict_key):
+        '''Create a string key from a dictionary key.
+        
+        The string key can be used as a filename, or as part of one.
+        The dictionary key is a dict that maps any set of strings to
+        another set of strings.
+        
+        The same string key is guaranteed to be returned for a given
+        dictionary key. It is highly unlikely that two different dictionary
+        keys result in the same string key.
+        
+        '''
+        
+        data = ''.join(key + value for key, value in dict_key.iteritems())
+        return hashlib.sha256(data).hexdigest()
+
