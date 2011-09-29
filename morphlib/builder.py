@@ -106,6 +106,7 @@ class Builder(object):
         
         '''
 
+        # FIXME: Should put in stratum's git repo and reference here.
         filename = self.get_cached_name('stratum', '', '')
         logging.debug('Creating stratum %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
