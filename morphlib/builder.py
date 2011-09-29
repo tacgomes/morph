@@ -49,16 +49,20 @@ class Builder(object):
     def build_chunk(self, morph, repo, ref):
         '''Build a chunk from a morphology.'''
         logging.debug('Building chunk')
-        self.ex = morphlib.execute.Execute(self._build, self.msg)
-        self.ex.env['WORKAREA'] = self.tempdir.dirname
-        self.ex.env['DESTDIR'] = self._inst + '/'
-        self.create_build_tree(morph, repo, ref)
-        self.ex.run(morph.configure_commands)
-        self.ex.run(morph.build_commands)
-        self.ex.run(morph.test_commands)
-        self.ex.run(morph.install_commands)
-        self.create_chunk(morph, repo, ref)
-        self.tempdir.clear()
+        filename = self.get_cached_name('chunk', repo, ref)
+        if os.path.exists(filename):
+            self.msg('Chunk already exists: %s %s' % (repo, ref))
+        else:
+            self.ex = morphlib.execute.Execute(self._build, self.msg)
+            self.ex.env['WORKAREA'] = self.tempdir.dirname
+            self.ex.env['DESTDIR'] = self._inst + '/'
+            self.create_build_tree(morph, repo, ref)
+            self.ex.run(morph.configure_commands)
+            self.ex.run(morph.build_commands)
+            self.ex.run(morph.test_commands)
+            self.ex.run(morph.install_commands)
+            self.create_chunk(morph, repo, ref)
+            self.tempdir.clear()
         
     def create_build_tree(self, morph, repo, ref):
         '''Export sources from git into the ``self._build`` directory.'''
