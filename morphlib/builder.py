@@ -30,6 +30,11 @@ class Builder(object):
         self.tempdir = tempdir
         self.msg = msg
         self.settings = settings
+        self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
+
+    @property
+    def arch(self):
+        return os.uname()[4]
 
     def build(self, morph):
         '''Build a binary based on a morphology.'''
@@ -52,7 +57,7 @@ class Builder(object):
         self.ex.run(morph.build_commands)
         self.ex.run(morph.test_commands)
         self.ex.run(morph.install_commands)
-        self.create_chunk(morph)
+        self.create_chunk(morph, repo, ref)
         self.tempdir.clear()
         
     def create_build_tree(self, morph, repo, ref):
@@ -68,15 +73,14 @@ class Builder(object):
         self.ex.runv(['tar', '-C', self._build, '-xf', tarball])
         os.remove(tarball)
 
-    def create_chunk(self, morph):
+    def create_chunk(self, morph, repo, ref):
         '''Create a Baserock chunk from the ``self._inst`` directory.
         
         The directory must be filled in with all the relevant files already.
         
         '''
 
-        dirname = self.settings['cachedir']
-        filename = os.path.join(dirname, '%s.chunk' % morph.name)
+        filename = self.get_cached_name('chunk', repo, ref)
         logging.debug('Creating chunk %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
 
@@ -85,7 +89,9 @@ class Builder(object):
         os.mkdir(self._inst)
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         for chunk_name in morph.sources:
-            filename = self._chunk_filename(morph, chunk_name)
+            chunk_repo = self.settings['chunk-repo']
+            chunk_ref = self.settings['chunk-ref']
+            filename = self.get_cached_name('chunk', chunk_repo, chunk_ref)
             self.unpack_chunk(filename)
         self.create_stratum(morph)
         self.tempdir.clear()
@@ -100,8 +106,7 @@ class Builder(object):
         
         '''
 
-        dirname = os.path.dirname(morph.filename)
-        filename = os.path.join(dirname, '%s.stratum' % morph.name)
+        filename = self.get_cached_name('stratum', '', '')
         logging.debug('Creating stratum %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
 
@@ -113,7 +118,23 @@ class Builder(object):
     def _inst(self):
         return self.tempdir.join('inst')
 
-    def _chunk_filename(self, morph, chunk_name):
-        dirname = os.path.dirname(morph.filename)
-        return os.path.join(dirname, '%s.chunk' % chunk_name)
+    def get_cached_name(self, kind, repo, ref):
+        '''Return the cached name of a binary blob, if and when it exists.'''
+        abs_ref = self.get_git_commit_id(repo, ref)
+        dict_key = {
+            'kind': kind,
+            'arch': self.arch,
+            'repo': repo,
+            'ref': abs_ref,
+        }
+        return self.cachedir.name(dict_key)
+
+    def get_git_commit_id(self, repo, ref):
+        '''Return the full SHA-1 commit id for a repo+ref.'''
+        if repo and ref:
+            ex = morphlib.execute.Execute(repo, self.msg)
+            out = ex.runv(['git', 'rev-list', '-n1', ref])
+            return out.strip()
+        else:
+            return ''
 
