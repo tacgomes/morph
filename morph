@@ -40,6 +40,9 @@ class Morph(cliapp.Application):
                              'repository to use for a chunk morphology')
         self.settings.string(['chunk-ref'], 
                              'commit reference to use for a chunk morphology')
+        self.settings.string(['cachedir'], 
+                             'put build results in DIR (default: %default)',
+                             metavar='DIR', default='.')
 
     def cmd_build(self, morph_filenames):
         tempdir = morphlib.tempdir.Tempdir()

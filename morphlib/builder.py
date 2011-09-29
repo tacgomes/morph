@@ -75,7 +75,7 @@ class Builder(object):
         
         '''
 
-        dirname = os.path.dirname(morph.filename)
+        dirname = self.settings['cachedir']
         filename = os.path.join(dirname, '%s.chunk' % morph.name)
         logging.debug('Creating chunk %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
