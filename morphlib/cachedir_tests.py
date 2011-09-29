@@ -56,3 +56,34 @@ class CacheDirTests(unittest.TestCase):
         self.assertNotEqual(self.cachedir.key(dict_key_1), 
                             self.cachedir.key(dict_key_2))
 
+    def test_returns_a_chunk_pathname_in_cache_directory(self):
+        dict_key = {
+            'kind': 'chunk',
+            'ref': 'DEADBEEF',
+            'repo': 'git://git.baserock.org/hello/',
+            'arch': 'armel',
+        }
+        pathname = self.cachedir.name(dict_key)
+        self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
+        self.assert_(pathname.endswith('.chunk'))
+
+    def test_returns_a_stratum_pathname_in_cache_directory(self):
+        dict_key = {
+            'kind': 'stratum',
+            'ref': 'DEADBEEF',
+            'repo': 'git://git.baserock.org/hello/',
+            'arch': 'armel',
+        }
+        pathname = self.cachedir.name(dict_key)
+        self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
+        self.assert_(pathname.endswith('.stratum'))
+
+    def test_returns_a_valid_pathname_in_cache_directory(self):
+        dict_key = {
+            'ref': 'DEADBEEF',
+            'repo': 'git://git.baserock.org/hello/',
+            'arch': 'armel',
+        }
+        pathname = self.cachedir.name(dict_key)
+        self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
+

@@ -15,6 +15,7 @@
 
 
 import hashlib
+import os
 
 
 class CacheDir(object):
@@ -39,4 +40,25 @@ class CacheDir(object):
         
         data = ''.join(key + value for key, value in dict_key.iteritems())
         return hashlib.sha256(data).hexdigest()
+
+    def name(self, dict_key):
+        '''Return a filename for an object described by dictionary key.
+        
+        It is the caller's responsibility to set the fields in the
+        dictionary key suitably. For example, if there is a field
+        specifying a commit id, it should be the full git SHA-1
+        identifier, not something ephemeral like HEAD.
+        
+        If the field 'kind' has a value, it is used as a suffix for
+        the filename.
+        
+        '''
+
+        key = self.key(dict_key)
+        if 'kind' in dict_key and dict_key['kind']:
+            suffix = '.%s' % dict_key['kind']
+        else:
+            suffix = ''
+
+        return os.path.join(self.dirname, key + suffix)
 
