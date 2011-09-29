@@ -14,15 +14,17 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+import unittest
+
+import morphlib
 
 
-__version__ = '0.0'
+class CacheDirTests(unittest.TestCase):
 
+    def setUp(self):
+        self.dirname = '/cache/dir'
+        self.cachedir = morphlib.cachedir.CacheDir(self.dirname)
 
-import builder
-import cachedir
-import execute
-import morphology
-import tempdir
-import util
+    def test_sets_dirname_attribute(self):
+        self.assertEqual(self.cachedir.dirname, self.dirname)
+

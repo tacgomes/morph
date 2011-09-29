@@ -14,15 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+class CacheDir(object):
 
-
-__version__ = '0.0'
-
-
-import builder
-import cachedir
-import execute
-import morphology
-import tempdir
-import util
+    '''Manage Baserock cached binaries.'''
+    
+    def __init__(self, dirname):
+        self.dirname = dirname
