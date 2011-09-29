@@ -20,13 +20,8 @@
 set -e
 
 tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
-./morph build "$DATADIR/hello/hello.morph" \
-    --chunk-repo="file://$DATADIR/hello" --chunk-ref=master \
-    --cachedir="$DATADIR"
 
-cp tests/hello-stratum.morph "$DATADIR"
-./morph build "$DATADIR/hello-stratum.morph" \
+./morph build "tests/hello-stratum.morph" \
     --git-base-url "file://$DATADIR/" \
-    --chunk-repo="file://$DATADIR/hello" --chunk-ref=master \
     --cachedir="$DATADIR"
 tar -tf "$DATADIR/"*.stratum | LC_ALL=C sort

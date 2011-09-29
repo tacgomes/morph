@@ -49,3 +49,6 @@ class ExecuteTests(unittest.TestCase):
         self.assertRaises(morphlib.execute.CommandFailure,
                           self.e.runv, ['false'])
 
+    def test_runv_sets_working_directory(self):
+        self.assertEqual(self.e.runv(['pwd']), '/\n')
+

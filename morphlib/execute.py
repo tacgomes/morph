@@ -74,7 +74,7 @@ class Execute(object):
 
         self.msg('# %s' % ' '.join(argv))
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, 
-                             stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE, cwd=self.dirname)
         out, err = p.communicate()
         
         logging.debug('Exit code: %d' % p.returncode)
