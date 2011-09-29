@@ -1,0 +1,17 @@
+{
+    "name": "hello",
+    "kind": "chunk",
+    "source": {
+        "repo": "hello",
+        "ref": "master"
+    },
+    "configure-commands": [
+        "./configure --prefix=/usr"
+    ],
+    "build-commands": [
+        "make"
+    ],
+    "install-commands": [
+        "make DESTDIR=\"$DESTDIR\" install"
+    ]
+}

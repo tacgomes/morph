@@ -1,0 +1,59 @@
+#!/usr/bin/python
+#
+# WARNING: THIS IS HIGHLY EXPERIMENTAL CODE RIGHT NOW. JUST PROOF OF CONCEPT.
+# DO NOT RUN UNTIL YOU KNOW WHAT YOU ARE DOING.
+# 
+# Copyright (C) 2011  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+import cliapp
+import json
+import logging
+import os
+import shutil
+import tempfile
+
+import morphlib
+
+
+class Morph(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.boolean(['verbose', 'v'], 'show what is happening')
+        self.settings.string(['git-base-url'],
+                             'prepend URL to git repos that are not URLs',
+                             metavar='URL')
+
+    def cmd_build(self, morph_filenames):
+        tempdir = morphlib.tempdir.Tempdir()
+        builder = morphlib.builder.Builder(tempdir, self.msg)
+        for name in morph_filenames:
+            self.msg('Building morphology %s' % name)
+            with self.open_input(name, 'r') as f:
+                morph = morphlib.morphology.Morphology(f, 
+                                    baseurl=self.settings['git-base-url'])
+                builder.build(morph)
+        tempdir.remove()
+
+    def msg(self, msg):
+        '''Show a message to the user about what is going on.'''
+        logging.debug(msg)
+        if self.settings['verbose']:
+            self.output.write('%s\n' % msg)
+
+
+if __name__ == '__main__':
+    Morph().run()
