@@ -36,10 +36,14 @@ class Morph(cliapp.Application):
         self.settings.string(['git-base-url'],
                              'prepend URL to git repos that are not URLs',
                              metavar='URL')
+        self.settings.string(['chunk-repo'], 
+                             'repository to use for a chunk morphology')
+        self.settings.string(['chunk-ref'], 
+                             'commit reference to use for a chunk morphology')
 
     def cmd_build(self, morph_filenames):
         tempdir = morphlib.tempdir.Tempdir()
-        builder = morphlib.builder.Builder(tempdir, self.msg)
+        builder = morphlib.builder.Builder(tempdir, self.msg, self.settings)
         for name in morph_filenames:
             self.msg('Building morphology %s' % name)
             with self.open_input(name, 'r') as f:

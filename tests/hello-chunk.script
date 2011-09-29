@@ -18,6 +18,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
-cp tests/hello-chunk.morph "$DATADIR/hello-chunk.morph"
-./morph build "$DATADIR/hello-chunk.morph" --git-base-url "file://$DATADIR/"
-tar -tf "$DATADIR/hello.chunk" | LC_ALL=C sort
+./morph build "$DATADIR/hello/hello.morph" \
+    --chunk-repo="file://$DATADIR/hello" --chunk-ref=master
+tar -tf "$DATADIR/hello/hello.chunk" | LC_ALL=C sort

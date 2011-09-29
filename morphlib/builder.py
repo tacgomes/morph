@@ -26,26 +26,28 @@ class Builder(object):
     
     The objects may be chunks or strata.'''
     
-    def __init__(self, tempdir, msg):
+    def __init__(self, tempdir, msg, settings):
         self.tempdir = tempdir
         self.msg = msg
+        self.settings = settings
 
     def build(self, morph):
         '''Build a binary based on a morphology.'''
         if morph.kind == 'chunk':
-            self.build_chunk(morph)
+            self.build_chunk(morph, self.settings['chunk-repo'], 
+                             self.settings['chunk-ref'])
         elif morph.kind == 'stratum':
             self.build_stratum(morph)
         else:
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
 
-    def build_chunk(self, morph):
+    def build_chunk(self, morph, repo, ref):
         '''Build a chunk from a morphology.'''
         logging.debug('Building chunk')
         self.ex = morphlib.execute.Execute(self._build, self.msg)
         self.ex.env['WORKAREA'] = self.tempdir.dirname
         self.ex.env['DESTDIR'] = self._inst + '/'
-        self.create_build_tree(morph)
+        self.create_build_tree(morph, repo, ref)
         self.ex.run(morph.configure_commands)
         self.ex.run(morph.build_commands)
         self.ex.run(morph.test_commands)
@@ -53,15 +55,15 @@ class Builder(object):
         self.create_chunk(morph)
         self.tempdir.clear()
         
-    def create_build_tree(self, morph):
+    def create_build_tree(self, morph, repo, ref):
         '''Export sources from git into the ``self._build`` directory.'''
 
         logging.debug('Creating build tree at %s' % self._build)
         tarball = self.tempdir.join('sources.tar')
         self.ex.runv(['git', 'archive',
                       '--output', tarball,
-                      '--remote', morph.source['repo'],
-                      morph.source['ref']])
+                      '--remote', repo,
+                      ref])
         os.mkdir(self._build)
         self.ex.runv(['tar', '-C', self._build, '-xf', tarball])
         os.remove(tarball)
