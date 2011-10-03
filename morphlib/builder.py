@@ -79,6 +79,7 @@ class Builder(object):
             self.ex.run(morph.configure_commands)
             self.ex.run(morph.build_commands)
             self.ex.run(morph.test_commands)
+            os.mkdir(self._inst)
             self.ex.run(morph.install_commands, as_root=True)
             self.create_chunk(morph, repo, ref)
             self.tempdir.clear()
