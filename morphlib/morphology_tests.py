@@ -374,6 +374,20 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.kind, 'stratum')
         self.assertEqual(morph.filename, 'mockfile')
 
+    def test_accepts_valid_system_morphology(self):
+        morph = morphlib.morphology.Morphology(
+                          MockFile('''
+                            {
+                                "name": "hello",
+                                "kind": "system", 
+                                "strata": [
+                                    "foo",
+                                    "bar"
+                                ]
+                            }'''))
+        self.assertEqual(morph.kind, 'system')
+        self.assertEqual(morph.strata, ['foo', 'bar'])
+
 
 class StratumRepoTests(unittest.TestCase):
 

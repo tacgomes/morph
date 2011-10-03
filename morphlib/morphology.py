@@ -51,6 +51,8 @@ class Morphology(object):
             self._validate_stratum()
             for source in self.sources.itervalues():
                 source['repo'] = self._join_with_baseurl(source['repo'])
+        elif self.kind == 'system':
+            pass
         else:
             raise self._error('kind must be chunk or stratum, not %s' %
                                 self.kind)
@@ -141,6 +143,10 @@ class Morphology(object):
     @property
     def install_commands(self):
         return self._dict.get('install-commands', [])
+
+    @property
+    def strata(self):
+        return self._dict.get('strata', [])
 
     def _join_with_baseurl(self, url):
         is_relative = (':' not in url or
