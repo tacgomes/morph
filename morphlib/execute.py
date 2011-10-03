@@ -38,7 +38,7 @@ class Execute(object):
     def _setup_env(self):
         self.env = dict(os.environ)
 
-    def run(self, commands):
+    def run(self, commands, as_root=False):
         '''Execute a list of commands.
         
         If a command fails (returns non-zero exit code), the rest are
@@ -49,7 +49,10 @@ class Execute(object):
         stdouts = []
         for command in commands:
             self.msg('# %s' % command)
-            p = subprocess.Popen([command], shell=True,
+            argv = ['sh', '-c', command]
+            if as_root:
+                argv = ['fakeroot'] + argv
+            p = subprocess.Popen(argv, shell=False,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  env=self.env,
@@ -64,7 +67,7 @@ class Execute(object):
             stdouts.append(out)
         return stdouts
 
-    def runv(self, argv):
+    def runv(self, argv, as_root=False):
         '''Run a command given as a list of argv elements.
         
         Return standard output. Raise ``CommandFailure`` if the command
@@ -72,6 +75,8 @@ class Execute(object):
         
         '''
 
+        if as_root:
+            argv = ['fakeroot'] + argv
         self.msg('# %s' % ' '.join(argv))
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, 
                              stderr=subprocess.PIPE, cwd=self.dirname)

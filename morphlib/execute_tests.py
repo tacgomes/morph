@@ -52,3 +52,9 @@ class ExecuteTests(unittest.TestCase):
     def test_runv_sets_working_directory(self):
         self.assertEqual(self.e.runv(['pwd']), '/\n')
 
+    def test_runs_as_root_when_requested(self):
+        self.assertEqual(self.e.run(['id -u'], as_root=True), ['0\n'])
+
+    def test_runvs_as_root_when_requested(self):
+        self.assertEqual(self.e.runv(['id', '-u'], as_root=True), '0\n')
+
