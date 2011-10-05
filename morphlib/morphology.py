@@ -73,6 +73,10 @@ class Morphology(object):
     def strata(self):
         return self._dict.get('strata', [])
 
+    @property
+    def disk_size(self):
+        return self._dict['disk-size']
+
     def _join_with_baseurl(self, url):
         is_relative = (':' not in url or
                        '/' not in url or
