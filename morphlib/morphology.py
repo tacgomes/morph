@@ -47,7 +47,7 @@ class Morphology(object):
 
     @property
     def description(self):
-        return self._dict['description']
+        return self._dict.get('description', '')
 
     @property
     def sources(self):
