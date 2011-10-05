@@ -46,6 +46,10 @@ class Morphology(object):
         return self._dict['kind']
 
     @property
+    def description(self):
+        return self._dict['description']
+
+    @property
     def sources(self):
         return self._dict['sources']
 

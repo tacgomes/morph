@@ -36,6 +36,7 @@ class MorphologyTests(unittest.TestCase):
                             {
                                 "name": "hello",
                                 "kind": "chunk", 
+                                "description": "desc",
                                 "configure-commands": ["./configure"],
                                 "build-commands": ["make"],
                                 "test-commands": ["make check"],
@@ -43,6 +44,7 @@ class MorphologyTests(unittest.TestCase):
                             }'''))
         self.assertEqual(morph.name, 'hello')
         self.assertEqual(morph.kind, 'chunk')
+        self.assertEqual(morph.description, 'desc')
         self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.configure_commands, ['./configure'])
         self.assertEqual(morph.build_commands, ['make'])
