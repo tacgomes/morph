@@ -212,6 +212,7 @@ class Builder(object):
 
         meta = {
             'name': morph.name,
+            'kind': morph.kind,
         }
         for key, value in kwargs.iteritems():
             meta[key] = value
