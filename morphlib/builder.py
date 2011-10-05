@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import json
 import logging
 import os
 import StringIO
@@ -81,6 +82,7 @@ class Builder(object):
             self.ex.run(morph.test_commands)
             os.mkdir(self._inst)
             self.ex.run(morph.install_commands, as_root=True)
+            self.prepare_binary_metadata(morph, repo, ref)
             self.create_chunk(morph, repo, ref)
             self.tempdir.clear()
         
@@ -201,4 +203,17 @@ class Builder(object):
     def get_repo_dir(self, repo):
         scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
         return path
+
+    def prepare_binary_metadata(self, morph, repo, ref):
+        '''Add metadata to a binary about to be built.'''
+
+        meta = {
+            'name': morph.name,
+        }
+        
+        dirname = os.path.join(self._inst, 'baserock')
+        filename = os.path.join(dirname, '%s.meta' % morph.name)
+        os.mkdir(dirname)
+        with open(filename, 'w') as f:
+            json.dump(meta, f)
 
