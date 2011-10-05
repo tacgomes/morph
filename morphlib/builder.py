@@ -82,7 +82,7 @@ class Builder(object):
             self.ex.run(morph.test_commands)
             os.mkdir(self._inst)
             self.ex.run(morph.install_commands, as_root=True)
-            self.prepare_binary_metadata(morph, repo, ref)
+            self.prepare_binary_metadata(morph, repo=repo, ref=ref)
             self.create_chunk(morph, repo, ref)
             self.tempdir.clear()
         
@@ -129,6 +129,7 @@ class Builder(object):
                             (chunk_repo, chunk_ref))
             filename = self.get_cached_name('chunk', chunk_repo, chunk_ref)
             self.unpack_chunk(filename)
+        self.prepare_binary_metadata(morph)
         self.create_stratum(morph)
         self.tempdir.clear()
 
@@ -204,16 +205,19 @@ class Builder(object):
         scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
         return path
 
-    def prepare_binary_metadata(self, morph, repo, ref):
+    def prepare_binary_metadata(self, morph, **kwargs):
         '''Add metadata to a binary about to be built.'''
 
         meta = {
             'name': morph.name,
         }
+        for key, value in kwargs.iteritems():
+            meta[key] = value
         
         dirname = os.path.join(self._inst, 'baserock')
         filename = os.path.join(dirname, '%s.meta' % morph.name)
-        os.mkdir(dirname)
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
         with open(filename, 'w') as f:
             json.dump(meta, f)
 
