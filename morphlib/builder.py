@@ -219,5 +219,6 @@ class Builder(object):
         if not os.path.exists(dirname):
             os.mkdir(dirname)
         with open(filename, 'w') as f:
-            json.dump(meta, f)
+            json.dump(meta, f, indent=4)
+            f.write('\n')
 
