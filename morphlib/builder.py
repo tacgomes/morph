@@ -17,6 +17,7 @@
 import json
 import logging
 import os
+import shutil
 import StringIO
 import urlparse
 
@@ -62,6 +63,8 @@ class Builder(object):
                              self.settings['chunk-ref'])
         elif morph.kind == 'stratum':
             self.build_stratum(morph)
+        elif morph.kind == 'system':
+            self.build_system(morph)
         else:
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
 
@@ -81,7 +84,7 @@ class Builder(object):
             self.ex.run(morph.build_commands)
             self.ex.run(morph.test_commands)
             os.mkdir(self._inst)
-            self.ex.run(morph.install_commands, as_root=True)
+            self.ex.run(morph.install_commands, as_fakeroot=True)
             self.prepare_binary_metadata(morph, 
                     repo=repo, 
                     ref=self.get_git_commit_id(repo, ref))
@@ -132,8 +135,9 @@ class Builder(object):
             filename = self.get_cached_name('chunk', chunk_repo, chunk_ref)
             self.unpack_chunk(filename)
         self.prepare_binary_metadata(morph)
-        self.create_stratum(morph)
+        stratum_filename = self.create_stratum(morph)
         self.tempdir.clear()
+        return stratum_filename
 
     def unpack_chunk(self, filename):
         self.ex.runv(['tar', '-C', self._inst, '-xf', filename])
@@ -149,6 +153,7 @@ class Builder(object):
         filename = self.get_cached_name('stratum', '', '')
         logging.debug('Creating stratum %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
+        return filename
 
     @property
     def _build(self):
@@ -222,4 +227,81 @@ class Builder(object):
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
+
+    def build_system(self, morph):
+        '''Build a system image.'''
+
+        # Build strata.
+        stratum_filenames = []
+        for stratum in morph.strata:
+            with open('%s.morph' % stratum) as f:
+                stratum_morph = morphlib.morphology.Morphology(f,
+                                    baseurl=self.settings['git-base-url'])
+            filename = self.build_stratum(stratum_morph)
+            stratum_filenames.append(filename)
+
+        self.tempdir.clear()
+        self.msg('Building system image %s' % morph.name)
+        self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
+        
+        image_name = self.tempdir.join('%s.img' % morph.name)
+        
+        # Create image.
+        self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
+                      morph.disk_size])
+
+        # Partition it.
+        self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'],
+                     as_root=True)
+        self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
+                      '0%', '100%'], as_root=True)
+        self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'],
+                     as_root=True)
+
+        # Install first stage boot loader into MBR.
+        self.ex.runv(['install-mbr', image_name], as_root=True)
+
+        # Setup device mapper to access the partition.
+        out = self.ex.runv(['kpartx', '-av', image_name], as_root=True)
+        devices = [line.split()[2]
+                   for line in out.splitlines()
+                   if line.startswith('add map ')]
+        partition = '/dev/mapper/%s' % devices[0]
+
+        try:
+            # Create filesystem.
+            self.ex.runv(['mkfs', '-t', 'ext2', partition], as_root=True)
+            
+            # Mount it.
+            mount_point = self.tempdir.join('mnt')
+            os.mkdir(mount_point)
+            self.ex.runv(['mount', partition, mount_point], as_root=True)
+
+            # Unpack all strata into filesystem.
+            for filename in stratum_filenames:
+                self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
+                             as_root=True)
+
+            # Unmount.
+            self.ex.runv(['umount', mount_point], as_root=True)
+        except BaseException, e:
+            # Unmount.
+            try:
+                self.ex.runv(['umount', mount_point], as_root=True)
+            except Exception:
+                pass
+
+            # Undo device mapping.
+            try:
+                self.ex.runv(['kpartx', '-d', image_name], as_root=True)
+            except Exception:
+                pass
+            raise
+
+        # Undo device mapping.
+        self.ex.runv(['kpartx', '-d', image_name], as_root=True)
+
+        # Copy image file to cache.
+        filename = self.get_cached_name('system', '', '')
+        self.ex.runv(['cp', '-a', image_name, filename])
 
