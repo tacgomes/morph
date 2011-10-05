@@ -270,7 +270,7 @@ class Builder(object):
 
         try:
             # Create filesystem.
-            self.ex.runv(['mkfs', '-t', 'ext2', partition], as_root=True)
+            self.ex.runv(['mkfs', '-t', 'ext4', partition], as_root=True)
             
             # Mount it.
             mount_point = self.tempdir.join('mnt')
@@ -281,6 +281,17 @@ class Builder(object):
             for filename in stratum_filenames:
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
+
+            # Set hostname.
+            with open(self.tempdir.join('mnt/etc/hostname'), 'w') as f:
+                f.write('baserock\n')
+
+            # Create fstab.
+            fstab = self.tempdir.join('mnt/etc/fstab')
+            with open(fstab, 'w') as f:
+                f.write('proc /proc proc defaults 0 0\n')
+                f.write('sysfs /sys sysfs defaults 0 0\n')
+                f.write('/dev/sda1 / ext4 errors=remount-ro 0 1\n')
 
             # Unmount.
             self.ex.runv(['umount', mount_point], as_root=True)
