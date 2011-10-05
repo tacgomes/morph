@@ -82,7 +82,9 @@ class Builder(object):
             self.ex.run(morph.test_commands)
             os.mkdir(self._inst)
             self.ex.run(morph.install_commands, as_root=True)
-            self.prepare_binary_metadata(morph, repo=repo, ref=ref)
+            self.prepare_binary_metadata(morph, 
+                    repo=repo, 
+                    ref=self.get_git_commit_id(repo, ref))
             self.create_chunk(morph, repo, ref)
             self.tempdir.clear()
         
