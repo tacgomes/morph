@@ -36,6 +36,7 @@ class Tempdir(object):
 
     def clear(self):
         '''Clear temporary directory of everything.'''
+        logging.debug('Removing contents of %s' % self.dirname)
         for x in os.listdir(self.dirname):
             filename = self.join(x)
             if os.path.isdir(filename):
