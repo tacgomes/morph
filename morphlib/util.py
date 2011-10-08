@@ -25,8 +25,13 @@ def indent(string, spaces=4):
     logging library adds a newline, so not including it in the indented
     text avoids a spurious empty line in the log file.
     
+    This also makes the result be a plain ASCII encoded string.
+    
     '''
 
-    return '\n'.join('%*s%s' % (spaces, '', line) 
-                      for line in string.splitlines())
+    if type(string) == unicode: # pragma: no cover
+        string = string.decode('utf-8')
+    lines = string.splitlines()
+    lines = ['%*s%s' % (spaces, '', line) for line in lines]
+    return '\n'.join(lines)
 
