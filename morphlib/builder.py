@@ -231,10 +231,17 @@ class Builder(object):
     def build_system(self, morph):
         '''Build a system image.'''
 
+        logging.debug('Building system image %s' % morph.name)
+        self.msg('Building system %s' % morph.name)
+
         # Build strata.
         stratum_filenames = []
         for stratum in morph.strata:
-            with open('%s.morph' % stratum) as f:
+            logging.debug('Want stratum %s' % stratum)
+            dirname = os.path.dirname(morph.filename)
+            stratum_filename = os.path.join(dirname, '%s.morph' % stratum)
+            logging.debug('Stratum should be in %s' % stratum_filename)
+            with open(stratum_filename) as f:
                 stratum_morph = morphlib.morphology.Morphology(f,
                                     baseurl=self.settings['git-base-url'])
             filename = self.build_stratum(stratum_morph)
