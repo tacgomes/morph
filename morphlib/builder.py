@@ -320,7 +320,7 @@ timeout 1
 
 label linux
 kernel /vmlinuz
-append root=/dev/sda1 init=/bin/sh
+append root=/dev/sda1 init=/bin/sh quiet
 ''')
             f.close()
 
