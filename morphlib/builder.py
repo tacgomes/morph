@@ -72,9 +72,10 @@ class Builder(object):
         '''Build a chunk from a morphology.'''
         logging.debug('Building chunk')
         self.msg('Building chunk %s' % morph.name)
-        filename = self.get_cached_name('chunk', repo, ref)
+        filename = self.get_cached_name(morph.name, 'chunk', repo, ref)
         if os.path.exists(filename):
             self.msg('Chunk already exists: %s %s' % (repo, ref))
+            self.msg('(chunk cached at %s)' % filename)
         else:
             self.ex = morphlib.execute.Execute(self._build, self.msg)
             self.ex.env['WORKAREA'] = self.tempdir.dirname
@@ -111,7 +112,7 @@ class Builder(object):
         
         '''
 
-        filename = self.get_cached_name('chunk', repo, ref)
+        filename = self.get_cached_name(morph.name, 'chunk', repo, ref)
         logging.debug('Creating chunk %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
 
@@ -119,20 +120,24 @@ class Builder(object):
         '''Build a stratum from a morphology.'''
 
         for chunk_name, source in morph.sources.iteritems():
+            self.msg('Want chunk %s' % chunk_name)
             repo = source['repo']
             ref = source['ref']
             chunk_morph = self.get_morph_from_git(repo, ref)
             self.build_chunk(chunk_morph, repo, ref)
 
+        self.msg('Creating stratum %s' % morph.name)
         os.mkdir(self._inst)
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         for chunk_name in morph.sources:
+            self.msg('Unpacking chunk %s' % chunk_name)
             source = morph.sources[chunk_name]
             chunk_repo = source['repo']
             chunk_ref = source['ref']
             logging.debug('Looking for chunk at repo=%s ref=%s' %
                             (chunk_repo, chunk_ref))
-            filename = self.get_cached_name('chunk', chunk_repo, chunk_ref)
+            filename = self.get_cached_name(chunk_name, 'chunk', 
+                                            chunk_repo, chunk_ref)
             self.unpack_chunk(filename)
         self.prepare_binary_metadata(morph)
         stratum_filename = self.create_stratum(morph)
@@ -150,8 +155,8 @@ class Builder(object):
         '''
 
         # FIXME: Should put in stratum's git repo and reference here.
-        filename = self.get_cached_name('stratum', '', '')
-        logging.debug('Creating stratum %s at %s' % (morph.name, filename))
+        filename = self.get_cached_name(morph.name, 'stratum', '', '')
+        self.msg('Creating stratum %s at %s' % (morph.name, filename))
         self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
         return filename
 
@@ -163,10 +168,11 @@ class Builder(object):
     def _inst(self):
         return self.tempdir.join('inst')
 
-    def get_cached_name(self, kind, repo, ref):
+    def get_cached_name(self, name, kind, repo, ref):
         '''Return the cached name of a binary blob, if and when it exists.'''
         abs_ref = self.get_git_commit_id(repo, ref)
         dict_key = {
+            'name': name,
             'kind': kind,
             'arch': self.arch,
             'repo': repo,
@@ -237,10 +243,10 @@ class Builder(object):
         # Build strata.
         stratum_filenames = []
         for stratum in morph.strata:
-            logging.debug('Want stratum %s' % stratum)
+            self.msg('Want stratum %s' % stratum)
             dirname = os.path.dirname(morph.filename)
             stratum_filename = os.path.join(dirname, '%s.morph' % stratum)
-            logging.debug('Stratum should be in %s' % stratum_filename)
+            logging.debug('Morphology should be in %s' % stratum_filename)
             with open(stratum_filename) as f:
                 stratum_morph = morphlib.morphology.Morphology(f,
                                     baseurl=self.settings['git-base-url'])
@@ -277,7 +283,7 @@ class Builder(object):
 
         try:
             # Create filesystem.
-            self.ex.runv(['mkfs', '-t', 'ext4', partition], as_root=True)
+            self.ex.runv(['mkfs', '-t', 'ext3', partition], as_root=True)
             
             # Mount it.
             mount_point = self.tempdir.join('mnt')
@@ -286,11 +292,14 @@ class Builder(object):
 
             # Unpack all strata into filesystem.
             for filename in stratum_filenames:
+                self.msg('Unpacking stratum %s' % filename)
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
 
             # Set hostname.
-            os.mkdir(self.tempdir.join('mnt/etc'))
+            etc = self.tempdir.join('mnt/etc')
+            if not os.path.exists(etc):
+                os.mkdir(etc)
             with open(self.tempdir.join('mnt/etc/hostname'), 'w') as f:
                 f.write('baserock\n')
 
@@ -300,6 +309,26 @@ class Builder(object):
                 f.write('proc /proc proc defaults 0 0\n')
                 f.write('sysfs /sys sysfs defaults 0 0\n')
                 f.write('/dev/sda1 / ext4 errors=remount-ro 0 1\n')
+
+            # Install extlinux bootloader.
+            conf = os.path.join(mount_point, 'extlinux.conf')
+            logging.debug('configure extlinux %s' % conf)
+            f = open(conf, 'w')
+            f.write('''
+default linux
+timeout 1
+
+label linux
+kernel /vmlinuz
+append root=/dev/sda1 init=/bin/sh
+''')
+            f.close()
+
+            self.ex.runv(['extlinux', '--install', mount_point], as_root=True)
+            
+            # Weird hack that makes extlinux work. There is a bug somewhere.
+            self.ex.runv(['sync'])
+            import time; time.sleep(2)
 
             # Unmount.
             self.ex.runv(['umount', mount_point], as_root=True)
@@ -321,6 +350,6 @@ class Builder(object):
         self.ex.runv(['kpartx', '-d', image_name], as_root=True)
 
         # Copy image file to cache.
-        filename = self.get_cached_name('system', '', '')
+        filename = self.get_cached_name(morph.name, 'system', '', '')
         self.ex.runv(['cp', '-a', image_name, filename])
 
