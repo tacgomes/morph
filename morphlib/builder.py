@@ -290,6 +290,7 @@ class Builder(object):
                              as_root=True)
 
             # Set hostname.
+            os.mkdir(self.tempdir.join('mnt/etc'))
             with open(self.tempdir.join('mnt/etc/hostname'), 'w') as f:
                 f.write('baserock\n')
 
