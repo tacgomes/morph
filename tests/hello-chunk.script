@@ -20,7 +20,7 @@
 set -e
 
 tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
-./morph build "$DATADIR/hello/hello.morph" \
+./morph --no-default-configs build "$DATADIR/hello/hello.morph" \
     --chunk-repo="file://$DATADIR/hello" --chunk-ref=master \
     --cachedir="$DATADIR"
 tar -tf "$DATADIR/"*.chunk | LC_ALL=C sort
