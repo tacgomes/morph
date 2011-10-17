@@ -25,22 +25,6 @@ import urlparse
 import morphlib
 
 
-class NoMorphs(Exception):
-
-    def __init__(self, repo, ref):
-        Exception.__init__(self, 
-                            'Cannot find any morpologies at %s:%s' %
-                                (repo, ref))
-
-
-class TooManyMorphs(Exception):
-
-    def __init__(self, repo, ref, morphs):
-        Exception.__init__(self, 
-                            'Too many morphologies at %s:%s: %s' %
-                                (repo, ref, ', '.join(morphs)))
-
-
 class Builder(object):
 
     '''Build binary objects for Baserock.
@@ -176,31 +160,6 @@ class Builder(object):
         }
         return self.cachedir.name(dict_key)
 
-    def get_morph_from_git(self, repo, ref):
-        '''Return a morphology from a git repository.'''
-        # FIXME: This implementation assume a local repo.
-
-        path = self.get_repo_dir(repo)
-        ex = morphlib.execute.Execute(path, self.msg)
-        out = ex.runv(['git', 'ls-tree', '--name-only', '-z', ref])
-        names = [x for x in out.split('\0') if x]
-        morphs = [x for x in names if x.endswith('.morph')]
-        if len(morphs) == 0:
-            raise NoMorphs(repo, ref)
-        if len(morphs) > 1:
-            raise TooManyMorphs(repo, ref, morphs)
-        out = ex.runv(['git', 'cat-file', 'blob', '%s:%s' % (ref, morphs[0])])
-        
-        f = StringIO.StringIO(out)
-        f.name = morphs[0]
-        morph = morphlib.morphology.Morphology(f, 
-                                               self.settings['git-base-url'])
-        return morph
-
-    def get_repo_dir(self, repo):
-        scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
-        return path
-
     def prepare_binary_metadata(self, morph, **kwargs):
         '''Add metadata to a binary about to be built.'''
 
@@ -219,6 +178,16 @@ class Builder(object):
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
+
+
+    def get_morph_from_git(self, repo, ref):
+        morph_name, morph_text = morphlib.git.get_morph_text(repo, ref)    
+        f = StringIO.StringIO(morph_text)
+        f.name = morph_name
+        morph = morphlib.morphology.Morphology(f, 
+                                               self.settings['git-base-url'])
+        return morph
+
 
     def build_system(self, morph):
         '''Build a system image.'''

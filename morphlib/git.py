@@ -21,6 +21,22 @@ import urlparse
 import morphlib
 
 
+class NoMorphs(Exception):
+
+    def __init__(self, repo, ref):
+        Exception.__init__(self, 
+                            'Cannot find any morpologies at %s:%s' %
+                                (repo, ref))
+
+
+class TooManyMorphs(Exception):
+
+    def __init__(self, repo, ref, morphs):
+        Exception.__init__(self, 
+                            'Too many morphologies at %s:%s: %s' %
+                                (repo, ref, ', '.join(morphs)))
+
+
 def export_sources(repo, ref, tar_filename):
     '''Export the contents of a specific commit into a compressed tarball.'''
     ex = morphlib.execute.Execute('.', msg=logging.debug)
@@ -32,11 +48,31 @@ def export_sources(repo, ref, tar_filename):
 
 def get_commit_id(repo, ref):
     '''Return the full SHA-1 commit id for a repo+ref.'''
-    # FIXME: This assume repo is a file:/// URL.
+    # FIXME: This assumes repo is a file:/// URL.
 
     scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
     assert scheme == 'file'
     ex = morphlib.execute.Execute(path, msg=logging.debug)
     out = ex.runv(['git', 'rev-list', '-n1', ref])
     return out.strip()
+
+
+def get_morph_text(repo, ref):
+    '''Return a morphology from a git repository.'''
+    # FIXME: This implementation assumes a local repo.
+
+    scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
+    assert scheme == 'file'
+
+    ex = morphlib.execute.Execute(path, msg=logging.debug)
+    out = ex.runv(['git', 'ls-tree', '--name-only', '-z', ref])
+    names = [x for x in out.split('\0') if x]
+    morphs = [x for x in names if x.endswith('.morph')]
+    if len(morphs) == 0:
+        raise NoMorphs(repo, ref)
+    if len(morphs) > 1:
+        raise TooManyMorphs(repo, ref, morphs)
+    out = ex.runv(['git', 'cat-file', 'blob', '%s:%s' % (ref, morphs[0])])
+    
+    return morphs[0], out
 
