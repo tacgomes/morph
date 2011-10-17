@@ -296,13 +296,6 @@ class Builder(object):
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
 
-            # Set hostname.
-            etc = self.tempdir.join('mnt/etc')
-            if not os.path.exists(etc):
-                os.mkdir(etc)
-            with open(self.tempdir.join('mnt/etc/hostname'), 'w') as f:
-                f.write('baserock\n')
-
             # Create fstab.
             fstab = self.tempdir.join('mnt/etc/fstab')
             with open(fstab, 'w') as f:
