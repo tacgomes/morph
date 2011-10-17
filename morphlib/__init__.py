@@ -20,6 +20,7 @@
 __version__ = '0.0'
 
 
+import bins
 import builder
 import cachedir
 import execute
