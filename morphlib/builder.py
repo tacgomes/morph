@@ -112,22 +112,13 @@ class Builder(object):
                                             chunk_repo, chunk_ref)
             morphlib.bins.unpack_chunk(filename, self._inst)
         self.prepare_binary_metadata(morph)
-        stratum_filename = self.create_stratum(morph)
+
+        stratum_filename = self.get_cached_name(morph.name, 'stratum', '', '')
+        self.msg('Creating stratum %s at %s' % (morph.name, stratum_filename))
+        morphlib.bins.create_stratum(self._inst, stratum_filename)
+
         self.tempdir.clear()
         return stratum_filename
-
-    def create_stratum(self, morph):
-        '''Create a Baserock stratum from the ``self._inst`` directory.
-        
-        The directory must be filled in with all the relevant files already.
-        
-        '''
-
-        # FIXME: Should put in stratum's git repo and reference here.
-        filename = self.get_cached_name(morph.name, 'stratum', '', '')
-        self.msg('Creating stratum %s at %s' % (morph.name, filename))
-        morphlib.bins.create_stratum(self._inst, filename)
-        return filename
 
     @property
     def _build(self):
