@@ -100,7 +100,6 @@ class Builder(object):
 
         self.msg('Creating stratum %s' % morph.name)
         os.mkdir(self._inst)
-        self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         for chunk_name in morph.sources:
             self.msg('Unpacking chunk %s' % chunk_name)
             source = morph.sources[chunk_name]
