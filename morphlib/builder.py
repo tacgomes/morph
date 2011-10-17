@@ -70,7 +70,10 @@ class Builder(object):
             self.prepare_binary_metadata(morph, 
                     repo=repo, 
                     ref=morphlib.git.get_commit_id(repo, ref))
-            self.create_chunk(morph, repo, ref)
+
+            morphlib.bins.create_chunk(self._inst, 
+                self.get_cached_name(morph.name, 'chunk', repo, ref))
+
             self.tempdir.clear()
         
     def create_build_tree(self, morph, repo, ref):
@@ -84,17 +87,6 @@ class Builder(object):
         f.extractall(path=self._build)
         f.close()
         os.remove(tarball)
-
-    def create_chunk(self, morph, repo, ref):
-        '''Create a Baserock chunk from the ``self._inst`` directory.
-        
-        The directory must be filled in with all the relevant files already.
-        
-        '''
-
-        logging.debug('Creating chunk %s' % morph.name)
-        filename = self.get_cached_name(morph.name, 'chunk', repo, ref)
-        morphlib.bins.create_chunk(self._inst, filename)
 
     def build_stratum(self, morph):
         '''Build a stratum from a morphology.'''
