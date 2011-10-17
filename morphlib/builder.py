@@ -85,7 +85,7 @@ class Builder(object):
             self.ex.run(morph.install_commands, as_fakeroot=True)
             self.prepare_binary_metadata(morph, 
                     repo=repo, 
-                    ref=self.get_git_commit_id(repo, ref))
+                    ref=morphlib.git.get_commit_id(repo, ref))
             self.create_chunk(morph, repo, ref)
             self.tempdir.clear()
         
@@ -163,7 +163,10 @@ class Builder(object):
 
     def get_cached_name(self, name, kind, repo, ref):
         '''Return the cached name of a binary blob, if and when it exists.'''
-        abs_ref = self.get_git_commit_id(repo, ref)
+        if repo and ref:
+            abs_ref = morphlib.git.get_commit_id(repo, ref)
+        else:
+            abs_ref = ''
         dict_key = {
             'name': name,
             'kind': kind,
@@ -172,16 +175,6 @@ class Builder(object):
             'ref': abs_ref,
         }
         return self.cachedir.name(dict_key)
-
-    def get_git_commit_id(self, repo, ref):
-        '''Return the full SHA-1 commit id for a repo+ref.'''
-        if repo and ref:
-            path = self.get_repo_dir(repo)
-            ex = morphlib.execute.Execute(path, self.msg)
-            out = ex.runv(['git', 'rev-list', '-n1', ref])
-            return out.strip()
-        else:
-            return ''
 
     def get_morph_from_git(self, repo, ref):
         '''Return a morphology from a git repository.'''

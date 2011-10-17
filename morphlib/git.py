@@ -16,6 +16,7 @@
 
 import gzip
 import logging
+import urlparse
 
 import morphlib
 
@@ -27,4 +28,15 @@ def export_sources(repo, ref, tar_filename):
     f = gzip.open(tar_filename, 'wb')
     f.write(tar)
     f.close()
+
+
+def get_commit_id(repo, ref):
+    '''Return the full SHA-1 commit id for a repo+ref.'''
+    # FIXME: This assume repo is a file:/// URL.
+
+    scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
+    assert scheme == 'file'
+    ex = morphlib.execute.Execute(path, msg=logging.debug)
+    out = ex.runv(['git', 'rev-list', '-n1', ref])
+    return out.strip()
 
