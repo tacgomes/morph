@@ -53,8 +53,11 @@ class Builder(object):
         '''Build a chunk from a morphology.'''
         logging.debug('Building chunk')
         self.msg('Building chunk %s' % morph.name)
-        filename = self.get_cached_name(morph.name, 'chunk', repo, ref)
-        if os.path.exists(filename):
+        
+        cache_prefix = self.get_cache_prefix(morph.name, repo, ref)
+        
+        chunk_filename = cache_prefix + '.chunk'
+        if os.path.exists(chunk_filename):
             self.msg('Chunk already exists: %s %s' % (repo, ref))
             self.msg('(chunk cached at %s)' % filename)
         else:
@@ -63,13 +66,12 @@ class Builder(object):
             self.ex.env['DESTDIR'] = self._inst + '/'
 
             logging.debug('Creating build tree at %s' % self._build)
-            tarball = self.tempdir.join('sources.tar.gz')
+            tarball = cache_prefix + '.src.tar.gz'
             morphlib.git.export_sources(repo, ref, tarball)
             os.mkdir(self._build)
             f = tarfile.open(tarball)
             f.extractall(path=self._build)
             f.close()
-            os.remove(tarball)
 
             self.ex.run(morph.configure_commands)
             self.ex.run(morph.build_commands)
@@ -80,8 +82,7 @@ class Builder(object):
                     repo=repo, 
                     ref=morphlib.git.get_commit_id(repo, ref))
 
-            morphlib.bins.create_chunk(self._inst, 
-                self.get_cached_name(morph.name, 'chunk', repo, ref))
+            morphlib.bins.create_chunk(self._inst, chunk_filename)
 
             self.tempdir.clear()
         
@@ -100,12 +101,13 @@ class Builder(object):
         for chunk_name in morph.sources:
             self.msg('Unpacking chunk %s' % chunk_name)
             source = morph.sources[chunk_name]
-            filename = self.get_cached_name(chunk_name, 'chunk', 
-                                            source['repo'], source['ref'])
-            morphlib.bins.unpack_chunk(filename, self._inst)
+            prefix = self.get_cache_prefix(chunk_name, source['repo'], 
+                                           source['ref'])
+            morphlib.bins.unpack_chunk('%s.chunk' % prefix, self._inst)
         self.prepare_binary_metadata(morph)
 
-        stratum_filename = self.get_cached_name(morph.name, 'stratum', '', '')
+        stratum_filename = ('%s.stratum' % 
+                                self.get_cache_prefix(morph.name, '', ''))
         self.msg('Creating stratum %s at %s' % (morph.name, stratum_filename))
         morphlib.bins.create_stratum(self._inst, stratum_filename)
 
@@ -120,15 +122,14 @@ class Builder(object):
     def _inst(self):
         return self.tempdir.join('inst')
 
-    def get_cached_name(self, name, kind, repo, ref):
-        '''Return the cached name of a binary blob, if and when it exists.'''
+    def get_cache_prefix(self, name, repo, ref):
+        '''Return prefix of a cached binary blob, if and when it exists.'''
         if repo and ref:
             abs_ref = morphlib.git.get_commit_id(repo, ref)
         else:
             abs_ref = ''
         dict_key = {
             'name': name,
-            'kind': kind,
             'arch': morphlib.util.arch(),
             'repo': repo,
             'ref': abs_ref,
@@ -269,6 +270,6 @@ append root=/dev/sda1 init=/bin/sh quiet
         self.ex.runv(['kpartx', '-d', image_name], as_root=True)
 
         # Copy image file to cache.
-        filename = self.get_cached_name(morph.name, 'system', '', '')
+        filename = '%s.system' % self.get_cache_prefix(morph.name, '', '')
         self.ex.runv(['cp', '-a', image_name, filename])
 
