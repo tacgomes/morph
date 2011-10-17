@@ -108,9 +108,9 @@ class Builder(object):
         
         '''
 
+        logging.debug('Creating chunk %s' % morph.name)
         filename = self.get_cached_name(morph.name, 'chunk', repo, ref)
-        logging.debug('Creating chunk %s at %s' % (morph.name, filename))
-        self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
+        morphlib.bins.create_chunk(self._inst, filename)
 
     def build_stratum(self, morph):
         '''Build a stratum from a morphology.'''
@@ -134,14 +134,11 @@ class Builder(object):
                             (chunk_repo, chunk_ref))
             filename = self.get_cached_name(chunk_name, 'chunk', 
                                             chunk_repo, chunk_ref)
-            self.unpack_chunk(filename)
+            morphlib.bins.unpack_chunk(filename, self._inst)
         self.prepare_binary_metadata(morph)
         stratum_filename = self.create_stratum(morph)
         self.tempdir.clear()
         return stratum_filename
-
-    def unpack_chunk(self, filename):
-        self.ex.runv(['tar', '-C', self._inst, '-xf', filename])
 
     def create_stratum(self, morph):
         '''Create a Baserock stratum from the ``self._inst`` directory.
