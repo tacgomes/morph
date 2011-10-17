@@ -19,6 +19,14 @@ import unittest
 import morphlib
 
 
+class ArchTests(unittest.TestCase):
+
+    def test(self):
+        arch = morphlib.util.arch()
+        self.assertEqual(type(arch), str)
+        self.assertNotEqual(arch, '')
+
+
 class IndentTests(unittest.TestCase):
 
     def test_returns_empty_string_for_empty_string(self):

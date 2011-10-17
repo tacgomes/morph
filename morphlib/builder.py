@@ -52,10 +52,6 @@ class Builder(object):
         self.settings = settings
         self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
 
-    @property
-    def arch(self):
-        return os.uname()[4]
-
     def build(self, morph):
         '''Build a binary based on a morphology.'''
         if morph.kind == 'chunk':
@@ -174,7 +170,7 @@ class Builder(object):
         dict_key = {
             'name': name,
             'kind': kind,
-            'arch': self.arch,
+            'arch': morphlib.util.arch(),
             'repo': repo,
             'ref': abs_ref,
         }
