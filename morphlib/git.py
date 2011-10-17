@@ -14,17 +14,17 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+import gzip
+import logging
+
+import morphlib
 
 
-__version__ = '0.0'
+def export_sources(repo, ref, tar_filename):
+    '''Export the contents of a specific commit into a compressed tarball.'''
+    ex = morphlib.execute.Execute('.', msg=logging.debug)
+    tar = ex.runv(['git', 'archive', '--remote', repo, ref])
+    f = gzip.open(tar_filename, 'wb')
+    f.write(tar)
+    f.close()
 
-
-import bins
-import builder
-import cachedir
-import execute
-import git
-import morphology
-import tempdir
-import util

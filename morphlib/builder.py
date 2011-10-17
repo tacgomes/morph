@@ -19,6 +19,7 @@ import logging
 import os
 import shutil
 import StringIO
+import tarfile
 import urlparse
 
 import morphlib
@@ -92,13 +93,12 @@ class Builder(object):
         '''Export sources from git into the ``self._build`` directory.'''
 
         logging.debug('Creating build tree at %s' % self._build)
+        tarball = self.tempdir.join('sources.tar.gz')
+        morphlib.git.export_sources(repo, ref, tarball)
         os.mkdir(self._build)
-        tarball = self.tempdir.join('sources.tar')
-        self.ex.runv(['git', 'archive',
-                      '--output', tarball,
-                      '--remote', repo,
-                      ref])
-        self.ex.runv(['tar', '-C', self._build, '-xf', tarball])
+        f = tarfile.open(tarball)
+        f.extractall(path=self._build)
+        f.close()
         os.remove(tarball)
 
     def create_chunk(self, morph, repo, ref):
