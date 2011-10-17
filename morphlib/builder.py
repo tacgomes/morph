@@ -103,12 +103,8 @@ class Builder(object):
         for chunk_name in morph.sources:
             self.msg('Unpacking chunk %s' % chunk_name)
             source = morph.sources[chunk_name]
-            chunk_repo = source['repo']
-            chunk_ref = source['ref']
-            logging.debug('Looking for chunk at repo=%s ref=%s' %
-                            (chunk_repo, chunk_ref))
             filename = self.get_cached_name(chunk_name, 'chunk', 
-                                            chunk_repo, chunk_ref)
+                                            source['repo'], source['ref'])
             morphlib.bins.unpack_chunk(filename, self._inst)
         self.prepare_binary_metadata(morph)
 
