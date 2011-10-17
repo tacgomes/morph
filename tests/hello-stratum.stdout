@@ -1,7 +1,7 @@
 ./
-./baserock/
-./baserock/hello.meta
-./usr/
-./usr/local/
-./usr/local/bin/
-./usr/local/bin/greeter
+baserock/
+baserock/hello.meta
+usr/
+usr/local/
+usr/local/bin/
+usr/local/bin/greeter

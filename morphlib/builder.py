@@ -150,7 +150,7 @@ class Builder(object):
         # FIXME: Should put in stratum's git repo and reference here.
         filename = self.get_cached_name(morph.name, 'stratum', '', '')
         self.msg('Creating stratum %s at %s' % (morph.name, filename))
-        self.ex.runv(['tar', '-C', self._inst, '-czf', filename, '.'])
+        morphlib.bins.create_stratum(self._inst, filename)
         return filename
 
     @property
@@ -285,9 +285,7 @@ class Builder(object):
 
             # Unpack all strata into filesystem.
             for filename in stratum_filenames:
-                self.msg('Unpacking stratum %s' % filename)
-                self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
-                             as_root=True)
+                morphlib.bins.unpack_stratum(filename, mount_point)
 
             # Create fstab.
             fstab = self.tempdir.join('mnt/etc/fstab')
