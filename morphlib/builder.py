@@ -61,7 +61,16 @@ class Builder(object):
             self.ex = morphlib.execute.Execute(self._build, self.msg)
             self.ex.env['WORKAREA'] = self.tempdir.dirname
             self.ex.env['DESTDIR'] = self._inst + '/'
-            self.create_build_tree(morph, repo, ref)
+
+            logging.debug('Creating build tree at %s' % self._build)
+            tarball = self.tempdir.join('sources.tar.gz')
+            morphlib.git.export_sources(repo, ref, tarball)
+            os.mkdir(self._build)
+            f = tarfile.open(tarball)
+            f.extractall(path=self._build)
+            f.close()
+            os.remove(tarball)
+
             self.ex.run(morph.configure_commands)
             self.ex.run(morph.build_commands)
             self.ex.run(morph.test_commands)
@@ -76,18 +85,6 @@ class Builder(object):
 
             self.tempdir.clear()
         
-    def create_build_tree(self, morph, repo, ref):
-        '''Export sources from git into the ``self._build`` directory.'''
-
-        logging.debug('Creating build tree at %s' % self._build)
-        tarball = self.tempdir.join('sources.tar.gz')
-        morphlib.git.export_sources(repo, ref, tarball)
-        os.mkdir(self._build)
-        f = tarfile.open(tarball)
-        f.extractall(path=self._build)
-        f.close()
-        os.remove(tarball)
-
     def build_stratum(self, morph):
         '''Build a stratum from a morphology.'''
 
