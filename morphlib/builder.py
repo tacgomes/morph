@@ -154,7 +154,6 @@ class Builder(object):
             json.dump(meta, f, indent=4)
             f.write('\n')
 
-
     def get_morph_from_git(self, repo, ref):
         morph_name, morph_text = morphlib.git.get_morph_text(repo, ref)    
         f = StringIO.StringIO(morph_text)
@@ -162,7 +161,6 @@ class Builder(object):
         morph = morphlib.morphology.Morphology(f, 
                                                self.settings['git-base-url'])
         return morph
-
 
     def build_system(self, morph):
         '''Build a system image.'''
