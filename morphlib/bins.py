@@ -47,3 +47,25 @@ def unpack_chunk(chunk_filename, dirname):
     tar.extractall(path=dirname)
     tar.close()
 
+
+def create_stratum(rootdir, stratum_filename):
+    '''Create a stratum from the contents of a directory.'''
+    logging.debug('Creating stratum file %s from %s' % 
+                    (stratum_filename, rootdir))
+    tar = tarfile.open(name=stratum_filename, mode='w:gz')
+    tar.add(rootdir, arcname='.')
+    tar.close()
+
+
+def unpack_stratum(stratum_filename, dirname):
+    '''Unpack a stratum into a directory.
+    
+    The directory must exist already.
+    
+    '''
+
+    logging.debug('Unpacking stratum %s into %s' % (stratum_filename, dirname))
+    tar = tarfile.open(name=stratum_filename)
+    tar.extractall(path=dirname)
+    tar.close()
+

@@ -76,3 +76,27 @@ class ChunkTests(unittest.TestCase):
         self.assertEqual(recursive_lstat(self.instdir),
                          recursive_lstat(self.unpacked))
 
+
+class StratumTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.instdir = os.path.join(self.tempdir, 'inst')
+        self.stratum_file = os.path.join(self.tempdir, 'stratum')
+        self.unpacked = os.path.join(self.tempdir, 'unpacked')
+        
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def populate_instdir(self):
+        os.mkdir(self.instdir)
+        os.mkdir(os.path.join(self.instdir, 'bin'))
+
+    def test_creates_and_unpacks_stratum_exactly(self):
+        self.populate_instdir()
+        morphlib.bins.create_stratum(self.instdir, self.stratum_file)
+        os.mkdir(self.unpacked)
+        morphlib.bins.unpack_stratum(self.stratum_file, self.unpacked)
+        self.assertEqual(recursive_lstat(self.instdir),
+                         recursive_lstat(self.unpacked))
+
