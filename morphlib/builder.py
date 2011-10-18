@@ -59,7 +59,7 @@ class Builder(object):
         chunk_filename = cache_prefix + '.chunk'
         if os.path.exists(chunk_filename):
             self.msg('Chunk already exists: %s %s' % (repo, ref))
-            self.msg('(chunk cached at %s)' % filename)
+            self.msg('(chunk cached at %s)' % chunk_filename)
         else:
             self.ex = morphlib.execute.Execute(self._build, self.msg)
             self.ex.env['WORKAREA'] = self.tempdir.dirname
@@ -221,7 +221,8 @@ class Builder(object):
 
             # Unpack all strata into filesystem.
             for filename in stratum_filenames:
-                morphlib.bins.unpack_stratum(filename, mount_point)
+                self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
+                             as_root=True)
 
             # Create fstab.
             fstab = self.tempdir.join('mnt/etc/fstab')
