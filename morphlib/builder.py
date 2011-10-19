@@ -66,6 +66,7 @@ class Builder(object):
             self.ex.env['DESTDIR'] = self._inst + '/'
             self.ex.env['MAKEFLAGS'] = \
                 '-j%d' % morphlib.util.make_concurrency()
+            self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
 
             logging.debug('Creating build tree at %s' % self._build)
             tarball = cache_prefix + '.src.tar.gz'
