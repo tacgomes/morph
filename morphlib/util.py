@@ -44,3 +44,18 @@ def indent(string, spaces=4):
     lines = ['%*s%s' % (spaces, '', line) for line in lines]
     return '\n'.join(lines)
 
+
+
+def make_concurrency(cores=None):
+    '''Return the number of concurrent jobs for make.
+    
+    This will be given to make as the -j argument.
+
+    '''
+
+    n = multiprocessing.cpu_count() if cores is None else cores
+    # Experimental results (ref. Kinnison) says a factor of 1.5
+    # gives about the optimal result for build times, since much of
+    # builds are I/O bound, not CPU bound.
+    return max(int(n * 1.5 + 0.5), 1)
+
