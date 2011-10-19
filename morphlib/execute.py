@@ -23,7 +23,17 @@ import morphlib
 
 class CommandFailure(Exception):
 
-    pass
+    def __init__(self, command, stdout, stderr, exit):
+        Exception.__init__(self,
+                           'Command failed: %s\n'
+                           'Standard output:\n%s\n'
+                           'Standard error:\n%s\n'
+                           'Exit code: %s' % 
+                             (command,
+                              morphlib.util.indent(stdout),
+                              morphlib.util.indent(stderr),
+                              exit))
+        
 
 
 class Execute(object):
@@ -64,8 +74,7 @@ class Execute(object):
             logging.debug('Standard output:\n%s' % morphlib.util.indent(out))
             logging.debug('Standard error:\n%s' % morphlib.util.indent(err))
             if p.returncode != 0:
-                raise CommandFailure('Command failed: %s\n%s' % 
-                                      (command, morphlib.util.indent(err)))
+                raise CommandFailure(command, out, err, p.returncode)
             stdouts.append(out)
         return stdouts
 
@@ -90,7 +99,6 @@ class Execute(object):
         logging.debug('Standard output:\n%s' % morphlib.util.indent(out))
         logging.debug('Standard error:\n%s' % morphlib.util.indent(err))
         if p.returncode != 0:
-            raise CommandFailure('Command failed: %s\n%s' % 
-                                  (argv, morphlib.util.indent(err)))
+            raise CommandFailure(' '.join(argv), out, err, p.returncode)
         return out
 
