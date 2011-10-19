@@ -64,6 +64,8 @@ class Builder(object):
             self.ex = morphlib.execute.Execute(self._build, self.msg)
             self.ex.env['WORKAREA'] = self.tempdir.dirname
             self.ex.env['DESTDIR'] = self._inst + '/'
+            self.ex.env['MAKEFLAGS'] = \
+                '-j%d' % morphlib.util.make_concurrency()
 
             logging.debug('Creating build tree at %s' % self._build)
             tarball = cache_prefix + '.src.tar.gz'
