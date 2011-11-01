@@ -56,6 +56,16 @@ class Morphology(object):
         return self._dict['sources']
 
     @property
+    def build_system(self):
+        return self._dict.get('build-system', None)
+
+    @property
+    def max_jobs(self):
+        if 'max-jobs' in self._dict:
+            return int(self._dict['max-jobs'])
+        return None
+
+    @property
     def configure_commands(self):
         return self._dict.get('configure-commands', [])
 

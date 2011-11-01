@@ -37,6 +37,8 @@ class MorphologyTests(unittest.TestCase):
                                 "name": "hello",
                                 "kind": "chunk", 
                                 "description": "desc",
+                                "build-system": "autotools",
+                                "max-jobs": "42",
                                 "configure-commands": ["./configure"],
                                 "build-commands": ["make"],
                                 "test-commands": ["make check"],
@@ -46,10 +48,30 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.kind, 'chunk')
         self.assertEqual(morph.description, 'desc')
         self.assertEqual(morph.filename, 'mockfile')
+        self.assertEqual(morph.build_system, 'autotools')
+        self.assertEqual(morph.max_jobs, 42)
         self.assertEqual(morph.configure_commands, ['./configure'])
         self.assertEqual(morph.build_commands, ['make'])
         self.assertEqual(morph.test_commands, ['make check'])
         self.assertEqual(morph.install_commands, ['make install'])
+
+    def test_build_system_defaults_to_None(self):
+        morph = morphlib.morphology.Morphology(
+                          MockFile('''
+                            {
+                                "name": "hello",
+                                "kind": "chunk"
+                            }'''))
+        self.assertEqual(morph.build_system, None)
+
+    def test_max_jobs_defaults_to_None(self):
+        morph = morphlib.morphology.Morphology(
+                          MockFile('''
+                            {
+                                "name": "hello",
+                                "kind": "chunk"
+                            }'''))
+        self.assertEqual(morph.max_jobs, None)
 
     def test_accepts_valid_stratum_morphology(self):
         morph = morphlib.morphology.Morphology(

@@ -25,6 +25,24 @@ import urlparse
 import morphlib
 
 
+build_system = {
+    'autotools': {
+        'configure-commands': [
+            'if [ -e autogen.sh ]; then ./autogen.sh; fi',
+            './configure --prefix=/usr',
+        ],
+        'build-commands': [
+            'make',
+        ],
+        'test-commands': [
+        ],
+        'install-commands': [
+            'make DESTDIR="$DESTDIR" install',
+        ],
+    },
+}
+
+
 class Builder(object):
 
     '''Build binary objects for Baserock.
@@ -65,8 +83,8 @@ class Builder(object):
             self.ex.env['WORKAREA'] = self.tempdir.dirname
             self.ex.env['DESTDIR'] = self._inst + '/'
 
-            if 'max-jobs' in morph:
-                max_jobs = int(morph['max-jobs'])
+            if morph.max_jobs:
+                max_jobs = int(morph.max_jobs)
             elif self.settings['max-jobs']:
                 max_jobs = self.settings['max-jobs']
             else:
@@ -86,11 +104,19 @@ class Builder(object):
             f.extractall(path=self._build)
             f.close()
 
-            self.ex.run(morph.configure_commands)
-            self.ex.run(morph.build_commands)
-            self.ex.run(morph.test_commands)
             os.mkdir(self._inst)
-            self.ex.run(morph.install_commands, as_fakeroot=True)
+            if morph.build_system:
+                bs = build_system[morph.build_system]
+                self.ex.run(bs['configure-commands'])
+                self.ex.run(bs['build-commands'])
+                self.ex.run(bs['test-commands'])
+                self.ex.run(bs['install-commands'])
+            else:
+                self.ex.run(morph.configure_commands)
+                self.ex.run(morph.build_commands)
+                self.ex.run(morph.test_commands)
+                self.ex.run(morph.install_commands, as_fakeroot=True)
+    
             self.prepare_binary_metadata(morph, 
                     repo=repo, 
                     ref=morphlib.git.get_commit_id(repo, ref))
