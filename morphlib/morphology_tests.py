@@ -60,7 +60,6 @@ class MorphologyTests(unittest.TestCase):
                                 "sources": 
                                     {
                                         "foo": {
-                                            "repo": "foo",
                                             "ref": "ref"
                                         }
                                     }

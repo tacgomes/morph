@@ -32,7 +32,9 @@ class Morphology(object):
         self._dict = json.load(self._fp)
 
         if self.kind == 'stratum':
-            for source in self.sources.itervalues():
+            for name, source in self.sources.iteritems():
+                if 'repo' not in source:
+                    source['repo'] = name
                 source['repo'] = self._join_with_baseurl(source['repo'])
 
         self.filename = self._fp.name
