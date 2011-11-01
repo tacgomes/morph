@@ -44,6 +44,12 @@ class Morph(cliapp.Application):
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
         self.settings.boolean(['no-ccache'], 'do not use ccache')
+        self.settings.integer(['max-jobs'], 
+                              'run at most N parallel jobs with make (default '
+                                'is to a value based on the number of CPUs '
+                                'in the machine running morph',
+                              metavar='N',
+                              default=0)
 
     def cmd_build(self, morph_filenames):
         tempdir = morphlib.tempdir.Tempdir()

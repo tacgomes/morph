@@ -64,8 +64,13 @@ class Builder(object):
             self.ex = morphlib.execute.Execute(self._build, self.msg)
             self.ex.env['WORKAREA'] = self.tempdir.dirname
             self.ex.env['DESTDIR'] = self._inst + '/'
-            self.ex.env['MAKEFLAGS'] = \
-                '-j%d' % morphlib.util.make_concurrency()
+
+            if self.settings['max-jobs']:
+                max_jobs = self.settings['max-jobs']
+            else:
+                max_jobs = morphlib.util.make_concurrency()
+            self.ex.env['MAKEFLAGS'] = '-j%d' % max_jobs
+
             if not self.settings['no-ccache']:
                 self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
                                         self.ex.env['PATH'])
