@@ -43,6 +43,7 @@ class Morph(cliapp.Application):
         self.settings.string(['cachedir'], 
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
+        self.settings.boolean(['no-ccache'], 'do not use ccache')
 
     def cmd_build(self, morph_filenames):
         tempdir = morphlib.tempdir.Tempdir()
