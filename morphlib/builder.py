@@ -65,7 +65,9 @@ class Builder(object):
             self.ex.env['WORKAREA'] = self.tempdir.dirname
             self.ex.env['DESTDIR'] = self._inst + '/'
 
-            if self.settings['max-jobs']:
+            if 'max-jobs' in morph:
+                max_jobs = int(morph['max-jobs'])
+            elif self.settings['max-jobs']:
                 max_jobs = self.settings['max-jobs']
             else:
                 max_jobs = morphlib.util.make_concurrency()
