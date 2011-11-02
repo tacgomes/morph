@@ -47,16 +47,21 @@ class Morph(cliapp.Application):
                               metavar='N',
                               default=0)
 
-    def cmd_build(self, morph_filenames):
+    def cmd_build(self, args):
         tempdir = morphlib.tempdir.Tempdir()
         builder = morphlib.builder.Builder(tempdir, self.msg, self.settings)
-        for name in morph_filenames:
-            self.msg('Building morphology %s' % name)
-            with self.open_input(name, 'r') as f:
-                morph = morphlib.morphology.Morphology(f, 
-                                    baseurl=self.settings['git-base-url'])
-                builder.build(morph, '', '')
+
+        while len(args) >= 3:
+            repo, ref, filename = args[:3]
+            args = args[3:]
+            self.msg('Building %s - %s - %s' % (repo, ref, filename))
+            builder.build(repo, ref, filename)
+        
         tempdir.remove()
+
+        if args:
+            raise cliapp.AppException('Extra args on command line: %s' % args)
+            
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

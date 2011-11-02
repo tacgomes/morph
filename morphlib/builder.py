@@ -51,19 +51,20 @@ class BinaryBlob(object):
     def build(self):
         raise NotImplemented()
 
-    def prepare_binary_metadata(self, morph, **kwargs):
+    def prepare_binary_metadata(self, **kwargs):
         '''Add metadata to a binary about to be built.'''
 
+        self.msg('Adding metadata to %s' % self.morph.name)
         meta = {
-            'name': morph.name,
-            'kind': morph.kind,
-            'description': morph.description,
+            'name': self.morph.name,
+            'kind': self.morph.kind,
+            'description': self.morph.description,
         }
         for key, value in kwargs.iteritems():
             meta[key] = value
         
         dirname = os.path.join(self.destdir, 'baserock')
-        filename = os.path.join(dirname, '%s.meta' % morph.name)
+        filename = os.path.join(dirname, '%s.meta' % self.morph.name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
         with open(filename, 'w') as f:
@@ -112,11 +113,9 @@ class Chunk(BinaryBlob):
             self.ex.run(self.morph.test_commands)
             self.ex.run(self.morph.install_commands, as_fakeroot=True)
 
-        self.prepare_binary_metadata(self.morph)
+        self.prepare_binary_metadata()
 
         morphlib.bins.create_chunk(self.destdir, self.filename)
-
-        self.tempdir.clear()
 
 
 class Stratum(BinaryBlob):
@@ -140,38 +139,25 @@ class Stratum(BinaryBlob):
     
     def needs_built(self):
         for chunk_name, source in self.morph.sources.iteritems():
+            morph_name = source['morph'] if 'morph' in source else chunk_name
             repo = source['repo']
             ref = source['ref']
-            chunk_morph = self.get_morph_from_git(repo, ref)
-            yield chunk_morph, repo, ref
+            yield repo, ref, morph_name
 
     def build(self):
         os.mkdir(self.destdir)
-        for chunk_name in self.morph.sources:
+        for chunk_name, filename in self.built.iteritems():
             self.msg('Unpacking chunk %s' % chunk_name)
-            morphlib.bins.unpack_chunk(self.built[chunk_name], self.destdir)
-        self.prepare_binary_metadata(self.morph)
+            morphlib.bins.unpack_chunk(filename, self.destdir)
+        self.prepare_binary_metadata()
         morphlib.bins.create_stratum(self.destdir, self.filename)
-
-    def get_morph_from_git(self, repo, ref):
-        morph_name, morph_text = morphlib.git.get_morph_text(repo, ref)    
-        f = StringIO.StringIO(morph_text)
-        f.name = morph_name
-        morph = morphlib.morphology.Morphology(f, 
-                                               self.settings['git-base-url'])
-        return morph
 
 
 class System(BinaryBlob):
 
     def needs_built(self):
-        for stratum in self.morph.strata:
-            dirname = os.path.dirname(self.morph.filename)
-            stratum_filename = os.path.join(dirname, '%s.morph' % stratum)
-            with open(stratum_filename) as f:
-                stratum_morph = morphlib.morphology.Morphology(f,
-                                    baseurl=self.settings['git-base-url'])
-                yield stratum_morph, '', ''
+        for stratum_name in self.morph.strata:
+            yield self.repo, self.ref, stratum_name
 
     def build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
@@ -278,8 +264,10 @@ class Builder(object):
         self.settings = settings
         self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
 
-    def build(self, morph, repo, ref):
+    def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
+
+        morph = self.get_morph_from_git(repo, ref, filename)
 
         if morph.kind == 'chunk':
             blob = Chunk(morph, repo, ref)
@@ -294,8 +282,8 @@ class Builder(object):
         self.complete_dict_key(dict_key, morph.name, repo, ref)
         logging.debug('completed dict_key:\n%s' % repr(dict_key))
 
-        blob.builddir = self.tempdir.join('build')
-        blob.destdir = self.tempdir.join('inst')
+        blob.builddir = self.tempdir.join('%s.build' % morph.name)
+        blob.destdir = self.tempdir.join('%s.inst' % morph.name)
         blob.settings = self.settings
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
@@ -303,10 +291,11 @@ class Builder(object):
         blob.tempdir = self.tempdir
         
         blob.built = {}
-        for needed_morph, needed_repo, needed_ref in blob.needs_built():
-            self.msg('Need %s %s' % (needed_morph.kind, needed_morph.name))
-            needed_filename = self.build(needed_morph, needed_repo, needed_ref)
-            blob.built[needed_morph.name] = needed_filename
+        for needed_repo, needed_ref, needed_name in blob.needs_built():
+            needed_filename = '%s.morph' % needed_name
+            needed_cached = self.build(needed_repo, needed_ref, 
+                                       needed_filename)
+            blob.built[needed_name] = needed_cached
 
         if not os.path.exists(blob.filename):
             self.msg('Building %s %s' % (morph.kind, morph.name))
@@ -326,6 +315,14 @@ class Builder(object):
 
         dict_key['name'] = name
         dict_key['arch'] = morphlib.util.arch()
-        dict_key['name'] = repo
-        dict_key['name'] = abs_ref
+        dict_key['repo'] = repo
+        dict_key['ref'] = abs_ref
+
+    def get_morph_from_git(self, repo, ref, filename):
+        morph_text = morphlib.git.get_morph_text(repo, ref, filename)
+        f = StringIO.StringIO(morph_text)
+        f.name = filename
+        morph = morphlib.morphology.Morphology(f, 
+                                               self.settings['git-base-url'])
+        return morph
 

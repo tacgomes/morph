@@ -57,22 +57,12 @@ def get_commit_id(repo, ref):
     return out.strip()
 
 
-def get_morph_text(repo, ref):
+def get_morph_text(repo, ref, filename):
     '''Return a morphology from a git repository.'''
     # FIXME: This implementation assumes a local repo.
 
     scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
     assert scheme == 'file'
-
     ex = morphlib.execute.Execute(path, msg=logging.debug)
-    out = ex.runv(['git', 'ls-tree', '--name-only', '-z', ref])
-    names = [x for x in out.split('\0') if x]
-    morphs = [x for x in names if x.endswith('.morph')]
-    if len(morphs) == 0:
-        raise NoMorphs(repo, ref)
-    if len(morphs) > 1:
-        raise TooManyMorphs(repo, ref, morphs)
-    out = ex.runv(['git', 'cat-file', 'blob', '%s:%s' % (ref, morphs[0])])
-    
-    return morphs[0], out
+    return ex.runv(['git', 'cat-file', 'blob', '%s:%s' % (ref, filename)])
 
