@@ -289,6 +289,11 @@ class Builder(object):
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.filename = '%s.%s' % (blob.cache_prefix, morph.kind)
         blob.tempdir = self.tempdir
+
+        if os.path.exists(blob.filename):
+            self.msg('%s %s already cached at %s' %
+                        (morph.kind, morph.name, blob.filename))
+            return blob.filename
         
         blob.built = {}
         for needed_repo, needed_ref, needed_name in blob.needs_built():
@@ -297,10 +302,9 @@ class Builder(object):
                                        needed_filename)
             blob.built[needed_name] = needed_cached
 
-        if not os.path.exists(blob.filename):
-            self.msg('Building %s %s' % (morph.kind, morph.name))
-            blob.build()
-            assert os.path.exists(blob.filename)
+        self.msg('Building %s %s' % (morph.kind, morph.name))
+        blob.build()
+        assert os.path.exists(blob.filename)
         self.msg('%s %s cached at %s' % 
                     (morph.kind, morph.name, blob.filename))
         return blob.filename
