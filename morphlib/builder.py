@@ -210,7 +210,8 @@ class System(BinaryBlob):
             self.ex.runv(['mount', partition, mount_point], as_root=True)
 
             # Unpack all strata into filesystem.
-            for filename in self.built.itervalues():
+            for name, filename in self.built.iteritems():
+                self.msg('unpack %s from %s' % (name, filename))
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
 
@@ -303,6 +304,7 @@ class Builder(object):
         
         blob.built = {}
         for needed_morph, needed_repo, needed_ref in blob.needs_built():
+            self.msg('Need %s %s' % (needed_morph.kind, needed_morph.name))
             needed_filename = self.build(needed_morph, needed_repo, needed_ref)
             blob.built[needed_morph.name] = needed_filename
 
