@@ -36,10 +36,6 @@ class Morph(cliapp.Application):
         self.settings.string(['git-base-url'],
                              'prepend URL to git repos that are not URLs',
                              metavar='URL')
-        self.settings.string(['chunk-repo'], 
-                             'repository to use for a chunk morphology')
-        self.settings.string(['chunk-ref'], 
-                             'commit reference to use for a chunk morphology')
         self.settings.string(['cachedir'], 
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
@@ -59,7 +55,7 @@ class Morph(cliapp.Application):
             with self.open_input(name, 'r') as f:
                 morph = morphlib.morphology.Morphology(f, 
                                     baseurl=self.settings['git-base-url'])
-                builder.build(morph)
+                builder.build(morph, '', '')
         tempdir.remove()
 
     def msg(self, msg):

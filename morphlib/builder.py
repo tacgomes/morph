@@ -25,155 +25,31 @@ import urlparse
 import morphlib
 
 
-build_system = {
-    'autotools': {
-        'configure-commands': [
-            'if [ -e autogen.sh ]; then ./autogen.sh; fi',
-            './configure --prefix=/usr',
-        ],
-        'build-commands': [
-            'make',
-        ],
-        'test-commands': [
-        ],
-        'install-commands': [
-            'make DESTDIR="$DESTDIR" install',
-        ],
-    },
-}
+class BinaryBlob(object):
 
-
-class Builder(object):
-
-    '''Build binary objects for Baserock.
-    
-    The objects may be chunks or strata.'''
-    
-    def __init__(self, tempdir, msg, settings):
-        self.tempdir = tempdir
-        self.msg = msg
-        self.settings = settings
-        self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
-
-    def build(self, morph):
-        '''Build a binary based on a morphology.'''
-        if morph.kind == 'chunk':
-            self.build_chunk(morph, self.settings['chunk-repo'], 
-                             self.settings['chunk-ref'])
-        elif morph.kind == 'stratum':
-            self.build_stratum(morph)
-        elif morph.kind == 'system':
-            self.build_system(morph)
-        else:
-            raise Exception('Unknown kind of morphology: %s' % morph.kind)
-
-    def build_chunk(self, morph, repo, ref):
-        '''Build a chunk from a morphology.'''
-        logging.debug('Building chunk')
-        self.msg('Building chunk %s' % morph.name)
+    def __init__(self, morph, repo, ref):
+        self.morph = morph
+        self.repo = repo
+        self.ref = ref
         
-        cache_prefix = self.get_cache_prefix(morph.name, repo, ref)
-        
-        chunk_filename = cache_prefix + '.chunk'
-        if os.path.exists(chunk_filename):
-            self.msg('Chunk already exists: %s %s' % (repo, ref))
-            self.msg('(chunk cached at %s)' % chunk_filename)
-        else:
-            self.ex = morphlib.execute.Execute(self._build, self.msg)
-            self.ex.env['WORKAREA'] = self.tempdir.dirname
-            self.ex.env['DESTDIR'] = self._inst + '/'
+        # The following MUST get set by the caller.
+        self.builddir = None
+        self.destdir = None
+        self.settings = None
+        self.msg = None
+        self.cache_prefix = None
+        self.filename = None
+        self.tempdir = None
+        self.built = None
 
-            if morph.max_jobs:
-                max_jobs = int(morph.max_jobs)
-            elif self.settings['max-jobs']:
-                max_jobs = self.settings['max-jobs']
-            else:
-                max_jobs = morphlib.util.make_concurrency()
-            self.ex.env['MAKEFLAGS'] = '-j%d' % max_jobs
-
-            if not self.settings['no-ccache']:
-                self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
-                                        self.ex.env['PATH'])
-                self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
-
-            logging.debug('Creating build tree at %s' % self._build)
-            tarball = cache_prefix + '.src.tar.gz'
-            morphlib.git.export_sources(repo, ref, tarball)
-            os.mkdir(self._build)
-            f = tarfile.open(tarball)
-            f.extractall(path=self._build)
-            f.close()
-
-            os.mkdir(self._inst)
-            if morph.build_system:
-                bs = build_system[morph.build_system]
-                self.ex.run(bs['configure-commands'])
-                self.ex.run(bs['build-commands'])
-                self.ex.run(bs['test-commands'])
-                self.ex.run(bs['install-commands'])
-            else:
-                self.ex.run(morph.configure_commands)
-                self.ex.run(morph.build_commands)
-                self.ex.run(morph.test_commands)
-                self.ex.run(morph.install_commands, as_fakeroot=True)
+    def dict_key(self):
+        return {}
     
-            self.prepare_binary_metadata(morph, 
-                    repo=repo, 
-                    ref=morphlib.git.get_commit_id(repo, ref))
-
-            morphlib.bins.create_chunk(self._inst, chunk_filename)
-
-            self.tempdir.clear()
-        
-    def build_stratum(self, morph):
-        '''Build a stratum from a morphology.'''
-
-        for chunk_name, source in morph.sources.iteritems():
-            self.msg('Want chunk %s' % chunk_name)
-            repo = source['repo']
-            ref = source['ref']
-            chunk_morph = self.get_morph_from_git(repo, ref)
-            self.build_chunk(chunk_morph, repo, ref)
-
-        self.msg('Creating stratum %s' % morph.name)
-        os.mkdir(self._inst)
-        for chunk_name in morph.sources:
-            self.msg('Unpacking chunk %s' % chunk_name)
-            source = morph.sources[chunk_name]
-            prefix = self.get_cache_prefix(chunk_name, source['repo'], 
-                                           source['ref'])
-            morphlib.bins.unpack_chunk('%s.chunk' % prefix, self._inst)
-        self.prepare_binary_metadata(morph)
-
-        stratum_filename = ('%s.stratum' % 
-                                self.get_cache_prefix(morph.name, '', ''))
-        self.msg('Creating stratum %s at %s' % (morph.name, stratum_filename))
-        morphlib.bins.create_stratum(self._inst, stratum_filename)
-
-        self.tempdir.clear()
-        return stratum_filename
-
-    @property
-    def _build(self):
-        return self.tempdir.join('build')
-
-    @property
-    def _inst(self):
-        return self.tempdir.join('inst')
-
-    def get_cache_prefix(self, name, repo, ref):
-        '''Return prefix of a cached binary blob, if and when it exists.'''
-        if repo and ref:
-            abs_ref = morphlib.git.get_commit_id(repo, ref)
-        else:
-            abs_ref = ''
-        dict_key = {
-            'name': name,
-            'arch': morphlib.util.arch(),
-            'repo': repo,
-            'ref': abs_ref,
-        }
-        return self.cachedir.name(dict_key)
+    def needs_built(self):
+        return []
+    
+    def build(self):
+        raise NotImplemented()
 
     def prepare_binary_metadata(self, morph, **kwargs):
         '''Add metadata to a binary about to be built.'''
@@ -186,13 +62,96 @@ class Builder(object):
         for key, value in kwargs.iteritems():
             meta[key] = value
         
-        dirname = os.path.join(self._inst, 'baserock')
+        dirname = os.path.join(self.destdir, 'baserock')
         filename = os.path.join(dirname, '%s.meta' % morph.name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
+
+
+class Chunk(BinaryBlob):
+
+    def build(self):
+        self.ex = morphlib.execute.Execute(self.builddir, self.msg)
+        self.ex.env['WORKAREA'] = self.tempdir.dirname
+        self.ex.env['DESTDIR'] = self.destdir + '/'
+
+        if self.morph.max_jobs:
+            max_jobs = int(self.morph.max_jobs)
+        elif self.settings['max-jobs']:
+            max_jobs = self.settings['max-jobs']
+        else:
+            max_jobs = morphlib.util.make_concurrency()
+        self.ex.env['MAKEFLAGS'] = '-j%d' % max_jobs
+
+        if not self.settings['no-ccache']:
+            self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
+                                    self.ex.env['PATH'])
+            self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
+
+        logging.debug('Creating build tree at %s' % self.builddir)
+        tarball = self.cache_prefix + '.src.tar.gz'
+        morphlib.git.export_sources(self.repo, self.ref, tarball)
+        os.mkdir(self.builddir)
+        f = tarfile.open(tarball)
+        f.extractall(path=self.builddir)
+        f.close()
+
+        os.mkdir(self.destdir)
+        if self.morph.build_system:
+            bs = self.build_system[morph.build_system]
+            self.ex.run(bs['configure-commands'])
+            self.ex.run(bs['build-commands'])
+            self.ex.run(bs['test-commands'])
+            self.ex.run(bs['install-commands'])
+        else:
+            self.ex.run(self.morph.configure_commands)
+            self.ex.run(self.morph.build_commands)
+            self.ex.run(self.morph.test_commands)
+            self.ex.run(self.morph.install_commands, as_fakeroot=True)
+
+        self.prepare_binary_metadata(self.morph)
+
+        morphlib.bins.create_chunk(self.destdir, self.filename)
+
+        self.tempdir.clear()
+
+
+class Stratum(BinaryBlob):
+
+    build_system = {
+        'autotools': {
+            'configure-commands': [
+                'if [ -e autogen.sh ]; then ./autogen.sh; fi',
+                './configure --prefix=/usr',
+            ],
+            'build-commands': [
+                'make',
+            ],
+            'test-commands': [
+            ],
+            'install-commands': [
+                'make DESTDIR="$DESTDIR" install',
+            ],
+        },
+    }
+    
+    def needs_built(self):
+        for chunk_name, source in self.morph.sources.iteritems():
+            repo = source['repo']
+            ref = source['ref']
+            chunk_morph = self.get_morph_from_git(repo, ref)
+            yield chunk_morph, repo, ref
+
+    def build(self):
+        os.mkdir(self.destdir)
+        for chunk_name in self.morph.sources:
+            self.msg('Unpacking chunk %s' % chunk_name)
+            morphlib.bins.unpack_chunk(self.built[chunk_name], self.destdir)
+        self.prepare_binary_metadata(self.morph)
+        morphlib.bins.create_stratum(self.destdir, self.filename)
 
     def get_morph_from_git(self, repo, ref):
         morph_name, morph_text = morphlib.git.get_morph_text(repo, ref)    
@@ -202,34 +161,25 @@ class Builder(object):
                                                self.settings['git-base-url'])
         return morph
 
-    def build_system(self, morph):
-        '''Build a system image.'''
 
-        logging.debug('Building system image %s' % morph.name)
-        self.msg('Building system %s' % morph.name)
+class System(BinaryBlob):
 
-        # Build strata.
-        stratum_filenames = []
-        for stratum in morph.strata:
-            self.msg('Want stratum %s' % stratum)
-            dirname = os.path.dirname(morph.filename)
+    def needs_built(self):
+        for stratum in self.morph.strata:
+            dirname = os.path.dirname(self.morph.filename)
             stratum_filename = os.path.join(dirname, '%s.morph' % stratum)
-            logging.debug('Morphology should be in %s' % stratum_filename)
             with open(stratum_filename) as f:
                 stratum_morph = morphlib.morphology.Morphology(f,
                                     baseurl=self.settings['git-base-url'])
-            filename = self.build_stratum(stratum_morph)
-            stratum_filenames.append(filename)
+                yield stratum_morph, '', ''
 
-        self.tempdir.clear()
-        self.msg('Building system image %s' % morph.name)
+    def build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
-        image_name = self.tempdir.join('%s.img' % morph.name)
-        
         # Create image.
+        image_name = self.tempdir.join('%s.img' % self.morph.name)
         self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
-                      morph.disk_size])
+                      self.morph.disk_size])
 
         # Partition it.
         self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'],
@@ -260,7 +210,7 @@ class Builder(object):
             self.ex.runv(['mount', partition, mount_point], as_root=True)
 
             # Unpack all strata into filesystem.
-            for filename in stratum_filenames:
+            for filename in self.built.itervalues():
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
 
@@ -311,7 +261,69 @@ append root=/dev/sda1 init=/bin/sh quiet rw
         # Undo device mapping.
         self.ex.runv(['kpartx', '-d', image_name], as_root=True)
 
-        # Copy image file to cache.
-        filename = '%s.system' % self.get_cache_prefix(morph.name, '', '')
-        self.ex.runv(['cp', '-a', image_name, filename])
+        # Move image file to cache.
+        self.ex.runv(['mv', image_name, self.filename])
+
+
+class Builder(object):
+
+    '''Build binary objects for Baserock.
+    
+    The objects may be chunks or strata.'''
+    
+    def __init__(self, tempdir, msg, settings):
+        self.tempdir = tempdir
+        self.msg = msg
+        self.settings = settings
+        self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
+
+    def build(self, morph, repo, ref):
+        '''Build a binary based on a morphology.'''
+
+        if morph.kind == 'chunk':
+            blob = Chunk(morph, repo, ref)
+        elif morph.kind == 'stratum':
+            blob = Stratum(morph, repo, ref)
+        elif morph.kind == 'system':
+            blob = System(morph, repo, ref)
+        else:
+            raise Exception('Unknown kind of morphology: %s' % morph.kind)
+
+        dict_key = blob.dict_key()
+        self.complete_dict_key(dict_key, morph.name, repo, ref)
+        logging.debug('completed dict_key:\n%s' % repr(dict_key))
+
+        blob.builddir = self.tempdir.join('build')
+        blob.destdir = self.tempdir.join('inst')
+        blob.settings = self.settings
+        blob.msg = self.msg
+        blob.cache_prefix = self.cachedir.name(dict_key)
+        blob.filename = '%s.%s' % (blob.cache_prefix, morph.kind)
+        blob.tempdir = self.tempdir
+        
+        blob.built = {}
+        for needed_morph, needed_repo, needed_ref in blob.needs_built():
+            needed_filename = self.build(needed_morph, needed_repo, needed_ref)
+            blob.built[needed_morph.name] = needed_filename
+
+        if not os.path.exists(blob.filename):
+            self.msg('Building %s %s' % (morph.kind, morph.name))
+            blob.build()
+            assert os.path.exists(blob.filename)
+        self.msg('%s %s cached at %s' % 
+                    (morph.kind, morph.name, blob.filename))
+        return blob.filename
+            
+    def complete_dict_key(self, dict_key, name, repo, ref):
+        '''Fill in default fields of a cache's dict key.'''
+
+        if repo and ref:
+            abs_ref = morphlib.git.get_commit_id(repo, ref)
+        else:
+            abs_ref = ''
+
+        dict_key['name'] = name
+        dict_key['arch'] = morphlib.util.arch()
+        dict_key['name'] = repo
+        dict_key['name'] = abs_ref
 
