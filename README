@@ -73,12 +73,21 @@ To build a stratum:
     }
 
 To use morph, create the relevant morphology files (`*.morph`),
-then run a command like the following:
+commit them to a git repository, and then run a command like the following:
 
-    morph build core.morph
+    morph build file://$HOME/baserock/morphs master core.morph
 
 This will build the Baserock core stratum. It will recursively build
-any chunks that also need to be built.
+any chunks that also need to be built. The last three command line
+arguments are:
+
+* URL to repository; this may be relative to `--git-base-url` or absolute.
+* A git commit reference; here, the HEAD of the `master` branch is used.
+* The filename in the git commit.
+
+Note that morph retrieves the morphology file from git. It does not use
+the copy that is checked out. If you make any modifications, you **must**
+commit them.
 
 
 Morphology spec
