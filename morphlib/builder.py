@@ -115,6 +115,7 @@ class Chunk(BinaryBlob):
 
         self.prepare_binary_metadata()
 
+        self.msg('Creating binary for %s' % self.morph.name)
         morphlib.bins.create_chunk(self.destdir, self.filename)
 
 
@@ -150,6 +151,7 @@ class Stratum(BinaryBlob):
             self.msg('Unpacking chunk %s' % chunk_name)
             morphlib.bins.unpack_chunk(filename, self.destdir)
         self.prepare_binary_metadata()
+        self.msg('Creating binary for %s' % self.morph.name)
         morphlib.bins.create_stratum(self.destdir, self.filename)
 
 
@@ -267,6 +269,7 @@ class Builder(object):
     def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
 
+        repo = urlparse.urljoin(self.settings['git-base-url'], repo)
         morph = self.get_morph_from_git(repo, ref, filename)
 
         if morph.kind == 'chunk':
