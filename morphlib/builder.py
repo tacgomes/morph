@@ -249,6 +249,7 @@ class Builder(object):
                    if line.startswith('add map ')]
         partition = '/dev/mapper/%s' % devices[0]
 
+        mount_point = None
         try:
             # Create filesystem.
             self.ex.runv(['mkfs', '-t', 'ext3', partition], as_root=True)
@@ -294,10 +295,11 @@ append root=/dev/sda1 init=/bin/sh quiet
             self.ex.runv(['umount', mount_point], as_root=True)
         except BaseException, e:
             # Unmount.
-            try:
-                self.ex.runv(['umount', mount_point], as_root=True)
-            except Exception:
-                pass
+            if mount_point is not None:
+                try:
+                    self.ex.runv(['umount', mount_point], as_root=True)
+                except Exception:
+                    pass
 
             # Undo device mapping.
             try:
