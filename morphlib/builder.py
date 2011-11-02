@@ -281,7 +281,7 @@ timeout 1
 
 label linux
 kernel /vmlinuz
-append root=/dev/sda1 init=/bin/sh quiet
+append root=/dev/sda1 init=/bin/sh quiet rw
 ''')
             f.close()
 
