@@ -74,6 +74,23 @@ class BinaryBlob(object):
 
 class Chunk(BinaryBlob):
 
+    build_system = {
+        'autotools': {
+            'configure-commands': [
+                'if [ -e autogen.sh ]; then ./autogen.sh; fi',
+                './configure --prefix=/usr',
+            ],
+            'build-commands': [
+                'make',
+            ],
+            'test-commands': [
+            ],
+            'install-commands': [
+                'make DESTDIR="$DESTDIR" install',
+            ],
+        },
+    }
+
     def build(self):
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
         self.ex.env['WORKAREA'] = self.tempdir.dirname
@@ -102,7 +119,7 @@ class Chunk(BinaryBlob):
 
         os.mkdir(self.destdir)
         if self.morph.build_system:
-            bs = self.build_system[morph.build_system]
+            bs = self.build_system[self.morph.build_system]
             self.ex.run(bs['configure-commands'])
             self.ex.run(bs['build-commands'])
             self.ex.run(bs['test-commands'])
@@ -120,23 +137,6 @@ class Chunk(BinaryBlob):
 
 
 class Stratum(BinaryBlob):
-
-    build_system = {
-        'autotools': {
-            'configure-commands': [
-                'if [ -e autogen.sh ]; then ./autogen.sh; fi',
-                './configure --prefix=/usr',
-            ],
-            'build-commands': [
-                'make',
-            ],
-            'test-commands': [
-            ],
-            'install-commands': [
-                'make DESTDIR="$DESTDIR" install',
-            ],
-        },
-    }
     
     def needs_built(self):
         for chunk_name, source in self.morph.sources.iteritems():
