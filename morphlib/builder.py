@@ -35,6 +35,7 @@ class BinaryBlob(object):
         # The following MUST get set by the caller.
         self.builddir = None
         self.destdir = None
+        self.staging = None
         self.settings = None
         self.msg = None
         self.cache_prefix = None
@@ -182,7 +183,7 @@ class Stratum(BinaryBlob):
         os.mkdir(self.destdir)
         for chunk_name, filename in self.built.iteritems():
             self.msg('Unpacking chunk %s' % chunk_name)
-            morphlib.bins.unpack_chunk(filename, self.destdir)
+            morphlib.bins.unpack_binary(filename, self.destdir)
         self.prepare_binary_metadata(self.morph.name)
         self.msg('Creating binary for %s' % self.morph.name)
         filename = self.filename(self.morph.name)
@@ -324,11 +325,14 @@ class Builder(object):
 
         blob.builddir = self.tempdir.join('%s.build' % morph.name)
         blob.destdir = self.tempdir.join('%s.inst' % morph.name)
+        blob.staging = self.tempdir.join('staging')
         blob.settings = self.settings
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.tempdir = self.tempdir
 
+        if not os.path.exists(blob.staging):
+            os.mkdir(blob.staging)
         self.build_needed(blob)
 
         self.msg('Building %s %s' % (morph.kind, morph.name))
@@ -345,6 +349,8 @@ class Builder(object):
             cached = self.build(repo, ref, morph_filename)
             for blob_name in blob_names:
                 blob.built[blob_name] = cached[blob_name]
+            for blob_name in cached:
+                morphlib.bins.unpack_binary(cached[blob_name], blob.staging)
             
     def complete_dict_key(self, dict_key, name, repo, ref):
         '''Fill in default fields of a cache's dict key.'''
