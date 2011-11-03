@@ -133,7 +133,7 @@ class Chunk(BinaryBlob):
         self.prepare_binary_metadata()
 
         self.msg('Creating binary for %s' % self.morph.name)
-        morphlib.bins.create_chunk(self.destdir, self.filename)
+        morphlib.bins.create_chunk(self.destdir, self.filename, ['.'])
 
 
 class Stratum(BinaryBlob):
