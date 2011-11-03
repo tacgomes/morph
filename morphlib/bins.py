@@ -22,17 +22,66 @@ Binaries are chunks, strata, and system images.
 
 
 import logging
+import os
+import re
 import tarfile
 
 import morphlib
 
 
-def create_chunk(rootdir, chunk_filename, globs):
-    '''Create a chunk from the contents of a directory.'''
-    logging.debug('Creating chunk file %s from %s' % (chunk_filename, rootdir))
+def create_chunk(rootdir, chunk_filename, regexps):
+    '''Create a chunk from the contents of a directory.
+    
+    Only files and directories that match at least one of the regular
+    expressions are accepted. The regular expressions are implicitly
+    anchored to the beginning of the string, but not the end. The 
+    filenames are relative to rootdir.
+    
+    '''
+    
+    def mkrel(filename):
+        assert filename.startswith(rootdir)
+        if filename == rootdir:
+            return '.'
+        assert filename.startswith(rootdir + '/')
+        return filename[len(rootdir + '/'):]
+
+    def matches(filename):
+        return any(x.match(filename) for x in compiled)
+
+    def names_to_root(filename):
+        yield filename
+        while filename != rootdir:
+            filename = os.path.dirname(filename)
+            yield filename
+
+    logging.debug('Creating chunk file %s from %s with regexps %s' % 
+                    (chunk_filename, rootdir, regexps))
+
+    compiled = [re.compile(x) for x in regexps]
+    include = set()
+    for dirname, subdirs, basenames in os.walk(rootdir):
+        if matches(dirname):
+            include.add(dirname)
+        filenames = [os.path.join(dirname, x) for x in basenames]
+        for filename in filenames:
+            if matches(mkrel(filename)):
+                for name in names_to_root(filename):
+                    include.add(name)
+
+    include = sorted(include)
+
     tar = tarfile.open(name=chunk_filename, mode='w:gz')
-    tar.add(rootdir, arcname='.')
+    for filename in include:
+        tar.add(filename, arcname=mkrel(filename), recursive=False)
     tar.close()
+
+    include.remove(rootdir)    
+    for filename in reversed(include):
+        if os.path.isdir(filename):
+            os.rmdir(filename)
+        else:
+            os.remove(filename)
 
 
 def unpack_chunk(chunk_filename, dirname):
