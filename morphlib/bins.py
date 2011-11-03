@@ -79,7 +79,8 @@ def create_chunk(rootdir, chunk_filename, regexps):
     include.remove(rootdir)    
     for filename in reversed(include):
         if os.path.isdir(filename):
-            os.rmdir(filename)
+            if not os.listdir(filename):
+                os.rmdir(filename)
         else:
             os.remove(filename)
 

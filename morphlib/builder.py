@@ -38,7 +38,6 @@ class BinaryBlob(object):
         self.settings = None
         self.msg = None
         self.cache_prefix = None
-        self.filename = None
         self.tempdir = None
         self.built = None
 
@@ -50,6 +49,9 @@ class BinaryBlob(object):
     
     def build(self):
         raise NotImplemented()
+
+    def filename(self, name):
+        return '%s.%s.%s' % (self.cache_prefix, self.morph.kind, name)
 
     def prepare_binary_metadata(self, **kwargs):
         '''Add metadata to a binary about to be built.'''
@@ -132,8 +134,21 @@ class Chunk(BinaryBlob):
 
         self.prepare_binary_metadata()
 
-        self.msg('Creating binary for %s' % self.morph.name)
-        morphlib.bins.create_chunk(self.destdir, self.filename, ['.'])
+        if self.morph.chunks:
+            ret = {}
+            for chunk_name in self.morph.chunks:
+                patterns = self.morph.chunks[chunk_name]
+                self.msg('Creating chunk %s' % chunk_name)
+                filename = self.filename(chunk_name)
+                morphlib.bins.create_chunk(self.destdir, filename, patterns)
+                ret[chunk_name] = filename
+            # FIXME: check that destdir is empty
+            return ret
+        else:
+            self.msg('Creating chunk %s' % self.morph.name)
+            filename = self.filename(self.morph.name)
+            morphlib.bins.create_chunk(self.destdir, filename, ['.'])
+            return { self.morph.name: filename }
 
 
 class Stratum(BinaryBlob):
@@ -152,7 +167,9 @@ class Stratum(BinaryBlob):
             morphlib.bins.unpack_chunk(filename, self.destdir)
         self.prepare_binary_metadata()
         self.msg('Creating binary for %s' % self.morph.name)
-        morphlib.bins.create_stratum(self.destdir, self.filename)
+        filename = self.filename(self.morph.name)
+        morphlib.bins.create_stratum(self.destdir, filename)
+        return { self.morph.name: filename }
 
 
 class System(BinaryBlob):
@@ -251,8 +268,10 @@ append root=/dev/sda1 init=/bin/sh quiet rw
         self.ex.runv(['kpartx', '-d', image_name], as_root=True)
 
         # Move image file to cache.
-        self.ex.runv(['mv', image_name, self.filename])
+        filename = self.filename(self.morph.name)
+        self.ex.runv(['mv', image_name, filename])
 
+        return { self.morph.name: filename }
 
 class Builder(object):
 
@@ -290,27 +309,21 @@ class Builder(object):
         blob.settings = self.settings
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
-        blob.filename = '%s.%s' % (blob.cache_prefix, morph.kind)
         blob.tempdir = self.tempdir
 
-        if os.path.exists(blob.filename):
-            self.msg('%s %s already cached at %s' %
-                        (morph.kind, morph.name, blob.filename))
-            return blob.filename
-        
         blob.built = {}
         for needed_repo, needed_ref, needed_name in blob.needs_built():
             needed_filename = '%s.morph' % needed_name
             needed_cached = self.build(needed_repo, needed_ref, 
                                        needed_filename)
-            blob.built[needed_name] = needed_cached
+            blob.built.update(needed_cached)
 
         self.msg('Building %s %s' % (morph.kind, morph.name))
-        blob.build()
-        assert os.path.exists(blob.filename)
-        self.msg('%s %s cached at %s' % 
-                    (morph.kind, morph.name, blob.filename))
-        return blob.filename
+        built = blob.build()
+        for filename in built:
+            self.msg('%s %s cached at %s' %
+                        (morph.kind, built[filename], filename))
+        return built
             
     def complete_dict_key(self, dict_key, name, repo, ref):
         '''Fill in default fields of a cache's dict key.'''
