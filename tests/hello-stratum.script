@@ -21,7 +21,7 @@ set -e
 
 tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
 
-./morph --no-default-configs build "tests/hello-stratum.morph" \
+./morph --no-default-configs build hello master hello-stratum.morph \
     --git-base-url "file://$DATADIR/" \
     --cachedir="$DATADIR"
 tar -tf "$DATADIR/"*.stratum | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
