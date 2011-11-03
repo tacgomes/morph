@@ -53,12 +53,12 @@ class BinaryBlob(object):
     def filename(self, name):
         return '%s.%s.%s' % (self.cache_prefix, self.morph.kind, name)
 
-    def prepare_binary_metadata(self, **kwargs):
+    def prepare_binary_metadata(self, blob_name, **kwargs):
         '''Add metadata to a binary about to be built.'''
 
-        self.msg('Adding metadata to %s' % self.morph.name)
+        self.msg('Adding metadata to %s' % blob_name)
         meta = {
-            'name': self.morph.name,
+            'name': blob_name,
             'kind': self.morph.kind,
             'description': self.morph.description,
         }
@@ -66,7 +66,7 @@ class BinaryBlob(object):
             meta[key] = value
         
         dirname = os.path.join(self.destdir, 'baserock')
-        filename = os.path.join(dirname, '%s.meta' % self.morph.name)
+        filename = os.path.join(dirname, '%s.meta' % blob_name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
         with open(filename, 'w') as f:
@@ -132,13 +132,13 @@ class Chunk(BinaryBlob):
             self.ex.run(self.morph.test_commands)
             self.ex.run(self.morph.install_commands, as_fakeroot=True)
 
-        self.prepare_binary_metadata()
-
         if self.morph.chunks:
             ret = {}
             for chunk_name in self.morph.chunks:
-                patterns = self.morph.chunks[chunk_name]
                 self.msg('Creating chunk %s' % chunk_name)
+                self.prepare_binary_metadata(chunk_name)
+                patterns = self.morph.chunks[chunk_name]
+                patterns += [r'baserock/%s\.' % chunk_name]
                 filename = self.filename(chunk_name)
                 morphlib.bins.create_chunk(self.destdir, filename, patterns)
                 ret[chunk_name] = filename
@@ -146,6 +146,7 @@ class Chunk(BinaryBlob):
             return ret
         else:
             self.msg('Creating chunk %s' % self.morph.name)
+            self.prepare_binary_metadata(self.morph.name)
             filename = self.filename(self.morph.name)
             morphlib.bins.create_chunk(self.destdir, filename, ['.'])
             return { self.morph.name: filename }
@@ -165,7 +166,7 @@ class Stratum(BinaryBlob):
         for chunk_name, filename in self.built.iteritems():
             self.msg('Unpacking chunk %s' % chunk_name)
             morphlib.bins.unpack_chunk(filename, self.destdir)
-        self.prepare_binary_metadata()
+        self.prepare_binary_metadata(self.morph.name)
         self.msg('Creating binary for %s' % self.morph.name)
         filename = self.filename(self.morph.name)
         morphlib.bins.create_stratum(self.destdir, filename)
