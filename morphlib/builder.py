@@ -94,7 +94,25 @@ class Chunk(BinaryBlob):
     }
 
     def build(self):
+        logging.debug('Creating build tree at %s' % self.builddir)
+
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
+        self.setup_env()
+
+        self.create_source_and_tarball()
+
+        os.mkdir(self.destdir)
+        if self.morph.build_system:
+            self.build_using_buildsystem()
+        else:
+            self.build_using_commands()
+
+        if self.morph.chunks:
+            return self.create_chunks(self.morph.chunks)
+        else:
+            return self.create_chunks({ self.morph.name: ['.'] })
+            
+    def setup_env(self):
         self.ex.env['WORKAREA'] = self.tempdir.dirname
         self.ex.env['DESTDIR'] = self.destdir + '/'
 
@@ -111,7 +129,7 @@ class Chunk(BinaryBlob):
                                     self.ex.env['PATH'])
             self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
 
-        logging.debug('Creating build tree at %s' % self.builddir)
+    def create_source_and_tarball(self):
         tarball = self.cache_prefix + '.src.tar.gz'
         morphlib.git.export_sources(self.repo, self.ref, tarball)
         os.mkdir(self.builddir)
@@ -119,37 +137,31 @@ class Chunk(BinaryBlob):
         f.extractall(path=self.builddir)
         f.close()
 
-        os.mkdir(self.destdir)
-        if self.morph.build_system:
-            bs = self.build_system[self.morph.build_system]
-            self.ex.run(bs['configure-commands'])
-            self.ex.run(bs['build-commands'])
-            self.ex.run(bs['test-commands'])
-            self.ex.run(bs['install-commands'])
-        else:
-            self.ex.run(self.morph.configure_commands)
-            self.ex.run(self.morph.build_commands)
-            self.ex.run(self.morph.test_commands)
-            self.ex.run(self.morph.install_commands, as_fakeroot=True)
+    def build_using_buildsystem(self):
+        bs = self.build_system[self.morph.build_system]
+        self.ex.run(bs['configure-commands'])
+        self.ex.run(bs['build-commands'])
+        self.ex.run(bs['test-commands'])
+        self.ex.run(bs['install-commands'])
 
-        if self.morph.chunks:
-            ret = {}
-            for chunk_name in self.morph.chunks:
-                self.msg('Creating chunk %s' % chunk_name)
-                self.prepare_binary_metadata(chunk_name)
-                patterns = self.morph.chunks[chunk_name]
-                patterns += [r'baserock/%s\.' % chunk_name]
-                filename = self.filename(chunk_name)
-                morphlib.bins.create_chunk(self.destdir, filename, patterns)
-                ret[chunk_name] = filename
-            # FIXME: check that destdir is empty
-            return ret
-        else:
-            self.msg('Creating chunk %s' % self.morph.name)
-            self.prepare_binary_metadata(self.morph.name)
-            filename = self.filename(self.morph.name)
-            morphlib.bins.create_chunk(self.destdir, filename, ['.'])
-            return { self.morph.name: filename }
+    def build_using_commands(self):
+        self.ex.run(self.morph.configure_commands)
+        self.ex.run(self.morph.build_commands)
+        self.ex.run(self.morph.test_commands)
+        self.ex.run(self.morph.install_commands, as_fakeroot=True)
+
+    def create_chunks(self, chunks):
+        ret = {}
+        for chunk_name in chunks:
+            self.msg('Creating chunk %s' % chunk_name)
+            self.prepare_binary_metadata(chunk_name)
+            patterns = self.morph.chunks[chunk_name]
+            patterns += [r'baserock/%s\.' % chunk_name]
+            filename = self.filename(chunk_name)
+            morphlib.bins.create_chunk(self.destdir, filename, patterns)
+            ret[chunk_name] = filename
+        # FIXME: check that destdir is empty
+        return ret
 
 
 class Stratum(BinaryBlob):
