@@ -23,4 +23,8 @@ tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
 ./morph --no-default-configs build hello master hello.morph \
     --git-base-url "file://$DATADIR/" \
     --cachedir="$DATADIR"
-tar -tf "$DATADIR/"*.chunk | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+for chunk in "$DATADIR/"*.chunk
+do
+    echo "$chunk:"
+    tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+done
