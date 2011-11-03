@@ -45,7 +45,17 @@ class MorphologyTests(unittest.TestCase):
                                 "configure-commands": ["./configure"],
                                 "build-commands": ["make"],
                                 "test-commands": ["make check"],
-                                "install-commands": ["make install"]
+                                "install-commands": ["make install"],
+                                "chunks": {
+                                    "hello": [
+                                        "usr/bin/hello",
+                                        "usr/lib/libhello.so*"
+                                    ],
+                                    "hello-dev": [
+                                        "usr/include/*",
+                                        "usr/lib/*"
+                                    ]
+                                }
                             }'''))
         self.assertEqual(morph.name, 'hello')
         self.assertEqual(morph.kind, 'chunk')
@@ -58,6 +68,12 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.build_commands, ['make'])
         self.assertEqual(morph.test_commands, ['make check'])
         self.assertEqual(morph.install_commands, ['make install'])
+        self.assertEqual(morph.chunks,
+                         {
+                            u'hello': [u'usr/bin/hello', 
+                                       u'usr/lib/libhello.so*'],
+                            u'hello-dev': [u'usr/include/*', u'usr/lib/*'],
+                         })
 
     def test_build_system_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(

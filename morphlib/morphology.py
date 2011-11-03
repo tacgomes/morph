@@ -57,7 +57,7 @@ class Morphology(object):
 
     @property
     def build_depends(self):
-        return self._dict['build-depends']
+        return self._dict.get('build-depends', [])
 
     @property
     def build_system(self):
@@ -84,6 +84,10 @@ class Morphology(object):
     @property
     def install_commands(self):
         return self._dict.get('install-commands', [])
+
+    @property
+    def chunks(self):
+        return self._dict.get('chunks', {})
 
     @property
     def strata(self):
