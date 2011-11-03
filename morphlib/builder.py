@@ -155,11 +155,12 @@ class Chunk(BinaryBlob):
 class Stratum(BinaryBlob):
     
     def needs_built(self):
-        for chunk_name, source in self.morph.sources.iteritems():
-            morph_name = source['morph'] if 'morph' in source else chunk_name
+        for project_name, source in self.morph.sources.iteritems():
+            morph_name = source['morph'] if 'morph' in source else project_name
             repo = source['repo']
             ref = source['ref']
-            yield repo, ref, morph_name
+            chunks = source['chunks'] if 'chunks' in source else [project_name]
+            yield repo, ref, morph_name, chunks
 
     def build(self):
         os.mkdir(self.destdir)
@@ -177,7 +178,7 @@ class System(BinaryBlob):
 
     def needs_built(self):
         for stratum_name in self.morph.strata:
-            yield self.repo, self.ref, stratum_name
+            yield self.repo, self.ref, stratum_name, [stratum_name]
 
     def build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
@@ -312,12 +313,7 @@ class Builder(object):
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.tempdir = self.tempdir
 
-        blob.built = {}
-        for needed_repo, needed_ref, needed_name in blob.needs_built():
-            needed_filename = '%s.morph' % needed_name
-            needed_cached = self.build(needed_repo, needed_ref, 
-                                       needed_filename)
-            blob.built.update(needed_cached)
+        self.build_needed(blob)
 
         self.msg('Building %s %s' % (morph.kind, morph.name))
         built = blob.build()
@@ -325,6 +321,14 @@ class Builder(object):
             self.msg('%s %s cached at %s' %
                         (morph.kind, built[filename], filename))
         return built
+
+    def build_needed(self, blob):
+        blob.built = {}
+        for repo, ref, morph_name, blob_names in blob.needs_built():
+            morph_filename = '%s.morph' % morph_name
+            cached = self.build(repo, ref, morph_filename)
+            for blob_name in blob_names:
+                blob.built[blob_name] = cached[blob_name]
             
     def complete_dict_key(self, dict_key, name, repo, ref):
         '''Fill in default fields of a cache's dict key.'''
