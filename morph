@@ -46,6 +46,9 @@ class Morph(cliapp.Application):
                                 'in the machine running morph',
                               metavar='N',
                               default=0)
+        self.settings.boolean(['keep-path'], 
+                              'do not touch the PATH environment variable '
+                                '(use with tests ONLY)')
 
     def cmd_build(self, args):
         tempdir = morphlib.tempdir.Tempdir()

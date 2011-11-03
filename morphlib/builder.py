@@ -114,6 +114,25 @@ class Chunk(BinaryBlob):
             return self.create_chunks({ self.morph.name: ['.'] })
             
     def setup_env(self):
+        path = self.ex.env['PATH']
+        self.ex.env.clear()
+        
+        self.ex.env['TERM'] = 'dumb'
+        self.ex.env['SHELL'] = '/bin/sh'
+        self.ex.env['USER'] = \
+            self.ex.env['USERNAME'] = \
+            self.ex.env['LOGNAME'] = 'tomjon'
+        self.ex.env['LC_ALL'] = 'C'
+        self.ex.env['HOME'] = os.path.join(self.tempdir.dirname)
+
+        if self.settings['keep-path']:
+            self.ex.env['PATH'] = path
+        else:
+            bindirs = ['bin', 'usr/bin']
+            path = ':'.join(os.path.join(self.tempdir.dirname, x) 
+                                         for x in bindirs)
+            self.ex.env['PATH'] = path
+
         self.ex.env['WORKAREA'] = self.tempdir.dirname
         self.ex.env['DESTDIR'] = self.destdir + '/'
 
