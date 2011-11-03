@@ -1,5 +1,6 @@
 ./
 baserock/
+baserock/hello-doc.meta
 baserock/hello-stratum.meta
 baserock/hello.meta
 usr/
