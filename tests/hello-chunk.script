@@ -25,6 +25,7 @@ tar -C "$DATADIR" -xf tests/hello-chunk.tar.gz
     --cachedir="$DATADIR"
 for chunk in "$DATADIR/"*.chunk.*
 do
-    echo "$chunk:"
+    echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    echo
 done
