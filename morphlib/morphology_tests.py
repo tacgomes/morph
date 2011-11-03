@@ -37,6 +37,9 @@ class MorphologyTests(unittest.TestCase):
                                 "name": "hello",
                                 "kind": "chunk", 
                                 "description": "desc",
+                                "build-depends": [
+                                    "devel"
+                                ],
                                 "build-system": "autotools",
                                 "max-jobs": "42",
                                 "configure-commands": ["./configure"],
@@ -48,6 +51,7 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.kind, 'chunk')
         self.assertEqual(morph.description, 'desc')
         self.assertEqual(morph.filename, 'mockfile')
+        self.assertEqual(morph.build_depends, ['devel'])
         self.assertEqual(morph.build_system, 'autotools')
         self.assertEqual(morph.max_jobs, 42)
         self.assertEqual(morph.configure_commands, ['./configure'])

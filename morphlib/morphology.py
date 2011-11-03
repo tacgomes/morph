@@ -56,6 +56,10 @@ class Morphology(object):
         return self._dict['sources']
 
     @property
+    def build_depends(self):
+        return self._dict['build-depends']
+
+    @property
     def build_system(self):
         return self._dict.get('build-system', None)
 
