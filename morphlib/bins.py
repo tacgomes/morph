@@ -85,19 +85,6 @@ def create_chunk(rootdir, chunk_filename, regexps):
             os.remove(filename)
 
 
-def unpack_chunk(chunk_filename, dirname):
-    '''Unpack a chunk into a directory.
-    
-    The directory must exist already.
-    
-    '''
-
-    logging.debug('Unpacking chunk %s into %s' % (chunk_filename, dirname))
-    tar = tarfile.open(name=chunk_filename)
-    tar.extractall(path=dirname)
-    tar.close()
-
-
 def create_stratum(rootdir, stratum_filename):
     '''Create a stratum from the contents of a directory.'''
     logging.debug('Creating stratum file %s from %s' % 
@@ -107,15 +94,15 @@ def create_stratum(rootdir, stratum_filename):
     tar.close()
 
 
-def unpack_stratum(stratum_filename, dirname):
-    '''Unpack a stratum into a directory.
+def unpack_binary(filename, dirname):
+    '''Unpack a binary into a directory.
     
     The directory must exist already.
     
     '''
 
-    logging.debug('Unpacking stratum %s into %s' % (stratum_filename, dirname))
-    tar = tarfile.open(name=stratum_filename)
+    logging.debug('Unpacking %s into %s' % (filename, dirname))
+    tar = tarfile.open(name=filename)
     tar.extractall(path=dirname)
     tar.close()
 
