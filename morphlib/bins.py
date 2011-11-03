@@ -27,7 +27,7 @@ import tarfile
 import morphlib
 
 
-def create_chunk(rootdir, chunk_filename):
+def create_chunk(rootdir, chunk_filename, globs):
     '''Create a chunk from the contents of a directory.'''
     logging.debug('Creating chunk file %s from %s' % (chunk_filename, rootdir))
     tar = tarfile.open(name=chunk_filename, mode='w:gz')

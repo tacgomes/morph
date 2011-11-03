@@ -66,16 +66,41 @@ class ChunkTests(unittest.TestCase):
 
     def populate_instdir(self):
         os.mkdir(self.instdir)
-        os.mkdir(os.path.join(self.instdir, 'bin'))
+        
+        bindir = os.path.join(self.instdir, 'bin')
+        os.mkdir(bindir)
+        with open(os.path.join(bindir, 'foo'), 'w'):
+            pass
+
+        libdir = os.path.join(self.instdir, 'lib')
+        os.mkdir(libdir)
+        with open(os.path.join(libdir, 'libfoo.so'), 'w'):
+            pass
+
+    def test_empties_everything(self):
+        self.populate_instdir()
+        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['*'])
+        empty = os.path.join(self.tempdir, 'empty')
+        os.mkdir(empty)
+        self.assertEqual(recursive_lstat(self.instdir), empty)
 
     def test_creates_and_unpacks_chunk_exactly(self):
         self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_file)
+        orig_files = recursive_lstat(self.instdir)
+        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['*'])
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_chunk(self.chunk_file, self.unpacked)
-        self.assertEqual(recursive_lstat(self.instdir),
-                         recursive_lstat(self.unpacked))
+        self.assertEqual(orig_files, recursive_lstat(self.unpacked))
 
+    def test_uses_only_matching_names(self):
+        self.populate_instdir()
+        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['bin/*'])
+        os.mkdir(self.unpacked)
+        morphlib.bins.unpack_chunk(self.chunk_file, self.unpacked)
+        self.assertEqual([x for x,y in recursive_lstat(self.unpacked)],
+                         ['bin/foo'])
+        self.assertEqual([x for x,y in recursive_lstat(self.instdir)],
+                         ['lib/libfoo.so'])
 
 class StratumTests(unittest.TestCase):
 
