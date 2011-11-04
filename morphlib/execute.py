@@ -23,17 +23,8 @@ import morphlib
 
 class CommandFailure(Exception):
 
-    def __init__(self, command, stdout, stderr, exit):
-        Exception.__init__(self,
-                           'Command failed: %s\n'
-                           'Standard output:\n%s\n'
-                           'Standard error:\n%s\n'
-                           'Exit code: %s' % 
-                             (command,
-                              morphlib.util.indent(stdout),
-                              morphlib.util.indent(stderr),
-                              exit))
-        
+    def __init__(self, command):
+        Exception.__init__(self, 'Command failed: %s' % command)
 
 
 class Execute(object):
@@ -66,15 +57,15 @@ class Execute(object):
                 argv = ['fakeroot'] + argv
             p = subprocess.Popen(argv, shell=False,
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT,
                                  env=self.env,
                                  cwd=self.dirname)
             out, err = p.communicate()
             logging.debug('Exit code: %d' % p.returncode)
-            logging.debug('Standard output:\n%s' % morphlib.util.indent(out))
-            logging.debug('Standard error:\n%s' % morphlib.util.indent(err))
+            logging.debug('Standard output and error:\n%s' % 
+                            morphlib.util.indent(out))
             if p.returncode != 0:
-                raise CommandFailure(command, out, err, p.returncode)
+                raise CommandFailure(command)
             stdouts.append(out)
         return stdouts
 
@@ -92,13 +83,13 @@ class Execute(object):
             argv = ['fakeroot'] + argv
         self.msg('# %s' % ' '.join(argv))
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, 
-                             stderr=subprocess.PIPE, cwd=self.dirname)
+                             stderr=subprocess.STDOUT, cwd=self.dirname)
         out, err = p.communicate()
         
         logging.debug('Exit code: %d' % p.returncode)
-        logging.debug('Standard output:\n%s' % morphlib.util.indent(out))
-        logging.debug('Standard error:\n%s' % morphlib.util.indent(err))
+        logging.debug('Standard output and error:\n%s' % 
+                        morphlib.util.indent(out))
         if p.returncode != 0:
-            raise CommandFailure(' '.join(argv), out, err, p.returncode)
+            raise CommandFailure(' '.join(argv))
         return out
 
