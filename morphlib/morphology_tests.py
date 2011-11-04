@@ -100,18 +100,19 @@ class MorphologyTests(unittest.TestCase):
                                 "name": "hello",
                                 "kind": "stratum", 
                                 "sources": 
-                                    {
-                                        "foo": {
+                                    [
+                                        {
+                                            "name": "foo",
                                             "ref": "ref"
                                         }
-                                    }
+                                    ]
                             }'''))
         self.assertEqual(morph.kind, 'stratum')
         self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.sources,
-                         {
-                            'foo': { 'repo': 'foo/', 'ref': 'ref' },
-                         })
+                         [
+                            { 'name': 'foo', 'repo': 'foo/', 'ref': 'ref' },
+                         ])
 
     def test_accepts_valid_system_morphology(self):
         morph = morphlib.morphology.Morphology(
@@ -139,22 +140,23 @@ class StratumRepoTests(unittest.TestCase):
                                 "name": "hello",
                                 "kind": "stratum", 
                                 "sources": 
-                                    {
-                                        "foo": {
+                                    [
+                                        {
+                                            "name": "foo",
                                             "repo": "%s",
                                             "ref": "HEAD"
                                         }
-                                    }
+                                    ]
                             }''' % repo),
                             baseurl='git://git.baserock.org/')
 
     def test_leaves_absolute_repo_in_source_dict_as_is(self):
         stratum = self.stratum('git://git.baserock.org/foo/')
-        self.assertEqual(stratum.sources['foo']['repo'], 
+        self.assertEqual(stratum.sources[0]['repo'], 
                          'git://git.baserock.org/foo/')
 
     def test_makes_relative_repo_url_absolute_in_source_dict(self):
         stratum = self.stratum('foo')
-        self.assertEqual(stratum.sources['foo']['repo'], 
+        self.assertEqual(stratum.sources[0]['repo'], 
                          'git://git.baserock.org/foo/')
 

@@ -35,17 +35,6 @@ class ExecuteTests(unittest.TestCase):
         self.assertRaises(morphlib.execute.CommandFailure,
                           self.e.run, ['false'])
 
-    def test_run_commandfailure_contains_both_stdout_and_stderr_output(self):
-        try:
-            self.e.run(['printf "%s%s\n" foo msg; '
-                        'printf "%s%s" bar msg 1>&2; '
-                        'exit 1'])
-        except morphlib.execute.CommandFailure, e:
-            self.assert_('foomsg' in str(e))
-            self.assert_('barmsg' in str(e))
-        else:
-            self.assertTrue(False)
-
     def test_returns_stdout_from_all_commands(self):
         self.assertEqual(self.e.run(['echo foo', 'echo bar']),
                          ['foo\n', 'bar\n'])
@@ -59,18 +48,6 @@ class ExecuteTests(unittest.TestCase):
     def test_raises_error_when_argv_fails(self):
         self.assertRaises(morphlib.execute.CommandFailure,
                           self.e.runv, ['false'])
-
-    def test_runv_commandfailure_contains_both_stdout_and_stderr_output(self):
-        try:
-            self.e.runv(['sh', '-c', 
-                         'printf "%s%s\n" foo msg; '
-                         'printf "%s%s" bar msg 1>&2; '
-                         'exit 1'])
-        except morphlib.execute.CommandFailure, e:
-            self.assert_('foomsg' in str(e))
-            self.assert_('barmsg' in str(e))
-        else:
-            self.assertTrue(False)
 
     def test_runv_sets_working_directory(self):
         self.assertEqual(self.e.runv(['pwd']), '/\n')
