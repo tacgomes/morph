@@ -150,6 +150,7 @@ class Chunk(BinaryBlob):
             self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
 
     def create_source_and_tarball(self):
+        self.msg('Creating source tree and tarball')
         tarball = self.cache_prefix + '.src.tar.gz'
         morphlib.git.export_sources(self.repo, self.ref, tarball)
         os.mkdir(self.builddir)
