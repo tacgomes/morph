@@ -47,6 +47,9 @@ class BinaryBlob(object):
     
     def needs_built(self):
         return []
+
+    def builds(self):
+        raise NotImplemented()
     
     def build(self):
         raise NotImplemented()
@@ -94,6 +97,19 @@ class Chunk(BinaryBlob):
         },
     }
 
+    @property
+    def chunks(self):
+        if self.morph.chunks:
+            return self.morph.chunks
+        else:
+            return { self.morph.name: ['.'] }
+    
+    def builds(self):
+        ret = {}
+        for chunk_name in self.chunks:
+            ret[chunk_name] = self.filename(chunk_name)
+        return ret
+
     def build(self):
         logging.debug('Creating build tree at %s' % self.builddir)
 
@@ -108,10 +124,7 @@ class Chunk(BinaryBlob):
         else:
             self.build_using_commands()
 
-        if self.morph.chunks:
-            return self.create_chunks(self.morph.chunks)
-        else:
-            return self.create_chunks({ self.morph.name: ['.'] })
+        return self.create_chunks(self.chunks)
             
     def setup_env(self):
         path = self.ex.env['PATH']
@@ -198,6 +211,10 @@ class Stratum(BinaryBlob):
             chunks = source['chunks'] if 'chunks' in source else [project_name]
             yield repo, ref, morph_name, chunks
 
+    def builds(self):
+        filename = self.filename(self.morph.name)
+        return { self.morph.name: filename }
+
     def build(self):
         os.mkdir(self.destdir)
         for chunk_name, filename in self.built.iteritems():
@@ -215,6 +232,10 @@ class System(BinaryBlob):
     def needs_built(self):
         for stratum_name in self.morph.strata:
             yield self.repo, self.ref, stratum_name, [stratum_name]
+
+    def builds(self):
+        filename = self.filename(self.morph.name)
+        return { self.morph.name: filename }
 
     def build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
@@ -349,6 +370,11 @@ class Builder(object):
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.tempdir = self.tempdir
+        
+        builds = blob.builds()
+        if all(os.path.exists(builds[x]) for x in builds):
+            self.msg('already built %s %s' % (morph.kind, morph.name))
+            return builds
 
         if not os.path.exists(blob.staging):
             os.mkdir(blob.staging)
