@@ -176,13 +176,19 @@ class Chunk(BinaryBlob):
         self.ex.run(bs['configure-commands'])
         self.ex.run(bs['build-commands'])
         self.ex.run(bs['test-commands'])
-        self.ex.run(bs['install-commands'])
+        self.run_install_commands(bs['install-commands'])
 
     def build_using_commands(self):
         self.ex.run(self.morph.configure_commands)
         self.ex.run(self.morph.build_commands)
         self.ex.run(self.morph.test_commands)
-        self.ex.run(self.morph.install_commands, as_fakeroot=True)
+        self.run_install_commands(self.morph.install_commands)
+
+    def run_install_commands(self, commands):
+        flags = self.ex.env['MAKEFLAGS']
+        self.ex.env['MAKEFLAGS'] = '-j1'
+        self.ex.run(commands, as_fakeroot=True)
+        self.ex.env['MAKEFLAGS'] = flags
 
     def create_chunks(self, chunks):
         ret = {}
@@ -192,6 +198,7 @@ class Chunk(BinaryBlob):
             patterns = chunks[chunk_name]
             patterns += [r'baserock/%s\.' % chunk_name]
             filename = self.filename(chunk_name)
+            self.msg('Creating binary for %s' % chunk_name)
             morphlib.bins.create_chunk(self.destdir, filename, patterns)
             ret[chunk_name] = filename
         files = os.listdir(self.destdir)
@@ -373,7 +380,9 @@ class Builder(object):
         
         builds = blob.builds()
         if all(os.path.exists(builds[x]) for x in builds):
-            self.msg('already built %s %s' % (morph.kind, morph.name))
+            for x in builds:
+                self.msg('using cached %s %s at %s' % 
+                            (morph.kind, x, builds[x]))
             return builds
 
         if not os.path.exists(blob.staging):
@@ -382,9 +391,8 @@ class Builder(object):
 
         self.msg('Building %s %s' % (morph.kind, morph.name))
         built = blob.build()
-        for filename in built:
-            self.msg('%s %s cached at %s' %
-                        (morph.kind, built[filename], filename))
+        for x in built:
+            self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
         return built
 
     def build_needed(self, blob):
