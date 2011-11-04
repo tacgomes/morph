@@ -175,7 +175,7 @@ class Chunk(BinaryBlob):
         for chunk_name in chunks:
             self.msg('Creating chunk %s' % chunk_name)
             self.prepare_binary_metadata(chunk_name)
-            patterns = self.morph.chunks[chunk_name]
+            patterns = chunks[chunk_name]
             patterns += [r'baserock/%s\.' % chunk_name]
             filename = self.filename(chunk_name)
             morphlib.bins.create_chunk(self.destdir, filename, patterns)
