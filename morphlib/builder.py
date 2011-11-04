@@ -180,7 +180,6 @@ class Chunk(BinaryBlob):
             filename = self.filename(chunk_name)
             morphlib.bins.create_chunk(self.destdir, filename, patterns)
             ret[chunk_name] = filename
-        # FIXME: check that destdir is empty
         files = os.listdir(self.destdir)
         if files:
             raise Exception('DESTDIR %s is not empty: %s' %
