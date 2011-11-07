@@ -348,9 +348,14 @@ class Builder(object):
     
     def __init__(self, tempdir, msg, settings):
         self.tempdir = tempdir
-        self.msg = msg
+        self.real_msg = msg
         self.settings = settings
         self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
+        self.indent = 0
+
+    def msg(self, text):
+        spaces = '  ' * self.indent
+        self.real_msg('%s%s' % (spaces, text))
 
     def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
@@ -401,7 +406,9 @@ class Builder(object):
         blob.built = {}
         for repo, ref, morph_name, blob_names in blob.needs_built():
             morph_filename = '%s.morph' % morph_name
+            self.indent += 1
             cached = self.build(repo, ref, morph_filename)
+            self.indent -= 1
             for blob_name in blob_names:
                 blob.built[blob_name] = cached[blob_name]
             for blob_name in cached:
