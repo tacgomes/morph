@@ -355,6 +355,7 @@ class Builder(object):
     def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
 
+        self.msg('build %s|%s|%s' % (repo, ref, filename))
         repo = urlparse.urljoin(self.settings['git-base-url'], repo)
         morph = self.get_morph_from_git(repo, ref, filename)
 
