@@ -211,7 +211,8 @@ class Chunk(BinaryBlob):
 class Stratum(BinaryBlob):
     
     def needs_built(self):
-        for project_name, source in self.morph.sources.iteritems():
+        for source in self.morph.sources:
+            project_name = source['name']
             morph_name = source['morph'] if 'morph' in source else project_name
             repo = source['repo']
             ref = source['ref']
