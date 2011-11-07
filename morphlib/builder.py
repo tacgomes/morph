@@ -365,9 +365,16 @@ class Builder(object):
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
+    def indent_more(self):
+        self.indent += 1
+    
+    def indent_less(self):
+        self.indent -= 1
+
     def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
 
+        self.indent_more()
         self.msg('build %s|%s|%s' % (repo, ref, filename))
         repo = urlparse.urljoin(self.settings['git-base-url'], repo)
         morph = self.get_morph_from_git(repo, ref, filename)
@@ -405,18 +412,19 @@ class Builder(object):
         self.build_needed(blob)
 
         self.msg('Building %s %s' % (morph.kind, morph.name))
+        self.indent_more()
         built = blob.build()
+        self.indent_less()
         for x in built:
             self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
+        self.indent_less()
         return built
 
     def build_needed(self, blob):
         blob.built = {}
         for repo, ref, morph_name, blob_names in blob.needs_built():
             morph_filename = '%s.morph' % morph_name
-            self.indent += 1
             cached = self.build(repo, ref, morph_filename)
-            self.indent -= 1
             for blob_name in blob_names:
                 blob.built[blob_name] = cached[blob_name]
             for blob_name in cached:
