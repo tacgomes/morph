@@ -172,19 +172,27 @@ class Chunk(BinaryBlob):
         f.close()
 
     def build_using_buildsystem(self):
-        bs = self.build_system[self.morph.build_system]
-        self.ex.run(bs['configure-commands'])
-        self.ex.run(bs['build-commands'])
-        self.ex.run(bs['test-commands'])
+        bs_name = self.morph.build_system
+        self.msg('Building using well-known build system %s' % bs_name)
+        bs = self.build_system[bs_name]
+        self.run_some_commands('configure', bs['configure-commands'])
+        self.run_some_commands('build', bs['build-commands'])
+        self.run_some_commands('test', bs['test-commands'])
         self.run_install_commands(bs['install-commands'])
 
     def build_using_commands(self):
-        self.ex.run(self.morph.configure_commands)
-        self.ex.run(self.morph.build_commands)
-        self.ex.run(self.morph.test_commands)
+        self.msg('Building using explicit commands')
+        self.run_some_commands('configure', self.morph.configure_commands)
+        self.run_some_commands('build', self.morph.build_commands)
+        self.run_some_commands('test', self.morph.test_commands)
         self.run_install_commands(self.morph.install_commands)
 
+    def run_some_commands(self, what, commands):
+        self.msg('commands: %s' % what)
+        self.ex.run(commands)
+
     def run_install_commands(self, commands):
+        self.msg ('commands: install')
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         self.ex.run(commands, as_fakeroot=True)
