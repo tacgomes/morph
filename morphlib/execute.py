@@ -61,10 +61,10 @@ class Execute(object):
                                  env=self.env,
                                  cwd=self.dirname)
             out, err = p.communicate()
-            logging.debug('Exit code: %d' % p.returncode)
-            logging.debug('Standard output and error:\n%s' % 
-                            morphlib.util.indent(out))
             if p.returncode != 0:
+                logging.error('Exit code: %d' % p.returncode)
+                logging.error('Standard output and error:\n%s' % 
+                                morphlib.util.indent(out))
                 raise CommandFailure(command)
             stdouts.append(out)
         return stdouts
@@ -86,10 +86,10 @@ class Execute(object):
                              stderr=subprocess.STDOUT, cwd=self.dirname)
         out, err = p.communicate()
         
-        logging.debug('Exit code: %d' % p.returncode)
-        logging.debug('Standard output and error:\n%s' % 
-                        morphlib.util.indent(out))
         if p.returncode != 0:
+            logging.error('Exit code: %d' % p.returncode)
+            logging.error('Standard output and error:\n%s' % 
+                            morphlib.util.indent(out))
             raise CommandFailure(' '.join(argv))
         return out
 
