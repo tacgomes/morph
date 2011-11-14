@@ -63,11 +63,17 @@ def create_chunk(rootdir, chunk_filename, regexps):
     for dirname, subdirs, basenames in os.walk(rootdir):
         if matches(dirname):
             include.add(dirname)
+        subdirpaths = [os.path.join(dirname, x) for x in subdirs]
+        subdirsymlinks = [x for x in subdirpaths if os.path.islink(x)]
         filenames = [os.path.join(dirname, x) for x in basenames]
-        for filename in filenames:
+        for filename in subdirsymlinks + filenames:
             if matches(mkrel(filename)):
                 for name in names_to_root(filename):
-                    include.add(name)
+                    if name not in include:
+                        logging.debug('regexp match: %s' % name)
+                        include.add(name)
+            else:
+                logging.debug('regexp MISMATCH: %s' % filename)
 
     include = sorted(include)
 
@@ -76,9 +82,9 @@ def create_chunk(rootdir, chunk_filename, regexps):
         tar.add(filename, arcname=mkrel(filename), recursive=False)
     tar.close()
 
-    include.remove(rootdir)    
+    include.remove(rootdir)
     for filename in reversed(include):
-        if os.path.isdir(filename):
+        if os.path.isdir(filename) and not os.path.islink(filename):
             if not os.listdir(filename):
                 os.rmdir(filename)
         else:
