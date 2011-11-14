@@ -233,7 +233,7 @@ class Stratum(BinaryBlob):
 
     def build(self):
         os.mkdir(self.destdir)
-        for chunk_name, filename in self.built.iteritems():
+        for chunk_name, filename in self.built:
             self.msg('Unpacking chunk %s' % chunk_name)
             morphlib.bins.unpack_binary(filename, self.destdir)
         self.prepare_binary_metadata(self.morph.name)
@@ -290,7 +290,7 @@ class System(BinaryBlob):
             self.ex.runv(['mount', partition, mount_point], as_root=True)
 
             # Unpack all strata into filesystem.
-            for name, filename in self.built.iteritems():
+            for name, filename in self.built:
                 self.msg('unpack %s from %s' % (name, filename))
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
@@ -421,12 +421,12 @@ class Builder(object):
         return built
 
     def build_needed(self, blob):
-        blob.built = {}
+        blob.built = []
         for repo, ref, morph_name, blob_names in blob.needs_built():
             morph_filename = '%s.morph' % morph_name
             cached = self.build(repo, ref, morph_filename)
             for blob_name in blob_names:
-                blob.built[blob_name] = cached[blob_name]
+                blob.built.append((blob_name, cached[blob_name]))
             for blob_name in cached:
                 morphlib.bins.unpack_binary(cached[blob_name], blob.staging)
             
