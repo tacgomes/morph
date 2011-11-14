@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import cliapp
 import logging
 import os
 import subprocess
@@ -21,10 +22,12 @@ import subprocess
 import morphlib
 
 
-class CommandFailure(Exception):
+class CommandFailure(cliapp.AppException):
 
-    def __init__(self, command):
-        Exception.__init__(self, 'Command failed: %s' % command)
+    def __init__(self, command, stderr):
+        cliapp.AppException.__init__(self, 
+                'Command failed: %s\Output from command:\n%s' % 
+                    (command, stderr))
 
 
 class Execute(object):
@@ -66,7 +69,7 @@ class Execute(object):
                     logging.error('Exit code: %d' % p.returncode)
                     logging.error('Standard output and error:\n%s' % 
                                     morphlib.util.indent(out))
-                raise CommandFailure(command)
+                raise CommandFailure(command, out)
             stdouts.append(out)
         return stdouts
 
@@ -92,6 +95,6 @@ class Execute(object):
                 logging.error('Exit code: %d' % p.returncode)
                 logging.error('Standard output and error:\n%s' % 
                                 morphlib.util.indent(out))
-            raise CommandFailure(' '.join(argv))
+            raise CommandFailure(' '.join(argv), out)
         return out
 
