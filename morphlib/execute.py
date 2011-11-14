@@ -39,7 +39,7 @@ class Execute(object):
     def _setup_env(self):
         self.env = dict(os.environ)
 
-    def run(self, commands, as_root=False, as_fakeroot=False):
+    def run(self, commands, as_root=False, as_fakeroot=False, _log=True):
         '''Execute a list of commands.
         
         If a command fails (returns non-zero exit code), the rest are
@@ -62,14 +62,15 @@ class Execute(object):
                                  cwd=self.dirname)
             out, err = p.communicate()
             if p.returncode != 0:
-                logging.error('Exit code: %d' % p.returncode)
-                logging.error('Standard output and error:\n%s' % 
-                                morphlib.util.indent(out))
+                if _log: # pragma: no cover
+                    logging.error('Exit code: %d' % p.returncode)
+                    logging.error('Standard output and error:\n%s' % 
+                                    morphlib.util.indent(out))
                 raise CommandFailure(command)
             stdouts.append(out)
         return stdouts
 
-    def runv(self, argv, as_root=False, as_fakeroot=False):
+    def runv(self, argv, as_root=False, as_fakeroot=False, _log=True):
         '''Run a command given as a list of argv elements.
         
         Return standard output. Raise ``CommandFailure`` if the command
@@ -87,9 +88,10 @@ class Execute(object):
         out, err = p.communicate()
         
         if p.returncode != 0:
-            logging.error('Exit code: %d' % p.returncode)
-            logging.error('Standard output and error:\n%s' % 
-                            morphlib.util.indent(out))
+            if _log: # pragma: no cover
+                logging.error('Exit code: %d' % p.returncode)
+                logging.error('Standard output and error:\n%s' % 
+                                morphlib.util.indent(out))
             raise CommandFailure(' '.join(argv))
         return out
 

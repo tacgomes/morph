@@ -33,7 +33,7 @@ class ExecuteTests(unittest.TestCase):
 
     def test_raises_commandfailure_for_false(self):
         self.assertRaises(morphlib.execute.CommandFailure,
-                          self.e.run, ['false'])
+                          self.e.run, ['false'], _log=False)
 
     def test_returns_stdout_from_all_commands(self):
         self.assertEqual(self.e.run(['echo foo', 'echo bar']),
@@ -47,7 +47,7 @@ class ExecuteTests(unittest.TestCase):
 
     def test_raises_error_when_argv_fails(self):
         self.assertRaises(morphlib.execute.CommandFailure,
-                          self.e.runv, ['false'])
+                          self.e.runv, ['false'], _log=False)
 
     def test_runv_sets_working_directory(self):
         self.assertEqual(self.e.runv(['pwd']), '/\n')
