@@ -148,6 +148,8 @@ class Chunk(BinaryBlob):
 
         self.ex.env['WORKAREA'] = self.tempdir.dirname
         self.ex.env['DESTDIR'] = self.destdir + '/'
+        self.ex.env['TOOLCHAIN_TARGET'] = \
+            '%s-baserock-linux-gnu' % os.uname()[4]
 
         if self.morph.max_jobs:
             max_jobs = int(self.morph.max_jobs)
