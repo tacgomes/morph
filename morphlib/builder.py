@@ -141,7 +141,7 @@ class Chunk(BinaryBlob):
         if self.settings['keep-path']:
             self.ex.env['PATH'] = path
         else:
-            bindirs = ['bin', 'usr/bin']
+            bindirs = ['tools/bin', 'bin', 'usr/bin']
             path = ':'.join(os.path.join(self.tempdir.dirname, x) 
                                          for x in bindirs)
             self.ex.env['PATH'] = path
