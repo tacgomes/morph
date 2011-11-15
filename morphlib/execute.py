@@ -26,7 +26,7 @@ class CommandFailure(cliapp.AppException):
 
     def __init__(self, command, stderr):
         cliapp.AppException.__init__(self, 
-                'Command failed: %s\Output from command:\n%s' % 
+                'Command failed: %s\nOutput from command:\n%s' % 
                     (command, stderr))
 
 
