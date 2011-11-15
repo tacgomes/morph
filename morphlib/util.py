@@ -17,7 +17,10 @@
 '''Utility functions for morph.'''
 
 
-import multiprocessing
+try:
+     from multiprocessing import cpu_count
+except NotImplementedError:
+    cpu_count = lambda: 1
 import os
 
 
