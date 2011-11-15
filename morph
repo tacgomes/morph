@@ -71,6 +71,7 @@ class Morph(cliapp.Application):
         logging.debug(msg)
         if self.settings['verbose']:
             self.output.write('%s\n' % msg)
+            self.output.flush()
 
 
 if __name__ == '__main__':
