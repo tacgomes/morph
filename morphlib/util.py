@@ -57,7 +57,7 @@ def make_concurrency(cores=None):
 
     '''
 
-    n = multiprocessing.cpu_count() if cores is None else cores
+    n = cpu_count() if cores is None else cores
     # Experimental results (ref. Kinnison) says a factor of 1.5
     # gives about the optimal result for build times, since much of
     # builds are I/O bound, not CPU bound.
