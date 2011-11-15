@@ -19,7 +19,7 @@
 
 try:
      from multiprocessing import cpu_count
-except NotImplementedError:
+except NotImplementedError: # pragma: no cover
     cpu_count = lambda: 1
 import os
 
