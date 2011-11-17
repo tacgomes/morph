@@ -422,6 +422,7 @@ class Builder(object):
         if morph.kind == 'chunk' and self.settings['bootstrap']:
             self.msg('Unpacking chunks onto system')
             for x in built:
+                self.msg('Unpacking %s to system from %s' % (x, built[x]))
                 morphlib.bins.unpack_binary(built[x], '/')
         self.indent_less()
         return built
