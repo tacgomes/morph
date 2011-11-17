@@ -138,7 +138,7 @@ class Chunk(BinaryBlob):
         self.ex.env['LC_ALL'] = 'C'
         self.ex.env['HOME'] = os.path.join(self.tempdir.dirname)
 
-        if self.settings['keep-path']:
+        if self.settings['keep-path'] or self.settings['bootstrap']:
             self.ex.env['PATH'] = path
         else:
             bindirs = ['tools/bin', 'bin', 'usr/bin']
@@ -419,6 +419,10 @@ class Builder(object):
         self.indent_less()
         for x in built:
             self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
+        if morph.kind == 'chunk' and self.settings['bootstrap']:
+            self.msg('Unpacking chunks onto system')
+            for x in built:
+                morphlib.bins.unpack_binary(built[x], '/')
         self.indent_less()
         return built
 

@@ -49,6 +49,10 @@ class Morph(cliapp.Application):
         self.settings.boolean(['keep-path'], 
                               'do not touch the PATH environment variable '
                                 '(use with tests ONLY)')
+        self.settings.boolean(['bootstrap'], 
+                              'build stuff in bootstrap mode; this is '
+                                'DANGEROUS and will install stuff on your '
+                                'system')
 
     def cmd_build(self, args):
         tempdir = morphlib.tempdir.Tempdir()
