@@ -407,6 +407,7 @@ class Builder(object):
             for x in builds:
                 self.msg('using cached %s %s at %s' % 
                             (morph.kind, x, builds[x]))
+                self.install_chunk(morph, x, builds[x], blob.staging)
             return builds
 
         if not os.path.exists(blob.staging):
@@ -419,11 +420,7 @@ class Builder(object):
         self.indent_less()
         for x in built:
             self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
-        if morph.kind == 'chunk' and self.settings['bootstrap']:
-            self.msg('Unpacking chunks onto system')
-            for x in built:
-                self.msg('Unpacking %s to system from %s' % (x, built[x]))
-                morphlib.bins.unpack_binary(built[x], '/')
+            self.install_chunk(morph, x, built[x], blob.staging)
         self.indent_less()
         return built
 
@@ -434,8 +431,16 @@ class Builder(object):
             cached = self.build(repo, ref, morph_filename)
             for blob_name in blob_names:
                 blob.built.append((blob_name, cached[blob_name]))
-            for blob_name in cached:
-                morphlib.bins.unpack_binary(cached[blob_name], blob.staging)
+
+    def install_chunk(self, morph, chunk_name, chunk_filename, staging_dir):
+        if morph.kind != 'chunk':
+            return
+        if self.settings['bootstrap']:
+            self.msg('Unpacking chunk %s onto system' % chunk_name)
+            morphlib.bins.unpack_binary(chunk_filename, '/')
+        else:
+            self.msg('Unpacking chunk %s into staging' % chunk_name)
+            morphlib.bins.unpack_binary(chunk_filename, staging_dir)
             
     def complete_dict_key(self, dict_key, name, repo, ref):
         '''Fill in default fields of a cache's dict key.'''
