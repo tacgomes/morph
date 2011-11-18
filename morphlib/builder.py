@@ -408,19 +408,20 @@ class Builder(object):
                 self.msg('using cached %s %s at %s' % 
                             (morph.kind, x, builds[x]))
                 self.install_chunk(morph, x, builds[x], blob.staging)
-            return builds
+            built = builds
+        else:
+            if not os.path.exists(blob.staging):
+                os.mkdir(blob.staging)
+            self.build_needed(blob)
 
-        if not os.path.exists(blob.staging):
-            os.mkdir(blob.staging)
-        self.build_needed(blob)
+            self.msg('Building %s %s' % (morph.kind, morph.name))
+            self.indent_more()
+            built = blob.build()
+            self.indent_less()
+            for x in built:
+                self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
+                self.install_chunk(morph, x, built[x], blob.staging)
 
-        self.msg('Building %s %s' % (morph.kind, morph.name))
-        self.indent_more()
-        built = blob.build()
-        self.indent_less()
-        for x in built:
-            self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
-            self.install_chunk(morph, x, built[x], blob.staging)
         self.indent_less()
         return built
 
