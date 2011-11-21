@@ -1,0 +1,813 @@
+#!/bin/bash
+
+set -e
+set +h
+set -u
+
+LFS="$HOME/baserock/lfs/tree"
+sources="$LFS/sources"
+tools="$LFS/tools"
+
+JOBS=6
+
+export LC_ALL=C
+export LFS_TGT=$(uname -m)-lfs-linux-gnu
+export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
+
+download()
+{
+    basename=$(basename "$1")
+    if [ ! -e "$sources/$basename" ]
+    then
+        echo "Downloading $1 to $basename"
+        wget -O temp.download "$1"
+        mv temp.download "$sources/$basename"
+    fi
+}
+
+
+download_all()
+{
+    while read url
+    do
+        download "$url"
+    done < wget-list
+}
+
+
+unpack()
+{
+    if [ ! -e "$sources/$1" ]
+    then
+        echo "Unpacking" "$sources/$1"*.tar.*
+        tar -C "$sources" -xf "$sources/$1"*.tar.*
+    fi
+}
+
+
+pass1_directories()
+{
+    mkdir -p "$LFS"
+    mkdir -p "$sources"
+
+    mkdir -p "$tools"
+    mkdir -p "$tools/bin"
+    mkdir -p "$tools/lib"
+    [ -h "$tools/sbin" ] || ln -sf "bin" "$tools/sbin"
+    [ -h "$tools/lib64" ] || ln -sf "lib" "$tools/lib64"
+    [ -h "$tools/libexec" ] || ln -sf "lib" "$tools/libexec"
+
+    [ -e "$LFS/proc" ] || mkdir -p "$LFS/proc"
+    [ -e "$LFS/sys" ] || mkdir -p "$LFS/sys"
+    [ -e "$LFS/tmp" ] || mkdir -p "$LFS/tmp"
+    [ -e "$LFS/dev" ] || mkdir -p "$LFS/dev"
+    [ -e "$LFS/dev/console" ] || sudo mknod -m 600 "$LFS/dev/console" c 5 1
+    [ -e "$LFS/dev/null" ] || sudo mknod -m 666 "$LFS/dev/null" c 1 3
+}
+
+
+pass1_binutils_1()
+{
+    echo "Building binutils pass 1"
+    if [ ! -e "$tools/bin/${LFS_TGT}-objdump" ]
+    then
+        unpack binutils-2.21.1
+        mkdir "$sources/binutils-build"
+        cd "$sources/binutils-build"
+        "../binutils-2.21.1/configure" \
+            --target=$LFS_TGT \
+            --prefix="$tools" \
+            --disable-nls \
+            --disable-werror
+        make -j$JOBS
+        make install
+        rm -rf "$sources/binutils-build" "$sources/binutils-2.21.1"
+    fi
+}
+
+
+pass1_gcc_1()
+{
+    echo "Building gcc pass 1"
+    if [ ! -e "$tools/bin/${LFS_TGT}-gcc" ]
+    then
+        unpack gcc-4.6.1
+        unpack gmp-5.0.2
+        unpack mpfr-3.1.0
+        unpack mpc-0.9
+        cd "$sources/gcc-4.6.1"
+        cp -a ../gmp-5.0.2 gmp
+        cp -a ../mpfr-3.1.0 mpfr
+        cp -a ../mpc-0.9 mpc
+        patch -Np1 -i ../gcc-4.6.1-cross_compile-1.patch
+        
+        mkdir "$sources/gcc-build"
+        cd "$sources/gcc-build"
+        "../gcc-4.6.1/configure" \
+            --target=$LFS_TGT --prefix="$tools" \
+            --disable-nls --disable-shared --disable-multilib \
+            --disable-decimal-float --disable-threads \
+            --disable-libmudflap --disable-libssp \
+            --disable-libgomp --disable-libquadmath \
+            --disable-target-libiberty --disable-target-zlib \
+            --enable-languages=c --without-ppl --without-cloog \
+            --with-mpfr-include=$(pwd)/../gcc-4.6.1/mpfr/src \
+            --with-mpfr-lib=$(pwd)/mpfr/src/.libs
+        make -j$JOBS
+        make install
+        ln -s libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | \
+            sed 's/libgcc/&_eh/'`
+        
+        rm -rf "$sources/gcc-build" "$sources/gcc-4.6.1"
+    fi
+}
+
+
+pass1_linux_api_headers()
+{
+    echo "Installing Linux API headers"
+    if [ ! -d "$tools/include/linux" ]
+    then
+        unpack linux-3.1
+        cd "$sources/linux-3.1"
+        make mrproper
+        make headers_check
+        make INSTALL_HDR_PATH=dest headers_install
+        cp -rv dest/include/* "$tools/include"
+        rm -rf "$sources/linux-3.1"
+    fi
+}
+
+
+pass1_glibc()
+{
+    echo "Building glibc"
+    if [ ! -e "$tools/lib/libc.so.6" ]
+    then
+        unpack glibc-2.14.1
+        cd "$sources/glibc-2.14.1"
+        patch -Np1 -i ../glibc-2.14.1-gcc_fix-1.patch
+        patch -Np1 -i ../glibc-2.14.1-cpuid-1.patch
+        
+        mkdir "$sources/glibc-build"
+        cd "$sources/glibc-build"
+        case `uname -m` in
+          i?86) echo "CFLAGS += -march=i486 -mtune=native" > configparms ;;
+        esac
+        ../glibc-2.14.1/configure --prefix="$tools" \
+            --host=$LFS_TGT --build=$(../glibc-2.14.1/scripts/config.guess) \
+            --disable-profile --enable-add-ons \
+            --enable-kernel=2.6.25 --with-headers="$tools/include" \
+            libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes
+        make -j$JOBS
+        make install
+        rm -rf "$sources/glibc-2.14.1"
+    fi
+}
+
+
+pass1_adjust_gcc_specs()
+{
+    echo "Adjusting gcc specs file"
+    SPECS=`dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/specs
+    $LFS_TGT-gcc -dumpspecs | sed \
+      -e "s@/lib\(64\)\?/ld@$tools&@g" \
+      -e "/^\*cpp:$/{n;s,$, -isystem $tools/include,}" > $SPECS 
+    echo "New specs file is: $SPECS"
+    unset SPECS
+}
+
+
+pass1_sanity_check()
+{
+    echo "Sanity checking toolchain"
+    cd "$LFS/tmp"
+    echo 'int main(void) { return 0; }' > dummy.c
+    $LFS_TGT-gcc -B"$tools/lib" dummy.c
+    readelf -l a.out | grep ": $LFS"
+    rm dummy.c a.out
+}
+
+
+pass1_busybox()
+{
+    echo "Building busybox"
+    if [ ! -e "$tools/bin/busybox" ]
+    then
+        unpack busybox-1.19.3
+        cd "$sources/busybox-1.19.3"
+        make defconfig
+        sed -e 's/.*FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/' -i .config
+        sed -e 's/.*FEATURE_SH_STANDALONE.*/CONFIG_FEATURE_SH_STANDALONE=y/' -i .config
+        sed -e 's/^CONFIG_INETD=.*/# CONFIG_INETD is not set/' -i .config
+        sed -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
+        sed -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
+        sed -e 's/.*FEATURE_PREFER_APPLETS=.*/# CONFIG_FEATURE_PREFER_APPLETS is not set/' -i .config
+        sed -e 's/.*FEATURE_MOUNT_NFS=.*/# CONFIG_FEATURE_MOUNT_NFS is not set/' -i .config
+        sed -e 's/.*FEATURE_MOUNT_CIFS=.*/# CONFIG_FEATURE_MOUNT_CIFS is not set/' -i .config
+        sed -e 's/.*CONFIG_AWK=.*/# CONFIG_AWK is not set/' -i .config
+        sed -e 's/.*CONFIG_PATCH=.*/# CONFIG_PATCH is not set/' -i .config
+        make clean
+        make -j$JOBS V=1
+        make install
+        cp _install/bin/busybox "$tools/bin"
+        find _install/bin _install/sbin _install/usr/bin _install/usr/sbin \
+            -type l ! -name busybox | \
+            while read x; do ln -sf busybox "$tools/bin/"$(basename "$x"); done
+        rm -rf "$sources/busybox-1.19.3"
+    fi
+}
+
+
+pass1_binutils_2()
+{
+    echo "Building binutils pass 2"
+    if [ ! -e "$tools/bin/objdump" ]
+    then
+        unpack binutils-2.21.1
+        mkdir "$sources/binutils-pass2-build"
+        cd "$sources/binutils-pass2-build"
+        CC="$LFS_TGT-gcc -B$tools/lib/" \
+           AR=$LFS_TGT-ar RANLIB=$LFS_TGT-ranlib \
+           ../binutils-2.21.1/configure --prefix="$tools" \
+           --disable-nls --with-lib-path="$tools/lib"
+        make -j$JOBS
+        make install
+        make -C ld clean
+        make -C ld LIB_PATH=/usr/lib:/lib
+        cp -v ld/ld-new "$tools/bin"
+        rm -rf "$sources/binutils-pass2-build" "$sources/binutils-2.21.1"
+    fi
+}
+
+
+pass1_gcc_2()
+{
+    echo "Building gcc pass 2"
+    if [ ! -e "$tools/bin/gcc" ]
+    then
+        unpack gcc-4.6.1
+        cd "$sources/gcc-4.6.1"
+        patch -Np1 -i ../gcc-4.6.1-cross_compile-1.patch
+        patch -Np1 -i ../gcc-4.6.1-startfiles_fix-1.patch
+
+        cp -v gcc/Makefile.in{,.orig}
+        sed 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in 
+
+        cp -v gcc/Makefile.in{,.tmp}
+        sed 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
+          > gcc/Makefile.in
+
+        for file in \
+         $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+        do
+          cp -v $file{,.orig}
+          sed -e "s@/lib\(64\)\?\(32\)\?/ld@$tools&@g" \
+          -e "s@/usr@$tools@g" $file.orig > $file
+          echo '
+#undef STANDARD_INCLUDE_DIR
+#define STANDARD_INCLUDE_DIR 0
+#define STANDARD_STARTFILE_PREFIX_1 ""
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+          touch $file.orig
+        done
+
+        case $(uname -m) in
+          x86_64)
+            for file in $(find gcc/config -name t-linux64) ; do \
+              cp -v $file{,.orig}
+              sed '/MULTILIB_OSDIRNAMES/d' $file.orig > $file
+            done
+          ;;
+        esac
+
+        rm -rf gmp mpfr mpc
+        unpack gmp-5.0.2
+        unpack mpfr-3.1.0
+        unpack mpc-0.9
+        cp -a ../gmp-5.0.2 gmp
+        cp -a ../mpfr-3.1.0 mpfr
+        cp -a ../mpc-0.9 mpc
+
+        mkdir "$sources/gcc-pass2-build"
+        cd "$sources/gcc-pass2-build"
+
+        CC="$LFS_TGT-gcc -B$tools/lib/" \
+            AR=$LFS_TGT-ar RANLIB=$LFS_TGT-ranlib \
+            ../gcc-4.6.1/configure --prefix="$tools" \
+            --with-local-prefix="$tools" --enable-clocale=gnu \
+            --enable-shared --enable-threads=posix \
+            --enable-__cxa_atexit --enable-languages=c,c++ \
+            --disable-libstdcxx-pch --disable-multilib \
+            --disable-bootstrap --disable-libgomp \
+            --without-ppl --without-cloog \
+            --with-mpfr-include=$(pwd)/../gcc-4.6.1/mpfr/src \
+            --with-mpfr-lib=$(pwd)/mpfr/src/.libs
+
+        make -j$JOBS
+        make install
+        ln -s gcc "$tools/bin/cc"
+
+        rm -rf "$sources/gcc-pass2-build" "$sources/gcc-4.6.1"
+    fi
+}
+
+
+pass1_zlib()
+{
+    echo "Building ZLIB"
+    if [ ! -e "$tools/lib/libz.so" ]
+    then
+        unpack zlib-1.2.5
+        cd "$sources/zlib-1.2.5"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+        make install
+        rm -rf "$sources/zlib-1.2.5"
+    fi
+}
+
+
+pass1_ncurses()
+{
+    echo "Building ncurses"
+    if [ ! -e "$tools/lib/libncurses.so" ]
+    then
+        unpack ncurses-5.9
+        cd "$sources/ncurses-5.9"
+        ./configure --prefix="$tools" --with-shared \
+            --without-debug --without-ada --enable-overwrite
+        make -j$JOBS
+        make install
+        rm -rf "$sources/ncurses-5.9"
+    fi
+}
+
+
+pass1_bash()
+{
+    echo "Building bash"
+    if [ ! -e "$tools/bin/bash" ]
+    then
+        unpack bash-4.2
+        cd "$sources/bash-4.2"
+        patch -Np1 -i ../bash-4.2-fixes-3.patch
+        ./configure --prefix="$tools" --without-bash-malloc
+        make -j$JOBS
+#       make tests
+        make install
+        rm -rf "$sources/bash-4.2"
+    fi
+}
+
+
+pass1_bzip2()
+{
+    echo "Building bzip2"
+    if [ ! -e "$tools/bin/bzip2" ]
+    then
+        unpack bzip2-1.0.6
+        cd "$sources/bzip2-1.0.6"
+        make
+        make PREFIX="$tools" install
+        rm -rf "$sources/bzip2-1.0.6"
+    fi
+}
+
+
+pass1_coreutils()
+{
+    echo "Building coreutils"
+    if [ ! -e "$tools/bin/cp" ]
+    then
+        unpack coreutils-8.14
+        cd "$sources/coreutils-8.14"
+        ./configure --prefix="$tools" --enable-install-program=hostname
+        make -j$JOBS
+#       make RUN_EXPENSIVE_TESTS=yes check
+        make install
+        cp -v src/su "$tools/bin/su-tools"
+        rm -rf "$sources/coreutils-8.14"
+    fi
+}
+
+
+pass1_diffutils()
+{
+    echo "Building diffutils"
+    if [ ! -e "$tools/bin/diff" ]
+    then
+        unpack diffutils-3.2
+        cd "$sources/diffutils-3.2"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/diffutils-3.2"
+    fi
+}
+
+
+pass1_file()
+{
+    echo "Building file"
+    if [ ! -e "$tools/bin/file" ]
+    then
+        unpack file-5.09
+        cd "$sources/file-5.09"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/file-5.09"
+    fi
+}
+
+
+pass1_findutils()
+{
+    echo "Building findutils"
+    if [ ! -e "$tools/bin/find" ]
+    then
+        unpack findutils-4.4.2
+        cd "$sources/findutils-4.4.2"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/findutils-4.4.2"
+    fi
+}
+
+
+pass1_gawk()
+{
+    echo "Building gawk"
+    if [ ! -e "$tools/bin/awk" ]
+    then
+        unpack gawk-4.0.0
+        cd "$sources/gawk-4.0.0"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/gawk-4.0.0"
+    fi
+}
+
+
+pass1_gettext_msgfmt()
+{
+    echo "Building gettext"
+    if [ ! -e "$tools/bin/msgfmt" ]
+    then
+        unpack gettext-0.18.1.1
+        cd "$sources/gettext-0.18.1.1"
+        cd gettext-tools
+        ./configure --prefix="$tools" --disable-shared
+        make -C gnulib-lib
+        make -C src msgfmt
+        cp -v src/msgfmt "$tools/bin"
+        rm -rf "$sources/gettext-0.18.1.1"
+    fi
+}
+
+
+pass1_grep()
+{
+    echo "Building grep"
+    if [ ! -e "$tools/bin/grep" ]
+    then
+        unpack grep-2.9
+        cd "$sources/grep-2.9"
+        ./configure --prefix="$tools" --disable-perl-regexp
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/grep-2.9"
+    fi
+}
+
+
+pass1_gzip()
+{
+    echo "Building gzip"
+    if [ ! -e "$tools/bin/gzip" ]
+    then
+        unpack gzip-1.4
+        cd "$sources/gzip-1.4"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/gzip-1.4"
+    fi
+}
+
+
+pass1_m4()
+{
+    echo "Building m4"
+    if [ ! -e "$tools/bin/m4" ]
+    then
+        unpack m4-1.4.16
+        cd "$sources/m4-1.4.16"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/m4-1.4.16"
+    fi
+}
+
+
+pass1_make()
+{
+    echo "Building make"
+    if [ ! -e "$tools/bin/make" ]
+    then
+        unpack make-3.82
+        cd "$sources/make-3.82"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/make-3.82"
+    fi
+}
+
+
+pass1_patch()
+{
+    echo "Building patch"
+    if [ ! -e "$tools/bin/patch" ]
+    then
+        unpack patch-2.6.1
+        cd "$sources/patch-2.6.1"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/patch-2.6.1"
+    fi
+}
+
+
+pass1_perl()
+{
+    echo "Building perl"
+    if [ ! -e "$tools/bin/perl" ]
+    then
+        unpack perl-5.14.2
+        cd "$sources/perl-5.14.2"
+        patch -Np1 -i ../perl-5.14.2-libc-1.patch
+        sh Configure -des -Dprefix="$tools"
+        make -j$JOBS
+        cp -v perl cpan/podlators/pod2man "$tools/bin"
+        mkdir -p "$tools/lib/perl5/5.14.2"
+        cp -Rv lib/* "$tools/lib/perl5/5.14.2"
+        rm -rf "$sources/perl-5.14.2"
+    fi
+}
+
+
+pass1_sed()
+{
+    echo "Building sed"
+    if [ ! -e "$tools/bin/sed" ]
+    then
+        unpack sed-4.2.1
+        cd "$sources/sed-4.2.1"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/sed-4.2.1"
+    fi
+}
+
+
+pass1_tar()
+{
+    echo "Building tar"
+    if [ ! -e "$tools/bin/tar" ]
+    then
+        unpack tar-1.26
+        cd "$sources/tar-1.26"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/tar-1.26"
+    fi
+}
+
+
+pass1_texinfo()
+{
+    echo "Building texinfo"
+    if [ ! -e "$tools/bin/makeinfo" ]
+    then
+        unpack texinfo-4.13
+        cd "$sources/texinfo-4.13"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/texinfo-4.13"
+    fi
+}
+
+
+pass1_xz()
+{
+    echo "Building xz"
+    if [ ! -e "$tools/bin/xz" ]
+    then
+        unpack xz-5.0.3
+        cd "$sources/xz-5.0.3"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+#       make check
+        make install
+        rm -rf "$sources/xz-5.0.3"
+    fi
+}
+
+
+pass1_python()
+{
+    echo "Building Python"
+    if [ ! -e "$tools/bin/python" ]
+    then
+        unpack Python-2.7.2
+        cd "$sources/Python-2.7.2"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+        make install
+        rm -rf "$sources/Python-2.7.2"
+    fi
+}
+
+
+pass1_cliapp()
+{
+    echo "Building cliapp"
+    if [ ! -e "$tools/lib/python2.7/site-packages/cliapp" ]
+    then
+        cp "$sources/python-cliapp_0.21.orig.tar.gz" \
+           "$sources/cliapp-0.21.tar.gz"
+        unpack cliapp-0.21
+        cd "$sources/cliapp-0.21"
+        sed -i '/^import cliapp/d' setup.py
+        sed -i 's/cliapp.__version__/"0.21"/g' setup.py
+        python setup.py install --prefix="$tools"
+        rm -rf "$sources/cliapp-0.21"
+    fi
+}
+
+
+pass1_git()
+{
+    echo "Building git"
+    if [ ! -e "$tools/bin/git" ]
+    then
+        unpack git-1.7.7.3
+        cd "$sources/git-1.7.7.3"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+        make install
+        rm -rf "$sources/git-1.7.7.3"
+    fi
+}
+
+
+pass1_strip_tools()
+{
+    echo "Stripping binaries"
+    strip --strip-debug "$tools"/lib/* || true
+    strip --strip-unneeded "$tools"/{,s}bin/* || true
+}
+
+
+pass1_fix_perms()
+{
+    sudo -p'Password for chown: ' chown -R root:root "$LFS"
+}
+
+
+pass2_get_sources()
+{
+    echo "Get Baserock sources"
+    # FIXME: This should use git from inside the chroot
+    if [ ! -e "$LFS/baserock/gits" ]
+    then
+        mkdir -p "$LFS/baserock"
+        cp -al "$HOME/baserock/gits" "$LFS/baserock"
+    fi
+}
+
+
+pass2_prepare_for_chroot()
+{
+    echo "Preparing $LFS for chroot"
+    if [ ! -h "$LFS/$LFS" ]
+    then
+        mkdir -p "$LFS/$LFS"
+        rmdir "$LFS/$LFS"
+        ln -s / "$LFS/$LFS"
+    fi
+
+    cat <<EOF > "$tools/bin/sudo"
+#!/bin/sh
+exec "\$@"
+EOF
+    chmod +x "$tools/bin/sudo"
+    cp "$tools/bin/sudo" "$tools/bin/fakeroot"
+    
+    mkdir -p "$LFS/etc"
+    echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
+    echo 'root::0:' > "$LFS/etc/group"
+
+    echo 'baserock-boot' | /usr/bin/sudo tee "$LFS/etc/hostname" > /dev/null
+
+    # Add symlinks for common locations of specific tools
+    # These are needed for #! lines in scripts
+    mkdir -p "$LFS/bin"
+    /usr/bin/sudo ln -sf ../tools/bin/sh "$LFS/bin/sh"
+    /usr/bin/sudo ln -sf ../tools/bin/bash "$LFS/bin/bash"
+    /usr/bin/sudo ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
+}
+
+
+pass2_build_with_morph_in_chroot()
+{
+    echo "Building Baserock with morph"
+    cat <<EOF > "$LFS/baserock/build.sh"
+#!/tools/bin/bash
+set -e
+set -x
+cd /baserock/gits/morph
+mkdir -p /baserock/cache
+python ./morph --verbose build \
+    file:///baserock/gits/morphs/ liw/new-build-process devel.morph \
+        --bootstrap \
+        --cachedir=/baserock/cache \
+        --log=/baserock/morph.log \
+        --max-jobs=6 \
+        --git-base-url=file:///baserock/gits/
+EOF
+    chmod +x "$LFS/baserock/build.sh"
+    /usr/bin/sudo env -i HOME=/baserock TERM=$TERM \
+        PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
+        /usr/sbin/chroot "$LFS" /baserock/build.sh
+}
+
+
+echo "Bootstrapping Baserock development environment"
+echo "LFS_TGT=$LFS_TGT"
+
+
+# download_all
+
+pass1_directories
+pass1_binutils_1
+pass1_gcc_1
+pass1_linux_api_headers
+pass1_glibc
+pass1_adjust_gcc_specs
+pass1_sanity_check
+pass1_binutils_2
+pass1_gcc_2
+pass1_sanity_check
+pass1_zlib
+pass1_ncurses
+pass1_busybox
+pass1_bash
+#pass1_bzip2
+#pass1_coreutils
+#pass1_diffutils
+pass1_file
+#pass1_findutils
+pass1_gawk
+pass1_gettext_msgfmt
+#pass1_grep
+pass1_gzip
+pass1_m4
+pass1_make
+pass1_patch
+pass1_perl
+#pass1_sed
+#pass1_tar
+pass1_texinfo
+#pass1_xz
+pass1_python
+pass1_cliapp
+pass1_git
+#pass1_strip_tools
+#pass1_fix_perms
+
+pass2_get_sources
+pass2_prepare_for_chroot
+pass2_build_with_morph_in_chroot
+
