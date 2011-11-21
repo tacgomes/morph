@@ -14,6 +14,10 @@ export LC_ALL=C
 export LFS_TGT=$(uname -m)-lfs-linux-gnu
 export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
+HOST_MKDIR=/bin/mkdir
+HOST_DIRNAME=/usr/bin/dirname
+HOST_SED=/bin/sed
+
 download()
 {
     basename=$(basename "$1")
@@ -47,20 +51,20 @@ unpack()
 
 pass1_directories()
 {
-    mkdir -p "$LFS"
-    mkdir -p "$sources"
+    $HOST_MKDIR -p "$LFS"
+    $HOST_MKDIR -p "$sources"
 
-    mkdir -p "$tools"
-    mkdir -p "$tools/bin"
-    mkdir -p "$tools/lib"
+    $HOST_MKDIR -p "$tools"
+    $HOST_MKDIR -p "$tools/bin"
+    $HOST_MKDIR -p "$tools/lib"
     [ -h "$tools/sbin" ] || ln -sf "bin" "$tools/sbin"
     [ -h "$tools/lib64" ] || ln -sf "lib" "$tools/lib64"
     [ -h "$tools/libexec" ] || ln -sf "lib" "$tools/libexec"
 
-    [ -e "$LFS/proc" ] || mkdir -p "$LFS/proc"
-    [ -e "$LFS/sys" ] || mkdir -p "$LFS/sys"
-    [ -e "$LFS/tmp" ] || mkdir -p "$LFS/tmp"
-    [ -e "$LFS/dev" ] || mkdir -p "$LFS/dev"
+    [ -e "$LFS/proc" ] || $HOST_MKDIR -p "$LFS/proc"
+    [ -e "$LFS/sys" ] || $HOST_MKDIR -p "$LFS/sys"
+    [ -e "$LFS/tmp" ] || $HOST_MKDIR -p "$LFS/tmp"
+    [ -e "$LFS/dev" ] || $HOST_MKDIR -p "$LFS/dev"
     [ -e "$LFS/dev/console" ] || sudo mknod -m 600 "$LFS/dev/console" c 5 1
     [ -e "$LFS/dev/null" ] || sudo mknod -m 666 "$LFS/dev/null" c 1 3
 }
@@ -72,7 +76,7 @@ pass1_binutils_1()
     if [ ! -e "$tools/bin/${LFS_TGT}-objdump" ]
     then
         unpack binutils-2.21.1
-        mkdir "$sources/binutils-build"
+        $HOST_MKDIR "$sources/binutils-build"
         cd "$sources/binutils-build"
         "../binutils-2.21.1/configure" \
             --target=$LFS_TGT \
@@ -101,7 +105,7 @@ pass1_gcc_1()
         cp -a ../mpc-0.9 mpc
         patch -Np1 -i ../gcc-4.6.1-cross_compile-1.patch
         
-        mkdir "$sources/gcc-build"
+        $HOST_MKDIR "$sources/gcc-build"
         cd "$sources/gcc-build"
         "../gcc-4.6.1/configure" \
             --target=$LFS_TGT --prefix="$tools" \
@@ -116,7 +120,7 @@ pass1_gcc_1()
         make -j$JOBS
         make install
         ln -s libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | \
-            sed 's/libgcc/&_eh/'`
+            $HOST_SED 's/libgcc/&_eh/'`
         
         rm -rf "$sources/gcc-build" "$sources/gcc-4.6.1"
     fi
@@ -149,7 +153,7 @@ pass1_glibc()
         patch -Np1 -i ../glibc-2.14.1-gcc_fix-1.patch
         patch -Np1 -i ../glibc-2.14.1-cpuid-1.patch
         
-        mkdir "$sources/glibc-build"
+        $HOST_MKDIR "$sources/glibc-build"
         cd "$sources/glibc-build"
         case `uname -m` in
           i?86) echo "CFLAGS += -march=i486 -mtune=native" > configparms ;;
@@ -169,8 +173,8 @@ pass1_glibc()
 pass1_adjust_gcc_specs()
 {
     echo "Adjusting gcc specs file"
-    SPECS=`dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/specs
-    $LFS_TGT-gcc -dumpspecs | sed \
+    SPECS=`$HOST_DIRNAME $($LFS_TGT-gcc -print-libgcc-file-name)`/specs
+    $LFS_TGT-gcc -dumpspecs | $HOST_SED \
       -e "s@/lib\(64\)\?/ld@$tools&@g" \
       -e "/^\*cpp:$/{n;s,$, -isystem $tools/include,}" > $SPECS 
     echo "New specs file is: $SPECS"
@@ -197,16 +201,16 @@ pass1_busybox()
         unpack busybox-1.19.3
         cd "$sources/busybox-1.19.3"
         make defconfig
-        sed -e 's/.*FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/' -i .config
-        sed -e 's/.*FEATURE_SH_STANDALONE.*/CONFIG_FEATURE_SH_STANDALONE=y/' -i .config
-        sed -e 's/^CONFIG_INETD=.*/# CONFIG_INETD is not set/' -i .config
-        sed -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
-        sed -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
-        sed -e 's/.*FEATURE_PREFER_APPLETS=.*/# CONFIG_FEATURE_PREFER_APPLETS is not set/' -i .config
-        sed -e 's/.*FEATURE_MOUNT_NFS=.*/# CONFIG_FEATURE_MOUNT_NFS is not set/' -i .config
-        sed -e 's/.*FEATURE_MOUNT_CIFS=.*/# CONFIG_FEATURE_MOUNT_CIFS is not set/' -i .config
-        sed -e 's/.*CONFIG_AWK=.*/# CONFIG_AWK is not set/' -i .config
-        sed -e 's/.*CONFIG_PATCH=.*/# CONFIG_PATCH is not set/' -i .config
+        $HOST_SED -e 's/.*FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/' -i .config
+        $HOST_SED -e 's/.*FEATURE_SH_STANDALONE.*/CONFIG_FEATURE_SH_STANDALONE=y/' -i .config
+        $HOST_SED -e 's/^CONFIG_INETD=.*/# CONFIG_INETD is not set/' -i .config
+        $HOST_SED -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
+        $HOST_SED -e 's/.*FEATURE_COMPRESS_USAGE=.*/CONFIG_FEATURE_COMPRESS_USAGE=y/' -i .config
+        $HOST_SED -e 's/.*FEATURE_PREFER_APPLETS=.*/# CONFIG_FEATURE_PREFER_APPLETS is not set/' -i .config
+        $HOST_SED -e 's/.*FEATURE_MOUNT_NFS=.*/# CONFIG_FEATURE_MOUNT_NFS is not set/' -i .config
+        $HOST_SED -e 's/.*FEATURE_MOUNT_CIFS=.*/# CONFIG_FEATURE_MOUNT_CIFS is not set/' -i .config
+        $HOST_SED -e 's/.*CONFIG_AWK=.*/# CONFIG_AWK is not set/' -i .config
+        $HOST_SED -e 's/.*CONFIG_PATCH=.*/# CONFIG_PATCH is not set/' -i .config
         make clean
         make -j$JOBS V=1
         make install
@@ -225,7 +229,7 @@ pass1_binutils_2()
     if [ ! -e "$tools/bin/objdump" ]
     then
         unpack binutils-2.21.1
-        mkdir "$sources/binutils-pass2-build"
+        $HOST_MKDIR "$sources/binutils-pass2-build"
         cd "$sources/binutils-pass2-build"
         CC="$LFS_TGT-gcc -B$tools/lib/" \
            AR=$LFS_TGT-ar RANLIB=$LFS_TGT-ranlib \
@@ -252,17 +256,17 @@ pass1_gcc_2()
         patch -Np1 -i ../gcc-4.6.1-startfiles_fix-1.patch
 
         cp -v gcc/Makefile.in{,.orig}
-        sed 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in 
+        $HOST_SED 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in 
 
         cp -v gcc/Makefile.in{,.tmp}
-        sed 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
+        $HOST_SED 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
           > gcc/Makefile.in
 
         for file in \
          $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
         do
           cp -v $file{,.orig}
-          sed -e "s@/lib\(64\)\?\(32\)\?/ld@$tools&@g" \
+          $HOST_SED -e "s@/lib\(64\)\?\(32\)\?/ld@$tools&@g" \
           -e "s@/usr@$tools@g" $file.orig > $file
           echo '
 #undef STANDARD_INCLUDE_DIR
@@ -276,7 +280,7 @@ pass1_gcc_2()
           x86_64)
             for file in $(find gcc/config -name t-linux64) ; do \
               cp -v $file{,.orig}
-              sed '/MULTILIB_OSDIRNAMES/d' $file.orig > $file
+              $HOST_SED '/MULTILIB_OSDIRNAMES/d' $file.orig > $file
             done
           ;;
         esac
@@ -289,7 +293,7 @@ pass1_gcc_2()
         cp -a ../mpfr-3.1.0 mpfr
         cp -a ../mpc-0.9 mpc
 
-        mkdir "$sources/gcc-pass2-build"
+        $HOST_MKDIR "$sources/gcc-pass2-build"
         cd "$sources/gcc-pass2-build"
 
         CC="$LFS_TGT-gcc -B$tools/lib/" \
@@ -564,7 +568,7 @@ pass1_perl()
         sh Configure -des -Dprefix="$tools"
         make -j$JOBS
         cp -v perl cpan/podlators/pod2man "$tools/bin"
-        mkdir -p "$tools/lib/perl5/5.14.2"
+        $HOST_MKDIR -p "$tools/lib/perl5/5.14.2"
         cp -Rv lib/* "$tools/lib/perl5/5.14.2"
         rm -rf "$sources/perl-5.14.2"
     fi
@@ -659,8 +663,8 @@ pass1_cliapp()
            "$sources/cliapp-0.21.tar.gz"
         unpack cliapp-0.21
         cd "$sources/cliapp-0.21"
-        sed -i '/^import cliapp/d' setup.py
-        sed -i 's/cliapp.__version__/"0.21"/g' setup.py
+        $HOST_SED -i '/^import cliapp/d' setup.py
+        $HOST_SED -i 's/cliapp.__version__/"0.21"/g' setup.py
         python setup.py install --prefix="$tools"
         rm -rf "$sources/cliapp-0.21"
     fi
@@ -702,7 +706,7 @@ pass2_get_sources()
     # FIXME: This should use git from inside the chroot
     if [ ! -e "$LFS/baserock/gits" ]
     then
-        mkdir -p "$LFS/baserock"
+        $HOST_MKDIR -p "$LFS/baserock"
         cp -al "$HOME/baserock/gits" "$LFS/baserock"
     fi
 }
@@ -711,29 +715,31 @@ pass2_get_sources()
 pass2_prepare_for_chroot()
 {
     echo "Preparing $LFS for chroot"
+    cd "$LFS"
     if [ ! -h "$LFS/$LFS" ]
     then
-        mkdir -p "$LFS/$LFS"
-        rmdir "$LFS/$LFS"
-        ln -s / "$LFS/$LFS"
+        $HOST_MKDIR -p "$LFS/$LFS"
+        /bin/rmdir "$LFS/$LFS"
+        /bin/ln -s / "$LFS/$LFS"
     fi
 
     cat <<EOF > "$tools/bin/sudo"
 #!/bin/sh
 exec "\$@"
 EOF
-    chmod +x "$tools/bin/sudo"
-    cp "$tools/bin/sudo" "$tools/bin/fakeroot"
+    /bin/chmod +x "$tools/bin/sudo"
+    /bin/cp "$tools/bin/sudo" "$tools/bin/fakeroot"
     
-    mkdir -p "$LFS/etc"
+    $HOST_MKDIR -p "$LFS/etc"
     echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
     echo 'root::0:' > "$LFS/etc/group"
 
-    echo 'baserock-boot' | /usr/bin/sudo tee "$LFS/etc/hostname" > /dev/null
+    echo 'baserock-boot' | 
+        /usr/bin/sudo /usr/bin/tee "$LFS/etc/hostname" > /dev/null
 
     # Add symlinks for common locations of specific tools
     # These are needed for #! lines in scripts
-    mkdir -p "$LFS/bin"
+    $HOST_MKDIR -p "$LFS/bin"
     /usr/bin/sudo ln -sf ../tools/bin/sh "$LFS/bin/sh"
     /usr/bin/sudo ln -sf ../tools/bin/bash "$LFS/bin/bash"
     /usr/bin/sudo ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
