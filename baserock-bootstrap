@@ -7,6 +7,7 @@ set -u
 LFS="$(pwd)/tree"
 sources="$LFS/sources"
 tools="$LFS/tools"
+SNAPSHOT="$1"
 
 JOBS=6
 
@@ -812,6 +813,12 @@ pass1_cliapp
 pass1_git
 #pass1_strip_tools
 #pass1_fix_perms
+
+if [ "$SNAPSHOT" = yes ]
+then
+    cd "$LFS/.."
+    tar -caf tree-snapshot.tar.gz tree
+fi
 
 pass2_get_sources
 pass2_prepare_for_chroot
