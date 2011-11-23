@@ -128,6 +128,7 @@ class Chunk(BinaryBlob):
             
     def setup_env(self):
         path = self.ex.env['PATH']
+        tools = self.ex.env.get('BOOTSTRAP_TOOLS')
         self.ex.env.clear()
         
         self.ex.env['TERM'] = 'dumb'
@@ -150,6 +151,7 @@ class Chunk(BinaryBlob):
         self.ex.env['DESTDIR'] = self.destdir + '/'
         self.ex.env['TOOLCHAIN_TARGET'] = \
             '%s-baserock-linux-gnu' % os.uname()[4]
+        self.ex.env['BOOTSTRAP_TOOLS'] = tools
 
         if self.morph.max_jobs:
             max_jobs = int(self.morph.max_jobs)
