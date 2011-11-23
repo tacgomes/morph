@@ -12,7 +12,7 @@ SNAPSHOT="$1"
 JOBS=6
 
 export LC_ALL=C
-export LFS_TGT=$(uname -m)-lfs-linux-gnu
+export LFS_TGT=$(uname -m)-baserock-linux-gnu
 export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
 HOST_MKDIR=/bin/mkdir
@@ -708,7 +708,7 @@ pass2_get_sources()
     if [ ! -e "$LFS/baserock/gits" ]
     then
         $HOST_MKDIR -p "$LFS/baserock"
-        cp -al "$HOME/baserock/gits" "$LFS/baserock"
+        /usr/bin/sudo cp -al "$HOME/baserock/gits" "$LFS/baserock"
     fi
 }
 
@@ -767,6 +767,7 @@ EOF
     chmod +x "$LFS/baserock/build.sh"
     /usr/bin/sudo env -i HOME=/baserock TERM=$TERM \
         PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
+        BOOTSTRAP_TOOLS="$LFS/tools" \
         /usr/sbin/chroot "$LFS" /baserock/build.sh
 }
 
