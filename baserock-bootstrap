@@ -765,6 +765,7 @@ python ./morph --verbose build \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
+        --max-jobs=$JOBS \
         --git-base-url=file:///baserock/gits/
 EOF
     chmod +x "$LFS/baserock/build.sh"
