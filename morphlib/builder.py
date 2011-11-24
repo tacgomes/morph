@@ -186,10 +186,10 @@ class Chunk(BinaryBlob):
         bs_name = self.morph.build_system
         self.msg('Building using well-known build system %s' % bs_name)
         bs = self.build_system[bs_name]
-        self.run_some_commands('configure', bs['configure-commands'])
-        self.run_some_commands('build', bs['build-commands'])
-        self.run_some_commands('test', bs['test-commands'])
-        self.run_install_commands(bs['install-commands'])
+        self.run_sequentially('configure', bs['configure-commands'])
+        self.run_in_parallel('build', bs['build-commands'])
+        self.run_sequentially('test', bs['test-commands'])
+        self.run_sequentially('install', bs['install-commands'])
 
     def build_using_commands(self):
         self.msg('Building using explicit commands')
