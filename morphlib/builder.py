@@ -199,7 +199,7 @@ class Chunk(BinaryBlob):
         self.msg('commands: %s' % what)
         self.ex.run(commands)
 
-    def run_in_sequentially(self, what, commands):
+    def run_sequentially(self, what, commands):
         self.msg ('commands: %s' % what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
