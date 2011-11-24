@@ -823,6 +823,8 @@ if [ "$SNAPSHOT" = yes ]
 then
     cd "$LFS/.."
     tar -caf tree-snapshot.tar.gz tree
+    echo "See snapshot in tree-snapshot.tar.gz"
+    exit
 fi
 
 pass2_get_sources
