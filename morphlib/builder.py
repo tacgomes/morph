@@ -166,6 +166,10 @@ class Chunk(BinaryBlob):
                                     self.ex.env['PATH'])
             self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
 
+        logging.debug('Environment for building chunk:')
+        for key in sorted(self.ex.env):
+            logging.debug('  %s=%s' % (key, self.ex.env[key]))
+
     def create_source_and_tarball(self):
         self.msg('Creating source tree and tarball')
         tarball = self.cache_prefix + '.src.tar.gz'
