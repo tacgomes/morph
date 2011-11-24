@@ -5,16 +5,18 @@ set +h
 set -u
 
 LFS="$(pwd)/tree"
+allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
 SNAPSHOT="$1"
 
-JOBS=6
+JOBS=12
 
 export LC_ALL=C
 export LFS_TGT=$(uname -m)-lfs-linux-gnu
 export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
+HOST_CP=/bin/cp
 HOST_MKDIR=/bin/mkdir
 HOST_DIRNAME=/usr/bin/dirname
 HOST_SED=/bin/sed
@@ -761,7 +763,6 @@ python ./morph --verbose build \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
-        --max-jobs=6 \
         --git-base-url=file:///baserock/gits/
 EOF
     chmod +x "$LFS/baserock/build.sh"
@@ -775,10 +776,11 @@ EOF
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
+pass1_directories
 
 # download_all
+$HOST_CP -alu "$allsources/." "$LFS/sources/."
 
-pass1_directories
 pass1_binutils_1
 pass1_gcc_1
 pass1_linux_api_headers
