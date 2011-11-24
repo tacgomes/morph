@@ -195,10 +195,6 @@ class Chunk(BinaryBlob):
         self.run_sequentially('test', self.morph.test_commands)
         self.run_sequentially('install', self.morph.install_commands)
 
-    def run_some_commands(self, what, commands):
-
-    def run_install_commands(self, commands):
-
     def run_sequentially(self, what, commands):
         self.msg('commands: %s' % what)
         self.ex.run(commands)
