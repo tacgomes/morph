@@ -729,7 +729,7 @@ pass2_prepare_for_chroot()
         /bin/ln -s / "$LFS/$LFS"
     fi
 
-    $HOST_SUDO mkdir "$LFS/etc"
+    $HOST_SUDO mkdir -p "$LFS/etc"
     $HOST_SUDO chmod 777 "$LFS/etc"
     $HOST_SUDO touch "$LFS/etc/ld.so.conf"
     $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
