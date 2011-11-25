@@ -22,6 +22,7 @@ HOST_CP=/bin/cp
 HOST_MKDIR=/bin/mkdir
 HOST_DIRNAME=/usr/bin/dirname
 HOST_SED=/bin/sed
+HOST_SUDO=/usr/bin/sudo
 
 download()
 {
@@ -712,7 +713,7 @@ pass2_get_sources()
     if [ ! -e "$LFS/baserock/gits" ]
     then
         $HOST_MKDIR -p "$LFS/baserock"
-        /usr/bin/sudo cp -al "$HOME/baserock/gits" "$LFS/baserock"
+        $HOST_SUDO cp -al "$HOME/baserock/gits" "$LFS/baserock"
     fi
 }
 
@@ -728,6 +729,17 @@ pass2_prepare_for_chroot()
         /bin/ln -s / "$LFS/$LFS"
     fi
 
+    $HOST_SUDO mkdir "$LFS/etc"
+    $HOST_SUDO chmod 777 "$LFS/etc"
+    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
+    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
+    cat <<EOF > "$LFS/etc/ld.so.conf"
+/lib64
+/lib
+/usr/lib/64
+/usr/lib
+EOF
+
     cat <<EOF > "$tools/bin/sudo"
 #!/bin/sh
 exec "\$@"
@@ -740,14 +752,14 @@ EOF
     echo 'root::0:' > "$LFS/etc/group"
 
     echo 'baserock-boot' | 
-        /usr/bin/sudo /usr/bin/tee "$LFS/etc/hostname" > /dev/null
+        $HOST_SUDO /usr/bin/tee "$LFS/etc/hostname" > /dev/null
 
     # Add symlinks for common locations of specific tools
     # These are needed for #! lines in scripts
     $HOST_MKDIR -p "$LFS/bin"
-    /usr/bin/sudo ln -sf ../tools/bin/sh "$LFS/bin/sh"
-    /usr/bin/sudo ln -sf ../tools/bin/bash "$LFS/bin/bash"
-    /usr/bin/sudo ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
+    $HOST_SUDO ln -sf ../tools/bin/sh "$LFS/bin/sh"
+    $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
+    $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
 }
 
 
@@ -758,6 +770,7 @@ pass2_build_with_morph_in_chroot()
 #!/tools/bin/bash
 set -e
 set -x
+/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache -n
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 python ./morph --verbose build \
@@ -769,7 +782,7 @@ python ./morph --verbose build \
         --git-base-url=file:///baserock/gits/
 EOF
     chmod +x "$LFS/baserock/build.sh"
-    /usr/bin/sudo env -i HOME=/baserock TERM=$TERM \
+    $HOST_SUDO env -i HOME=/baserock TERM=$TERM \
         PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
         BOOTSTRAP_TOOLS="$LFS/tools" \
         /usr/sbin/chroot "$LFS" /baserock/build.sh
