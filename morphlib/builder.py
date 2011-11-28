@@ -151,6 +151,8 @@ class Chunk(BinaryBlob):
         self.ex.env['DESTDIR'] = self.destdir + '/'
         self.ex.env['TOOLCHAIN_TARGET'] = \
             '%s-baserock-linux-gnu' % os.uname()[4]
+        self.ex.env['BOOTSTRAP'] = \
+            'true' if self.settings['bootstrap'] else 'false'
         if tools is not None:
             self.ex.env['BOOTSTRAP_TOOLS'] = tools
 
