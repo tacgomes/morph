@@ -108,7 +108,6 @@ def unpack_binary(filename, dirname):
     '''
 
     logging.debug('Unpacking %s into %s' % (filename, dirname))
-    tar = tarfile.open(name=filename)
-    tar.extractall(path=dirname)
-    tar.close()
+    ex = morphlib.execute.Execute(dirname, msg=lambda s: None)
+    ex.runv(['tar', '-xvf', filename])
 
