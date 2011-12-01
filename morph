@@ -58,6 +58,9 @@ class Morph(cliapp.Application):
         tempdir = morphlib.tempdir.Tempdir()
         builder = morphlib.builder.Builder(tempdir, self.msg, self.settings)
 
+        if not os.path.exists(self.settings['cachedir']) and os.getuid() != 0:
+            os.mkdir(self.settings['cachedir'])
+
         while len(args) >= 3:
             repo, ref, filename = args[:3]
             args = args[3:]

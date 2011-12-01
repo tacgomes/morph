@@ -20,7 +20,6 @@
 set -e
 
 cache="$DATADIR/build-chunk-cache"
-mkdir "$cache"
 ./morph --no-default-configs build repo farrokh hello.morph \
     --git-base-url="file://$DATADIR" \
     --cachedir="$cache" --keep-path
@@ -30,5 +29,3 @@ do
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
     echo
 done
-rm -rf "$cache"
-
