@@ -56,6 +56,7 @@ cat <<EOF > hello.morph
         "gcc -o hello hello.c"
     ],
     "install-commands": [
+        "install -d \\"\$DESTDIR\\"/etc",
         "install -d \\"\$DESTDIR\\"/bin",
         "install hello \\"\$DESTDIR\\"/bin/hello"
     ]
@@ -77,6 +78,18 @@ cat <<EOF > hello-stratum.morph
 }
 EOF
 git add hello-stratum.morph
+
+cat <<EOF > hello-system.morph
+{
+    "name": "hello-system",
+    "kind": "system",
+    "disk-size": "1G",
+    "strata": [
+        "hello-stratum"
+    ]
+}
+EOF
+git add hello-system.morph
 
 git commit --quiet -m "add a hello world program and morphs"
 
