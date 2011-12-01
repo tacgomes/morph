@@ -1,0 +1,4 @@
+ERROR: Command failed: git cat-file blob non-existent-branch:hello.morph
+Output from command:
+fatal: Not a valid object name non-existent-branch:hello.morph
+
