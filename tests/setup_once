@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# Create a git repository for tests. The repository will contain a simple
+# "hello, world" C program, and two branches ("master", "farrokh"), with
+# the master branch containing just a README. The two branches are there
+# so that we can test building a branch that hasn't been checked out.
+# The branches are different so that we know that if the wrong branch
+# is uses, the build will fail.
+#
+# Copyright (C) 2011  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+set -e
+
+repo="$DATADIR/repo"
+mkdir "$repo"
+cd "$repo"
+git init --quiet
+
+cat <<EOF > README
+This is a sample README.
+EOF
+git add README
+git commit --quiet -m "add README"
+
+git checkout --quiet -b farrokh
+
+cat <<EOF > hello.c
+#include <stdio.h>
+int main(void)
+{
+    puts("hello, world");
+    return 0;
+}
+EOF
+git add hello.c
+
+cat <<EOF > hello.morph
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-commands": [
+        "gcc -o hello hello.c"
+    ],
+    "install-commands": [
+        "install -d \\"\\\$DESTDIR\\"/bin",
+        "install hello \\"\\\$DESTDIR\\"/bin/hello"
+    ]
+}
+EOF
+git add hello.morph
+
+git commit --quiet -m "add a hello world program and morph"
+
+git checkout --quiet master
+
