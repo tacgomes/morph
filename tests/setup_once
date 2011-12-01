@@ -56,8 +56,8 @@ cat <<EOF > hello.morph
         "gcc -o hello hello.c"
     ],
     "install-commands": [
-        "install -d \\"\\\$DESTDIR\\"/bin",
-        "install hello \\"\\\$DESTDIR\\"/bin/hello"
+        "install -d \\"\$DESTDIR\\"/bin",
+        "install hello \\"\$DESTDIR\\"/bin/hello"
     ]
 }
 EOF
