@@ -392,7 +392,10 @@ class Builder(object):
 
         self.indent_more()
         self.msg('build %s|%s|%s' % (repo, ref, filename))
-        repo = urlparse.urljoin(self.settings['git-base-url'], repo)
+        base_url = self.settings['git-base-url']
+        if not base_url.endswith('/'):
+            base_url += '/'
+        repo = urlparse.urljoin(base_url, repo)
         morph = self.get_morph_from_git(repo, ref, filename)
 
         if morph.kind == 'chunk':

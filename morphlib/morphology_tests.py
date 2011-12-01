@@ -106,12 +106,17 @@ class MorphologyTests(unittest.TestCase):
                                             "ref": "ref"
                                         }
                                     ]
-                            }'''))
+                            }'''),
+                            baseurl='git://example.com')
         self.assertEqual(morph.kind, 'stratum')
         self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.sources,
                          [
-                            { 'name': 'foo', 'repo': 'foo/', 'ref': 'ref' },
+                            {
+                                u'name': u'foo', 
+                                u'repo': u'git://example.com/foo/', 
+                                u'ref': u'ref'
+                            },
                          ])
 
     def test_accepts_valid_system_morphology(self):

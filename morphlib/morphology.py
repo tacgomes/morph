@@ -34,9 +34,9 @@ class Morphology(object):
         if self.kind == 'stratum':
             for source in self.sources:
                 if 'repo' not in source:
-                    source['repo'] = source['name']
+                    source[u'repo'] = source['name']
                 repo = self._join_with_baseurl(source['repo'])
-                source['repo'] = unicode(repo)
+                source[u'repo'] = unicode(repo)
 
         self.filename = self._fp.name
 
@@ -105,7 +105,10 @@ class Morphology(object):
         if is_relative:
             if not url.endswith('/'):
                 url += '/'
-            return self._baseurl + url
+            baseurl = self._baseurl
+            if baseurl and not baseurl.endswith('/'):
+                baseurl += '/'
+            return baseurl + url
         else:
             return url
 

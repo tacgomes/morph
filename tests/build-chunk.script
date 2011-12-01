@@ -22,7 +22,7 @@ set -e
 cache="$DATADIR/build-chunk-cache"
 mkdir "$cache"
 ./morph --no-default-configs build repo farrokh hello.morph \
-    --git-base-url "file://$DATADIR/" \
+    --git-base-url="file://$DATADIR" \
     --cachedir="$cache" --keep-path
 for chunk in "$cache/"*.chunk.*
 do
