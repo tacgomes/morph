@@ -63,7 +63,22 @@ cat <<EOF > hello.morph
 EOF
 git add hello.morph
 
-git commit --quiet -m "add a hello world program and morph"
+cat <<EOF > hello-stratum.morph
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "sources": [
+        {
+            "name": "hello",
+            "repo": "repo",
+            "ref": "farrokh"
+        }
+    ]
+}
+EOF
+git add hello-stratum.morph
+
+git commit --quiet -m "add a hello world program and morphs"
 
 git checkout --quiet master
 
