@@ -192,25 +192,27 @@ class Chunk(BinaryBlob):
         self.run_sequentially('configure', bs['configure-commands'])
         self.run_in_parallel('build', bs['build-commands'])
         self.run_sequentially('test', bs['test-commands'])
-        self.run_sequentially('install', bs['install-commands'])
+        self.run_sequentially('install', bs['install-commands'],
+                              as_fakeroot=True)
 
     def build_using_commands(self):
         self.msg('Building using explicit commands')
         self.run_sequentially('configure', self.morph.configure_commands)
         self.run_in_parallel('build', self.morph.build_commands)
         self.run_sequentially('test', self.morph.test_commands)
-        self.run_sequentially('install', self.morph.install_commands)
+        self.run_sequentially('install', self.morph.install_commands,
+                              as_fakeroot=True)
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
         self.ex.run(commands)
 
-    def run_sequentially(self, what, commands):
+    def run_sequentially(self, what, commands, as_fakeroot=False):
         self.msg ('commands: %s' % what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.ex.run(commands, as_fakeroot=True)
+        self.ex.run(commands, as_fakeroot=as_fakeroot)
         self.ex.env['MAKEFLAGS'] = flags
         logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
 
