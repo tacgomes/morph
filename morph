@@ -56,7 +56,7 @@ class Morph(cliapp.Application):
 
     def cmd_build(self, args):
         tempdir = morphlib.tempdir.Tempdir()
-        builder = morphlib.builder.Builder(tempdir, self.msg, self.settings)
+        builder = morphlib.builder.Builder(tempdir, self)
 
         if not os.path.exists(self.settings['cachedir']) and os.getuid() != 0:
             os.mkdir(self.settings['cachedir'])

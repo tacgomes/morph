@@ -372,11 +372,12 @@ class Builder(object):
     
     The objects may be chunks or strata.'''
     
-    def __init__(self, tempdir, msg, settings):
+    def __init__(self, tempdir, app):
         self.tempdir = tempdir
-        self.real_msg = msg
-        self.settings = settings
-        self.cachedir = morphlib.cachedir.CacheDir(settings['cachedir'])
+        self.real_msg = app.msg
+        self.settings = app.settings
+        self.dump_memory_profile = app.dump_memory_profile
+        self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         self.indent = 0
 
     def msg(self, text):
