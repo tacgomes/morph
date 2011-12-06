@@ -156,6 +156,7 @@ class Chunk(BinaryBlob):
     def setup_env(self):
         path = self.ex.env['PATH']
         tools = self.ex.env.get('BOOTSTRAP_TOOLS')
+        distcc_hosts = self.ex.env.get('DISTCC_HOSTS')
         self.ex.env.clear()
         
         self.ex.env['TERM'] = 'dumb'
@@ -182,6 +183,8 @@ class Chunk(BinaryBlob):
             'true' if self.settings['bootstrap'] else 'false'
         if tools is not None:
             self.ex.env['BOOTSTRAP_TOOLS'] = tools
+        if distcc_hosts is not None:
+            self.ex.env['DISTCC_HOSTS'] = distcc_hosts
 
         if self.morph.max_jobs:
             max_jobs = int(self.morph.max_jobs)
@@ -198,6 +201,8 @@ class Chunk(BinaryBlob):
             self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
                                     self.ex.env['PATH'])
             self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
+            if not self.settings['no-distcc']:
+                self.ex.env['CCACHE_PREFIX'] = 'distcc'
 
         logging.debug('Environment for building chunk:')
         for key in sorted(self.ex.env):
