@@ -118,7 +118,6 @@ class Chunk(BinaryBlob):
         self.setup_env()
 
         self.create_source_and_tarball()
-        self.dump_memory_profile('after creating source and tarball for chunk')
 
         os.mkdir(self.destdir)
         if self.morph.build_system:
@@ -183,12 +182,15 @@ class Chunk(BinaryBlob):
 
     def create_source_and_tarball(self):
         self.msg('Creating source tree and tarball')
+        self.dump_memory_profile('before creating source and tarball for chunk')
         tarball = self.cache_prefix + '.src.tar'
         morphlib.git.export_sources(self.repo, self.ref, tarball)
+        self.dump_memory_profile('after exporting sources')
         os.mkdir(self.builddir)
         f = tarfile.open(tarball)
         f.extractall(path=self.builddir)
         f.close()
+        self.dump_memory_profile('after creating source and tarball for chunk')
 
     def build_using_buildsystem(self):
         bs_name = self.morph.build_system
