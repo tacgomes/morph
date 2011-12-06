@@ -23,7 +23,7 @@ class Stopwatch(object):
         self.ticks = {}
 
     def tick(self, reference_object, name):
-        if not self.ticks.has_key(reference_object):
+        if not reference_object in self.ticks:
             self.ticks[reference_object] = {}
         self.ticks[reference_object][name] = datetime.now()
 

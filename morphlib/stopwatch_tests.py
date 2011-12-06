@@ -32,9 +32,9 @@ class StopwatchTests(unittest.TestCase):
         self.stopwatch.tick('tick', 'a')
         assert self.stopwatch.times('tick')
         assert self.stopwatch.time('tick', 'a')
-        assert self.stopwatch.times('tick').has_key('a')
-        assert (self.stopwatch.time('tick', 'a') ==
-                self.stopwatch.times('tick')['a'])
+        assert 'a' in self.stopwatch.times('tick')
+        self.assertEqual(self.stopwatch.time('tick', 'a'),
+            self.stopwatch.times('tick')['a'])
         
         now = datetime.datetime.now()
         assert self.stopwatch.time('tick', 'a') < now
@@ -55,4 +55,4 @@ class StopwatchTests(unittest.TestCase):
         watch_delta = self.stopwatch.start_stop_delta('start-stop')
 
         assert our_delta.total_seconds() > 0
-        assert our_delta == watch_delta
+        self.assertEqual(our_delta, watch_delta)
