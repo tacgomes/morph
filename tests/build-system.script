@@ -22,5 +22,5 @@ set -e
 cache="$DATADIR/build-system-cache"
 ./morph --no-default-configs build repo farrokh hello-system.morph \
     --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path
+    --cachedir="$cache" --keep-path --no-distcc
 find "$cache" -name '*.system.*' -type f | wc -l

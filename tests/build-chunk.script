@@ -22,7 +22,7 @@ set -e
 cache="$DATADIR/build-chunk-cache"
 ./morph --no-default-configs build repo farrokh hello.morph \
     --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path
+    --cachedir="$cache" --keep-path --no-distcc
 for chunk in "$cache/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
