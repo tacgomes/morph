@@ -478,6 +478,8 @@ class Builder(object):
         blob.builddir = self.tempdir.join('%s.build' % morph.name)
         blob.destdir = self.tempdir.join('%s.inst' % morph.name)
         blob.staging = self.tempdir.join('staging')
+        if not os.path.exists(blob.staging):
+            os.mkdir(blob.staging)
         blob.settings = self.settings
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
@@ -492,9 +494,6 @@ class Builder(object):
             built = builds
         else:
             blob.build_watch.start('overall-build')
-
-            if not os.path.exists(blob.staging):
-                os.mkdir(blob.staging)
 
             blob.build_watch.start('build-needed')
             self.build_needed(blob)
