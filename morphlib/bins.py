@@ -24,7 +24,7 @@ Binaries are chunks, strata, and system images.
 import logging
 import os
 import re
-import tarfile
+import tempfile
 
 import morphlib
 
@@ -79,12 +79,16 @@ def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
                 logging.debug('regexp MISMATCH: %s' % filename)
     dump_memory_profile('after walking')
 
-    include = sorted(include)
-
-    tar = tarfile.open(name=chunk_filename, mode='w:gz')
-    for filename in include:
-        tar.add(filename, arcname=mkrel(filename), recursive=False)
-    tar.close()
+    include = sorted(include) # get dirs before contents
+    fd, include_filename = tempfile.mkstemp()
+    os.close(fd)
+    with open(include_filename, 'w') as f:
+        for name in include:
+            f.write('%s\0' % mkrel(name))
+    ex = morphlib.execute.Execute('.', lambda msg: None)
+    ex.runv(['tar', '-C', rootdir, '-caf', chunk_filename,
+             '--null', '-T', include_filename, '--no-recursion'])
+    os.remove(include_filename)
     dump_memory_profile('after creating tarball')
 
     include.remove(rootdir)
@@ -101,9 +105,8 @@ def create_stratum(rootdir, stratum_filename):
     '''Create a stratum from the contents of a directory.'''
     logging.debug('Creating stratum file %s from %s' % 
                     (stratum_filename, rootdir))
-    tar = tarfile.open(name=stratum_filename, mode='w:gz')
-    tar.add(rootdir, arcname='.')
-    tar.close()
+    ex = morphlib.execute.Execute('.', lambda msg: None)
+    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'])
 
 
 def unpack_binary(filename, dirname):
