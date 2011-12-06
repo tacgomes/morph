@@ -201,12 +201,14 @@ class Chunk(BinaryBlob):
 
     def create_source_and_tarball(self):
         self.msg('Creating source tree and tarball')
+        self.build_watch.start('create-source-tarball')
         tarball = self.cache_prefix + '.src.tar.gz'
         morphlib.git.export_sources(self.repo, self.ref, tarball)
         os.mkdir(self.builddir)
         f = tarfile.open(tarball)
         f.extractall(path=self.builddir)
         f.close()
+        self.build_watch.stop('create-source-tarball')
 
     def build_using_buildsystem(self):
         bs_name = self.morph.build_system
@@ -466,8 +468,6 @@ class Builder(object):
         else:
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
 
-        blob.build_watch.start('overall-build')
-
         dict_key = blob.dict_key()
         self.complete_dict_key(dict_key, morph.name, repo, ref)
         logging.debug('completed dict_key:\n%s' % repr(dict_key))
@@ -488,9 +488,14 @@ class Builder(object):
                 self.install_chunk(morph, x, builds[x], blob.staging)
             built = builds
         else:
+            blob.build_watch.start('overall-build')
+
             if not os.path.exists(blob.staging):
                 os.mkdir(blob.staging)
+
+            blob.build_watch.start('build-needed')
             self.build_needed(blob)
+            blob.build_watch.stop('build-needed')
 
             self.msg('Building %s %s' % (morph.kind, morph.name))
             self.indent_more()
@@ -500,8 +505,8 @@ class Builder(object):
                 self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
                 self.install_chunk(morph, x, built[x], blob.staging)
 
-        blob.build_watch.stop('overall-build')
-        blob.save_build_times()
+            blob.build_watch.stop('overall-build')
+            blob.save_build_times()
 
         self.indent_less()
         return built
