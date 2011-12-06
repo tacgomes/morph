@@ -187,9 +187,7 @@ class Chunk(BinaryBlob):
         morphlib.git.export_sources(self.repo, self.ref, tarball)
         self.dump_memory_profile('after exporting sources')
         os.mkdir(self.builddir)
-        f = tarfile.open(tarball)
-        f.extractall(path=self.builddir)
-        f.close()
+        self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
         self.dump_memory_profile('after creating source and tarball for chunk')
 
     def build_using_buildsystem(self):
