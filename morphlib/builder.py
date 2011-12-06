@@ -197,7 +197,8 @@ class Chunk(BinaryBlob):
             self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
                                     self.ex.env['PATH'])
             self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
-            self.ex.env['CCACHE_PREFIX'] = 'distcc'
+            if not self.settings['no-distcc']:
+                self.ex.env['CCACHE_PREFIX'] = 'distcc'
 
         logging.debug('Environment for building chunk:')
         for key in sorted(self.ex.env):

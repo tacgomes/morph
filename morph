@@ -40,6 +40,7 @@ class Morph(cliapp.Application):
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
         self.settings.boolean(['no-ccache'], 'do not use ccache')
+        self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.integer(['max-jobs'], 
                               'run at most N parallel jobs with make (default '
                                 'is to a value based on the number of CPUs '
