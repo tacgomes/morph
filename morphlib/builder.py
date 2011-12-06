@@ -41,6 +41,7 @@ class BinaryBlob(object):
         self.cache_prefix = None
         self.tempdir = None
         self.built = None
+        self.dump_memory_profile = lambda msg: None
 
     def dict_key(self):
         return {}
@@ -117,15 +118,19 @@ class Chunk(BinaryBlob):
         self.setup_env()
 
         self.create_source_and_tarball()
+        self.dump_memory_profile('after creating source and tarball for chunk')
 
         os.mkdir(self.destdir)
         if self.morph.build_system:
             self.build_using_buildsystem()
         else:
             self.build_using_commands()
+        self.dump_memory_profile('after building chunk')
 
-        return self.create_chunks(self.chunks)
-            
+        chunks = self.create_chunks(self.chunks)
+        self.dump_memory_profile('after creating chunk blobs')
+        return chunks
+        
     def setup_env(self):
         path = self.ex.env['PATH']
         tools = self.ex.env.get('BOOTSTRAP_TOOLS')
@@ -393,6 +398,7 @@ class Builder(object):
     def build(self, repo, ref, filename):
         '''Build a binary based on a morphology.'''
 
+        self.dump_memory_profile('at start of build method')
         self.indent_more()
         self.msg('build %s|%s|%s' % (repo, ref, filename))
         base_url = self.settings['git-base-url']
@@ -400,6 +406,7 @@ class Builder(object):
             base_url += '/'
         repo = urlparse.urljoin(base_url, repo)
         morph = self.get_morph_from_git(repo, ref, filename)
+        self.dump_memory_profile('after getting morph from git')
 
         if morph.kind == 'chunk':
             blob = Chunk(morph, repo, ref)
@@ -409,10 +416,12 @@ class Builder(object):
             blob = System(morph, repo, ref)
         else:
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
+        self.dump_memory_profile('after creating Chunk/Stratum/...')
 
         dict_key = blob.dict_key()
         self.complete_dict_key(dict_key, morph.name, repo, ref)
         logging.debug('completed dict_key:\n%s' % repr(dict_key))
+        self.dump_memory_profile('after completing cache key')
 
         blob.builddir = self.tempdir.join('%s.build' % morph.name)
         blob.destdir = self.tempdir.join('%s.inst' % morph.name)
@@ -421,28 +430,35 @@ class Builder(object):
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.tempdir = self.tempdir
+        blob.dump_memory_profile = self.dump_memory_profile
         
         builds = blob.builds()
+        self.dump_memory_profile('after blob.builds()')
         if all(os.path.exists(builds[x]) for x in builds):
             for x in builds:
                 self.msg('using cached %s %s at %s' % 
                             (morph.kind, x, builds[x]))
                 self.install_chunk(morph, x, builds[x], blob.staging)
+                self.dump_memory_profile('after installing chunk')
             built = builds
         else:
             if not os.path.exists(blob.staging):
                 os.mkdir(blob.staging)
             self.build_needed(blob)
+            self.dump_memory_profile('after building needed')
 
             self.msg('Building %s %s' % (morph.kind, morph.name))
             self.indent_more()
             built = blob.build()
+            self.dump_memory_profile('after building blob')
             self.indent_less()
             for x in built:
                 self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
                 self.install_chunk(morph, x, built[x], blob.staging)
+                self.dump_memory_profile('after installing chunks')
 
         self.indent_less()
+        self.dump_memory_profile('at end of build method')
         return built
 
     def build_needed(self, blob):
