@@ -26,5 +26,6 @@ import cachedir
 import execute
 import git
 import morphology
+import stopwatch
 import tempdir
 import util
