@@ -58,6 +58,9 @@ class Execute(object):
                 argv = ['sudo'] + argv # pragma: no cover
             elif as_fakeroot:
                 argv = ['fakeroot'] + argv
+            logging.debug('run: argv=%s' % repr(argv))
+            logging.debug('run: env=%s' % repr(self.env))
+            logging.debug('run: cwd=%s' % repr(self.dirname))
             p = subprocess.Popen(argv, shell=False,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT,
@@ -85,6 +88,9 @@ class Execute(object):
             argv = ['sudo'] + argv # pragma: no cover
         elif as_fakeroot:
             argv = ['fakeroot'] + argv
+        logging.debug('runv: argv=%s' % repr(argv))
+        logging.debug('runv: env=%s' % repr(self.env))
+        logging.debug('runv: cwd=%s' % repr(self.dirname))
         self.msg('# %s' % ' '.join(argv))
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, 
                              stderr=subprocess.STDOUT, cwd=self.dirname)
