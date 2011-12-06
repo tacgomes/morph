@@ -426,6 +426,8 @@ class Builder(object):
         blob.builddir = self.tempdir.join('%s.build' % morph.name)
         blob.destdir = self.tempdir.join('%s.inst' % morph.name)
         blob.staging = self.tempdir.join('staging')
+        if not os.path.exists(blob.staging):
+            os.mkdir(blob.staging)
         blob.settings = self.settings
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
@@ -442,8 +444,6 @@ class Builder(object):
                 self.dump_memory_profile('after installing chunk')
             built = builds
         else:
-            if not os.path.exists(blob.staging):
-                os.mkdir(blob.staging)
             self.build_needed(blob)
             self.dump_memory_profile('after building needed')
 
