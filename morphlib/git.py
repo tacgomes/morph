@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import gzip
 import logging
 import urlparse
 
@@ -40,11 +39,7 @@ class TooManyMorphs(Exception):
 def export_sources(repo, ref, tar_filename):
     '''Export the contents of a specific commit into a compressed tarball.'''
     ex = morphlib.execute.Execute('.', msg=logging.debug)
-    tar = ex.runv(['git', 'archive', '--remote', repo, ref])
-    f = gzip.open(tar_filename, 'wb')
-    f.write(tar)
-    f.close()
-
+    ex.runv(['git', 'archive', '-o', tar_filename, '--remote', repo, ref])
 
 def get_commit_id(repo, ref):
     '''Return the full SHA-1 commit id for a repo+ref.'''

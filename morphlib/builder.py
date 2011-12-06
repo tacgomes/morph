@@ -183,7 +183,7 @@ class Chunk(BinaryBlob):
 
     def create_source_and_tarball(self):
         self.msg('Creating source tree and tarball')
-        tarball = self.cache_prefix + '.src.tar.gz'
+        tarball = self.cache_prefix + '.src.tar'
         morphlib.git.export_sources(self.repo, self.ref, tarball)
         os.mkdir(self.builddir)
         f = tarfile.open(tarball)
