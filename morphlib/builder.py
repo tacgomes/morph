@@ -256,7 +256,6 @@ class Chunk(BinaryBlob):
             morphlib.bins.create_chunk(self.destdir, filename, patterns)
             ret[chunk_name] = filename
         self.build_watch.stop('create-chunks')
-        self.save_build_times()
         files = os.listdir(self.destdir)
         if files:
             raise Exception('DESTDIR %s is not empty: %s' %
