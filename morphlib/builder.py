@@ -230,7 +230,8 @@ class Chunk(BinaryBlob):
             patterns += [r'baserock/%s\.' % chunk_name]
             filename = self.filename(chunk_name)
             self.msg('Creating binary for %s' % chunk_name)
-            morphlib.bins.create_chunk(self.destdir, filename, patterns)
+            morphlib.bins.create_chunk(self.destdir, filename, patterns,
+                                       self.dump_memory_profile)
             ret[chunk_name] = filename
         files = os.listdir(self.destdir)
         if files:

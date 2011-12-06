@@ -29,7 +29,7 @@ import tarfile
 import morphlib
 
 
-def create_chunk(rootdir, chunk_filename, regexps):
+def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
     '''Create a chunk from the contents of a directory.
     
     Only files and directories that match at least one of the regular
@@ -38,7 +38,9 @@ def create_chunk(rootdir, chunk_filename, regexps):
     filenames are relative to rootdir.
     
     '''
-    
+
+    dump_memory_profile = dump_memory_profile or (lambda msg: None )
+       
     def mkrel(filename):
         assert filename.startswith(rootdir)
         if filename == rootdir:
@@ -57,6 +59,7 @@ def create_chunk(rootdir, chunk_filename, regexps):
 
     logging.debug('Creating chunk file %s from %s with regexps %s' % 
                     (chunk_filename, rootdir, regexps))
+    dump_memory_profile('at beginning of create_chunk')
 
     compiled = [re.compile(x) for x in regexps]
     include = set()
@@ -74,6 +77,7 @@ def create_chunk(rootdir, chunk_filename, regexps):
                         include.add(name)
             else:
                 logging.debug('regexp MISMATCH: %s' % filename)
+    dump_memory_profile('after walking')
 
     include = sorted(include)
 
@@ -81,6 +85,7 @@ def create_chunk(rootdir, chunk_filename, regexps):
     for filename in include:
         tar.add(filename, arcname=mkrel(filename), recursive=False)
     tar.close()
+    dump_memory_profile('after creating tarball')
 
     include.remove(rootdir)
     for filename in reversed(include):
@@ -89,6 +94,7 @@ def create_chunk(rootdir, chunk_filename, regexps):
                 os.rmdir(filename)
         else:
             os.remove(filename)
+    dump_memory_profile('after removing in create_chunks')
 
 
 def create_stratum(rootdir, stratum_filename):
