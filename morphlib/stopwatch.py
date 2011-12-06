@@ -27,22 +27,24 @@ class Stopwatch(object):
             self.ticks[reference_object] = {}
         self.ticks[reference_object][name] = datetime.now()
 
-    def enter(self, reference_object):
-        # TODO raise error if start already exists
+    def start(self, reference_object):
         self.tick(reference_object, 'start')
 
-    def leave(self, reference_object):
-        # TODO raise error if stop already exists
+    def stop(self, reference_object):
         self.tick(reference_object, 'stop')
+
+    def times(self, reference_object):
+        return self.ticks[reference_object]
 
     def time(self, reference_object, name):
         return self.ticks[reference_object][name]
 
-    def start(self, reference_object):
+    def start_time(self, reference_object):
         return self.ticks[reference_object]['start']
 
-    def stop(self, reference_object):
+    def stop_time(self, reference_object):
         return self.ticks[reference_object]['stop']
 
-    def delta(self, reference_object):
-        return self.stop(reference_object) - self.start(reference_object)
+    def start_stop_delta(self, reference_object):
+        return (self.stop_time(reference_object) - 
+                self.start_time(reference_object))

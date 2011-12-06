@@ -92,10 +92,11 @@ class BinaryBlob(object):
             'build-times': {}
         }
         for stage in self.build_watch.ticks.iterkeys():
+            delta = self.build_watch.start_stop_delta(stage)
             meta['build-times'][stage] = {
-                'start': '%s' % self.build_watch.start(stage),
-                'stop': '%s' % self.build_watch.stop(stage),
-                'delta': self.build_watch.delta(stage).total_seconds()
+                'start': '%s' % self.build_watch.start_time(stage),
+                'stop': '%s' % self.build_watch.stop_time(stage),
+                'delta': delta.total_seconds()
             }
         self.write_cache_metadata(meta)
 
@@ -134,8 +135,6 @@ class Chunk(BinaryBlob):
 
     def build(self):
         logging.debug('Creating build tree at %s' % self.builddir)
-
-        self.build_watch.enter('overall-build')
 
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
         self.setup_env()
@@ -229,24 +228,24 @@ class Chunk(BinaryBlob):
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
-        self.build_watch.enter(what)
+        self.build_watch.start(what)
         self.ex.run(commands)
-        self.build_watch.leave(what)
+        self.build_watch.stop(what)
 
     def run_sequentially(self, what, commands, as_fakeroot=False):
         self.msg ('commands: %s' % what)
-        self.build_watch.enter(what)
+        self.build_watch.start(what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
         self.ex.run(commands, as_fakeroot=as_fakeroot)
         self.ex.env['MAKEFLAGS'] = flags
         logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.build_watch.leave(what)
+        self.build_watch.stop(what)
 
     def create_chunks(self, chunks):
         ret = {}
-        self.build_watch.enter('create-chunks')
+        self.build_watch.start('create-chunks')
         for chunk_name in chunks:
             self.msg('Creating chunk %s' % chunk_name)
             self.prepare_binary_metadata(chunk_name)
@@ -256,8 +255,7 @@ class Chunk(BinaryBlob):
             self.msg('Creating binary for %s' % chunk_name)
             morphlib.bins.create_chunk(self.destdir, filename, patterns)
             ret[chunk_name] = filename
-        self.build_watch.leave('create-chunks')
-        self.build_watch.leave('overall-build')
+        self.build_watch.stop('create-chunks')
         self.save_build_times()
         files = os.listdir(self.destdir)
         if files:
@@ -282,21 +280,18 @@ class Stratum(BinaryBlob):
         return { self.morph.name: filename }
 
     def build(self):
-        self.build_watch.enter('overall-build')
         os.mkdir(self.destdir)
-        self.build_watch.enter('unpack-chunks')
+        self.build_watch.start('unpack-chunks')
         for chunk_name, filename in self.built:
             self.msg('Unpacking chunk %s' % chunk_name)
             morphlib.bins.unpack_binary(filename, self.destdir)
-        self.build_watch.leave('unpack-chunks')
+        self.build_watch.stop('unpack-chunks')
         self.prepare_binary_metadata(self.morph.name)
-        self.build_watch.enter('create-binary')
+        self.build_watch.start('create-binary')
         self.msg('Creating binary for %s' % self.morph.name)
         filename = self.filename(self.morph.name)
         morphlib.bins.create_stratum(self.destdir, filename)
-        self.build_watch.leave('create-binary')
-        self.build_watch.leave('overall-build')
-        self.save_build_times()
+        self.build_watch.stop('create-binary')
         return { self.morph.name: filename }
 
 
@@ -311,74 +306,72 @@ class System(BinaryBlob):
         return { self.morph.name: filename }
 
     def build(self):
-        self.build_watch.enter('overall-build')
-
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
         # Create image.
-        self.build_watch.enter('create-image')
+        self.build_watch.start('create-image')
         image_name = self.tempdir.join('%s.img' % self.morph.name)
         self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
                       self.morph.disk_size])
-        self.build_watch.leave('create-image')
+        self.build_watch.stop('create-image')
 
         # Partition it.
-        self.build_watch.enter('partition-image')
+        self.build_watch.start('partition-image')
         self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'],
                      as_root=True)
         self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
                       '0%', '100%'], as_root=True)
         self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'],
                      as_root=True)
-        self.build_watch.leave('partition-image')
+        self.build_watch.stop('partition-image')
 
         # Install first stage boot loader into MBR.
-        self.build_watch.enter('install-mbr')
+        self.build_watch.start('install-mbr')
         self.ex.runv(['install-mbr', image_name], as_root=True)
-        self.build_watch.leave('install-mbr')
+        self.build_watch.stop('install-mbr')
 
         # Setup device mapper to access the partition.
-        self.build_watch.enter('setup-device-mapper')
+        self.build_watch.start('setup-device-mapper')
         out = self.ex.runv(['kpartx', '-av', image_name], as_root=True)
         devices = [line.split()[2]
                    for line in out.splitlines()
                    if line.startswith('add map ')]
         partition = '/dev/mapper/%s' % devices[0]
-        self.build_watch.leave('setup-device-mapper')
+        self.build_watch.stop('setup-device-mapper')
 
         mount_point = None
         try:
             # Create filesystem.
-            self.build_watch.enter('create-filesystem')
+            self.build_watch.start('create-filesystem')
             self.ex.runv(['mkfs', '-t', 'ext3', partition], as_root=True)
-            self.build_watch.leave('create-filesystem')
+            self.build_watch.stop('create-filesystem')
             
             # Mount it.
-            self.build_watch.enter('mount-filesystem')
+            self.build_watch.start('mount-filesystem')
             mount_point = self.tempdir.join('mnt')
             os.mkdir(mount_point)
             self.ex.runv(['mount', partition, mount_point], as_root=True)
-            self.build_watch.leave('mount-filesystem')
+            self.build_watch.stop('mount-filesystem')
 
             # Unpack all strata into filesystem.
-            self.build_watch.enter('unpack-strata')
+            self.build_watch.start('unpack-strata')
             for name, filename in self.built:
                 self.msg('unpack %s from %s' % (name, filename))
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
-            self.build_watch.leave('unpack-strata')
+            self.build_watch.stop('unpack-strata')
 
             # Create fstab.
-            self.build_watch.enter('create-fstab')
+            self.build_watch.start('create-fstab')
             fstab = self.tempdir.join('mnt/etc/fstab')
             with open(fstab, 'w') as f:
                 f.write('proc /proc proc defaults 0 0\n')
                 f.write('sysfs /sys sysfs defaults 0 0\n')
                 f.write('/dev/sda1 / ext4 errors=remount-ro 0 1\n')
-            self.build_watch.leave('create-fstab')
+            self.build_watch.stop('create-fstab')
 
             # Install extlinux bootloader.
-            self.build_watch.enter('install-bootloader')
+            self.build_watch.start('install-bootloader')
             conf = os.path.join(mount_point, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
             f = open(conf, 'w')
@@ -397,12 +390,12 @@ append root=/dev/sda1 init=/bin/sh quiet rw
             # Weird hack that makes extlinux work. There is a bug somewhere.
             self.ex.runv(['sync'])
             import time; time.sleep(2)
-            self.build_watch.leave('install-bootloader')
+            self.build_watch.stop('install-bootloader')
 
             # Unmount.
-            self.build_watch.enter('unmount-filesystem')
+            self.build_watch.start('unmount-filesystem')
             self.ex.runv(['umount', mount_point], as_root=True)
-            self.build_watch.leave('unmount-filesystem')
+            self.build_watch.stop('unmount-filesystem')
         except BaseException, e:
             # Unmount.
             if mount_point is not None:
@@ -419,19 +412,15 @@ append root=/dev/sda1 init=/bin/sh quiet rw
             raise
 
         # Undo device mapping.
-        self.build_watch.enter('undo-device-mapper')
+        self.build_watch.start('undo-device-mapper')
         self.ex.runv(['kpartx', '-d', image_name], as_root=True)
-        self.build_watch.leave('undo-device-mapper')
+        self.build_watch.stop('undo-device-mapper')
 
         # Move image file to cache.
-        self.build_watch.enter('cache-image')
+        self.build_watch.start('cache-image')
         filename = self.filename(self.morph.name)
         self.ex.runv(['mv', image_name, filename])
-        self.build_watch.leave('cache-image')
-
-        # Write build time information to the cache
-        self.build_watch.leave('overall-build')
-        self.save_build_times()
+        self.build_watch.stop('cache-image')
 
         return { self.morph.name: filename }
 
@@ -478,6 +467,8 @@ class Builder(object):
         else:
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
 
+        blob.build_watch.start('overall-build')
+
         dict_key = blob.dict_key()
         self.complete_dict_key(dict_key, morph.name, repo, ref)
         logging.debug('completed dict_key:\n%s' % repr(dict_key))
@@ -489,7 +480,7 @@ class Builder(object):
         blob.msg = self.msg
         blob.cache_prefix = self.cachedir.name(dict_key)
         blob.tempdir = self.tempdir
-        
+
         builds = blob.builds()
         if all(os.path.exists(builds[x]) for x in builds):
             for x in builds:
@@ -509,6 +500,9 @@ class Builder(object):
             for x in built:
                 self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
                 self.install_chunk(morph, x, built[x], blob.staging)
+
+        blob.build_watch.stop('overall-build')
+        blob.save_build_times()
 
         self.indent_less()
         return built

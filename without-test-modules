@@ -1,4 +1,3 @@
 morphlib/__init__.py
 morphlib/builder.py
 morphlib/git.py
-morphlib/stopwatch.py
