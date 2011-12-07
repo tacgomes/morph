@@ -3,43 +3,51 @@ README for morph
 
 > **NOTA BENE:** This document is very much work-in-progress, and anything
 > and everything may and will change at little or no notice. If you see
-> problems, mail lars.wirzenius@codethink.co.uk (for now).
+> problems, mail baserock-dev@baserock.org.
 
 `morph` builds binaries for [Baserock](http://www.baserock.org/),
-an embedded Linux solution. Some important points:
+an embedded Linux solution. Please see the website for overall information.
 
-* everything is built from **source in git**, not release tarballs
-  and not from uncommitted changes
-* a binary is called a **stratum**, and is a collection of software that forms 
-  a whole, e.g., the core system for Baserock, the essential build tools 
-  for Baserock, or the GNOME platform libraries
-  - later there will be support for **erratics**, for individual software
-    packages, which will be isolated from each other
-* a stratum is atomic: it cannot be split into smaller parts
-* parts of a stratum that correspond to individual upstream projects
-  (e.g., busybox for the core stratum, or a particular library in the GNOME
-  platform) can be built separately, but the result (a **chunk**) cannot
-  be installed on its own: it needs to be combined with other chunks to
-  form a complete stratum
 
-In other words:
+Usage
+-----
 
-* an individual upstream project is built into a chunk
-* chunks are combined into strata
-* strata are installed completely, or not at all
+The Baserock builds are controlled by **morphology** files, 
+which are build recipes. See below for their syntax. Everything
+in Baserock is built from git commits, and also the morphologies
+must be committed in git before building. The `morph` tool is
+used to actually run the build. The usual workflow is this:
 
-The build of a chunk or a stratum is controlled by a
-**morphology**, which consists of:
+* put the morphology for an upstream project with its source code
+* put other morphologies in the `morphs` (note plural) repository
+* run `morph` to build stuff
 
-* type of result: chunk or stratum
-* for a chunk, lists of commands for configuring, building, testing, and
-  installing the program
-* for a stratum, one or more specifications of which chunks to build:
-  pairs of git repositories and commit references
+Eventually, `morph` will get a manual page. Meanwhile, a short usage:
+
+    morph --keep-paths -v build morphs master base-system.morph
+
+Run `morph --help` to get a list of all options and short descriptions.
+
+You can write a configuration file to avoid having to write options on
+the command line every time. Put it in `~/.obnam.conf` and make it look
+something like this:
+
+    [config]
+    cachedir = /home/liw/.cache/morph/bins
+    log = /home/liw/.cache/morph/morph.log
+    log-max = 200M
+    git-base-url = file:///home/liw/baserock/gits/
+
+You should set at least the above settings.
+
+
+Morphology file syntax
+----------------------
 
 JSON is used for the morphology syntax. For example, to build a chunk:
 
     {
+        "name": "foo",
         "kind": "chunk",
         "configure-commands": [
             "./configure --prefix=$PREFIX"
@@ -55,183 +63,160 @@ JSON is used for the morphology syntax. For example, to build a chunk:
         ]
     }
 
-(Later, there will be defaults and things to make the morph files shorter.)
+For all morphologies, use the following fields:
 
-To build a stratum:
+* `name`: the name of the morphology; it must currently match the filename
+  (without the `.morph` suffix); **required**
+* `kind`: the kind of thing being built; **required**
+
+For chunks, use the following fields:
+
+* `build-system`: if the program is built using a build system known to
+  `morph`, you can set this field and avoid having to set the various
+  `*-commands` fields; only `autotools` is currently known and that
+  requires the `configure` script to have been committed into git; 
+  optional
+* `configure-commands`: a list of shell commands to run at the configuraiton
+  phase of a build; optional
+* `build-commands`: a list of shell commands to run to build (compile) the
+  project; optional
+* `test-commands`: a list of shell commands to run unit tests and other
+  non-interactive tests on the built but un-installed project; optional
+* `install-commands`: a list of shell commands to install the built project;
+  the install should go into the directory named in the `DESTDIR` environment
+  variable, not the actual system; optional
+* `max-jobs`: a string to be given to `make` as the argument to the `-j`
+  option to specify the maximum number of parallel jobs; the only sensible
+  value is `"1"` (including the quotes), to prevent parallel jobs to run
+  at all; parallel jobs are only used during the `build-commands` phase,
+  since the other phases are often not safe when run in parallel; `morph`
+  picks a default value based on the number of CPUs on the host system;
+  optional
+* `chunks`: a key/value map of lists of regular expressions; 
+  the key is the name
+  of a binary chunk, the regexps match the pathnames that will be
+  included in that chunk; the patterns match the pathnames that get installed
+  by `install-commands` (the whole path below `DESTDIR`); every file must
+  be matched by at least one pattern; by default, a single chunk gets
+  created, named according to the morphology, and containing all files;
+  optional
+
+For strata, use the following fields:
+
+* `sources`: a list of key/value mappings, where each mapping corresponds
+  to a chunk to be included in the stratum; the mappings may use the
+  following keys: `name` is the chunk's name (may be different from the
+  morphology name), `repo` is the repository in which to find (defaults to
+  chunk name), `ref` identifies the commit to use (typically a branch
+  name, but any tree-ish git accepts is ok), and `morph` is the name
+  of the morphology to use; optional
+
+For systems, use the following fields:
+
+* `disk-size`: size of the disk image to be created; may use suffixes like
+  `M` and `G`; **required**
+* `strata`: a list of stratum names to include in the system image;
+  **required**
+
+Example chunk (simplified commands):
+
     {
+        "name": "eglibc",
+        "kind": "chunk",
+        "configure-commands": [
+            "mkdir o",
+            "cd o && ../libc/configure --prefix=/usr"
+        ],
+        "build-commands": [
+            "cd o && make"
+        ],
+        "install-commands": [
+            "cd o && make install_root=\"$DESTDIR\" install"
+        ]
+    }
+
+Example stratum:
+
+    {
+        "name": "foundation",
         "kind": "stratum",
         "sources": [
             {
-                "repo": "git://git.baserock.org/busybox/",
-                "ref": "DEADBEEF"
+                "name": "fhs-dirs",
+                "ref": "baserock/bootstrap"
             },
             {
-                "repo": "git://git.baserock.org/gzip/",
-                "ref": "CAFEBABE"
+                "name": "linux-api-headers",
+                "repo": "linux",
+                "ref": "baserock/morph"
+            },
+            {
+                "name": "eglibc",
+                "ref": "baserock/bootstrap"
+            },
+            {
+                "name": "busybox",
+                "ref": "baserock/bootstrap"
             }
         ]
     }
 
-To use morph, create the relevant morphology files (`*.morph`),
-commit them to a git repository, and then run a command like the following:
+Example system:
 
-    morph build file://$HOME/baserock/morphs master core.morph
+    {
+        "name": "base",
+        "kind": "system",
+        "disk-size": "1G",
+        "strata": [
+            "foundation",
+            "linux-stratum"
+        ]
+    }
 
-This will build the Baserock core stratum. It will recursively build
-any chunks that also need to be built. The last three command line
-arguments are:
-
-* URL to repository; this may be relative to `--git-base-url` or absolute.
-* A git commit reference; here, the HEAD of the `master` branch is used.
-* The filename in the git commit.
-
-Note that morph retrieves the morphology file from git. It does not use
-the copy that is checked out. If you make any modifications, you **must**
-commit them.
+Note that unknown keys in morphologies are silently ignored.
 
 
-Morphology spec
----------------
+Build environment
+-----------------
 
-A morphology is a JSON file with a single object (dict), with the
-following keys:
+When `morph` runs build commands, it clears the environment of all
+variables and creates new ones. This is so that the build will run
+more consistently across machines and developers.
 
-* `kind`: either `chunk` or `stratum`
-* `sources`: a dict, whose keys are names and the corresponding values
-  are dicts with the following keys (the top level names are
-  for documentation only):
-  - `repo`: URL to git repository
-    - the URL may be relative to the value given to the
-      `--git-base-url` option
-  - `ref`: a reference to a commit (either a commit id, or `HEAD`)
-* `configure-commands`: a list of strings giving shell commands
-  that should be executed to configure the software being built
-  (can also be a single string instead of a list)
-* `build-commands`: similarly, commands for building the software
-* `test-commands`: similarly, commands for running automatic tests
-  on the built (but uninstalled) software
-* `install-commands` similarly, commands for installing the software
+See the `morphlib/builder.py` file, method `setup_env` for details.
 
-Unknown keys are errors. Known keys with the wrong kind of values
-result in an error. Keys that are valid only for chunks are errors
-when given for strata, and vice versa.
-
-Commands run during the building of a chunk are passed on to the shell 
-for execution, and may refer to the following extra environment variables:
-
-* `WORKAREA`: the temporary directory where all actual building occurs
-  - commands must avoid touching anything in the actual source tree,
-    and must modify files only in the temporary directory
-* `DESTDIR`: to be prefixed to install paths during install
-
-
-Build process
--------------
-
-You give morph one or more morphologies (`*.morph`) in files, and
-it builds them in order. Built chunks are stored in a central
-cache directory (see `morph --cachedir`). Built strata are stored
-in the current working directory.
-
-During the build of a chunk, morph goes through the following steps:
-
-* export the files from git to a temporary location, so the build happens
-  in a clean directory
-* configure, build, and test the software
-* install the software into a temporary directory
-* create a chunk file of the contents of the temporary directory
-* clean up by removing all temporary stuff 
-  (a "make clean" target is **not** run)
-* put chunk and build log and other deliverables in their places
-
-For strata, morph does this instead:
-
-* build all chunks missing from the chunk directory
-* create a temporary directory
-* unpack all the chunks into the temporary directory
-* create a stratum file from the temporary directory
-* clean up
-* put stratum file and build log and other deliverables in their places
-
-As a morph user, you should never need to build chunks manually.
-Just create stratum morphologies, and build those: the chunks get
-built automatically.
-
-File formats
-------------
-
-Both chunk and stratum files use the same file format, for simplicity.
-The file is a tar file, to be unpacked at the filesystem root, and
-all permission bits set exactly as they should be at the final install.
-The metadata is stored in a directory `BASEROCK` at the root of the
-directory tree, with the following files (where `foo` is the name
-of the chunk or stratum):
-
-* `foo.json`: a JSON file with the metadata of the chunk or stratum
-* in the future, there may be preinst, postinst, etc, scripts as well,
-  but as far as possible, we will try to do without
-
-No two chunks that are put into the same stratum may contain the
-same files, and no two strata installed on the same Baserock system
-can contain the same files.
-
-Note that this file format is preliminary, and may well change in
-the future. It is chosen for simplicity of implementation, not
-any other reason.
-
-Any tar variant that busybox tar and Python's tar library both can
-unpack is acceptable.
+Until Baserock is properly bootstrapped, it's awkward that the `PATH`
+variable gets reset. To avoid that, use the `--keep-path` option.
 
 
 Hacking morph
 -------------
 
-You can run `morph` from the unpacked source tree:
+Run the test suite with this command:
 
-    ./morph build foo.morph
-    
-To run unit tests:
+    ./check
 
-    nosetests
+Install CoverageTestRunner (from <http://liw.fi/coverage-test-runner/>),
+and check out the `cmdtest` utility (from <http://liw.fi/cmdtest/>).
 
-Alternatively (and preferably), install CoverageTestRunner
-(from <http://liw.fi/coverage-test-runner/>) and run this:
-
-    python setup.py check
-
-To run black box tests, get cmdtest (from <http://liw.fi/cmdtest/>)
-and run this:
-
-    cmdtest tests -c ./morph --log cmdtest.log
-
-You should probably run the automatic tests before submitting a
-bug report. A patch that includes a unit test or black box test is
-most welcome.
+Run the checks before submitting a patch, please.
 
 
-Open questions and things to consider
--------------------------------------
+Legalese
+--------
 
-* When morph starts building missing chunks automatically, how will it
-  find the `*.morph` files?
-  - from the specified git?
-  - from some default git?
-  - from some other central location?
-  - from all of the above, in some order?
-  - maybe allow specifying the morph file in the "source" part of a
-    stratum's morphology?
-* Build dependencies will need to be specified in some way. They should
-  be on whole strata, not individual software.
-* There may be build dependencies between the projects that go into the
-  same chunk: app foo may build-depend on libfoobar in the same stratum.
-  We need to deal with this. Possibly put the things into `source` in
-  build order?
-* Build dependency loops should be detected, and if found, they should
-  fail the build.
-* We need ways to make use of git repositories that already local:
-  - if developer has cloned a repo, use that, instead of accessing the
-    central copy, for speed, and also so that we can build the developer's
-    changes without pushing them to a server
-  - also need a way to use mirrored repos, e.g., mirrored into
-    the Codethink office from a public server, for performance reasons
+Copyright (C) 2011  Codethink Limited
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
