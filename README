@@ -24,19 +24,19 @@ used to actually run the build. The usual workflow is this:
 
 Eventually, `morph` will get a manual page. Meanwhile, a short usage:
 
-    morph --keep-paths -v build morphs master base-system.morph
+    morph --keep-path -v build morphs master base-system.morph
 
 Run `morph --help` to get a list of all options and short descriptions.
 
 You can write a configuration file to avoid having to write options on
-the command line every time. Put it in `~/.obnam.conf` and make it look
+the command line every time. Put it in `~/.morph.conf` and make it look
 something like this:
 
     [config]
-    cachedir = /home/liw/.cache/morph/bins
-    log = /home/liw/.cache/morph/morph.log
+    cachedir = /home/username/baserock/cache
+    log = /home/username/baserock/morph.log
     log-max = 200M
-    git-base-url = file:///home/liw/baserock/gits/
+    git-base-url = file:///home/username/baserock/gits/
 
 You should set at least the above settings.
 
