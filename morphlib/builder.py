@@ -155,6 +155,7 @@ class Chunk(BinaryBlob):
         
     def setup_env(self):
         path = self.ex.env['PATH']
+        tmpdir = self.ex.env.get('TMPDIR')
         tools = self.ex.env.get('BOOTSTRAP_TOOLS')
         distcc_hosts = self.ex.env.get('DISTCC_HOSTS')
         self.ex.env.clear()
@@ -166,6 +167,8 @@ class Chunk(BinaryBlob):
             self.ex.env['LOGNAME'] = 'tomjon'
         self.ex.env['LC_ALL'] = 'C'
         self.ex.env['HOME'] = os.path.join(self.tempdir.dirname)
+        if tmpdir is not None:
+            self.ex.env['TMPDIR'] = tmpdir
 
         if self.settings['keep-path'] or self.settings['bootstrap']:
             self.ex.env['PATH'] = path
