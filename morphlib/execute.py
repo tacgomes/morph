@@ -55,7 +55,9 @@ class Execute(object):
             self.msg('# %s' % command)
             argv = ['sh', '-c', command]
             if as_root:
-                argv = ['sudo'] + argv # pragma: no cover
+                argv = (['sudo'] +
+                        ["%s=%s" % x for x in self.env.iteritems()] +
+                        argv) # pragma: no cover
             elif as_fakeroot:
                 argv = ['fakeroot'] + argv
             logging.debug('run: argv=%s' % repr(argv))
@@ -85,7 +87,9 @@ class Execute(object):
         '''
 
         if as_root:
-            argv = ['sudo'] + argv # pragma: no cover
+            argv = (['sudo'] +
+                    ["%s=%s" % x for x in self.env.iteritems()] +
+                    argv) # pragma: no cover
         elif as_fakeroot:
             argv = ['fakeroot'] + argv
         logging.debug('runv: argv=%s' % repr(argv))

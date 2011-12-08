@@ -95,9 +95,11 @@ def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
     for filename in reversed(include):
         if os.path.isdir(filename) and not os.path.islink(filename):
             if not os.listdir(filename):
-                os.rmdir(filename)
+                #os.rmdir(filename) doesn't have permission
+                ex.runv(['rmdir', filename], as_root=True)
         else:
-            os.remove(filename)
+            #os.remove(filename) doesn't have permission
+            ex.runv(['rm', filename], as_root=True)
     dump_memory_profile('after removing in create_chunks')
 
 
@@ -118,5 +120,6 @@ def unpack_binary(filename, dirname):
 
     logging.debug('Unpacking %s into %s' % (filename, dirname))
     ex = morphlib.execute.Execute(dirname, msg=lambda s: None)
-    ex.runv(['tar', '-xvf', filename])
+    # tar must be run as root, as it is creating a real image now
+    ex.runv(['tar', '-xvf', filename], as_root=True)
 

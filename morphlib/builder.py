@@ -76,7 +76,12 @@ class BinaryBlob(object):
         dirname = os.path.join(self.destdir, 'baserock')
         filename = os.path.join(dirname, '%s.meta' % blob_name)
         if not os.path.exists(dirname):
-            os.mkdir(dirname)
+            # os.mkdir(dirname) won't work as we may not have permission
+            # so run a shell command as root to do it
+            ex = morphlib.execute.Execute(self.builddir, self.msg)
+            ex.runv(['install', '--directory', '--mode=777', dirname],
+                    as_root=True)
+            
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
@@ -228,7 +233,7 @@ class Chunk(BinaryBlob):
         self.run_in_parallel('build', bs['build-commands'])
         self.run_sequentially('test', bs['test-commands'])
         self.run_sequentially('install', bs['install-commands'],
-                              as_fakeroot=True)
+                              as_root=True)
 
     def build_using_commands(self):
         self.msg('Building using explicit commands')
@@ -236,7 +241,7 @@ class Chunk(BinaryBlob):
         self.run_in_parallel('build', self.morph.build_commands)
         self.run_sequentially('test', self.morph.test_commands)
         self.run_sequentially('install', self.morph.install_commands,
-                              as_fakeroot=True)
+                              as_root=True)
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
@@ -244,13 +249,13 @@ class Chunk(BinaryBlob):
         self.ex.run(commands)
         self.build_watch.stop(what)
 
-    def run_sequentially(self, what, commands, as_fakeroot=False):
+    def run_sequentially(self, what, commands, as_fakeroot=False, as_root=False):
         self.msg ('commands: %s' % what)
         self.build_watch.start(what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.ex.run(commands, as_fakeroot=as_fakeroot)
+        self.ex.run(commands, as_fakeroot=as_fakeroot, as_root=as_root)
         self.ex.env['MAKEFLAGS'] = flags
         logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
         self.build_watch.stop(what)
@@ -372,6 +377,12 @@ class System(BinaryBlob):
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
             self.build_watch.stop('unpack-strata')
+
+            # horrible hack to make sure we can write to fstab as any of
+            # the strata could have created /etc, only fhs-dirs creates it
+            # with the good permission
+            self.ex.runv(['chmod', 'a=rwx', self.tempdir.join('mnt/etc/')],
+                         as_root=True)
 
             # Create fstab.
             self.build_watch.start('create-fstab')
