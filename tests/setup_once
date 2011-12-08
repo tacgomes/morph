@@ -1,11 +1,14 @@
 #!/bin/sh
 #
-# Create a git repository for tests. The repository will contain a simple
-# "hello, world" C program, and two branches ("master", "farrokh"), with
-# the master branch containing just a README. The two branches are there
+# Create git repositories for tests. The chunk repository will contain a 
+# simple "hello, world" C program, and two branches ("master", "farrokh"), 
+# with the master branch containing just a README. The two branches are there
 # so that we can test building a branch that hasn't been checked out.
 # The branches are different so that we know that if the wrong branch
 # is uses, the build will fail.
+#
+# The stratum repository contains a single branch, "master", with a
+# stratum and a system morphology that include the chunk above.
 #
 # Copyright (C) 2011  Codethink Limited
 # 
@@ -25,9 +28,11 @@
 
 set -e
 
-repo="$DATADIR/repo"
-mkdir "$repo"
-cd "$repo"
+# Create chunk repository.
+
+chunkrepo="$DATADIR/chunk-repo"
+mkdir "$chunkrepo"
+cd "$chunkrepo"
 git init --quiet
 
 cat <<EOF > README
@@ -64,6 +69,19 @@ cat <<EOF > hello.morph
 EOF
 git add hello.morph
 
+git commit --quiet -m "add a hello world program and morph"
+
+git checkout --quiet master
+
+
+
+# Create morph repository.
+
+morphsrepo="$DATADIR/morphs-repo"
+mkdir "$morphsrepo"
+cd "$morphsrepo"
+git init --quiet
+
 cat <<EOF > hello-stratum.morph
 {
     "name": "hello-stratum",
@@ -71,7 +89,7 @@ cat <<EOF > hello-stratum.morph
     "sources": [
         {
             "name": "hello",
-            "repo": "repo",
+            "repo": "chunk-repo",
             "ref": "farrokh"
         }
     ]
@@ -91,7 +109,5 @@ cat <<EOF > hello-system.morph
 EOF
 git add hello-system.morph
 
-git commit --quiet -m "add a hello world program and morphs"
-
-git checkout --quiet master
+git commit --quiet -m "add morphs"
 

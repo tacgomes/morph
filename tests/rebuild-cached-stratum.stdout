@@ -1,0 +1,8 @@
+first build:
+ chunk.hello
+ stratum.hello-stratum
+second build:
+ chunk.hello
+ chunk.hello
+ stratum.hello-stratum
+ stratum.hello-stratum

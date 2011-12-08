@@ -46,9 +46,6 @@ class BinaryBlob(object):
         # Stopwatch to measure build times
         self.build_watch = morphlib.stopwatch.Stopwatch()
 
-    def dict_key(self):
-        return {}
-    
     def needs_built(self):
         return []
 
@@ -485,10 +482,9 @@ class Builder(object):
             raise Exception('Unknown kind of morphology: %s' % morph.kind)
         self.dump_memory_profile('after creating Chunk/Stratum/...')
 
-        dict_key = blob.dict_key()
-        self.complete_dict_key(dict_key, morph.name, repo, ref)
-        logging.debug('completed dict_key:\n%s' % repr(dict_key))
-        self.dump_memory_profile('after completing cache key')
+        cache_id = self.get_cache_id(repo, ref, filename)
+        logging.debug('cachae id: %s' % repr(cache_id))
+        self.dump_memory_profile('after computing cache id')
 
         blob.builddir = self.tempdir.join('%s.build' % morph.name)
         blob.destdir = self.tempdir.join('%s.inst' % morph.name)
@@ -497,7 +493,7 @@ class Builder(object):
             os.mkdir(blob.staging)
         blob.settings = self.settings
         blob.msg = self.msg
-        blob.cache_prefix = self.cachedir.name(dict_key)
+        blob.cache_prefix = self.cachedir.name(cache_id)
         blob.tempdir = self.tempdir
         blob.dump_memory_profile = self.dump_memory_profile
 
@@ -553,19 +549,6 @@ class Builder(object):
             self.msg('Unpacking chunk %s into staging' % chunk_name)
             morphlib.bins.unpack_binary(chunk_filename, staging_dir)
             
-    def complete_dict_key(self, dict_key, name, repo, ref):
-        '''Fill in default fields of a cache's dict key.'''
-
-        if repo and ref:
-            abs_ref = morphlib.git.get_commit_id(repo, ref)
-        else:
-            abs_ref = ''
-
-        dict_key['name'] = name
-        dict_key['arch'] = morphlib.util.arch()
-        dict_key['repo'] = repo
-        dict_key['ref'] = abs_ref
-
     def get_morph_from_git(self, repo, ref, filename):
         morph_text = morphlib.git.get_morph_text(repo, ref, filename)
         f = StringIO.StringIO(morph_text)
@@ -573,4 +556,38 @@ class Builder(object):
         morph = morphlib.morphology.Morphology(f, 
                                                self.settings['git-base-url'])
         return morph
+
+    def get_cache_id(self, repo, ref, morph_filename):
+        logging.debug('get_cache_id(%s, %s, %s)' %
+                      (repo, ref, morph_filename))
+        morph = self.get_morph_from_git(repo, ref, morph_filename)
+        if morph.kind == 'chunk':
+            kids = []
+        elif morph.kind == 'stratum':
+            kids = []
+            for source in morph.sources:
+                kid_repo = source['repo']
+                kid_ref = source['ref']
+                kid_filename = (source['morph'] 
+                                if 'morph' in source 
+                                else source['name'])
+                kid_filename = '%s.morph' % kid_filename
+                kid_cache_id = self.get_cache_id(kid_repo, kid_ref, 
+                                                 kid_filename)
+                kids.append(kid_cache_id)
+        elif morph.kind == 'system':
+            kids = []
+            for stratum in morph.strata:
+                kid_filename = '%s.morph' % stratum
+                kid_cache_id = self.get_cache_id(repo, ref, kid_filename)
+                kids.append(kid_cache_id)
+        else:
+            raise NotImplementedError('unknown morph kind %s' % morph.kind)
+        dict_key = {
+            'name': morph.name,
+            'arch': morphlib.util.arch(),
+            'ref': morphlib.git.get_commit_id(repo, ref),
+            'kids': ''.join(self.cachedir.key(k) for k in kids),
+        }
+        return dict_key
 

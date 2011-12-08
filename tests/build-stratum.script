@@ -21,7 +21,7 @@ set -e
 
 cache="$DATADIR/build-stratum-cache"
 log="$DATADIR/build-stratum-morph.log"
-./morph --no-default-configs build repo farrokh hello-stratum.morph \
+./morph --no-default-configs build morphs-repo master hello-stratum.morph \
     --git-base-url="file://$DATADIR" \
     --cachedir="$cache" --keep-path --no-distcc \
     --log="$log" || cat "$log" 1>&2
