@@ -96,7 +96,7 @@ class BinaryBlob(object):
             meta['build-times'][stage] = {
                 'start': '%s' % self.build_watch.start_time(stage),
                 'stop': '%s' % self.build_watch.stop_time(stage),
-                'delta': self.build_watch.start_stop_seconds(stage)
+                'delta': '%.4f' % self.build_watch.start_stop_seconds(stage)
             }
         self.write_cache_metadata(meta)
 
