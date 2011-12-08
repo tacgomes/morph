@@ -20,7 +20,9 @@
 set -e
 
 cache="$DATADIR/build-stratum-cache"
+log="$DATADIR/build-stratum-morph.log"
 ./morph --no-default-configs build repo farrokh hello-stratum.morph \
     --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc
+    --cachedir="$cache" --keep-path --no-distcc \
+    --log="$log" || cat "$log" 1>&2
 tar -tf "$cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
