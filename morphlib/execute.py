@@ -18,6 +18,7 @@ import cliapp
 import logging
 import os
 import subprocess
+import tempfile
 
 import morphlib
 
@@ -38,6 +39,15 @@ class Execute(object):
         self._setup_env()
         self.dirname = dirname
         self.msg = msg
+        self._fakeroot_session = None
+
+    def __del__(self):
+        try:
+            object.__del__(self)
+        except AttributeError:
+            pass
+        if self._fakeroot_session:
+            os.remove(self._fakeroot_session)
 
     def _setup_env(self):
         self.env = dict(os.environ)
@@ -59,7 +69,10 @@ class Execute(object):
                         ["%s=%s" % x for x in self.env.iteritems()] +
                         argv) # pragma: no cover
             elif as_fakeroot:
-                argv = ['fakeroot'] + argv
+                if not self._fakeroot_session:
+                    self._fakeroot_session = tempfile.mkstemp()[1]
+                argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
+                        self._fakeroot_session, '--'] + argv
             logging.debug('run: argv=%s' % repr(argv))
             logging.debug('run: env=%s' % repr(self.env))
             logging.debug('run: cwd=%s' % repr(self.dirname))
@@ -78,33 +91,48 @@ class Execute(object):
             stdouts.append(out)
         return stdouts
 
-    def runv(self, argv, as_root=False, as_fakeroot=False, _log=True):
+    def runv(self, argv, feed_stdin=None, as_root=False, as_fakeroot=False,
+             _log=True, **kwargs):
         '''Run a command given as a list of argv elements.
         
         Return standard output. Raise ``CommandFailure`` if the command
         fails. Log standard output and error in any case.
         
         '''
+        if 'stdout' not in kwargs:
+            kwargs['stdout'] = subprocess.PIPE
+        if feed_stdin is not None and 'stdin' not in kwargs:
+            kwargs['stdin'] = subprocess.PIPE
+        if 'stderr' not in kwargs:
+            kwargs['stderr'] = subprocess.PIPE
+        if 'cwd' not in kwargs:
+            kwargs['cwd'] = self.dirname
+        if 'env' not in kwargs:
+            kwargs['env'] = self.env
 
         if as_root:
             argv = (['sudo'] +
                     ["%s=%s" % x for x in self.env.iteritems()] +
                     argv) # pragma: no cover
         elif as_fakeroot:
-            argv = ['fakeroot'] + argv
+            if not self._fakeroot_session:
+                self._fakeroot_session = tempfile.mkstemp()[1]
+            argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
+                    self._fakeroot_session, '--'] + argv
         logging.debug('runv: argv=%s' % repr(argv))
         logging.debug('runv: env=%s' % repr(self.env))
         logging.debug('runv: cwd=%s' % repr(self.dirname))
         self.msg('# %s' % ' '.join(argv))
-        p = subprocess.Popen(argv, stdout=subprocess.PIPE, 
-                             stderr=subprocess.STDOUT, cwd=self.dirname)
-        out, err = p.communicate()
+        p = subprocess.Popen(argv, **kwargs)
+        out, err = p.communicate(feed_stdin)
         
         if p.returncode != 0:
             if _log: # pragma: no cover
                 logging.error('Exit code: %d' % p.returncode)
-                logging.error('Standard output and error:\n%s' % 
-                                morphlib.util.indent(out))
+                logging.error('Standard output:\n%s' %
+                                morphlib.util.indent(out or ''))
+                logging.error('Standard error:\n%s' %
+                                morphlib.util.indent(err or ''))
             raise CommandFailure(' '.join(argv), out)
         return out
 

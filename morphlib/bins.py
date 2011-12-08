@@ -29,7 +29,8 @@ import tempfile
 import morphlib
 
 
-def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
+def create_chunk(rootdir, chunk_filename, regexps, ex,
+                 dump_memory_profile=None):
     '''Create a chunk from the contents of a directory.
     
     Only files and directories that match at least one of the regular
@@ -85,9 +86,9 @@ def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
     with open(include_filename, 'w') as f:
         for name in include:
             f.write('%s\0' % mkrel(name))
-    ex = morphlib.execute.Execute('.', lambda msg: None)
     ex.runv(['tar', '-C', rootdir, '-caf', chunk_filename,
-             '--null', '-T', include_filename, '--no-recursion'])
+             '--null', '-T', include_filename, '--no-recursion'],
+             as_fakeroot=True)
     os.remove(include_filename)
     dump_memory_profile('after creating tarball')
 
@@ -95,31 +96,30 @@ def create_chunk(rootdir, chunk_filename, regexps, dump_memory_profile=None):
     for filename in reversed(include):
         if os.path.isdir(filename) and not os.path.islink(filename):
             if not os.listdir(filename):
-                #os.rmdir(filename) doesn't have permission
-                ex.runv(['rmdir', filename], as_root=True)
+                os.rmdir(filename)
         else:
-            #os.remove(filename) doesn't have permission
-            ex.runv(['rm', filename], as_root=True)
+            os.remove(filename)
     dump_memory_profile('after removing in create_chunks')
 
 
-def create_stratum(rootdir, stratum_filename):
+def create_stratum(rootdir, stratum_filename, ex):
     '''Create a stratum from the contents of a directory.'''
     logging.debug('Creating stratum file %s from %s' % 
                     (stratum_filename, rootdir))
-    ex = morphlib.execute.Execute('.', lambda msg: None)
-    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'])
+    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'],
+             as_fakeroot=True)
 
 
-def unpack_binary(filename, dirname):
+def unpack_binary(filename, dirname, ex, as_fakeroot=False, as_root=False):
     '''Unpack a binary into a directory.
     
     The directory must exist already.
+    If the binary will be packed up again by tar with the same Execute
+    object then as_fakeroot will suffice
+    If it will be creating a system image as_root will be needed
     
     '''
 
     logging.debug('Unpacking %s into %s' % (filename, dirname))
-    ex = morphlib.execute.Execute(dirname, msg=lambda s: None)
-    # tar must be run as root, as it is creating a real image now
-    ex.runv(['tar', '-xvf', filename], as_root=True)
+    ex.runv(['tar', '-C', dirname, '-xvf', filename], as_fakeroot=as_fakeroot, as_root=as_root)
 
