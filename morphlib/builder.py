@@ -93,11 +93,10 @@ class BinaryBlob(object):
             'build-times': {}
         }
         for stage in self.build_watch.ticks.iterkeys():
-            delta = self.build_watch.start_stop_delta(stage)
             meta['build-times'][stage] = {
                 'start': '%s' % self.build_watch.start_time(stage),
                 'stop': '%s' % self.build_watch.stop_time(stage),
-                'delta': delta.total_seconds()
+                'delta': self.build_watch.start_stop_seconds(stage)
             }
         self.write_cache_metadata(meta)
 

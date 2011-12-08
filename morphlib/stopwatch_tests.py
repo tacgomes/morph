@@ -53,6 +53,6 @@ class StopwatchTests(unittest.TestCase):
 
         our_delta = stop - start
         watch_delta = self.stopwatch.start_stop_delta('start-stop')
-
-        assert our_delta.total_seconds() > 0
         self.assertEqual(our_delta, watch_delta)
+
+        assert self.stopwatch.start_stop_seconds('start-stop') > 0

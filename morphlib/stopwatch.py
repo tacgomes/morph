@@ -14,6 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import operator
+
 from datetime import datetime
 
 
@@ -48,3 +50,9 @@ class Stopwatch(object):
     def start_stop_delta(self, reference_object):
         return (self.stop_time(reference_object) - 
                 self.start_time(reference_object))
+
+    def start_stop_seconds(self, reference_object):
+        delta = self.start_stop_delta(reference_object)
+        return (delta.days * 24 * 3600 +
+                delta.seconds +
+                operator.truediv(delta.microseconds, 10**6))
