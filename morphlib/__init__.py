@@ -28,4 +28,5 @@ import git
 import morphology
 import stopwatch
 import tempdir
+import tester
 import util
