@@ -397,7 +397,7 @@ timeout 1
 
 label linux
 kernel /vmlinuz
-append root=/dev/sda1 init=/bin/sh quiet rw
+append root=/dev/sda1 init=/sbin/init quiet rw
 ''', as_root=True, stdout=open(os.devnull, 'w'))
 
             self.ex.runv(['extlinux', '--install', mount_point], as_root=True)
