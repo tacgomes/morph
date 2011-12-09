@@ -1,3 +1,4 @@
 morphlib/__init__.py
 morphlib/builder.py
+morphlib/tester.py
 morphlib/git.py
