@@ -41,7 +41,7 @@ class Execute(object):
         self.msg = msg
         self._fakeroot_session = None
 
-    def __del__(self):
+    def __del__(self): # pragma: no cover
         try:
             object.__del__(self)
         except AttributeError:
@@ -101,10 +101,10 @@ class Execute(object):
         '''
         if 'stdout' not in kwargs:
             kwargs['stdout'] = subprocess.PIPE
-        if feed_stdin is not None and 'stdin' not in kwargs:
-            kwargs['stdin'] = subprocess.PIPE
+        if feed_stdin is not None and 'stdin' not in kwargs: 
+            kwargs['stdin'] = subprocess.PIPE # pragma: no cover
         if 'stderr' not in kwargs:
-            kwargs['stderr'] = subprocess.PIPE
+            kwargs['stderr'] = subprocess.STDOUT
         if 'cwd' not in kwargs:
             kwargs['cwd'] = self.dirname
         if 'env' not in kwargs:
