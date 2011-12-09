@@ -20,4 +20,4 @@
 set -e
 
 python setup.py clean check
-$HOME/cmdtest/cmdtest/cmdtest -c ./morph tests
+cmdtest -c ./morph tests
