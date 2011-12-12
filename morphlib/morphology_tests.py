@@ -129,11 +129,16 @@ class MorphologyTests(unittest.TestCase):
                                 "strata": [
                                     "foo",
                                     "bar"
+                                ],
+                                "test-stories": [
+                                    "test-1",
+                                    "test-2"
                                 ]
                             }'''))
         self.assertEqual(morph.kind, 'system')
         self.assertEqual(morph.disk_size, '1G')
         self.assertEqual(morph.strata, ['foo', 'bar'])
+        self.assertEqual(morph.test_stories, ['test-1', 'test-2'])
 
 
 class StratumRepoTests(unittest.TestCase):
