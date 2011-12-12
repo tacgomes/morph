@@ -532,13 +532,13 @@ class Builder(object):
 
         self.indent_less()
         self.dump_memory_profile('at end of build method')
-        return built
+        return morph, built
 
     def build_needed(self, blob):
         blob.built = []
         for repo, ref, morph_name, blob_names in blob.needs_built():
             morph_filename = '%s.morph' % morph_name
-            cached = self.build(repo, ref, morph_filename)
+            morph, cached = self.build(repo, ref, morph_filename)
             for blob_name in blob_names:
                 blob.built.append((blob_name, cached[blob_name]))
 

@@ -82,11 +82,12 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']) and os.getuid() != 0:
             os.mkdir(self.settings['cachedir'])
 
+        ret = []
         while len(args) >= 3:
             repo, ref, filename = args[:3]
             args = args[3:]
             self.msg('Building %s - %s - %s' % (repo, ref, filename))
-            builder.build(repo, ref, filename)
+            ret.append(builder.build(repo, ref, filename))
         
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)
@@ -94,6 +95,8 @@ class Morph(cliapp.Application):
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
+
+        return ret
             
     def cmd_testsysimg(self, args):
         '''Run tests for a built system image.
@@ -125,6 +128,16 @@ class Morph(cliapp.Application):
             story = morphlib.tester.TestStory(system, story_steps, self.msg)
             story.run()
             self.msg('Finished OK.')
+
+    def cmd_test(self, args):
+        '''Build and test a system morphology.
+        
+        The tests are specified in the morphology's test-stories field.
+        
+        '''
+        
+        for x in self.cmd_build(args):
+            print x
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
