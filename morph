@@ -136,8 +136,18 @@ class Morph(cliapp.Application):
         
         '''
         
-        for x in self.cmd_build(args):
-            print x
+        for morph, built in self.cmd_build(args):
+            if morph.kind == 'system':
+                self.msg('running tests on system %s' % morph.name)
+                assert len(built) == 1
+                image_filename = built.values()[0]
+                morphdir = os.path.dirname(morph.filename)
+                stories = [os.path.join(morphdir, x)
+                           for x in morph.test_stories]
+                self.cmd_testsysimg([image_filename] + stories)
+            else:
+                self.msg('not testing %s %s (not a system)' %
+                         (morph.kind, morph.name))
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
