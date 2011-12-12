@@ -558,7 +558,8 @@ class Builder(object):
     def get_morph_from_git(self, repo, ref, filename):
         morph_text = morphlib.git.get_morph_text(repo, ref, filename)
         f = StringIO.StringIO(morph_text)
-        f.name = filename
+        scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
+        f.name = os.path.join(path, filename)
         morph = morphlib.morphology.Morphology(f, 
                                                self.settings['git-base-url'])
         return morph
