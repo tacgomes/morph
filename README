@@ -184,6 +184,30 @@ Example system:
 Note that unknown keys in morphologies are silently ignored.
 
 
+Test stories for system images
+------------------------------
+
+The `morph test` subcommand will run a series of automated tests against
+an x86 system image under KVM using the serial console. Each test is
+stored in a separate file, and consist of a sequence of send/expect pairs.
+Example:
+
+    story = [
+        ('', 'login: '),
+        ('root\r', '^~ # '),
+    ]
+
+Each file is a Python module, with a variable called `story`,
+which is a list of tuples of two strings, or two strings and a
+number. The first string is sent to the serial console. The second
+string specifies a regular expression that is matched against the 
+output from the serial console. The optional number is a timeout,
+in seconds, for how long to wait for a match. The default is ten
+seconds, and can be set with the `--test-timeout` option.
+
+The test succeeds if all tuples are sent/matched successfully.
+
+
 Build environment
 -----------------
 
