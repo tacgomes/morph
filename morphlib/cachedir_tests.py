@@ -15,6 +15,7 @@
 
 
 import unittest
+import os
 
 import morphlib
 
@@ -22,11 +23,11 @@ import morphlib
 class CacheDirTests(unittest.TestCase):
 
     def setUp(self):
-        self.dirname = '/cache/dir'
+        self.dirname = 'cache/dir'
         self.cachedir = morphlib.cachedir.CacheDir(self.dirname)
 
     def test_sets_dirname_attribute(self):
-        self.assertEqual(self.cachedir.dirname, self.dirname)
+        self.assertEqual(self.cachedir.dirname, os.path.abspath(self.dirname))
 
     def test_generates_string_key_for_arbitrary_dict_key(self):
         key = self.cachedir.key({

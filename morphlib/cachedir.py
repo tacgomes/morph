@@ -23,7 +23,7 @@ class CacheDir(object):
     '''Manage Baserock cached binaries.'''
     
     def __init__(self, dirname):
-        self.dirname = dirname
+        self.dirname = os.path.abspath(dirname)
         
     def key(self, dict_key):
         '''Create a string key from a dictionary key.
