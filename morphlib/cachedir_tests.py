@@ -29,16 +29,6 @@ class CacheDirTests(unittest.TestCase):
     def test_sets_dirname_attribute(self):
         self.assertEqual(self.cachedir.dirname, os.path.abspath(self.dirname))
 
-    def test_uses_absolute_path(self):
-        abspath = os.path.abspath(self.dirname)
-        abscache = morphlib.cachedir.CacheDir(abspath)
-        dict_key = {
-            'foo': 'bar',
-            'xyzzy': 'plugh',
-        }
-        self.assertEqual(self.cachedir.name(dict_key),
-                         abscache.name(dict_key))
-
     def test_generates_string_key_for_arbitrary_dict_key(self):
         key = self.cachedir.key({
             'foo': 'bar',
