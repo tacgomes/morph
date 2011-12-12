@@ -117,6 +117,8 @@ For systems, use the following fields:
   `M` and `G`; **required**
 * `strata`: a list of stratum names to include in the system image;
   **required**
+* `test-stories`: a list of filenames with "test stories" for morph to 
+  run against the built image (see `morph test` subcommand); optional
 
 Example chunk (simplified commands):
 
@@ -170,6 +172,12 @@ Example system:
         "strata": [
             "foundation",
             "linux-stratum"
+        ],
+        "test-stories": [
+            "stories/login.py",
+            "stories/hostname-is-set.py",
+            "stories/basic-utilities-work.py",
+            "stories/halt-works.py"
         ]
     }
 
