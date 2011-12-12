@@ -74,6 +74,7 @@ class BinaryBlob(object):
         filename = os.path.join(dirname, '%s.meta' % blob_name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
+            
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
@@ -243,13 +244,13 @@ class Chunk(BinaryBlob):
         self.ex.run(commands)
         self.build_watch.stop(what)
 
-    def run_sequentially(self, what, commands, as_fakeroot=False):
+    def run_sequentially(self, what, commands, as_fakeroot=False, as_root=False):
         self.msg ('commands: %s' % what)
         self.build_watch.start(what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.ex.run(commands, as_fakeroot=as_fakeroot)
+        self.ex.run(commands, as_fakeroot=as_fakeroot, as_root=as_root)
         self.ex.env['MAKEFLAGS'] = flags
         logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
         self.build_watch.stop(what)
@@ -265,7 +266,7 @@ class Chunk(BinaryBlob):
             filename = self.filename(chunk_name)
             self.msg('Creating binary for %s' % chunk_name)
             morphlib.bins.create_chunk(self.destdir, filename, patterns,
-                                       self.dump_memory_profile)
+                                       self.ex, self.dump_memory_profile)
             ret[chunk_name] = filename
         self.build_watch.stop('create-chunks')
         files = os.listdir(self.destdir)
@@ -292,16 +293,18 @@ class Stratum(BinaryBlob):
 
     def build(self):
         os.mkdir(self.destdir)
+        ex = morphlib.execute.Execute(self.destdir, self.msg)
         self.build_watch.start('unpack-chunks')
         for chunk_name, filename in self.built:
             self.msg('Unpacking chunk %s' % chunk_name)
-            morphlib.bins.unpack_binary(filename, self.destdir)
+            morphlib.bins.unpack_binary(filename, self.destdir, ex,
+                                        as_fakeroot=True)
         self.build_watch.stop('unpack-chunks')
         self.prepare_binary_metadata(self.morph.name)
         self.build_watch.start('create-binary')
         self.msg('Creating binary for %s' % self.morph.name)
         filename = self.filename(self.morph.name)
-        morphlib.bins.create_stratum(self.destdir, filename)
+        morphlib.bins.create_stratum(self.destdir, filename, ex)
         self.build_watch.stop('create-binary')
         return { self.morph.name: filename }
 
@@ -375,26 +378,26 @@ class System(BinaryBlob):
             # Create fstab.
             self.build_watch.start('create-fstab')
             fstab = self.tempdir.join('mnt/etc/fstab')
-            with open(fstab, 'w') as f:
-                f.write('proc /proc proc defaults 0 0\n')
-                f.write('sysfs /sys sysfs defaults 0 0\n')
-                f.write('/dev/sda1 / ext4 errors=remount-ro 0 1\n')
+            # sorry about the hack, I wish I knew a better way
+            self.ex.runv(['tee', fstab], feed_stdin='''
+proc      /proc proc  defaults          0 0
+sysfs     /sys  sysfs defaults          0 0
+/dev/sda1 /     ext4  errors=remount-ro 0 1
+''', as_root=True, stdout=open(os.devnull,'w'))
             self.build_watch.stop('create-fstab')
 
             # Install extlinux bootloader.
             self.build_watch.start('install-bootloader')
             conf = os.path.join(mount_point, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
-            f = open(conf, 'w')
-            f.write('''
+            self.ex.runv(['tee', conf], feed_stdin='''
 default linux
 timeout 1
 
 label linux
 kernel /vmlinuz
-append root=/dev/sda1 init=/bin/sh quiet rw
-''')
-            f.close()
+append root=/dev/sda1 init=/sbin/init quiet rw
+''', as_root=True, stdout=open(os.devnull, 'w'))
 
             self.ex.runv(['extlinux', '--install', mount_point], as_root=True)
             
@@ -544,10 +547,13 @@ class Builder(object):
             return
         if self.settings['bootstrap']:
             self.msg('Unpacking chunk %s onto system' % chunk_name)
-            morphlib.bins.unpack_binary(chunk_filename, '/')
+            ex = morphlib.execute.Execute('/', self.msg)
+            morphlib.bins.unpack_binary(chunk_filename, '/', ex, as_root=True)
         else:
             self.msg('Unpacking chunk %s into staging' % chunk_name)
-            morphlib.bins.unpack_binary(chunk_filename, staging_dir)
+            ex = morphlib.execute.Execute(staging_dir, self.msg)
+            morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex,
+                                        as_root=True)
             
     def get_morph_from_git(self, repo, ref, filename):
         morph_text = morphlib.git.get_morph_text(repo, ref, filename)

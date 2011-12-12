@@ -88,7 +88,9 @@ class Morph(cliapp.Application):
             self.msg('Building %s - %s - %s' % (repo, ref, filename))
             builder.build(repo, ref, filename)
         
-        tempdir.remove()
+        # we may not have permission to tempdir.remove()
+        ex = morphlib.execute.Execute('.', lambda msg: None)
+        ex.runv(["rm", "-rf", tempdir.dirname], as_root=True)
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
