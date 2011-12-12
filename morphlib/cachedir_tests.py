@@ -27,7 +27,7 @@ class CacheDirTests(unittest.TestCase):
         self.cachedir = morphlib.cachedir.CacheDir(self.dirname)
 
     def test_sets_dirname_attribute(self):
-        self.assertEqual(self.cachedir.dirname, self.dirname)
+        self.assertEqual(self.cachedir.dirname, os.path.abspath(self.dirname))
 
     def test_uses_absolute_path(self):
         abspath = os.path.abspath(self.dirname)
