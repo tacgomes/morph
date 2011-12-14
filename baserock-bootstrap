@@ -667,14 +667,14 @@ pass1_cliapp()
     echo "Building cliapp"
     if [ ! -e "$tools/lib/python2.7/site-packages/cliapp" ]
     then
-        cp "$sources/python-cliapp_0.21.orig.tar.gz" \
-           "$sources/cliapp-0.21.tar.gz"
-        unpack cliapp-0.21
-        cd "$sources/cliapp-0.21"
+        cp "$sources/python-cliapp_0.22.orig.tar.gz" \
+           "$sources/cliapp-0.22.tar.gz"
+        unpack cliapp-0.22
+        cd "$sources/cliapp-0.22"
         $HOST_SED -i '/^import cliapp/d' setup.py
-        $HOST_SED -i 's/cliapp.__version__/"0.21"/g' setup.py
+        $HOST_SED -i 's/cliapp.__version__/"0.22"/g' setup.py
         python setup.py install --prefix="$tools"
-        rm -rf "$sources/cliapp-0.21"
+        rm -rf "$sources/cliapp-0.22"
     fi
 }
 
@@ -785,10 +785,19 @@ python ./morph --verbose build \
         --git-base-url=file:///baserock/gits/
 EOF
     chmod +x "$LFS/baserock/build.sh"
+    if ! mount | grep "$LFS/proc" >/dev/null
+    then
+        $HOST_SUDO mount -t proc proc "$LFS/proc"
+    fi
+    if ! mount | grep "$LFS/sys" >/dev/null
+    then
+        $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
+    fi
     $HOST_SUDO env -i HOME=/baserock TERM=$TERM \
         PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
         BOOTSTRAP_TOOLS="$LFS/tools" \
         /usr/sbin/chroot "$LFS" /baserock/build.sh
+    $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
 }
 
 
@@ -797,7 +806,7 @@ echo "LFS_TGT=$LFS_TGT"
 
 pass1_directories
 
-# download_all
+download_all
 $HOST_CP -alu "$allsources/." "$LFS/sources/."
 
 pass1_binutils_1

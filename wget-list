@@ -35,7 +35,6 @@ http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.tar.bz2
 http://ftp.gnu.org/gnu/m4/m4-1.4.16.tar.bz2
 http://ftp.gnu.org/gnu/make/make-3.82.tar.bz2
 http://download.savannah.gnu.org/releases/man-db/man-db-2.6.0.2.tar.gz
-http://man7.org/linux/man-pages/download/man-pages-3.35.tar.gz
 http://anduin.linuxfromscratch.org/sources/LFS/lfs-packages/conglomeration/module-init-tools/module-init-tools-3.16.tar.bz2
 http://www.multiprecision.org/mpc/download/mpc-0.9.tar.gz
 http://www.mpfr.org/mpfr-3.1.0/mpfr-3.1.0.tar.bz2
@@ -78,5 +77,6 @@ http://www.linuxfromscratch.org/patches/lfs/7.0/procps-3.2.8-fix_HZ_errors-1.pat
 http://www.linuxfromscratch.org/patches/lfs/7.0/procps-3.2.8-watch_unicode-1.patch
 http://www.linuxfromscratch.org/patches/lfs/7.0/readline-6.2-fixes-1.patch
 http://python.org/ftp/python/2.7.2/Python-2.7.2.tar.bz2
-http://code.liw.fi/debian/pool/main/p/python-cliapp/python-cliapp_0.21.orig.tar.gz
+http://code.liw.fi/debian/pool/main/p/python-cliapp/python-cliapp_0.22.orig.tar.gz
 http://git-core.googlecode.com/files/git-1.7.7.3.tar.gz
+http://busybox.net/downloads/busybox-1.19.3.tar.bz2
