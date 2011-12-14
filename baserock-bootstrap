@@ -149,29 +149,31 @@ pass1_linux_api_headers()
 }
 
 
-pass1_glibc()
+pass1_eglibc()
 {
-    echo "Building glibc"
+    echo "Building eglibc"
     if [ ! -e "$tools/lib/libc.so.6" ]
     then
-        unpack glibc-2.14.1
-        cd "$sources/glibc-2.14.1"
-        patch -Np1 -i ../glibc-2.14.1-gcc_fix-1.patch
-        patch -Np1 -i ../glibc-2.14.1-cpuid-1.patch
+        unpack eglibc_2.13
+        cd "$sources/eglibc-2.13"
+        (cd libc && ln -s ../ports ports)
         
-        $HOST_MKDIR "$sources/glibc-build"
-        cd "$sources/glibc-build"
+        $HOST_MKDIR "$sources/eglibc-build"
+        cd "$sources/eglibc-build"
+        echo "CFLAGS += -O2 -U_FORTIFY_SOURCE -fno-stack-protector" > configparms
         case `uname -m` in
-          i?86) echo "CFLAGS += -march=i486 -mtune=native" > configparms ;;
+          i?86) echo "CFLAGS += -march=i486 -mtune=native" >> configparms ;;
         esac
-        ../glibc-2.14.1/configure --prefix="$tools" \
-            --host=$LFS_TGT --build=$(../glibc-2.14.1/scripts/config.guess) \
+        ../eglibc-2.13/libc/configure --prefix="$tools" \
+            --host=$LFS_TGT --build=$(../eglibc-2.13/scripts/config.guess) \
             --disable-profile --enable-add-ons \
             --enable-kernel=2.6.25 --with-headers="$tools/include" \
+            --without-selinux --without-cvs \
             libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes
+
         make -j$JOBS
         make install
-        rm -rf "$sources/glibc-2.14.1"
+        rm -rf "$sources/eglibc-2.13"
     fi
 }
 
@@ -778,6 +780,7 @@ python ./morph --verbose build \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
+        --dump-memory-profile=none \
         --max-jobs=$JOBS \
         --git-base-url=file:///baserock/gits/
 EOF
@@ -800,7 +803,7 @@ $HOST_CP -alu "$allsources/." "$LFS/sources/."
 pass1_binutils_1
 pass1_gcc_1
 pass1_linux_api_headers
-pass1_glibc
+pass1_eglibc
 pass1_adjust_gcc_specs
 pass1_sanity_check
 pass1_binutils_2
