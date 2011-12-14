@@ -52,6 +52,21 @@ class Execute(object):
     def _setup_env(self):
         self.env = dict(os.environ)
 
+    def _prefix(self, argv, as_root, as_fakeroot):
+        if as_root:
+            if os.getuid() == 0:
+                prefix = ['env']
+            else:
+                prefix = ['sudo']
+            envs = ["%s=%s" % x for x in self.env.iteritems()]
+            argv = prefix + envs + argv
+        elif as_fakeroot and os.getuid() != 0:
+            if not self._fakeroot_session:
+                self._fakeroot_session = tempfile.mkstemp()[1]
+            argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
+                    self._fakeroot_session, '--'] + argv
+        return argv
+
     def run(self, commands, as_root=False, as_fakeroot=False, _log=True):
         '''Execute a list of commands.
         
@@ -64,15 +79,7 @@ class Execute(object):
         for command in commands:
             self.msg('# %s' % command)
             argv = ['sh', '-c', command]
-            if as_root:
-                argv = (['sudo'] +
-                        ["%s=%s" % x for x in self.env.iteritems()] +
-                        argv) # pragma: no cover
-            elif as_fakeroot:
-                if not self._fakeroot_session:
-                    self._fakeroot_session = tempfile.mkstemp()[1]
-                argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
-                        self._fakeroot_session, '--'] + argv
+            argv = self._prefix(argv, as_root, as_fakeroot)
             logging.debug('run: argv=%s' % repr(argv))
             logging.debug('run: env=%s' % repr(self.env))
             logging.debug('run: cwd=%s' % repr(self.dirname))
@@ -110,15 +117,7 @@ class Execute(object):
         if 'env' not in kwargs:
             kwargs['env'] = self.env
 
-        if as_root:
-            argv = (['sudo'] +
-                    ["%s=%s" % x for x in self.env.iteritems()] +
-                    argv) # pragma: no cover
-        elif as_fakeroot:
-            if not self._fakeroot_session:
-                self._fakeroot_session = tempfile.mkstemp()[1]
-            argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
-                    self._fakeroot_session, '--'] + argv
+        argv = self._prefix(argv, as_root, as_fakeroot)
         logging.debug('runv: argv=%s' % repr(argv))
         logging.debug('runv: env=%s' % repr(self.env))
         logging.debug('runv: cwd=%s' % repr(self.dirname))

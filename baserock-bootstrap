@@ -741,13 +741,6 @@ pass2_prepare_for_chroot()
 /usr/lib/64
 /usr/lib
 EOF
-
-    cat <<EOF > "$tools/bin/sudo"
-#!/bin/sh
-exec "\$@"
-EOF
-    /bin/chmod +x "$tools/bin/sudo"
-    /bin/cp "$tools/bin/sudo" "$tools/bin/fakeroot"
     
     $HOST_MKDIR -p "$LFS/etc"
     echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
