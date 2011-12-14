@@ -799,8 +799,8 @@ echo "LFS_TGT=$LFS_TGT"
 
 pass1_directories
 
-download_all
 $HOST_CP -alu "$allsources/." "$LFS/sources/."
+download_all
 
 pass1_binutils_1
 pass1_gcc_1
