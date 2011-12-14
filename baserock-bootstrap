@@ -41,7 +41,7 @@ download_all()
     while read url
     do
         download "$url"
-    done < wget-list
+    done < "$(dirname $0)/wget-list"
 }
 
 
