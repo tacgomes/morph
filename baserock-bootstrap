@@ -8,7 +8,7 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-SNAPSHOT="$1"
+SNAPSHOT="${1:-'no'}"
 
 JOBS=$((echo -n '1.5*'; grep -c '^processor' /proc/cpuinfo) | 
        bc -lq | 
@@ -169,10 +169,10 @@ pass1_eglibc()
             --disable-profile --enable-add-ons \
             --enable-kernel=2.6.25 --with-headers="$tools/include" \
             --without-selinux --without-cvs \
-            libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes
+            libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes libc_cv_ssp=no
 
         make -j$JOBS
-        make install
+        make install vardbdir="$tools/var/db"
         rm -rf "$sources/eglibc-2.13"
     fi
 }
