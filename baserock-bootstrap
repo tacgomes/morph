@@ -71,8 +71,8 @@ pass1_directories()
     [ -e "$LFS/sys" ] || $HOST_MKDIR -p "$LFS/sys"
     [ -e "$LFS/tmp" ] || $HOST_MKDIR -p "$LFS/tmp"
     [ -e "$LFS/dev" ] || $HOST_MKDIR -p "$LFS/dev"
-    [ -e "$LFS/dev/console" ] || sudo mknod -m 600 "$LFS/dev/console" c 5 1
-    [ -e "$LFS/dev/null" ] || sudo mknod -m 666 "$LFS/dev/null" c 1 3
+    [ -e "$LFS/dev/console" ] || $HOST_SUDO mknod -m 600 "$LFS/dev/console" c 5 1
+    [ -e "$LFS/dev/null" ] || $HOST_SUDO mknod -m 666 "$LFS/dev/null" c 1 3
 }
 
 
@@ -704,7 +704,7 @@ pass1_strip_tools()
 
 pass1_fix_perms()
 {
-    sudo -p'Password for chown: ' chown -R root:root "$LFS"
+    $HOST_SUDO -p'Password for chown: ' chown -R root:root "$LFS"
 }
 
 
