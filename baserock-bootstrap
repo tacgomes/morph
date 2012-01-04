@@ -468,18 +468,16 @@ pass1_gawk()
 }
 
 
-pass1_gettext_msgfmt()
+pass1_gettext()
 {
     echo "Building gettext"
     if [ ! -e "$tools/bin/msgfmt" ]
     then
         unpack gettext-0.18.1.1
         cd "$sources/gettext-0.18.1.1"
-        cd gettext-tools
-        ./configure --prefix="$tools" --disable-shared
-        make -C gnulib-lib
-        make -C src msgfmt
-        cp -v src/msgfmt "$tools/bin"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+        make install
         rm -rf "$sources/gettext-0.18.1.1"
     fi
 }
@@ -824,7 +822,7 @@ pass1_bash
 pass1_file
 #pass1_findutils
 pass1_gawk
-pass1_gettext_msgfmt
+pass1_gettext
 #pass1_grep
 pass1_gzip
 pass1_m4
