@@ -729,30 +729,33 @@ pass2_prepare_for_chroot()
         /bin/ln -s / "$LFS/$LFS"
     fi
 
-    $HOST_SUDO mkdir -p "$LFS/etc"
-    $HOST_SUDO chmod 777 "$LFS/etc"
-    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
-    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
-    cat <<EOF > "$LFS/etc/ld.so.conf"
+    if [ ! -d "$LFS/etc" ]
+    then
+	    $HOST_SUDO mkdir -p "$LFS/etc"
+	    $HOST_SUDO chmod 777 "$LFS/etc"
+	    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
+	    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
+	    cat <<EOF > "$LFS/etc/ld.so.conf"
 /lib64
 /lib
 /usr/lib64
 /usr/lib
 EOF
+    fi
     
     $HOST_MKDIR -p "$LFS/etc"
-    echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
-    echo 'root::0:' > "$LFS/etc/group"
+    [ -e "$LFS/etc/passwd" ] || echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
+    [ -e "$LFS/etc/group" ] || echo 'root::0:' > "$LFS/etc/group"
 
-    echo 'baserock-boot' | 
+    [ -e "$LFS/etc/hostname" ] || echo 'baserock-boot' | 
         $HOST_SUDO /usr/bin/tee "$LFS/etc/hostname" > /dev/null
 
     # Add symlinks for common locations of specific tools
     # These are needed for #! lines in scripts
-    $HOST_MKDIR -p "$LFS/bin"
-    $HOST_SUDO ln -sf ../tools/bin/sh "$LFS/bin/sh"
-    $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
-    $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
+    [ -e "$LFS/bin" ] || $HOST_MKDIR -p "$LFS/bin"
+    [ -e "$LFS/bin/sh" ] || $HOST_SUDO ln -sf ../tools/bin/sh "$LFS/bin/sh"
+    [ -e "$LFS/bin/bash" ] || $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
+    [ -e "$LFS/bin/pwd" ] || $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
 }
 
 
@@ -800,7 +803,7 @@ echo "LFS_TGT=$LFS_TGT"
 
 pass1_directories
 
-$HOST_CP -alu "$allsources/." "$LFS/sources/."
+$HOST_CP -alu "$allsources/." "$LFS/sources/." || true
 download_all
 
 pass1_binutils_1
