@@ -4,6 +4,8 @@ set -e
 set +h
 set -u
 
+BASEDIR=$(dirname $(readlink -f $0))
+
 LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
@@ -16,13 +18,17 @@ JOBS=$((echo -n '1.5*'; grep -c '^processor' /proc/cpuinfo) |
 
 export LC_ALL=C
 export LFS_TGT=$(uname -m)-lfs-linux-gnu
-export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
-HOST_CP=/bin/cp
-HOST_MKDIR=/bin/mkdir
-HOST_DIRNAME=/usr/bin/dirname
-HOST_SED=/bin/sed
-HOST_SUDO=/usr/bin/sudo
+HOST_CAT=`which cat`
+HOST_CP=`which cp`
+HOST_MKDIR=`which mkdir`
+HOST_DIRNAME=`which dirname`
+HOST_SED=`which sed`
+HOST_SUDO=`which sudo`
+HOST_READLINK=`which readlink`
+HOST_CHMOD=`which chmod`
+
+export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
 download()
 {
@@ -41,7 +47,7 @@ download_all()
     while read url
     do
         download "$url"
-    done < "$(dirname $0)/wget-list"
+    done < "$BASEDIR/wget-list"
 }
 
 
@@ -778,23 +784,30 @@ python ./morph --verbose build \
         --max-jobs=1 \
         --git-base-url=file:///baserock/gits/
 EOF
-    chmod +x "$LFS/baserock/build.sh"
-    if ! mount | grep "$LFS/proc" >/dev/null
-    then
-        $HOST_SUDO mount -t proc proc "$LFS/proc"
+    $HOST_CHMOD +x "$LFS/baserock/build.sh"
+    local do_chroot="$BASEDIR/do-chroot"
+    if [ ! -e "$do_chroot" ]; then
+        $HOST_CAT >"$do_chroot" <<EOF
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    $HOST_SUDO mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
+fi
+ldpath="/lib:/lib64:/usr/lib:/usr/lib64:/tools/lib:/tools/lib64"
+$HOST_SUDO /usr/sbin/chroot "$LFS" \
+    /tools/bin/env -i HOME=/baserock TERM=\$TERM \
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
+    LD_LIBRARY_PATH="\$ldpath" \
+    BOOTSTRAP_TOOLS="$LFS/tools" \
+    "\$@"
+$HOST_SUDO umount "$LFS/proc" "$LFS/sys"
+EOF
+        $HOST_CHMOD +x "$do_chroot"
     fi
-    if ! mount | grep "$LFS/sys" >/dev/null
-    then
-        $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
-    fi
-    ldpath="/lib:/lib64:/usr/lib:/usr/lib64:/tools/lib:/tools/lib64"
-    $HOST_SUDO /usr/sbin/chroot "$LFS" \
-        /tools/bin/env -i HOME=/baserock TERM=$TERM \
-        PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
-        LD_LIBRARY_PATH="$ldpath" \
-        BOOTSTRAP_TOOLS="$LFS/tools" \
-        /baserock/build.sh
-    $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
+    "$do_chroot" /baserock/build.sh
 }
 
 
