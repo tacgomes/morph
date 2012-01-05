@@ -156,7 +156,7 @@ pass1_eglibc()
     then
         unpack eglibc_2.13
         cd "$sources/eglibc-2.13"
-        (cd libc && ln -s ../ports ports)
+        # (cd libc && ln -s ../ports ports)
         
         $HOST_MKDIR "$sources/eglibc-build"
         cd "$sources/eglibc-build"
@@ -164,7 +164,7 @@ pass1_eglibc()
         case `uname -m` in
           i?86) echo "CFLAGS += -march=i486 -mtune=native" >> configparms ;;
         esac
-        ../eglibc-2.13/libc/configure --prefix="$tools" \
+        ../eglibc-2.13/configure --prefix="$tools" \
             --host=$LFS_TGT --build=$(../eglibc-2.13/scripts/config.guess) \
             --disable-profile --enable-add-ons \
             --enable-kernel=2.6.25 --with-headers="$tools/include" \
