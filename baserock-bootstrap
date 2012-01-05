@@ -796,11 +796,9 @@ if ! mount | grep "$LFS/sys" >/dev/null
 then
     $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
 fi
-ldpath="/lib:/lib64:/usr/lib:/usr/lib64:/tools/lib:/tools/lib64"
 $HOST_SUDO /usr/sbin/chroot "$LFS" \
     /tools/bin/env -i HOME=/baserock TERM=\$TERM \
     PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
-    LD_LIBRARY_PATH="\$ldpath" \
     BOOTSTRAP_TOOLS="$LFS/tools" \
     "\$@"
 $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
