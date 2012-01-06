@@ -796,11 +796,12 @@ if ! mount | grep "$LFS/sys" >/dev/null
 then
     $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
 fi
-$HOST_SUDO /usr/sbin/chroot "$LFS" \
-    /tools/bin/env -i HOME=/baserock TERM=\$TERM \
-    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
-    BOOTSTRAP_TOOLS="$LFS/tools" \
-    "\$@"
+$HOST_SUDO $HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+$HOST_SUDO /usr/sbin/chroot "$LFS" \\
+    /tools/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \\
+    BOOTSTRAP_TOOLS="$LFS/tools" \\
+    "\${@-\$SHELL}"
 $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
 EOF
         $HOST_CHMOD +x "$do_chroot"
