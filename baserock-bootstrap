@@ -768,7 +768,9 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 python ./morph --verbose build \
-    file:///baserock/gits/morphs/ liw/foo devel-system.morph \
+    file:///baserock/gits/morphs/ liw/foo linux-stratum.morph \
+    file:///baserock/gits/morphs/ liw/foo foundation.morph \
+    file:///baserock/gits/morphs/ liw/foo devel.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
@@ -790,6 +792,50 @@ EOF
         BOOTSTRAP_TOOLS="$LFS/tools" \
         /usr/sbin/chroot "$LFS" /baserock/build.sh
     $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
+}
+
+
+pass2_build_devel_system_outside_chroot()
+{
+    cd "$LFS/.."
+    img="devsys.img"
+
+    $HOST_SUDO qemu-img create -f raw "$img" 1G
+    $HOST_SUDO parted -s "$img" mklabel msdos
+    $HOST_SUDO parted -s "$img" mkpart primary 0% 100%
+    $HOST_SUDO parted -s "$img" set 1 boot on
+    $HOST_SUDO install-mbr "$img"
+    part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
+    trap "$HOST_SUDO kpartx -dv $img" EXIT
+    $HOST_SUDO mkfs -t ext4 "$part"
+    mp="$(mktemp -d)"
+    $HOST_SUDO mount "$part" "$mp"
+
+    for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
+    do
+        $HOST_SUDO tar -C "$mp" -xf "$stratum"
+    done
+
+    cat <<EOF | $HOST_SUDO tee "$mp/etc/fstab"
+proc      /proc proc  defaults          0 0
+sysfs     /sys  sysfs defaults          0 0
+/dev/sda1 /     ext4  errors=remount-ro 0 1
+EOF
+
+    cat <<EOF | $HOST_SUDO tee "$mp/extlinux.conf"
+default linux
+timeout 1
+
+label linux
+kernel /vmlinuz
+append root=/dev/sda1 init=/sbin/init quiet rw
+EOF
+
+    $HOST_SUDO extlinux --install "$mp"
+    sync
+    sleep 2
+
+    $HOST_SUDO umount "$mp"
 }
 
 
@@ -848,4 +894,4 @@ fi
 pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
-
+pass2_build_devel_system_outside_chroot
