@@ -25,6 +25,30 @@ import urlparse
 import morphlib
 
 
+def ldconfig(ex, rootdir):
+    '''Run ldconfig for the filesystem below ``rootdir``.
+
+    Essentially, ``rootdir`` specifies the root of a new system.
+    Only directories below it are considered.
+
+    ``etc/ld.so.conf`` below ``rootdir`` is assumed to exist and
+    be populated by the right directories, and should assume
+    the root directory is ``rootdir``. Example: if ``rootdir``
+    is ``/tmp/foo``, then ``/tmp/foo/etc/ld.so.conf`` should
+    contain ``/lib``, not ``/tmp/foo/lib``.
+    
+    The ldconfig found via ``$PATH`` is used, not the one in ``rootdir``,
+    since in bootstrap mode that might not yet exist, the various 
+    implementations should be compatible enough.
+
+    '''
+
+    logging.debug('Running ldconfig for %s' % rootdir)
+    conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
+    cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
+    ex.runv(['ldconfig', '-f', conf, '-C', cache, '-r', rootdir])
+
+
 class BinaryBlob(object):
 
     def __init__(self, morph, repo, ref):
@@ -368,11 +392,13 @@ class System(BinaryBlob):
             self.build_watch.stop('mount-filesystem')
 
             # Unpack all strata into filesystem.
+            # Also, run ldconfig.
             self.build_watch.start('unpack-strata')
             for name, filename in self.built:
                 self.msg('unpack %s from %s' % (name, filename))
                 self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
                              as_root=True)
+            ldconfig(ex, mount_point)
             self.build_watch.stop('unpack-strata')
 
             # Create fstab.
@@ -549,11 +575,13 @@ class Builder(object):
             self.msg('Unpacking chunk %s onto system' % chunk_name)
             ex = morphlib.execute.Execute('/', self.msg)
             morphlib.bins.unpack_binary(chunk_filename, '/', ex, as_root=True)
+            ldconfig(ex, '/')
         else:
             self.msg('Unpacking chunk %s into staging' % chunk_name)
             ex = morphlib.execute.Execute(staging_dir, self.msg)
             morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex,
                                         as_root=True)
+            ldconfig(ex, staging_dir)
             
     def get_morph_from_git(self, repo, ref, filename):
         morph_text = morphlib.git.get_morph_text(repo, ref, filename)

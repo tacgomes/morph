@@ -149,31 +149,29 @@ pass1_linux_api_headers()
 }
 
 
-pass1_eglibc()
+pass1_glibc()
 {
-    echo "Building eglibc"
+    echo "Building glibc"
     if [ ! -e "$tools/lib/libc.so.6" ]
     then
-        unpack eglibc_2.13
-        cd "$sources/eglibc-2.13"
-        (cd libc && ln -s ../ports ports)
+        unpack glibc-2.14.1
+        cd "$sources/glibc-2.14.1"
+        patch -Np1 -i ../glibc-2.14.1-gcc_fix-1.patch
+        patch -Np1 -i ../glibc-2.14.1-cpuid-1.patch
         
-        $HOST_MKDIR "$sources/eglibc-build"
-        cd "$sources/eglibc-build"
-        echo "CFLAGS += -O2 -U_FORTIFY_SOURCE -fno-stack-protector" > configparms
+        $HOST_MKDIR "$sources/glibc-build"
+        cd "$sources/glibc-build"
         case `uname -m` in
-          i?86) echo "CFLAGS += -march=i486 -mtune=native" >> configparms ;;
+          i?86) echo "CFLAGS += -march=i486 -mtune=native" > configparms ;;
         esac
-        ../eglibc-2.13/libc/configure --prefix="$tools" \
-            --host=$LFS_TGT --build=$(../eglibc-2.13/scripts/config.guess) \
+        ../glibc-2.14.1/configure --prefix="$tools" \
+            --host=$LFS_TGT --build=$(../glibc-2.14.1/scripts/config.guess) \
             --disable-profile --enable-add-ons \
             --enable-kernel=2.6.25 --with-headers="$tools/include" \
             --without-selinux --without-cvs \
             libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes libc_cv_ssp=no
-
-        make -j$JOBS
         make install vardbdir="$tools/var/db"
-        rm -rf "$sources/eglibc-2.13"
+        rm -rf "$sources/glibc-2.14.1"
     fi
 }
 
@@ -765,11 +763,14 @@ pass2_build_with_morph_in_chroot()
 #!/tools/bin/bash
 set -e
 set -x
+
 /tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 python ./morph --verbose build \
-    file:///baserock/gits/morphs/ master devel.morph \
+    file:///baserock/gits/morphs/ liw/foo linux-stratum.morph \
+    file:///baserock/gits/morphs/ liw/foo foundation.morph \
+    file:///baserock/gits/morphs/ liw/foo devel.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
@@ -797,18 +798,62 @@ EOF
 }
 
 
+pass2_build_devel_system_outside_chroot()
+{
+    cd "$LFS/.."
+    img="devsys.img"
+
+    $HOST_SUDO qemu-img create -f raw "$img" 1G
+    $HOST_SUDO parted -s "$img" mklabel msdos
+    $HOST_SUDO parted -s "$img" mkpart primary 0% 100%
+    $HOST_SUDO parted -s "$img" set 1 boot on
+    $HOST_SUDO install-mbr "$img"
+    part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
+    trap "$HOST_SUDO kpartx -dv $img" EXIT
+    $HOST_SUDO mkfs -t ext4 "$part"
+    mp="$(mktemp -d)"
+    $HOST_SUDO mount "$part" "$mp"
+
+    for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
+    do
+        $HOST_SUDO tar -C "$mp" -xf "$stratum"
+    done
+
+    cat <<EOF | $HOST_SUDO tee "$mp/etc/fstab"
+proc      /proc proc  defaults          0 0
+sysfs     /sys  sysfs defaults          0 0
+/dev/sda1 /     ext4  errors=remount-ro 0 1
+EOF
+
+    cat <<EOF | $HOST_SUDO tee "$mp/extlinux.conf"
+default linux
+timeout 1
+
+label linux
+kernel /vmlinuz
+append root=/dev/sda1 init=/sbin/init quiet rw
+EOF
+
+    $HOST_SUDO extlinux --install "$mp"
+    sync
+    sleep 2
+
+    $HOST_SUDO umount "$mp"
+}
+
+
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
 pass1_directories
 
-$HOST_CP -alu "$allsources/." "$LFS/sources/."
+$HOST_CP -au "$allsources/." "$LFS/sources/."
 download_all
 
 pass1_binutils_1
 pass1_gcc_1
 pass1_linux_api_headers
-pass1_eglibc
+pass1_glibc
 pass1_adjust_gcc_specs
 pass1_sanity_check
 pass1_binutils_2
@@ -852,4 +897,4 @@ fi
 pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
-
+pass2_build_devel_system_outside_chroot
