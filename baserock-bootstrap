@@ -769,9 +769,9 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 python ./morph --verbose build \
-    file:///baserock/gits/morphs/ liw/foo linux-stratum.morph \
-    file:///baserock/gits/morphs/ liw/foo foundation.morph \
-    file:///baserock/gits/morphs/ liw/foo devel.morph \
+    file:///baserock/gits/morphs/ master linux-stratum.morph \
+    file:///baserock/gits/morphs/ master foundation.morph \
+    file:///baserock/gits/morphs/ master devel.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
