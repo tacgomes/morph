@@ -666,14 +666,14 @@ pass1_cliapp()
     echo "Building cliapp"
     if [ ! -e "$tools/lib/python2.7/site-packages/cliapp" ]
     then
-        cp "$sources/python-cliapp_0.22.orig.tar.gz" \
-           "$sources/cliapp-0.22.tar.gz"
-        unpack cliapp-0.22
-        cd "$sources/cliapp-0.22"
+        cp "$sources/python-cliapp_0.23.orig.tar.gz" \
+           "$sources/cliapp-0.23.tar.gz"
+        unpack cliapp-0.23
+        cd "$sources/cliapp-0.23"
         $HOST_SED -i '/^import cliapp/d' setup.py
-        $HOST_SED -i 's/cliapp.__version__/"0.22"/g' setup.py
+        $HOST_SED -i 's/cliapp.__version__/"0.23"/g' setup.py
         python setup.py install --prefix="$tools"
-        rm -rf "$sources/cliapp-0.22"
+        rm -rf "$sources/cliapp-0.23"
     fi
 }
 
