@@ -848,6 +848,7 @@ echo "LFS_TGT=$LFS_TGT"
 
 pass1_directories
 
+mkdir -p $allsources
 $HOST_CP -au "$allsources/." "$LFS/sources/."
 download_all
 
