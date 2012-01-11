@@ -239,15 +239,16 @@ class Chunk(BinaryBlob):
 
     def create_source_and_tarball(self):
         self.msg('Creating source tree and tarball')
-        self.build_watch.start('create-source-tarball')
-        self.dump_memory_profile('before creating source and tarball for chunk')
-        tarball = self.cache_prefix + '.src.tar'
-        morphlib.git.export_sources(self.repo, self.ref, tarball)
-        self.dump_memory_profile('after exporting sources')
-        os.mkdir(self.builddir)
-        self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
-        self.dump_memory_profile('after creating source and tarball for chunk')
-        self.build_watch.stop('create-source-tarball')
+        with self.build_watch('create-source-tarball'):
+            self.dump_memory_profile('before creating source and tarball '
+                                        'for chunk')
+            tarball = self.cache_prefix + '.src.tar'
+            morphlib.git.export_sources(self.repo, self.ref, tarball)
+            self.dump_memory_profile('after exporting sources')
+            os.mkdir(self.builddir)
+            self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
+            self.dump_memory_profile('after creating source and tarball '
+                                        'for chunk')
 
     def build_using_buildsystem(self):
         bs_name = self.morph.build_system
@@ -267,35 +268,33 @@ class Chunk(BinaryBlob):
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
-        self.build_watch.start(what)
-        self.ex.run(commands)
-        self.build_watch.stop(what)
+        with self.build_watch(what):
+            self.ex.run(commands)
 
     def run_sequentially(self, what, commands):
         self.msg ('commands: %s' % what)
-        self.build_watch.start(what)
-        flags = self.ex.env['MAKEFLAGS']
-        self.ex.env['MAKEFLAGS'] = '-j1'
-        logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.ex.run(commands)
-        self.ex.env['MAKEFLAGS'] = flags
-        logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.build_watch.stop(what)
+        with self.build_watch(what):
+            flags = self.ex.env['MAKEFLAGS']
+            self.ex.env['MAKEFLAGS'] = '-j1'
+            logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
+            self.ex.run(commands)
+            self.ex.env['MAKEFLAGS'] = flags
+            logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
 
     def create_chunks(self, chunks):
         ret = {}
-        self.build_watch.start('create-chunks')
-        for chunk_name in chunks:
-            self.msg('Creating chunk %s' % chunk_name)
-            self.prepare_binary_metadata(chunk_name)
-            patterns = chunks[chunk_name]
-            patterns += [r'baserock/%s\.' % chunk_name]
-            filename = self.filename(chunk_name)
-            self.msg('Creating binary for %s' % chunk_name)
-            morphlib.bins.create_chunk(self.destdir, filename, patterns,
-                                       self.ex, self.dump_memory_profile)
-            ret[chunk_name] = filename
-        self.build_watch.stop('create-chunks')
+        with self.build_watch('create-chunks'):
+            for chunk_name in chunks:
+                self.msg('Creating chunk %s' % chunk_name)
+                self.prepare_binary_metadata(chunk_name)
+                patterns = chunks[chunk_name]
+                patterns += [r'baserock/%s\.' % chunk_name]
+                filename = self.filename(chunk_name)
+                self.msg('Creating binary for %s' % chunk_name)
+                morphlib.bins.create_chunk(self.destdir, filename, patterns,
+                                           self.ex, self.dump_memory_profile)
+                ret[chunk_name] = filename
+
         files = os.listdir(self.destdir)
         if files:
             raise Exception('DESTDIR %s is not empty: %s' %
@@ -321,17 +320,15 @@ class Stratum(BinaryBlob):
     def build(self):
         os.mkdir(self.destdir)
         ex = morphlib.execute.Execute(self.destdir, self.msg)
-        self.build_watch.start('unpack-chunks')
-        for chunk_name, filename in self.built:
-            self.msg('Unpacking chunk %s' % chunk_name)
-            morphlib.bins.unpack_binary(filename, self.destdir, ex)
-        self.build_watch.stop('unpack-chunks')
-        self.prepare_binary_metadata(self.morph.name)
-        self.build_watch.start('create-binary')
-        self.msg('Creating binary for %s' % self.morph.name)
-        filename = self.filename(self.morph.name)
-        morphlib.bins.create_stratum(self.destdir, filename, ex)
-        self.build_watch.stop('create-binary')
+        with self.build_watch('unpack-chunks'):
+            for chunk_name, filename in self.built:
+                self.msg('Unpacking chunk %s' % chunk_name)
+                morphlib.bins.unpack_binary(filename, self.destdir, ex)
+        with self.build_watch('create-binary'):
+            self.prepare_binary_metadata(self.morph.name)
+            self.msg('Creating binary for %s' % self.morph.name)
+            filename = self.filename(self.morph.name)
+            morphlib.bins.create_stratum(self.destdir, filename, ex)
         return { self.morph.name: filename }
 
 
@@ -349,73 +346,65 @@ class System(BinaryBlob):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
         # Create image.
-        self.build_watch.start('create-image')
-        image_name = self.tempdir.join('%s.img' % self.morph.name)
-        self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
-                      self.morph.disk_size])
-        self.build_watch.stop('create-image')
+        with self.build_watch('create-image'):
+            image_name = self.tempdir.join('%s.img' % self.morph.name)
+            self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
+                          self.morph.disk_size])
 
         # Partition it.
-        self.build_watch.start('partition-image')
-        self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
-        self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
-                      '0%', '100%'])
-        self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'])
-        self.build_watch.stop('partition-image')
+        with self.build_watch('partition-image'):
+            self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
+            self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
+                          '0%', '100%'])
+            self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'])
 
         # Install first stage boot loader into MBR.
-        self.build_watch.start('install-mbr')
-        self.ex.runv(['install-mbr', image_name])
-        self.build_watch.stop('install-mbr')
+        with self.build_watch('install-mbr'):
+            self.ex.runv(['install-mbr', image_name])
 
         # Setup device mapper to access the partition.
-        self.build_watch.start('setup-device-mapper')
-        out = self.ex.runv(['kpartx', '-av', image_name])
-        devices = [line.split()[2]
-                   for line in out.splitlines()
-                   if line.startswith('add map ')]
-        partition = '/dev/mapper/%s' % devices[0]
-        self.build_watch.stop('setup-device-mapper')
+        with self.build_watch('setup-device-mapper'):
+            out = self.ex.runv(['kpartx', '-av', image_name])
+            devices = [line.split()[2]
+                       for line in out.splitlines()
+                       if line.startswith('add map ')]
+            partition = '/dev/mapper/%s' % devices[0]
 
         mount_point = None
         try:
             # Create filesystem.
-            self.build_watch.start('create-filesystem')
-            self.ex.runv(['mkfs', '-t', 'ext3', partition])
-            self.build_watch.stop('create-filesystem')
+            with self.build_watch('create-filesystem'):
+                self.ex.runv(['mkfs', '-t', 'ext3', partition])
             
             # Mount it.
-            self.build_watch.start('mount-filesystem')
-            mount_point = self.tempdir.join('mnt')
-            os.mkdir(mount_point)
-            self.ex.runv(['mount', partition, mount_point])
-            self.build_watch.stop('mount-filesystem')
+            with self.build_watch('mount-filesystem'):
+                mount_point = self.tempdir.join('mnt')
+                os.mkdir(mount_point)
+                self.ex.runv(['mount', partition, mount_point])
 
             # Unpack all strata into filesystem.
             # Also, run ldconfig.
-            self.build_watch.start('unpack-strata')
-            for name, filename in self.built:
-                self.msg('unpack %s from %s' % (name, filename))
-                self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
-            ldconfig(ex, mount_point)
-            self.build_watch.stop('unpack-strata')
+            with self.build_watch('unpack-strata'):
+                for name, filename in self.built:
+                    self.msg('unpack %s from %s' % (name, filename))
+                    self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
+                ldconfig(ex, mount_point)
 
             # Create fstab.
-            self.build_watch.start('create-fstab')
-            fstab = self.tempdir.join('mnt/etc/fstab')
-            # sorry about the hack, I wish I knew a better way
-            self.ex.runv(['tee', fstab], feed_stdin='''
+            with self.build_watch('create-fstab'):
+                fstab = self.tempdir.join('mnt/etc/fstab')
+                # sorry about the hack, I wish I knew a better way
+                self.ex.runv(['tee', fstab], feed_stdin='''
 proc      /proc proc  defaults          0 0
 sysfs     /sys  sysfs defaults          0 0
 /dev/sda1 /     ext4  errors=remount-ro 0 1
 ''', stdout=open(os.devnull,'w'))
-            self.build_watch.stop('create-fstab')
 
             # Install extlinux bootloader.
-            self.build_watch.start('install-bootloader')
-            conf = os.path.join(mount_point, 'extlinux.conf')
-            logging.debug('configure extlinux %s' % conf)
-            self.ex.runv(['tee', conf], feed_stdin='''
+            with self.build_watch('install-bootloader'):
+                conf = os.path.join(mount_point, 'extlinux.conf')
+                logging.debug('configure extlinux %s' % conf)
+                self.ex.runv(['tee', conf], feed_stdin='''
 default linux
 timeout 1
 
@@ -424,17 +413,16 @@ kernel /vmlinuz
 append root=/dev/sda1 init=/sbin/init quiet rw
 ''', stdout=open(os.devnull, 'w'))
 
-            self.ex.runv(['extlinux', '--install', mount_point])
-            
-            # Weird hack that makes extlinux work. There is a bug somewhere.
-            self.ex.runv(['sync'])
-            import time; time.sleep(2)
-            self.build_watch.stop('install-bootloader')
+                self.ex.runv(['extlinux', '--install', mount_point])
+                
+                # Weird hack that makes extlinux work. 
+                # FIXME: There is a bug somewhere.
+                self.ex.runv(['sync'])
+                import time; time.sleep(2)
 
             # Unmount.
-            self.build_watch.start('unmount-filesystem')
-            self.ex.runv(['umount', mount_point])
-            self.build_watch.stop('unmount-filesystem')
+            with self.build_watch('unmount-filesystem'):
+                self.ex.runv(['umount', mount_point])
         except BaseException, e:
             # Unmount.
             if mount_point is not None:
@@ -451,15 +439,13 @@ append root=/dev/sda1 init=/sbin/init quiet rw
             raise
 
         # Undo device mapping.
-        self.build_watch.start('undo-device-mapper')
-        self.ex.runv(['kpartx', '-d', image_name])
-        self.build_watch.stop('undo-device-mapper')
+        with self.build_watch('undo-device-mapper'):
+            self.ex.runv(['kpartx', '-d', image_name])
 
         # Move image file to cache.
-        self.build_watch.start('cache-image')
-        filename = self.filename(self.morph.name)
-        self.ex.runv(['mv', image_name, filename])
-        self.build_watch.stop('cache-image')
+        with self.build_watch('cache-image'):
+            filename = self.filename(self.morph.name)
+            self.ex.runv(['mv', image_name, filename])
 
         return { self.morph.name: filename }
 
@@ -537,24 +523,22 @@ class Builder(object):
                 self.dump_memory_profile('after installing chunk')
             built = builds
         else:
-            blob.build_watch.start('overall-build')
+            with blob.build_watch('overall-build'):
 
-            blob.build_watch.start('build-needed')
-            self.build_needed(blob)
-            blob.build_watch.stop('build-needed')
-            self.dump_memory_profile('after building needed')
+                with blob.build_watch('build-needed'):
+                    self.build_needed(blob)
+                    self.dump_memory_profile('after building needed')
 
-            self.msg('Building %s %s' % (morph.kind, morph.name))
-            self.indent_more()
-            built = blob.build()
-            self.dump_memory_profile('after building blob')
-            self.indent_less()
-            for x in built:
-                self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
-                self.install_chunk(morph, x, built[x], blob.staging)
-                self.dump_memory_profile('after installing chunks')
+                self.msg('Building %s %s' % (morph.kind, morph.name))
+                self.indent_more()
+                built = blob.build()
+                self.dump_memory_profile('after building blob')
+                self.indent_less()
+                for x in built:
+                    self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
+                    self.install_chunk(morph, x, built[x], blob.staging)
+                    self.dump_memory_profile('after installing chunks')
 
-            blob.build_watch.stop('overall-build')
             blob.save_build_times()
 
         self.indent_less()

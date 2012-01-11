@@ -23,6 +23,7 @@ class Stopwatch(object):
 
     def __init__(self):
         self.ticks = {}
+        self.context_stack = []
 
     def tick(self, reference_object, name):
         if not reference_object in self.ticks:
@@ -56,3 +57,17 @@ class Stopwatch(object):
         return (delta.days * 24 * 3600 +
                 delta.seconds +
                 operator.truediv(delta.microseconds, 10**6))
+
+    def __call__(self, reference_object):
+        self.context_stack.append(reference_object)
+        return self
+                
+    def __enter__(self):
+        self.start(self.context_stack[-1])
+        return self
+        
+    def __exit__(self, *args):
+        self.stop(self.context_stack[-1])
+        self.context_stack.pop()
+        return False # cause any exception to be re-raised
+

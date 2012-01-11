@@ -56,3 +56,20 @@ class StopwatchTests(unittest.TestCase):
         self.assertEqual(our_delta, watch_delta)
 
         assert self.stopwatch.start_stop_seconds('start-stop') > 0
+        
+    def test_with(self):
+        with self.stopwatch('foo'):
+            pass
+        self.assert_(self.stopwatch.start_stop_seconds('foo') < 1.0)
+        
+    def test_with_within_with(self):
+        with self.stopwatch('foo'):
+            with self.stopwatch('bar'):
+                pass
+        self.assert_(self.stopwatch.start_time('foo'))
+        self.assert_(self.stopwatch.stop_time('foo'))
+        self.assert_(self.stopwatch.start_time('bar'))
+        self.assert_(self.stopwatch.stop_time('bar'))
+        self.assert_(self.stopwatch.start_stop_seconds('foo') < 1.0)
+        self.assert_(self.stopwatch.start_stop_seconds('bar') < 1.0)
+
