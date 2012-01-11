@@ -43,11 +43,13 @@ def ldconfig(ex, rootdir):
 
     '''
 
-    logging.debug('Running ldconfig for %s' % rootdir)
     conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
-    cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
-    ex.runv(['ldconfig', '-f', conf, '-C', cache, '-r', rootdir])
-
+    if os.path.exists(conf):
+        logging.debug('Running ldconfig for %s' % rootdir)
+        cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
+        ex.runv(['ldconfig', '-f', conf, '-C', cache, '-r', rootdir])
+    else:
+        logging.debug('No %s, not running ldconfig' % conf)
 
 class BinaryBlob(object):
 
@@ -251,16 +253,14 @@ class Chunk(BinaryBlob):
         self.run_sequentially('configure', bs['configure-commands'])
         self.run_in_parallel('build', bs['build-commands'])
         self.run_sequentially('test', bs['test-commands'])
-        self.run_sequentially('install', bs['install-commands'],
-                              as_fakeroot=True)
+        self.run_sequentially('install', bs['install-commands'])
 
     def build_using_commands(self):
         self.msg('Building using explicit commands')
         self.run_sequentially('configure', self.morph.configure_commands)
         self.run_in_parallel('build', self.morph.build_commands)
         self.run_sequentially('test', self.morph.test_commands)
-        self.run_sequentially('install', self.morph.install_commands,
-                              as_fakeroot=True)
+        self.run_sequentially('install', self.morph.install_commands)
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
@@ -268,13 +268,13 @@ class Chunk(BinaryBlob):
         self.ex.run(commands)
         self.build_watch.stop(what)
 
-    def run_sequentially(self, what, commands, as_fakeroot=False, as_root=False):
+    def run_sequentially(self, what, commands):
         self.msg ('commands: %s' % what)
         self.build_watch.start(what)
         flags = self.ex.env['MAKEFLAGS']
         self.ex.env['MAKEFLAGS'] = '-j1'
         logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-        self.ex.run(commands, as_fakeroot=as_fakeroot, as_root=as_root)
+        self.ex.run(commands)
         self.ex.env['MAKEFLAGS'] = flags
         logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
         self.build_watch.stop(what)
@@ -321,8 +321,7 @@ class Stratum(BinaryBlob):
         self.build_watch.start('unpack-chunks')
         for chunk_name, filename in self.built:
             self.msg('Unpacking chunk %s' % chunk_name)
-            morphlib.bins.unpack_binary(filename, self.destdir, ex,
-                                        as_fakeroot=True)
+            morphlib.bins.unpack_binary(filename, self.destdir, ex)
         self.build_watch.stop('unpack-chunks')
         self.prepare_binary_metadata(self.morph.name)
         self.build_watch.start('create-binary')
@@ -355,22 +354,20 @@ class System(BinaryBlob):
 
         # Partition it.
         self.build_watch.start('partition-image')
-        self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'],
-                     as_root=True)
+        self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
         self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
-                      '0%', '100%'], as_root=True)
-        self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'],
-                     as_root=True)
+                      '0%', '100%'])
+        self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'])
         self.build_watch.stop('partition-image')
 
         # Install first stage boot loader into MBR.
         self.build_watch.start('install-mbr')
-        self.ex.runv(['install-mbr', image_name], as_root=True)
+        self.ex.runv(['install-mbr', image_name])
         self.build_watch.stop('install-mbr')
 
         # Setup device mapper to access the partition.
         self.build_watch.start('setup-device-mapper')
-        out = self.ex.runv(['kpartx', '-av', image_name], as_root=True)
+        out = self.ex.runv(['kpartx', '-av', image_name])
         devices = [line.split()[2]
                    for line in out.splitlines()
                    if line.startswith('add map ')]
@@ -381,14 +378,14 @@ class System(BinaryBlob):
         try:
             # Create filesystem.
             self.build_watch.start('create-filesystem')
-            self.ex.runv(['mkfs', '-t', 'ext3', partition], as_root=True)
+            self.ex.runv(['mkfs', '-t', 'ext3', partition])
             self.build_watch.stop('create-filesystem')
             
             # Mount it.
             self.build_watch.start('mount-filesystem')
             mount_point = self.tempdir.join('mnt')
             os.mkdir(mount_point)
-            self.ex.runv(['mount', partition, mount_point], as_root=True)
+            self.ex.runv(['mount', partition, mount_point])
             self.build_watch.stop('mount-filesystem')
 
             # Unpack all strata into filesystem.
@@ -396,8 +393,7 @@ class System(BinaryBlob):
             self.build_watch.start('unpack-strata')
             for name, filename in self.built:
                 self.msg('unpack %s from %s' % (name, filename))
-                self.ex.runv(['tar', '-C', mount_point, '-xf', filename],
-                             as_root=True)
+                self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
             ldconfig(ex, mount_point)
             self.build_watch.stop('unpack-strata')
 
@@ -409,7 +405,7 @@ class System(BinaryBlob):
 proc      /proc proc  defaults          0 0
 sysfs     /sys  sysfs defaults          0 0
 /dev/sda1 /     ext4  errors=remount-ro 0 1
-''', as_root=True, stdout=open(os.devnull,'w'))
+''', stdout=open(os.devnull,'w'))
             self.build_watch.stop('create-fstab')
 
             # Install extlinux bootloader.
@@ -423,9 +419,9 @@ timeout 1
 label linux
 kernel /vmlinuz
 append root=/dev/sda1 init=/sbin/init quiet rw
-''', as_root=True, stdout=open(os.devnull, 'w'))
+''', stdout=open(os.devnull, 'w'))
 
-            self.ex.runv(['extlinux', '--install', mount_point], as_root=True)
+            self.ex.runv(['extlinux', '--install', mount_point])
             
             # Weird hack that makes extlinux work. There is a bug somewhere.
             self.ex.runv(['sync'])
@@ -434,26 +430,26 @@ append root=/dev/sda1 init=/sbin/init quiet rw
 
             # Unmount.
             self.build_watch.start('unmount-filesystem')
-            self.ex.runv(['umount', mount_point], as_root=True)
+            self.ex.runv(['umount', mount_point])
             self.build_watch.stop('unmount-filesystem')
         except BaseException, e:
             # Unmount.
             if mount_point is not None:
                 try:
-                    self.ex.runv(['umount', mount_point], as_root=True)
+                    self.ex.runv(['umount', mount_point])
                 except Exception:
                     pass
 
             # Undo device mapping.
             try:
-                self.ex.runv(['kpartx', '-d', image_name], as_root=True)
+                self.ex.runv(['kpartx', '-d', image_name])
             except Exception:
                 pass
             raise
 
         # Undo device mapping.
         self.build_watch.start('undo-device-mapper')
-        self.ex.runv(['kpartx', '-d', image_name], as_root=True)
+        self.ex.runv(['kpartx', '-d', image_name])
         self.build_watch.stop('undo-device-mapper')
 
         # Move image file to cache.
@@ -574,13 +570,12 @@ class Builder(object):
         if self.settings['bootstrap']:
             self.msg('Unpacking chunk %s onto system' % chunk_name)
             ex = morphlib.execute.Execute('/', self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, '/', ex, as_root=True)
+            morphlib.bins.unpack_binary(chunk_filename, '/', ex)
             ldconfig(ex, '/')
         else:
             self.msg('Unpacking chunk %s into staging' % chunk_name)
             ex = morphlib.execute.Execute(staging_dir, self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex,
-                                        as_root=True)
+            morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex)
             ldconfig(ex, staging_dir)
             
     def get_morph_from_git(self, repo, ref, filename):

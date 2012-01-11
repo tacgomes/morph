@@ -39,31 +39,11 @@ class Execute(object):
         self._setup_env()
         self.dirname = dirname
         self.msg = msg
-        self._fakeroot_session = None
-
-    def __del__(self): # pragma: no cover
-        if self._fakeroot_session:
-            os.remove(self._fakeroot_session)
 
     def _setup_env(self):
         self.env = dict(os.environ)
 
-    def _prefix(self, argv, as_root, as_fakeroot):
-        if as_root: # pragma: no cover
-            if os.getuid() == 0:
-                prefix = ['env']
-            else:
-                prefix = ['sudo']
-            envs = ["%s=%s" % x for x in self.env.iteritems()]
-            argv = prefix + envs + argv
-        elif as_fakeroot and os.getuid() != 0:
-            if not self._fakeroot_session:
-                self._fakeroot_session = tempfile.mkstemp()[1]
-            argv = ['fakeroot', '-i', self._fakeroot_session, '-s',
-                    self._fakeroot_session, '--'] + argv
-        return argv
-
-    def run(self, commands, as_root=False, as_fakeroot=False, _log=True):
+    def run(self, commands, _log=True):
         '''Execute a list of commands.
         
         If a command fails (returns non-zero exit code), the rest are
@@ -75,7 +55,6 @@ class Execute(object):
         for command in commands:
             self.msg('# %s' % command)
             argv = ['sh', '-c', command]
-            argv = self._prefix(argv, as_root, as_fakeroot)
             logging.debug('run: argv=%s' % repr(argv))
             logging.debug('run: env=%s' % repr(self.env))
             logging.debug('run: cwd=%s' % repr(self.dirname))
@@ -94,8 +73,7 @@ class Execute(object):
             stdouts.append(out)
         return stdouts
 
-    def runv(self, argv, feed_stdin=None, as_root=False, as_fakeroot=False,
-             _log=True, **kwargs):
+    def runv(self, argv, feed_stdin=None, _log=True, **kwargs):
         '''Run a command given as a list of argv elements.
         
         Return standard output. Raise ``CommandFailure`` if the command
@@ -113,7 +91,6 @@ class Execute(object):
         if 'env' not in kwargs:
             kwargs['env'] = self.env
 
-        argv = self._prefix(argv, as_root, as_fakeroot)
         logging.debug('runv: argv=%s' % repr(argv))
         logging.debug('runv: env=%s' % repr(self.env))
         logging.debug('runv: cwd=%s' % repr(self.dirname))

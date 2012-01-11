@@ -79,7 +79,7 @@ class Morph(cliapp.Application):
         tempdir = morphlib.tempdir.Tempdir()
         builder = morphlib.builder.Builder(tempdir, self)
 
-        if not os.path.exists(self.settings['cachedir']) and os.getuid() != 0:
+        if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
 
         ret = []
@@ -91,7 +91,7 @@ class Morph(cliapp.Application):
         
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)
-        ex.runv(["rm", "-rf", tempdir.dirname], as_root=True)
+        ex.runv(["rm", "-rf", tempdir.dirname])
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
