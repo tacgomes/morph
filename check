@@ -20,5 +20,4 @@
 set -e
 
 python setup.py clean check
-fakeroot env PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" \
-    cmdtest -c ./morph tests
+fakeroot cmdtest -c ./morph tests

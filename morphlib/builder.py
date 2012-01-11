@@ -47,7 +47,10 @@ def ldconfig(ex, rootdir):
     if os.path.exists(conf):
         logging.debug('Running ldconfig for %s' % rootdir)
         cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
+        old_path = ex.env['PATH']
+        ex.env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
         ex.runv(['ldconfig', '-f', conf, '-C', cache, '-r', rootdir])
+        ex.env['PATH'] = old_path
     else:
         logging.debug('No %s, not running ldconfig' % conf)
 
