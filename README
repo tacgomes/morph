@@ -20,11 +20,15 @@ used to actually run the build. The usual workflow is this:
 
 * put the morphology for an upstream project with its source code
 * put other morphologies in the `morphs` (note plural) repository
-* run `morph` to build stuff
+* run `fakeroot morph` or `sudo morph` to build stuff
 
 Eventually, `morph` will get a manual page. Meanwhile, a short usage:
 
-    morph --keep-path -v build morphs master base-system.morph
+    fakeroot morph --keep-path -v build morphs master foundation.morph
+    sudo morph --keep-path -v build morphs master base-system.morph
+
+(Run with `fakeroot`, when building anything but a system image; run
+with `sudo` when building a system image.)
 
 Run `morph --help` to get a list of all options and short descriptions.
 
