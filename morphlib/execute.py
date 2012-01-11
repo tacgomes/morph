@@ -42,10 +42,6 @@ class Execute(object):
         self._fakeroot_session = None
 
     def __del__(self): # pragma: no cover
-        try:
-            object.__del__(self)
-        except AttributeError:
-            pass # pragma: no cover
         if self._fakeroot_session:
             os.remove(self._fakeroot_session)
 
