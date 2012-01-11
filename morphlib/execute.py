@@ -45,7 +45,7 @@ class Execute(object):
         try:
             object.__del__(self)
         except AttributeError:
-            pass
+            pass # pragma: no cover
         if self._fakeroot_session:
             os.remove(self._fakeroot_session)
 
