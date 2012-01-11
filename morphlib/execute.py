@@ -53,7 +53,7 @@ class Execute(object):
         self.env = dict(os.environ)
 
     def _prefix(self, argv, as_root, as_fakeroot):
-        if as_root:
+        if as_root: # pragma: no cover
             if os.getuid() == 0:
                 prefix = ['env']
             else:
