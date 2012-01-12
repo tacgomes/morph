@@ -1,0 +1,314 @@
+#!/bin/sh
+#
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -e
+
+# Create a repository
+repo="$DATADIR/test-repo"
+mkdir "$repo"
+cd "$repo"
+git init --quiet
+
+# Add a single source file to simulate compiling
+cat <<EOF > hello.c
+#include <stdio.h>
+int main(void)
+{
+    puts("hello, world");
+    return 0;
+}
+EOF
+git add hello.c
+
+# Define a couple of chunk morphologies for the GTK stack
+gtkcomponents=(freetype fontconfig cairo pango glib gdk-pixbuf gtk dbus-glib dbus)
+for component in "${gtkcomponents[@]}"
+do
+    cat <<EOF > $component.morph
+{
+    "name": "$component",
+    "kind": "chunk",
+    "build-commands": [
+        "gcc -o hello hello.c"
+    ],
+    "install-commands": [
+        "install -d \\"\$DESTDIR\\"/etc",
+        "install -d \\"\$DESTDIR\\"/bin",
+        "install hello \\"\$DESTDIR\\"/bin/$component"
+    ]
+}
+EOF
+    git add $component.morph
+done
+git commit --quiet -m "add .c source file and GTK chunk morphologies"
+
+# Define a stratum for the GTK stack
+cat <<EOF > gtk-stack.morph
+{
+  "name": "gtk-stack",
+  "kind": "stratum",
+  "build-depends": [
+  ],
+  "sources": [
+    {
+      "name": "freetype",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "fontconfig",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "cairo",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "pango",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "freetype",
+        "fontconfig"
+      ]
+    },
+    {
+      "name": "glib",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "gdk-pixbuf",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "glib"
+      ]
+    },
+    {
+      "name": "gtk",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "cairo",
+        "gdk-pixbuf",
+        "glib",
+        "pango"
+      ]
+    },
+    {
+      "name": "dbus",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "dbus-glib",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "dbus",
+        "glib"
+      ]
+    }
+  ]
+}
+EOF
+git add gtk-stack.morph
+git commit --quiet -m "add gtk-stack.morph stratum"
+
+# Add a single source file to simulate compiling
+cat <<EOF > hello.c
+#include <stdio.h>
+int main(void)
+{
+    puts("hello, world");
+    return 0;
+}
+EOF
+git add hello.c
+
+# Define a couple of chunk morphologies for the GTK stack
+xfcecomponents=(xfce4-dev-tools libxfce4util libxfce4ui exo xfconf garcon thunar tumbler xfce4-panel xfce4-settings xfce4-session xfwm4 xfdesktop xfce4-appfinder gtk-xfce-engine)
+for component in "${xfcecomponents[@]}"
+do
+    cat <<EOF > $component.morph
+{
+    "name": "$component",
+    "kind": "chunk",
+    "build-commands": [
+        "gcc -o hello hello.c"
+    ],
+    "install-commands": [
+        "install -d \\"\$DESTDIR\\"/etc",
+        "install -d \\"\$DESTDIR\\"/bin",
+        "install hello \\"\$DESTDIR\\"/bin/$component"
+    ]
+}
+EOF
+    git add $component.morph
+done
+git commit --quiet -m "add .c source file and GTK chunk morphologies"
+
+# Define a stratum for the Xfce core
+cat <<EOF > xfce-core.morph
+{
+  "name": "xfce-core",
+  "kind": "stratum",
+  "build-depends": [
+    "gtk-stack"
+  ],
+  "sources": [
+    {
+      "name": "libxfce4util",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "xfconf",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4util"
+      ]
+    },
+    {
+      "name": "libxfce4ui",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "xfconf"
+      ]
+    },
+    {
+      "name": "exo",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4util"
+      ]
+    },
+    {
+      "name": "garcon",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4util"
+      ]
+    },
+    {
+      "name": "thunar",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "exo"
+      ]
+    },
+    {
+      "name": "tumbler",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+      ]
+    },
+    {
+      "name": "xfce4-panel",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "exo",
+        "garcon"
+      ]
+    },
+    {
+      "name": "xfce4-settings",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "exo",
+        "xfconf"
+      ]
+    },
+    {
+      "name": "xfce4-session",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "exo",
+        "xfconf"
+      ]
+    },
+    {
+      "name": "xfwm4",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "xfconf"
+      ]
+    },
+    {
+      "name": "xfdesktop",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "xfconf"
+      ]
+    },
+    {
+      "name": "xfce4-appfinder",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "garcon",
+        "xfconf"
+      ]
+    },
+    {
+      "name": "gtk-xfce-engine",
+      "repo": "test-repo",
+      "ref": "master",
+      "build-depends": [
+        "libxfce4ui",
+        "garcon",
+        "xfconf"
+      ]
+    }
+  ]
+}
+EOF
+git add xfce-core.morph
+git commit --quiet -m "add xfce-core.morph stratum"

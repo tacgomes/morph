@@ -30,6 +30,11 @@ class MorphologyLoader(object):
         self.morphologies = {}
 
     def load(self, repo, ref, filename):
+        base_url = self.settings['git-base-url']
+        if not base_url.endswith('/'):
+            base_url += '/'
+        repo = urlparse.urljoin(base_url, repo)
+
         key = (repo, ref, filename)
         
         if key in self.morphologies:
@@ -47,6 +52,6 @@ class MorphologyLoader(object):
         scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
         f = StringIO.StringIO(morph_text)
         f.name = os.path.join(path, filename)
-        morph = morphlib.morphology.Morphology(f,
+        morph = morphlib.morphology.Morphology(repo, ref, f,
                                                self.settings['git-base-url'])
         return morph

@@ -1,4 +1,9 @@
-# Copyright (C) 2011-2012  Codethink Limited
+#!/bin/sh
+#
+# Test a basic distributed build of two depending strata
+# with a couple of chunks in them.
+#
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,22 +18,16 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+set -e
 
-'''Baserock library.'''
+cache="$DATADIR/show-dependencies-cache"
+log="$DATADIR/show-dependencies-morph.log"
 
-
-__version__ = '0.0'
-
-
-import bins
-import builddependencygraph
-import builder
-import cachedir
-import execute
-import git
-import morphology
-import morphologyloader
-import stopwatch
-import tempdir
-import tester
-import util
+./morph show-dependencies                           \
+    test-repo master xfce-core.morph                \
+    --no-default-configs                            \
+    --git-base-url="file://$DATADIR"                \
+    --cachedir="$cache"                             \
+    --keep-path                                     \
+    --no-distcc                                     \
+    --log="$log"

@@ -22,7 +22,10 @@ class Morphology(object):
 
     '''Represent a morphology: description of how to build binaries.'''
     
-    def __init__(self, fp, baseurl=None):
+    def __init__(self, repo, ref, fp, baseurl=None):
+        self.repo = repo
+        self.ref = ref
+
         self._fp = fp
         self._baseurl = baseurl or ''
         self._load()
@@ -58,7 +61,7 @@ class Morphology(object):
 
     @property
     def build_depends(self):
-        return self._dict.get('build-depends', [])
+        return self._dict.get('build-depends', None)
 
     @property
     def build_system(self):

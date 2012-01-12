@@ -481,11 +481,8 @@ class Builder(object):
         self.dump_memory_profile('at start of build method')
         self.indent_more()
         self.msg('build %s|%s|%s' % (repo, ref, filename))
-        base_url = self.settings['git-base-url']
-        if not base_url.endswith('/'):
-            base_url += '/'
-        repo = urlparse.urljoin(base_url, repo)
         morph = self.morph_loader.load(repo, ref, filename)
+        repo = morph.repo
         self.dump_memory_profile('after getting morph from git')
 
         if morph.kind == 'chunk':

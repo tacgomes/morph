@@ -32,6 +32,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_accepts_valid_chunk_morphology(self):
         morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
@@ -57,6 +58,10 @@ class MorphologyTests(unittest.TestCase):
                                     ]
                                 }
                             }'''))
+
+        self.assertEqual(morph.repo, 'repo')
+        self.assertEqual(morph.ref, 'ref')
+        self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.name, 'hello')
         self.assertEqual(morph.kind, 'chunk')
         self.assertEqual(morph.description, 'desc')
@@ -77,6 +82,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_build_system_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
@@ -86,6 +92,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_max_jobs_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
@@ -95,6 +102,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_accepts_valid_stratum_morphology(self):
         morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
@@ -121,6 +129,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_accepts_valid_system_morphology(self):
         morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
@@ -145,6 +154,7 @@ class StratumRepoTests(unittest.TestCase):
 
     def stratum(self, repo):
         return morphlib.morphology.Morphology(
+                          'repo', 'ref',
                           MockFile('''
                             {
                                 "name": "hello",
