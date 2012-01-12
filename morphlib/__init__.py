@@ -26,6 +26,7 @@ import cachedir
 import execute
 import git
 import morphology
+import morphologyloader
 import stopwatch
 import tempdir
 import tester

@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011-2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -476,6 +476,8 @@ class Builder(object):
         self.dump_memory_profile = app.dump_memory_profile
         self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         self.indent = 0
+        self.morph_loader = \
+            morphlib.morphologyloader.MorphologyLoader(self.settings)
 
     def msg(self, text):
         spaces = '  ' * self.indent
@@ -497,7 +499,7 @@ class Builder(object):
         if not base_url.endswith('/'):
             base_url += '/'
         repo = urlparse.urljoin(base_url, repo)
-        morph = self.get_morph_from_git(repo, ref, filename)
+        morph = self.morph_loader.load(repo, ref, filename)
         self.dump_memory_profile('after getting morph from git')
 
         if morph.kind == 'chunk':
@@ -581,19 +583,10 @@ class Builder(object):
             morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex)
             ldconfig(ex, staging_dir)
             
-    def get_morph_from_git(self, repo, ref, filename):
-        morph_text = morphlib.git.get_morph_text(repo, ref, filename)
-        f = StringIO.StringIO(morph_text)
-        scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
-        f.name = os.path.join(path, filename)
-        morph = morphlib.morphology.Morphology(f, 
-                                               self.settings['git-base-url'])
-        return morph
-
     def get_cache_id(self, repo, ref, morph_filename):
         logging.debug('get_cache_id(%s, %s, %s)' %
                       (repo, ref, morph_filename))
-        morph = self.get_morph_from_git(repo, ref, morph_filename)
+        morph = self.morph_loader.load(repo, ref, morph_filename)
         if morph.kind == 'chunk':
             kids = []
         elif morph.kind == 'stratum':
