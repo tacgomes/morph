@@ -23,7 +23,6 @@ EOF
 
 cp baserock-bootstrap "$dir/."
 sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
-cp -a /home/liw/baserock/lfs-tarballs "$dir/."
 mount -t proc proc "$dir/proc"
 mount -t sysfs sysfs "$dir/sys"
 if chroot "$dir" bash -x baserock-bootstrap yes
