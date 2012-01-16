@@ -45,16 +45,16 @@ class Node(object):
     def depends_on(self, other):
         return other in self.dependencies
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return '%s (%s)' % (self.morphology.name, self.morphology.kind)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo): # pragma: no cover
         return Node(self.morphology)
 
 
 class NodeList(list):
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo): # pragma: no cover
         nodes = NodeList()
         
         old_to_new = {}
@@ -73,7 +73,7 @@ class NodeList(list):
         return nodes
 
 
-class BuildDependencyGraph(object):
+class BuildDependencyGraph(object): # pragma: no cover
     
     def __init__(self, loader, morphology):
         self.loader = loader
