@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Test a basic distributed build of two depending strata
 # with a couple of chunks in them.
