@@ -10,9 +10,8 @@ sources="$LFS/sources"
 tools="$LFS/tools"
 SNAPSHOT="${1:-'no'}"
 
-JOBS=$((echo -n '1.5*'; grep -c '^processor' /proc/cpuinfo) | 
-       bc -lq | 
-       sed 's/\..*//')
+CPUS=$(grep -c '^processor' /proc/cpuinfo)
+JOBS=$(expr 2 '*' $CPUS)
 
 export LC_ALL=C
 export LFS_TGT=$(uname -m)-lfs-linux-gnu
