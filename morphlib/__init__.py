@@ -21,6 +21,7 @@ __version__ = '0.0'
 
 
 import bins
+import blobs
 import builddependencygraph
 import builder
 import cachedir

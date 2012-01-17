@@ -14,8 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import os
-import StringIO
 import unittest
 
 import morphlib

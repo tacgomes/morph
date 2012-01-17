@@ -17,10 +17,6 @@
 import json
 import logging
 import os
-import shutil
-import StringIO
-import tarfile
-import urlparse
 
 import morphlib
 
@@ -54,12 +50,11 @@ def ldconfig(ex, rootdir):
     else:
         logging.debug('No %s, not running ldconfig' % conf)
 
-class BinaryBlob(object):
 
-    def __init__(self, morph, repo, ref):
-        self.morph = morph
-        self.repo = repo
-        self.ref = ref
+class BlobBuilder(object):
+
+    def __init__(self, blob):
+        self.blob = blob
         
         # The following MUST get set by the caller.
         self.builddir = None
@@ -69,23 +64,66 @@ class BinaryBlob(object):
         self.msg = None
         self.cache_prefix = None
         self.tempdir = None
-        self.built = None
+        self.stage_items = []
         self.dump_memory_profile = lambda msg: None
 
         # Stopwatch to measure build times
         self.build_watch = morphlib.stopwatch.Stopwatch()
 
-    def needs_built(self):
-        return []
-
     def builds(self):
-        raise NotImplemented()
-    
+        ret = {}
+        for chunk_name in self.blob.chunks:
+            ret[chunk_name] = self.filename(chunk_name)
+        return ret
+
     def build(self):
-        raise NotImplemented()
+        # create the staging area on demand
+        if not os.path.exists(self.staging):
+            os.mkdir(self.staging)
+
+        # record all items built in the process
+        built_items = []
+
+        # get a list of all the items we have to build for this blob
+        builds = self.builds()
+
+        # if not all build items are in the cache, rebuild the blob
+        if not all(os.path.isfile(builds[name]) for name in builds):
+            with self.build_watch('overall-build'):
+                built_items += self.do_build()
+
+        # check again, fail if not all build items were actually built
+        if not all(os.path.isfile(builds[name]) for name in builds):
+            raise Exception('Not all builds results expected from %s were '
+                            'actually built' % self.blob)
+
+        # install all build items to the staging area
+        for name, filename in builds.items():
+            self.msg('Using cached %s %s at %s' % (self.blob.morph.kind,
+                                                   name, filename))
+            self.install_chunk(name, filename)
+            self.dump_memory_profile('after installing chunk')
+
+        return built_items
 
     def filename(self, name):
-        return '%s.%s.%s' % (self.cache_prefix, self.morph.kind, name)
+        return '%s.%s.%s' % (self.cache_prefix,
+                             self.blob.morph.kind,
+                             name)
+
+    def install_chunk(self, chunk_name, chunk_filename):
+        if self.blob.morph.kind != 'chunk':
+            return
+        if self.settings['bootstrap']:
+            self.msg('Unpacking item %s onto system' % chunk_name)
+            ex = morphlib.execute.Execute('/', self.msg)
+            morphlib.bins.unpack_binary(chunk_filename, '/', ex)
+            ldconfig(ex, '/')
+        else:
+            self.msg('Unpacking chunk %s into staging' % chunk_name)
+            ex = morphlib.execute.Execute(self.staging, self.msg)
+            morphlib.bins.unpack_binary(chunk_filename, self.staging, ex)
+            ldconfig(ex, self.staging)
 
     def prepare_binary_metadata(self, blob_name, **kwargs):
         '''Add metadata to a binary about to be built.'''
@@ -93,8 +131,8 @@ class BinaryBlob(object):
         self.msg('Adding metadata to %s' % blob_name)
         meta = {
             'name': blob_name,
-            'kind': self.morph.kind,
-            'description': self.morph.description,
+            'kind': self.blob.morph.kind,
+            'description': self.blob.morph.description,
         }
         for key, value in kwargs.iteritems():
             meta[key] = value
@@ -128,7 +166,7 @@ class BinaryBlob(object):
         self.write_cache_metadata(meta)
 
 
-class Chunk(BinaryBlob):
+class ChunkBuilder(BlobBuilder):
 
     build_system = {
         'autotools': {
@@ -147,21 +185,8 @@ class Chunk(BinaryBlob):
         },
     }
 
-    @property
-    def chunks(self):
-        if self.morph.chunks:
-            return self.morph.chunks
-        else:
-            return { self.morph.name: ['.'] }
-    
-    def builds(self):
-        ret = {}
-        for chunk_name in self.chunks:
-            ret[chunk_name] = self.filename(chunk_name)
-        return ret
-
-    def build(self):
-        logging.debug('Creating build tree at %s' % self.builddir)
+    def do_build(self):
+        self.msg('Creating build tree at %s' % self.builddir)
 
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
         self.setup_env()
@@ -169,23 +194,40 @@ class Chunk(BinaryBlob):
         self.create_source_and_tarball()
 
         os.mkdir(self.destdir)
-        if self.morph.build_system:
+        if self.blob.morph.build_system:
             self.build_using_buildsystem()
         else:
             self.build_using_commands()
         self.dump_memory_profile('after building chunk')
 
-        chunks = self.create_chunks(self.chunks)
-        self.dump_memory_profile('after creating chunk blobs')
+        chunks = self.create_chunks()
+        self.dump_memory_profile('after creating build chunks')
         return chunks
         
     def setup_env(self):
         path = self.ex.env['PATH']
-        tmpdir = self.ex.env.get('TMPDIR')
         tools = self.ex.env.get('BOOTSTRAP_TOOLS')
         distcc_hosts = self.ex.env.get('DISTCC_HOSTS')
+
+        # copy a set of white-listed variables from the original env
+        copied_vars = dict.fromkeys([
+            'TMPDIR',
+            'LD_PRELOAD',
+            'LD_LIBRARY_PATH',
+            'FAKEROOTKEY',
+            'FAKED_MODE',
+            'FAKEROOT_FD_BASE',
+        ], None)
+        for name in copied_vars:
+            copied_vars[name] = self.ex.env.get(name, None)
+
         self.ex.env.clear()
         
+        # apply the copied variables to the clean env
+        for name in copied_vars:
+            if copied_vars[name] is not None:
+                self.ex.env[name] = copied_vars[name]
+
         self.ex.env['TERM'] = 'dumb'
         self.ex.env['SHELL'] = '/bin/sh'
         self.ex.env['USER'] = \
@@ -193,8 +235,6 @@ class Chunk(BinaryBlob):
             self.ex.env['LOGNAME'] = 'tomjon'
         self.ex.env['LC_ALL'] = 'C'
         self.ex.env['HOME'] = os.path.join(self.tempdir.dirname)
-        if tmpdir is not None:
-            self.ex.env['TMPDIR'] = tmpdir
 
         if self.settings['keep-path'] or self.settings['bootstrap']:
             self.ex.env['PATH'] = path
@@ -215,8 +255,8 @@ class Chunk(BinaryBlob):
         if distcc_hosts is not None:
             self.ex.env['DISTCC_HOSTS'] = distcc_hosts
 
-        if self.morph.max_jobs:
-            max_jobs = int(self.morph.max_jobs)
+        if self.blob.morph.max_jobs:
+            max_jobs = int(self.blob.morph.max_jobs)
             logging.debug('max_jobs from morph: %s' % max_jobs)
         elif self.settings['max-jobs']:
             max_jobs = self.settings['max-jobs']
@@ -244,8 +284,8 @@ class Chunk(BinaryBlob):
                                         'for chunk')
             tarball = self.cache_prefix + '.src.tar'
             #FIXME Ugh use treeish everwhere
-            path = urlparse.urlparse(self.repo).path
-            t = morphlib.git.Treeish (path, self.ref)
+            path = urlparse.urlparse(self.blob.morph.repo).path
+            t = morphlib.git.Treeish(path, self.blob.morph.ref)
             morphlib.git.export_sources(t, tarball)
             self.dump_memory_profile('after exporting sources')
             os.mkdir(self.builddir)
@@ -254,7 +294,7 @@ class Chunk(BinaryBlob):
                                         'for chunk')
 
     def build_using_buildsystem(self):
-        bs_name = self.morph.build_system
+        bs_name = self.blob.morph.build_system
         self.msg('Building using well-known build system %s' % bs_name)
         bs = self.build_system[bs_name]
         self.run_sequentially('configure', bs['configure-commands'])
@@ -264,10 +304,10 @@ class Chunk(BinaryBlob):
 
     def build_using_commands(self):
         self.msg('Building using explicit commands')
-        self.run_sequentially('configure', self.morph.configure_commands)
-        self.run_in_parallel('build', self.morph.build_commands)
-        self.run_sequentially('test', self.morph.test_commands)
-        self.run_sequentially('install', self.morph.install_commands)
+        self.run_sequentially('configure', self.blob.morph.configure_commands)
+        self.run_in_parallel('build', self.blob.morph.build_commands)
+        self.run_sequentially('test', self.blob.morph.test_commands)
+        self.run_sequentially('install', self.blob.morph.install_commands)
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
@@ -284,58 +324,49 @@ class Chunk(BinaryBlob):
             self.ex.env['MAKEFLAGS'] = flags
             logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
 
-    def create_chunks(self, chunks):
-        ret = {}
+    def create_chunks(self):
+        chunks = []
         with self.build_watch('create-chunks'):
-            for chunk_name in chunks:
+            for chunk_name in self.blob.chunks:
                 self.msg('Creating chunk %s' % chunk_name)
                 self.prepare_binary_metadata(chunk_name)
-                patterns = chunks[chunk_name]
+                patterns = self.blob.chunks[chunk_name]
                 patterns += [r'baserock/%s\.' % chunk_name]
                 filename = self.filename(chunk_name)
                 self.msg('Creating binary for %s' % chunk_name)
                 morphlib.bins.create_chunk(self.destdir, filename, patterns,
                                            self.ex, self.dump_memory_profile)
-                ret[chunk_name] = filename
+                chunks.append((chunk_name, filename))
 
         files = os.listdir(self.destdir)
         if files:
             raise Exception('DESTDIR %s is not empty: %s' %
                                 (self.destdir, files))
-        return ret
+        return chunks
 
 
-class Stratum(BinaryBlob):
+class StratumBuilder(BlobBuilder):
     
-    def needs_built(self):
-        for source in self.morph.sources:
-            project_name = source['name']
-            morph_name = source['morph'] if 'morph' in source else project_name
-            repo = source['repo']
-            ref = source['ref']
-            chunks = source['chunks'] if 'chunks' in source else [project_name]
-            yield repo, ref, morph_name, chunks
-
     def builds(self):
-        filename = self.filename(self.morph.name)
-        return { self.morph.name: filename }
+        filename = self.filename(self.blob.morph.name)
+        return { self.blob.morph.name: filename }
 
-    def build(self):
+    def do_build(self):
         os.mkdir(self.destdir)
         ex = morphlib.execute.Execute(self.destdir, self.msg)
         with self.build_watch('unpack-chunks'):
-            for chunk_name, filename in self.built:
+            for chunk_name, filename in self.stage_items:
                 self.msg('Unpacking chunk %s' % chunk_name)
                 morphlib.bins.unpack_binary(filename, self.destdir, ex)
         with self.build_watch('create-binary'):
-            self.prepare_binary_metadata(self.morph.name)
-            self.msg('Creating binary for %s' % self.morph.name)
-            filename = self.filename(self.morph.name)
+            self.prepare_binary_metadata(self.blob.morph.name)
+            self.msg('Creating binary for %s' % self.blob.morph.name)
+            filename = self.filename(self.blob.morph.name)
             morphlib.bins.create_stratum(self.destdir, filename, ex)
-        return { self.morph.name: filename }
+        return { self.blob.morph.name: filename }
 
 
-class System(BinaryBlob):
+class SystemBuilder(BlobBuilder):
 
     def needs_built(self):
         for stratum_name in self.morph.strata:
@@ -345,7 +376,7 @@ class System(BinaryBlob):
         filename = self.filename(self.morph.name)
         return { self.morph.name: filename }
 
-    def build(self):
+    def do_build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
         # Create image.
@@ -391,7 +422,7 @@ class System(BinaryBlob):
                 for name, filename in self.built:
                     self.msg('unpack %s from %s' % (name, filename))
                     self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
-                ldconfig(ex, mount_point)
+                ldconfig(self.ex, mount_point)
 
             # Create fstab.
             with self.build_watch('create-fstab'):
@@ -426,7 +457,7 @@ append root=/dev/sda1 init=/sbin/init quiet rw
             # Unmount.
             with self.build_watch('unmount-filesystem'):
                 self.ex.runv(['umount', mount_point])
-        except BaseException, e:
+        except BaseException:
             # Unmount.
             if mount_point is not None:
                 try:
@@ -458,15 +489,14 @@ class Builder(object):
     
     The objects may be chunks or strata.'''
     
-    def __init__(self, tempdir, app):
+    def __init__(self, tempdir, app, morph_loader):
         self.tempdir = tempdir
         self.real_msg = app.msg
         self.settings = app.settings
         self.dump_memory_profile = app.dump_memory_profile
         self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         self.indent = 0
-        self.morph_loader = \
-            morphlib.morphologyloader.MorphologyLoader(self.settings)
+        self.morph_loader = morph_loader
 
     def msg(self, text):
         spaces = '  ' * self.indent
@@ -478,94 +508,91 @@ class Builder(object):
     def indent_less(self):
         self.indent -= 1
 
-    def build(self, repo, ref, filename):
-        '''Build a binary based on a morphology.'''
+    def build(self, blobs, build_order):
+        '''Build a list of groups of morphologies. Items in a group
+           can be built in parallel.'''
 
-        self.dump_memory_profile('at start of build method')
         self.indent_more()
-        self.msg('build %s|%s|%s' % (repo, ref, filename))
-        morph = self.morph_loader.load(repo, ref, filename)
-        repo = morph.repo
-        self.dump_memory_profile('after getting morph from git')
 
-        if morph.kind == 'chunk':
-            blob = Chunk(morph, repo, ref)
-        elif morph.kind == 'stratum':
-            blob = Stratum(morph, repo, ref)
-        elif morph.kind == 'system':
-            blob = System(morph, repo, ref)
-        else:
-            raise Exception('Unknown kind of morphology: %s' % morph.kind)
-        self.dump_memory_profile('after creating Chunk/Stratum/...')
+        # first pass: create builders for all blobs
+        builders = {}
+        for group in build_order:
+            for blob in group:
+                builder = self.create_blob_builder(blob)
+                builders[blob] = builder
 
-        cache_id = self.get_cache_id(repo, ref, filename)
-        logging.debug('cachae id: %s' % repr(cache_id))
-        self.dump_memory_profile('after computing cache id')
+        # second pass: build group by group, item after item
+        ret = []
+        while len(build_order) > 0:
+            group = build_order.popleft()
+            while len(group) > 0:
+                blob = group.pop()
 
-        blob.builddir = self.tempdir.join('%s.build' % morph.name)
-        blob.destdir = self.tempdir.join('%s.inst' % morph.name)
-        blob.staging = self.tempdir.join('staging')
-        if not os.path.exists(blob.staging):
-            os.mkdir(blob.staging)
-        blob.settings = self.settings
-        blob.msg = self.msg
-        blob.cache_prefix = self.cachedir.name(cache_id)
-        blob.tempdir = self.tempdir
-        blob.dump_memory_profile = self.dump_memory_profile
-
-        builds = blob.builds()
-        self.dump_memory_profile('after blob.builds()')
-        if all(os.path.exists(builds[x]) for x in builds):
-            for x in builds:
-                self.msg('using cached %s %s at %s' % 
-                            (morph.kind, x, builds[x]))
-                self.install_chunk(morph, x, builds[x], blob.staging)
-                self.dump_memory_profile('after installing chunk')
-            built = builds
-        else:
-            with blob.build_watch('overall-build'):
-
-                with blob.build_watch('build-needed'):
-                    self.build_needed(blob)
-                    self.dump_memory_profile('after building needed')
-
-                self.msg('Building %s %s' % (morph.kind, morph.name))
+                self.msg('Building %s' % blob)
                 self.indent_more()
-                built = blob.build()
-                self.dump_memory_profile('after building blob')
-                self.indent_less()
-                for x in built:
-                    self.msg('%s %s cached at %s' % (morph.kind, x, built[x]))
-                    self.install_chunk(morph, x, built[x], blob.staging)
-                    self.dump_memory_profile('after installing chunks')
 
-            blob.save_build_times()
+                ## TODO this needs to be done recursively
+                ## make sure all dependencies are in the staging area
+                #for dependency in blob.dependencies:
+                #    depbuilder = builders[dependency]
+                #    depbuilder.stage()
+
+                ## TODO this needs the set of recursively collected 
+                ## dependencies
+                ## make sure all non-dependencies are not staged
+                #for nondependency in (blobs - blob.dependencies):
+                #    depbuilder = builders[nondependency]
+                #    depbuilder.unstage()
+
+                built_items = builders[blob].build()
+                
+                if blob.parent:
+                    for item, filename in built_items:
+                        self.msg('Marking %s to be staged for %s' %
+                                 (item, blob.parent))
+
+                    parent_builder = builders[blob.parent]
+                    parent_builder.stage_items += built_items
+
+                self.indent_less()
 
         self.indent_less()
-        self.dump_memory_profile('at end of build method')
-        return morph, built
 
-    def build_needed(self, blob):
-        blob.built = []
-        for repo, ref, morph_name, blob_names in blob.needs_built():
-            morph_filename = '%s.morph' % morph_name
-            morph, cached = self.build(repo, ref, morph_filename)
-            for blob_name in blob_names:
-                blob.built.append((blob_name, cached[blob_name]))
+        return ret
 
-    def install_chunk(self, morph, chunk_name, chunk_filename, staging_dir):
-        if morph.kind != 'chunk':
-            return
-        if self.settings['bootstrap']:
-            self.msg('Unpacking chunk %s onto system' % chunk_name)
-            ex = morphlib.execute.Execute('/', self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, '/', ex)
-            ldconfig(ex, '/')
+    def create_blob_builder(self, blob):
+        if isinstance(blob, morphlib.blobs.Stratum):
+            builder = StratumBuilder(blob)
+        elif isinstance(blob, morphlib.blobs.Chunk):
+            builder = ChunkBuilder(blob)
+        elif isinstance(blob, morphlib.blobs.System):
+            builder = SystemBuilder(blob)
         else:
-            self.msg('Unpacking chunk %s into staging' % chunk_name)
-            ex = morphlib.execute.Execute(staging_dir, self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, staging_dir, ex)
-            ldconfig(ex, staging_dir)
+            raise TypeError('Blob %s has unknown type %s' %
+                            (str(blob), type(blob)))
+
+        cache_id = self.get_blob_cache_id(blob)
+        logging.debug('cache id: %s' % repr(cache_id))
+        self.dump_memory_profile('after computing cache id')
+
+        builder.builddir = self.tempdir.join('%s.build' % blob.morph.name)
+        builder.destdir = self.tempdir.join('%s.inst' % blob.morph.name)
+        builder.staging = self.tempdir.join('staging')
+        builder.settings = self.settings
+        builder.msg = self.msg
+        builder.cache_prefix = self.cachedir.name(cache_id)
+        builder.tempdir = self.tempdir
+        builder.dump_memory_profile = self.dump_memory_profile
+        
+        return builder
+
+    def get_blob_cache_id(self, blob):
+        # FIXME os.path.basename() only works if the .morph file is an
+        # immediate children of the repo location and is not located in
+        # a subfolder
+        return self.get_cache_id(blob.morph.repo,
+                                 blob.morph.ref,
+                                 os.path.basename(blob.morph.filename))
             
     def get_cache_id(self, repo, ref, morph_filename):
         logging.debug('get_cache_id(%s, %s, %s)' %

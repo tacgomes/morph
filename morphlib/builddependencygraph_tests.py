@@ -14,8 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import os
-import StringIO
 import unittest
 
 import morphlib
@@ -23,15 +21,9 @@ import morphlib
 
 class BuildDependencyGraphTests(unittest.TestCase):
 
-    def test_create_node_with_morphology(self):
-        fake_morphology = "fake morphology"
-        
-        node = morphlib.builddependencygraph.Node(fake_morphology)
-        self.assertEqual(node.morphology, fake_morphology)
-
     def test_node_add_remove_dependency(self):
-        node1 = morphlib.builddependencygraph.Node(None)
-        node2 = morphlib.builddependencygraph.Node(None)
+        node1 = morphlib.blobs.Blob(None, None)
+        node2 = morphlib.blobs.Blob(None, None)
 
         node1.add_dependency(node2)
 

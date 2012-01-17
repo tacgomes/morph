@@ -16,6 +16,7 @@
 
 import json
 import logging
+import os
 
 
 class Morphology(object):
@@ -123,3 +124,6 @@ class Morphology(object):
         else:
             return url
 
+    def __str__(self): # pragma: no cover
+        return '%s|%s|%s' % (os.path.basename(os.path.dirname(self.repo)),
+                             self.ref, os.path.basename(self.filename))

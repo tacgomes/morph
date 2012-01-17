@@ -1,132 +1,132 @@
 dependency tree:
-  xfce-core (stratum)
-    -> libxfce4util (chunk)
-    -> xfconf (chunk)
-    -> libxfce4ui (chunk)
-    -> exo (chunk)
-    -> garcon (chunk)
-    -> thunar (chunk)
-    -> tumbler (chunk)
-    -> xfce4-panel (chunk)
-    -> xfce4-settings (chunk)
-    -> xfce4-session (chunk)
-    -> xfwm4 (chunk)
-    -> xfdesktop (chunk)
-    -> xfce4-appfinder (chunk)
-    -> gtk-xfce-engine (chunk)
-  gtk-stack (stratum)
-    -> freetype (chunk)
-    -> fontconfig (chunk)
-    -> cairo (chunk)
-    -> pango (chunk)
-    -> glib (chunk)
-    -> gdk-pixbuf (chunk)
-    -> gtk (chunk)
-    -> dbus (chunk)
-    -> dbus-glib (chunk)
-  libxfce4util (chunk)
-    -> gtk-stack (stratum)
-  xfconf (chunk)
-    -> libxfce4util (chunk)
-    -> gtk-stack (stratum)
-  libxfce4ui (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  exo (chunk)
-    -> libxfce4util (chunk)
-    -> gtk-stack (stratum)
-  garcon (chunk)
-    -> libxfce4util (chunk)
-    -> gtk-stack (stratum)
-  thunar (chunk)
-    -> libxfce4ui (chunk)
-    -> exo (chunk)
-    -> gtk-stack (stratum)
-  tumbler (chunk)
-    -> gtk-stack (stratum)
-  xfce4-panel (chunk)
-    -> libxfce4ui (chunk)
-    -> exo (chunk)
-    -> garcon (chunk)
-    -> gtk-stack (stratum)
-  xfce4-settings (chunk)
-    -> libxfce4ui (chunk)
-    -> exo (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  xfce4-session (chunk)
-    -> libxfce4ui (chunk)
-    -> exo (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  xfwm4 (chunk)
-    -> libxfce4ui (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  xfdesktop (chunk)
-    -> libxfce4ui (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  xfce4-appfinder (chunk)
-    -> libxfce4ui (chunk)
-    -> garcon (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  gtk-xfce-engine (chunk)
-    -> libxfce4ui (chunk)
-    -> garcon (chunk)
-    -> xfconf (chunk)
-    -> gtk-stack (stratum)
-  freetype (chunk)
-  fontconfig (chunk)
-  cairo (chunk)
-  pango (chunk)
-    -> freetype (chunk)
-    -> fontconfig (chunk)
-  glib (chunk)
-  gdk-pixbuf (chunk)
-    -> glib (chunk)
-  gtk (chunk)
-    -> cairo (chunk)
-    -> gdk-pixbuf (chunk)
-    -> glib (chunk)
-    -> pango (chunk)
-  dbus (chunk)
-  dbus-glib (chunk)
-    -> dbus (chunk)
-    -> glib (chunk)
+  test-repo|master|cairo.morph
+  test-repo|master|dbus-glib.morph
+    -> test-repo|master|dbus.morph
+    -> test-repo|master|glib.morph
+  test-repo|master|dbus.morph
+  test-repo|master|exo.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4util.morph
+  test-repo|master|fontconfig.morph
+  test-repo|master|freetype.morph
+  test-repo|master|garcon.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4util.morph
+  test-repo|master|gdk-pixbuf.morph
+    -> test-repo|master|glib.morph
+  test-repo|master|glib.morph
+  test-repo|master|gtk-stack.morph
+    -> test-repo|master|cairo.morph
+    -> test-repo|master|dbus-glib.morph
+    -> test-repo|master|dbus.morph
+    -> test-repo|master|fontconfig.morph
+    -> test-repo|master|freetype.morph
+    -> test-repo|master|gdk-pixbuf.morph
+    -> test-repo|master|glib.morph
+    -> test-repo|master|gtk.morph
+    -> test-repo|master|pango.morph
+  test-repo|master|gtk-xfce-engine.morph
+    -> test-repo|master|garcon.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|gtk.morph
+    -> test-repo|master|cairo.morph
+    -> test-repo|master|gdk-pixbuf.morph
+    -> test-repo|master|glib.morph
+    -> test-repo|master|pango.morph
+  test-repo|master|libxfce4ui.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|libxfce4util.morph
+    -> test-repo|master|gtk-stack.morph
+  test-repo|master|pango.morph
+    -> test-repo|master|fontconfig.morph
+    -> test-repo|master|freetype.morph
+  test-repo|master|thunar.morph
+    -> test-repo|master|exo.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+  test-repo|master|tumbler.morph
+    -> test-repo|master|gtk-stack.morph
+  test-repo|master|xfce-core.morph
+    -> test-repo|master|exo.morph
+    -> test-repo|master|garcon.morph
+    -> test-repo|master|gtk-xfce-engine.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|libxfce4util.morph
+    -> test-repo|master|thunar.morph
+    -> test-repo|master|tumbler.morph
+    -> test-repo|master|xfce4-appfinder.morph
+    -> test-repo|master|xfce4-panel.morph
+    -> test-repo|master|xfce4-session.morph
+    -> test-repo|master|xfce4-settings.morph
+    -> test-repo|master|xfconf.morph
+    -> test-repo|master|xfdesktop.morph
+    -> test-repo|master|xfwm4.morph
+  test-repo|master|xfce4-appfinder.morph
+    -> test-repo|master|garcon.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|xfce4-panel.morph
+    -> test-repo|master|exo.morph
+    -> test-repo|master|garcon.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+  test-repo|master|xfce4-session.morph
+    -> test-repo|master|exo.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|xfce4-settings.morph
+    -> test-repo|master|exo.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|xfconf.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4util.morph
+  test-repo|master|xfdesktop.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
+  test-repo|master|xfwm4.morph
+    -> test-repo|master|gtk-stack.morph
+    -> test-repo|master|libxfce4ui.morph
+    -> test-repo|master|xfconf.morph
 build order:
   group:
-    freetype (chunk)
-    fontconfig (chunk)
-    cairo (chunk)
-    glib (chunk)
-    dbus (chunk)
+    test-repo|master|cairo.morph
+    test-repo|master|dbus.morph
+    test-repo|master|fontconfig.morph
+    test-repo|master|freetype.morph
+    test-repo|master|glib.morph
   group:
-    pango (chunk)
-    gdk-pixbuf (chunk)
-    dbus-glib (chunk)
+    test-repo|master|dbus-glib.morph
+    test-repo|master|gdk-pixbuf.morph
+    test-repo|master|pango.morph
   group:
-    gtk (chunk)
+    test-repo|master|gtk.morph
   group:
-    gtk-stack (stratum)
+    test-repo|master|gtk-stack.morph
   group:
-    libxfce4util (chunk)
-    tumbler (chunk)
+    test-repo|master|libxfce4util.morph
+    test-repo|master|tumbler.morph
   group:
-    xfconf (chunk)
-    exo (chunk)
-    garcon (chunk)
+    test-repo|master|exo.morph
+    test-repo|master|garcon.morph
+    test-repo|master|xfconf.morph
   group:
-    libxfce4ui (chunk)
+    test-repo|master|libxfce4ui.morph
   group:
-    thunar (chunk)
-    xfce4-panel (chunk)
-    xfce4-settings (chunk)
-    xfce4-session (chunk)
-    xfwm4 (chunk)
-    xfdesktop (chunk)
-    xfce4-appfinder (chunk)
-    gtk-xfce-engine (chunk)
+    test-repo|master|gtk-xfce-engine.morph
+    test-repo|master|thunar.morph
+    test-repo|master|xfce4-appfinder.morph
+    test-repo|master|xfce4-panel.morph
+    test-repo|master|xfce4-session.morph
+    test-repo|master|xfce4-settings.morph
+    test-repo|master|xfdesktop.morph
+    test-repo|master|xfwm4.morph
   group:
-    xfce-core (stratum)
+    test-repo|master|xfce-core.morph

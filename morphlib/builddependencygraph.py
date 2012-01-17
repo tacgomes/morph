@@ -15,195 +15,162 @@
 
 
 import collections
-import copy
 import os
 
 import morphlib
 
 
-class Node(object):
-
-    '''Node in the dependency graph.'''
-
-    def __init__(self, morphology):
-        self.morphology = morphology
-        self.dependents = []
-        self.dependencies = []
-
-    def add_dependency(self, other):
-        if other not in self.dependencies:
-            self.dependencies.append(other)
-        if self not in other.dependents:
-            other.dependents.append(self)
-
-    def remove_dependency(self, other):
-        if other in self.dependencies:
-            self.dependencies.remove(other)
-        if self in other.dependents:
-            other.dependents.remove(self)
-
-    def depends_on(self, other):
-        return other in self.dependencies
-
-    def __str__(self): # pragma: no cover
-        return '%s (%s)' % (self.morphology.name, self.morphology.kind)
-
-    def __deepcopy__(self, memo): # pragma: no cover
-        return Node(self.morphology)
-
-
-class NodeList(list):
-
-    def __deepcopy__(self, memo): # pragma: no cover
-        nodes = NodeList()
-        
-        old_to_new = {}
-        
-        for node in self:
-            node_copy = copy.deepcopy(node)
-            old_to_new[node] = node_copy
-            nodes.append(node_copy)
-
-        for node in self:
-            node_copy = old_to_new[node]
-            for dep in node.dependencies:
-                dep_copy = old_to_new[dep]
-                node_copy.add_dependency(dep_copy)
-
-        return nodes
-
-
 class BuildDependencyGraph(object): # pragma: no cover
-    
-    def __init__(self, loader, morphology):
-        self.loader = loader
-        self.morphology = morphology
-        self.nodes = None
 
-    def add(self, morphology):
-        node = Node(morphology)
-        if node not in self.nodes:
-            self.nodes.append(node)
+    '''This class constructs a build dependency graph from an input morphology
+       and provides ways to traverse this graph. It also provides a method to
+       transform the dependency graph into groups of items that are independent
+       and can be built in parallel.'''
+    
+    def __init__(self, loader, morph):
+        self.loader = loader
+        self.morph = morph
+        self.blobs = set()
+
+    def create_blob(self, morph, parent=None):
+        '''Creates a blob from a morphology. The optional parent is used to
+           associate chunks with their containing stratum.'''
+
+        if morph.kind == 'stratum':
+            return morphlib.blobs.Stratum(parent, morph)
+        elif morph.kind == 'chunk':
+            return morphlib.blobs.Chunk(parent, morph)
+        else:
+            return morphlib.blobs.System(parent, morph)
 
     def resolve(self):
-        self.cached_morphologies = {}
+        '''Constructs the dependency graph by resolving dependencies
+           recursively.'''
+
+        self.cached_blobs = {}
         self._resolve_strata()
         self._resolve_chunks()
 
     def build_order(self):
+        '''Computes a topological sorting of the dependency graph and
+           generates a deque of groups, each of which contains a set
+           of items that are independent and can be built in parallel.'''
+
         sorting = self._compute_topological_sorting()
+        groups = collections.deque()
 
-        #print
-        #print 'sorting: %s' % [str(x) for x in sorting]
-        #print
-
-        groups = []
-        group_nodes = {}
-
-        group = []
+        # create the first group
+        group = set()
         groups.append(group)
 
-        for node in sorting:
+        # traverse the graph in topological order
+        for blob in sorting:
+            # add the current item to the current group, or a new group
+            # if one of its dependencies is in the current one
             create_group = False
-            for dep in node.dependencies:
-                if dep in group:
+            for dependency in blob.dependencies:
+                if dependency in group:
                     create_group = True
-
             if create_group:
-                group = []
+                group = set()
                 groups.append(group)
+            group.add(blob)
 
-            group.append(node)
+        # return the set of blobs and the build groups
+        return set(self.blobs), groups
 
-        morphology_groups = []
-        for group in groups:
-            morphology_group = []
-            for node in group:
-                morphology_group.append(node.morphology)
-            morphology_groups.append(morphology_group)
+    def _get_blob(self, info, parent=None):
+        '''Takes a (repo, ref, filename) tuple and looks up the blob for it.
+           It loads the corresponding morphology and blob on-demand if it is
+           not cached yet.'''
 
-        return morphology_groups
+        blob = self.cached_blobs.get(info, None)
+        if not blob:
+            morphology = self.loader.load(info[0], info[1], info[2])
+            blob = self.create_blob(morphology, parent)
+            self.cached_blobs[info] = blob
+        return blob
 
     def _resolve_strata(self):
-        self.nodes = NodeList()
+        '''This method recursively generates a dependency graph of strata
+           for the input morphology using breadth-first search. It loads
+           morphologies and blobs on demand.'''
 
-        if self.morphology.kind == 'stratum':
-            root = Node(self.morphology)
-            self.nodes.append(root)
+        if self.morph.kind == 'stratum':
+            # turn the morphology into a stratum object
+            stratum = self.create_blob(self.morph)
 
+            # start the BFS at the input stratum
             queue = collections.deque()
-            queue.append(root)
+            queue.append(stratum)
+            self.blobs.add(stratum)
+            
             while len(queue) > 0:
-                node = queue.popleft()
+                stratum = queue.popleft()
 
-                if not node.morphology.build_depends:
+                # the DFS recursion ends whenever we have a stratum
+                # that depends on nothing else
+                if not stratum.morph.build_depends:
                     continue
                 
-                if isinstance(node.morphology.build_depends, list):
-                    for other_name in node.morphology.build_depends:
-                        # prepare a tuple for loading the morphology
-                        repo = node.morphology.repo
-                        ref = node.morphology.ref
-                        filename = '%s.morph' % other_name
+                # verify that the build-depends format is valid
+                if isinstance(stratum.morph.build_depends, list):
+                    for depname in stratum.morph.build_depends:
+                        # prepare a tuple for the dependency stratum
+                        repo = stratum.morph.repo
+                        ref = stratum.morph.ref
+                        filename = '%s.morph' % depname
                         info = (repo, ref, filename)
 
-                        # look up or create a node for the morphology
-                        other_node = self.cached_morphologies.get(info, None)
-                        if not other_node:
-                            #print other_name
-                            morphology = self.loader.load(repo, ref, filename)
-                            other_node = Node(morphology)
+                        # load the dependency stratum on demand
+                        depstratum = self._get_blob(info)
 
-                            # cache the node for this morphology
-                            self.cached_morphologies[info] = other_node
-
-                        # add the morphology node to the graph
-                        node.add_dependency(other_node)
-                        self.nodes.append(other_node)
-                        queue.append(other_node)
+                        # add the dependency stratum to the graph
+                        stratum.add_dependency(depstratum)
+                        queue.append(depstratum)
+                        self.blobs.add(depstratum)
                 else:
-                    raise Exception('%s  uses an invalid "build-depends" format' % 
-                                    os.path.basename(stratum_node.morphology.filename))
-
-        #print 'strata: %s' % [str(x) for x in self.nodes]
+                    raise Exception('%s uses an invalid "build-depends" format'
+                                    % stratum)
 
     def _resolve_chunks(self):
-        strata_nodes = list(self.nodes)
-        for stratum_node in strata_nodes:
-            self._resolve_stratum_chunks(stratum_node)
+        '''Starting with a dependency graph of strata, this method fills the
+           graph with all contained chunks and creates dependencies where 
+           appropriate. Chunk morphologies and blobs are loaded on demand.'''
 
-    def _morphology_node(self, repo, ref, filename):
-        info = (repo, ref, filename)
-        
-        if info in self.cached_morphologies:
-            return self.cached_morphologies[info]
-        else:
-            morphology = self.loader.load(repo, ref, filename)
-            node = Node(morphology)
-            self.nodes.append(node)
-            self.cached_morphologies[info] = node
-            return node
+        if self.morph.kind == 'chunk':
+            blob = self.create_blob(self.morph)
+            self.blobs.add(blob)
 
-    def _resolve_stratum_chunks(self, stratum_node):
-        stratum_chunk_nodes = []
-        chunk_lookup = {}
+        blobs = list(self.blobs)
+        for blob in blobs:
+            if isinstance(blob, morphlib.blobs.Stratum):
+                self._resolve_stratum_chunks(blob)
 
-        # second, create nodes for all chunks in the stratum
-        for i in xrange(0, len(stratum_node.morphology.sources)):
-            source = stratum_node.morphology.sources[i]
+    def _resolve_stratum_chunks(self, stratum):
+        # the set of chunks contained in the stratum
+        stratum_chunks = set()
 
-            # construct the build tuple
+        # dictionary that maps chunk names to chunks
+        name_to_chunk = {}
+
+        # create objects for all chunks in the stratum
+        for i in xrange(0, len(stratum.morph.sources)):
+            source = stratum.morph.sources[i]
+
+            # construct a tuple for loading the chunk
             repo = source['repo']
             ref = source['ref']
             filename = '%s.morph' % (source['morph']
                                      if 'morph' in source
                                      else source['name'])
+            info = (repo, ref, filename)
 
-            chunk_node = self._morphology_node(repo, ref, filename)
+            # load the chunk on demand
+            chunk = self._get_blob(info, stratum)
 
-            chunk_lookup[source['name']] = chunk_node
-
-            stratum_chunk_nodes.append(chunk_node)
+            # store (name -> chunk) association to avoid loading the chunk twice
+            name_to_chunk[source['name']] = chunk
 
             # read the build-depends information
             build_depends = (source['build-depends']
@@ -212,80 +179,91 @@ class BuildDependencyGraph(object): # pragma: no cover
 
             # turn build-depends into proper dependencies in the graph
             if build_depends is None:
-                for j in xrange(0, i):
-                    chunk_node.add_dependency(stratum_chunk_nodes[j])
+                # chunks with no build-depends implicitly depend on all
+                # chunks listed earlier in the same stratum
+                for dependency in stratum_chunks:
+                    chunk.add_dependency(dependency)
             elif isinstance(build_depends, list):
                 for depname in build_depends:
-                    if depname in chunk_lookup:
-                        depnode = chunk_lookup[depname]
-                        chunk_node.add_dependency(depnode)
+                    if depname in name_to_chunk:
+                        dependency = name_to_chunk[depname]
+                        chunk.add_dependency(dependency)
                     else:
-                        raise Exception('%s: source "%s" references "%s" '
-                                        'before it is defined' % 
-                                        (os.path.basename(stratum_node.morphology.filename),
-                                         source['name'],
-                                         depname))
+                        filename = os.path.basename(stratum.morph.filename)
+                        raise Exception('%s: source %s references %s before it '
+                                        'is defined' % (filename,
+                                                        source['name'],
+                                                        depname))
             else:
-                raise Exception('%s: source "%s" uses an invalid '
-                                '"build-depends" format' % 
-                                (os.path.basename(stratum_node.morphology.filename),
-                                 source['name']))
+                filename = os.path.basename(stratum.morph.filename)
+                raise Exception('%s: source %s uses an invalid build-depends '
+                                'format' % (filename, source['name']))
+            
+            # add the chunk to stratum and graph
+            stratum_chunks.add(chunk)
+            self.blobs.add(chunk)
 
-        # make the chunk nodes in this stratum depend on all strata
-        # that need to be built first
-        for chunk_node in stratum_chunk_nodes:
-            for stratum_dep in stratum_node.dependencies:
-                chunk_node.add_dependency(stratum_dep)
+        # make the chunks in this stratum depend on all
+        # strata that need to be built first
+        for chunk in stratum_chunks:
+            for dependency in stratum.dependencies:
+                chunk.add_dependency(dependency)
 
         # clear the dependencies of the stratum
-        stratum_node.dependencies = []
+        stratum.dependencies = set()
 
-        # make the stratum node depend on all its chunk nodes
-        for chunk_node in stratum_chunk_nodes:
-            stratum_node.add_dependency(chunk_node)
+        # make the stratum depend on all its chunks
+        for chunk in stratum_chunks:
+            stratum.add_dependency(chunk)
 
     def _compute_topological_sorting(self):
-        nodes = copy.deepcopy(self.nodes)
+        '''Computes a topological sorting of the dependency graph. A topological
+           sorting basically is the result of a series of breadth-first searches
+           starting at each leaf node (blobs with no dependencies). Blobs are
+           added to the sorting as soon as all their dependencies have been
+           added (which means that by then, all dependencies are satisfied).
 
-        original_node = {}
-        for node in self.nodes:
-            for node_copy in nodes:
-                if node.morphology == node_copy.morphology:
-                    original_node[node_copy] = node
+           http://en.wikipedia.org/wiki/Topological_sorting.'''
 
-        #print 'compute topological sorting:'
-        #print '  nodes: %s' % [str(x) for x in nodes]
+        # map blobs to sets of satisfied dependencies. this is to detect when
+        # we can actually add blobs to the BFS queue. rather than dropping
+        # links between nodes, like most topological sorting algorithms do,
+        # we simply remember all satisfied dependencies and check if all
+        # of them are met repeatedly
+        satisfied_dependencies = {}
 
-        sorting = []
+        # create an empty sorting
+        sorting = collections.deque()
+
+        # create a set of leafs to start the DFS from
         leafs = collections.deque()
-        
-        for node in nodes:
-            if len(node.dependencies) is 0:
-                leafs.append(node)
-
-        #print '  leafs: %s' % [str(x) for x in leafs]
+        for blob in self.blobs:
+            satisfied_dependencies[blob] = set()
+            if len(blob.dependencies) == 0:
+                leafs.append(blob)
 
         while len(leafs) > 0:
-            leaf = leafs.popleft()
-            sorting.append(leaf)
+            # fetch a leaf blob from the DFS queue
+            blob = leafs.popleft()
 
-            #print '  visit %s' % leaf
+            # add it to the sorting
+            sorting.append(blob)
 
-            #print '  visit %s' % leaf
+            # mark this dependency as resolved
+            for dependent in blob.dependents:
+                satisfied_dependencies[dependent].add(blob)
 
-            for parent in list(leaf.dependents):
-                #print '    parent %s' % parent
-                #print '    parent %s dependencies: %s' % (parent, [str(x) for x in parent.dependencies])
-                parent.remove_dependency(leaf)
-                #print '    parent %s dependencies: %s' % (parent, [str(x) for x in parent.dependencies])
-                if len(parent.dependencies) == 0:
-                    #print '    add %s' % parent
-                    leafs.append(parent)
+                # add the dependent blob as a leaf if all
+                # its dependencies have been resolved
+                has = len(satisfied_dependencies[dependent])
+                needs = len(dependent.dependencies)
+                if has == needs:
+                    leafs.append(dependent)
 
-        #print [str(node) for node in sorting]
-        if len(sorting) < len(nodes):
+        # if not all dependencies were resolved on the way, we
+        # have found at least one cyclic dependency
+        if len(sorting) < len(self.blobs):
             raise Exception('Cyclic dependencies found in the dependency '
-                            'graph of "%s"' % self.morphology)
+                            'graph of "%s"' % self.morph)
 
-        #return sorting
-        return [original_node[node] for node in sorting]
+        return sorting

@@ -20,14 +20,12 @@
 
 
 import cliapp
-import json
 import logging
 import os
-import shutil
-import tempfile
 import urlparse
 
 import morphlib
+from morphlib.builddependencygraph import BuildDependencyGraph
 
 
 class Morph(cliapp.Application):
@@ -78,7 +76,8 @@ class Morph(cliapp.Application):
         '''
 
         tempdir = morphlib.tempdir.Tempdir()
-        builder = morphlib.builder.Builder(tempdir, self)
+        loader = morphlib.morphologyloader.MorphologyLoader(self.settings)
+        builder = morphlib.builder.Builder(tempdir, self, loader)
 
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
@@ -87,8 +86,25 @@ class Morph(cliapp.Application):
         while len(args) >= 3:
             repo, ref, filename = args[:3]
             args = args[3:]
-            self.msg('Building %s - %s - %s' % (repo, ref, filename))
-            ret.append(builder.build(repo, ref, filename))
+
+            # resolve the URL to the repository
+            base_url = self.settings['git-base-url']
+            if not base_url.endswith('/'):
+                base_url += '/'
+            repo = urlparse.urljoin(base_url, repo)
+            if not repo.endswith('/'):
+                repo += '/'
+
+            # derive a build order from the dependency graph
+            morphology = loader.load(repo, ref, filename)
+            graph = BuildDependencyGraph(loader, morphology)
+            graph.resolve()
+            blobs, order = graph.build_order()
+
+            self.msg('Building %s' % morphology)
+
+            # build things in this order
+            ret.append(builder.build(blobs, order))
         
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)
@@ -163,32 +179,32 @@ class Morph(cliapp.Application):
             if not base_url.endswith('/'):
                 base_url += '/'
             repo = urlparse.urljoin(base_url, repo)
+            if not repo.endswith('/'):
+                repo += '/'
 
             # load the morphology corresponding to the build tuple
             loader = morphlib.morphologyloader.MorphologyLoader(self.settings)
             morphology = loader.load(repo, ref, filename)
 
             # create a dependency graph for the morphology
-            graph = \
-                morphlib.builddependencygraph.BuildDependencyGraph(loader,
-                                                                   morphology)
+            graph = BuildDependencyGraph(loader, morphology)
             graph.resolve()
 
             # print the graph
             self.output.write('dependency tree:\n')
-            for node in graph.nodes:
-                self.output.write('  %s\n' % node)
-                for dep in node.dependencies:
-                    self.output.write('    -> %s\n' % dep)
+            for blob in sorted(graph.blobs, key=str):
+                self.output.write('  %s\n' % blob)
+                for dependency in sorted(blob.dependencies, key=str):
+                    self.output.write('    -> %s\n' % dependency)
 
             # compute a build order from the graph
-            order = graph.build_order()
+            blobs, order = graph.build_order()
+            sort_func = (lambda x,y : cmp(str(x), str(y)))
             self.output.write('build order:\n')
             for group in order:
                 self.output.write('  group:\n')
-                for morphology in group:
-                    self.output.write('    %s (%s)\n' % (morphology.name,
-                                                         morphology.kind))
+                for blob in sorted(group, key=str):
+                    self.output.write('    %s\n' % blob)
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
