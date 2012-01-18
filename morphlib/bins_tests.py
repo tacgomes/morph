@@ -92,8 +92,7 @@ class ChunkTests(unittest.TestCase):
         morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['.'],
                                    self.ex)
         os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex,
-                                    as_fakeroot=True)
+        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
         self.assertEqual(orig_files, recursive_lstat(self.unpacked))
 
     def test_uses_only_matching_names(self):
@@ -127,8 +126,7 @@ class StratumTests(unittest.TestCase):
         self.populate_instdir()
         morphlib.bins.create_stratum(self.instdir, self.stratum_file, self.ex)
         os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.stratum_file, self.unpacked, self.ex,
-                                    as_fakeroot=True)
+        morphlib.bins.unpack_binary(self.stratum_file, self.unpacked, self.ex)
         self.assertEqual(recursive_lstat(self.instdir),
                          recursive_lstat(self.unpacked))
 

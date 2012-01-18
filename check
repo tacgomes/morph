@@ -20,4 +20,4 @@
 set -e
 
 python setup.py clean check
-cmdtest -c ./morph tests
+fakeroot cmdtest -c ./morph tests

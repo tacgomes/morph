@@ -101,20 +101,16 @@ def create_stratum(rootdir, stratum_filename, ex):
     '''Create a stratum from the contents of a directory.'''
     logging.debug('Creating stratum file %s from %s' % 
                     (stratum_filename, rootdir))
-    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'],
-             as_fakeroot=True)
+    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'])
 
 
-def unpack_binary(filename, dirname, ex, as_fakeroot=False, as_root=False):
+def unpack_binary(filename, dirname, ex):
     '''Unpack a binary into a directory.
     
     The directory must exist already.
-    If the binary will be packed up again by tar with the same Execute
-    object then as_fakeroot will suffice
-    If it will be creating a system image as_root will be needed
     
     '''
 
     logging.debug('Unpacking %s into %s' % (filename, dirname))
-    ex.runv(['tar', '-C', dirname, '-xvf', filename], as_fakeroot=as_fakeroot, as_root=as_root)
+    ex.runv(['tar', '-C', dirname, '-xvf', filename])
 

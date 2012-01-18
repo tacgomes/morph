@@ -25,6 +25,7 @@ import logging
 import os
 import shutil
 import tempfile
+import urlparse
 
 import morphlib
 
@@ -79,7 +80,7 @@ class Morph(cliapp.Application):
         tempdir = morphlib.tempdir.Tempdir()
         builder = morphlib.builder.Builder(tempdir, self)
 
-        if not os.path.exists(self.settings['cachedir']) and os.getuid() != 0:
+        if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
 
         ret = []
@@ -91,7 +92,7 @@ class Morph(cliapp.Application):
         
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)
-        ex.runv(["rm", "-rf", tempdir.dirname], as_root=True)
+        ex.runv(["rm", "-rf", tempdir.dirname])
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
@@ -148,6 +149,46 @@ class Morph(cliapp.Application):
             else:
                 self.msg('not testing %s %s (not a system)' %
                          (morph.kind, morph.name))
+
+    def cmd_show_dependencies(self, args):
+        '''Dumps the dependency tree of all input morphologies.'''
+
+        while len(args) >= 3:
+            # read the build tuple from the command line
+            repo, ref, filename = args[:3]
+            args = args[3:]
+
+            # resolve the URL to the repository
+            base_url = self.settings['git-base-url']
+            if not base_url.endswith('/'):
+                base_url += '/'
+            repo = urlparse.urljoin(base_url, repo)
+
+            # load the morphology corresponding to the build tuple
+            loader = morphlib.morphologyloader.MorphologyLoader(self.settings)
+            morphology = loader.load(repo, ref, filename)
+
+            # create a dependency graph for the morphology
+            graph = \
+                morphlib.builddependencygraph.BuildDependencyGraph(loader,
+                                                                   morphology)
+            graph.resolve()
+
+            # print the graph
+            self.output.write('dependency tree:\n')
+            for node in graph.nodes:
+                self.output.write('  %s\n' % node)
+                for dep in node.dependencies:
+                    self.output.write('    -> %s\n' % dep)
+
+            # compute a build order from the graph
+            order = graph.build_order()
+            self.output.write('build order:\n')
+            for group in order:
+                self.output.write('  group:\n')
+                for morphology in group:
+                    self.output.write('    %s (%s)\n' % (morphology.name,
+                                                         morphology.kind))
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

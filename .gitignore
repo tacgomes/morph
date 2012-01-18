@@ -1,1 +1,7 @@
 *.pyc
+*.swp
+*.swo
+*.stdout-actual
+*.stdout-diff
+*.stderr-actual
+*.stderr-diff

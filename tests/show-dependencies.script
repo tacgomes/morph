@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 #
-# Test build a simple system image.
+# Test a basic distributed build of two depending strata
+# with a couple of chunks in them.
 #
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,10 +20,14 @@
 
 set -e
 
-cache="$DATADIR/build-system-cache"
-log="$DATADIR/build-system-morph.log"
-./morph --no-default-configs build morphs-repo master hello-system.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
-find "$cache" -name '*.system.*' -type f | wc -l
+cache="$DATADIR/show-dependencies-cache"
+log="$DATADIR/show-dependencies-morph.log"
+
+./morph show-dependencies                           \
+    test-repo master xfce-core.morph                \
+    --no-default-configs                            \
+    --git-base-url="file://$DATADIR"                \
+    --cachedir="$cache"                             \
+    --keep-path                                     \
+    --no-distcc                                     \
+    --log="$log"

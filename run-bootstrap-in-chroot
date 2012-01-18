@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -e
+
+export LC_ALL=C
+
+dir="squeeze-chroot"
+mirror="http://192.168.1.185/debian"
+
+mkdir "$dir"
+
+debootstrap \
+--include=build-essential,\
+gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
+help2man,texinfo,sudo \
+squeeze "$dir" "$mirror"
+
+hostname > "$dir/etc/hostname"
+cat <<EOF > "$dir/etc/hosts"
+127.0.0.1   localhost
+127.0.1.1   $(hostname)
+EOF
+
+cp baserock-bootstrap "$dir/."
+sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
+mount -t proc proc "$dir/proc"
+mount -t sysfs sysfs "$dir/sys"
+if chroot "$dir" bash -x baserock-bootstrap yes
+then
+    exit=0
+else
+    exit=$?
+fi
+umount "$dir/sys"
+umount "$dir/proc"
+exit $exit
