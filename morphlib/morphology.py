@@ -29,7 +29,11 @@ class Morphology(object):
 
     def _load(self):
         logging.debug('Loading morphology %s' % self._fp.name)
-        self._dict = json.load(self._fp)
+        try:
+            self._dict = json.load(self._fp)
+        except ValueError:
+            logging.error('Failed to load morphology %s' % self._fp.name)
+            raise
 
         if self.kind == 'stratum':
             for source in self.sources:
