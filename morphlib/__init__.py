@@ -28,6 +28,7 @@ import execute
 import git
 import morphology
 import morphologyloader
+import sourcemanager
 import stopwatch
 import tempdir
 import tester
