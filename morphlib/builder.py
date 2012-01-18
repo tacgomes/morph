@@ -90,7 +90,7 @@ class BlobBuilder(object):
         # if not all build items are in the cache, rebuild the blob
         if not all(os.path.isfile(builds[name]) for name in builds):
             with self.build_watch('overall-build'):
-                built_items += self.do_build()
+                self.do_build()
 
         # check again, fail if not all build items were actually built
         if not all(os.path.isfile(builds[name]) for name in builds):
@@ -99,10 +99,12 @@ class BlobBuilder(object):
 
         # install all build items to the staging area
         for name, filename in builds.items():
-            self.msg('Using cached %s %s at %s' % (self.blob.morph.kind,
-                                                   name, filename))
+            self.msg('Fetching cached %s %s from %s' %
+                     (self.blob.morph.kind, name, filename))
             self.install_chunk(name, filename)
             self.dump_memory_profile('after installing chunk')
+
+            built_items.append((name, filename))
 
         return built_items
 
@@ -217,7 +219,7 @@ class ChunkBuilder(BlobBuilder):
             'FAKEROOTKEY',
             'FAKED_MODE',
             'FAKEROOT_FD_BASE',
-        ], None)
+        ])
         for name in copied_vars:
             copied_vars[name] = self.ex.env.get(name, None)
 
@@ -523,11 +525,8 @@ class Builder(object):
 
         # second pass: build group by group, item after item
         ret = []
-        while len(build_order) > 0:
-            group = build_order.popleft()
-            while len(group) > 0:
-                blob = group.pop()
-
+        for group in build_order:
+            for blob in group:
                 self.msg('Building %s' % blob)
                 self.indent_more()
 
@@ -546,12 +545,12 @@ class Builder(object):
 
                 built_items = builders[blob].build()
                 
-                if blob.parent:
+                for parent in blob.parents:
                     for item, filename in built_items:
-                        self.msg('Marking %s to be staged for %s' %
-                                 (item, blob.parent))
+                        self.msg('Marking %s to be staged for %s'
+                                 % (item, parent))
 
-                    parent_builder = builders[blob.parent]
+                    parent_builder = builders[parent]
                     parent_builder.stage_items += built_items
 
                 self.indent_less()

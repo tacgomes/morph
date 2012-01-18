@@ -22,39 +22,46 @@ import morphlib
 
 class BuildDependencyGraph(object): # pragma: no cover
 
-    '''This class constructs a build dependency graph from an input morphology
-       and provides ways to traverse this graph. It also provides a method to
-       transform the dependency graph into groups of items that are independent
-       and can be built in parallel.'''
+    '''This class constructs a build dependency graph from an input morphology.
+
+    Given a chunk, stratum or system morphology, this class constructs a build
+    dependency graph and provides ways to traverse it. It also provides a 
+    method to transform the dependency graph into groups of items that are 
+    independent and can be built in parallel.
+    
+    '''
     
     def __init__(self, loader, morph):
         self.loader = loader
         self.morph = morph
         self.blobs = set()
 
-    def create_blob(self, morph, parent=None):
-        '''Creates a blob from a morphology. The optional parent is used to
-           associate chunks with their containing stratum.'''
+    def create_blob(self, morph):
+        '''Creates a blob from a morphology.'''
 
         if morph.kind == 'stratum':
-            return morphlib.blobs.Stratum(parent, morph)
+            return morphlib.blobs.Stratum(morph)
         elif morph.kind == 'chunk':
-            return morphlib.blobs.Chunk(parent, morph)
+            return morphlib.blobs.Chunk(morph)
         else:
-            return morphlib.blobs.System(parent, morph)
+            return morphlib.blobs.System(morph)
 
     def resolve(self):
-        '''Constructs the dependency graph by resolving dependencies
-           recursively.'''
+        '''Constructs the graph by resolving dependencies recursively.'''
 
         self.cached_blobs = {}
         self._resolve_strata()
         self._resolve_chunks()
 
     def build_order(self):
-        '''Computes a topological sorting of the dependency graph and
-           generates a deque of groups, each of which contains a set
-           of items that are independent and can be built in parallel.'''
+        '''Returns a queue of build groups in a valid order.
+        
+        This function computes a topological sorting of the dependency graph
+        and generates a deque of groups, each of which contains a set of items
+        that are independent and can be built in parallel. The items in each
+        group are guaranteed to depend only on items in previous groups.
+        
+        '''
 
         sorting = self._compute_topological_sorting()
         groups = collections.deque()
@@ -79,22 +86,29 @@ class BuildDependencyGraph(object): # pragma: no cover
         # return the set of blobs and the build groups
         return set(self.blobs), groups
 
-    def _get_blob(self, info, parent=None):
+    def _get_blob(self, info):
         '''Takes a (repo, ref, filename) tuple and looks up the blob for it.
-           It loads the corresponding morphology and blob on-demand if it is
-           not cached yet.'''
+
+        Loads the corresponding morphology and blob on-demand if it is
+        not cached yet.
+           
+        '''
 
         blob = self.cached_blobs.get(info, None)
         if not blob:
             morphology = self.loader.load(info[0], info[1], info[2])
-            blob = self.create_blob(morphology, parent)
+            blob = self.create_blob(morphology)
             self.cached_blobs[info] = blob
         return blob
 
     def _resolve_strata(self):
-        '''This method recursively generates a dependency graph of strata
-           for the input morphology using breadth-first search. It loads
-           morphologies and blobs on demand.'''
+        '''Generates a dependency graph of strata recursively.
+
+        It starts with the input morphology and attempts to resolve all its
+        build dependencies recursively using breadth-first search. Morphologies
+        and blobs are loaded from disk on demand.
+           
+        '''
 
         if self.morph.kind == 'stratum':
             # turn the morphology into a stratum object
@@ -134,9 +148,13 @@ class BuildDependencyGraph(object): # pragma: no cover
                                     % stratum)
 
     def _resolve_chunks(self):
-        '''Starting with a dependency graph of strata, this method fills the
-           graph with all contained chunks and creates dependencies where 
-           appropriate. Chunk morphologies and blobs are loaded on demand.'''
+        '''Resolves all chunks of the strata and inserts them into the graph.
+        
+        Starting with a dependency graph of strata, this method fills the
+        graph with all contained chunks and creates dependencies where 
+        appropriate. Chunk morphologies and blobs are loaded on demand.
+        
+        '''
 
         if self.morph.kind == 'chunk':
             blob = self.create_blob(self.morph)
@@ -167,7 +185,8 @@ class BuildDependencyGraph(object): # pragma: no cover
             info = (repo, ref, filename)
 
             # load the chunk on demand
-            chunk = self._get_blob(info, stratum)
+            chunk = self._get_blob(info)
+            chunk.add_parent(stratum)
 
             # store (name -> chunk) association to avoid loading the chunk twice
             name_to_chunk[source['name']] = chunk
@@ -210,20 +229,26 @@ class BuildDependencyGraph(object): # pragma: no cover
                 chunk.add_dependency(dependency)
 
         # clear the dependencies of the stratum
-        stratum.dependencies = set()
+        for dependency in set(stratum.dependencies):
+            stratum.remove_dependency(dependency)
 
         # make the stratum depend on all its chunks
         for chunk in stratum_chunks:
             stratum.add_dependency(chunk)
 
     def _compute_topological_sorting(self):
-        '''Computes a topological sorting of the dependency graph. A topological
-           sorting basically is the result of a series of breadth-first searches
-           starting at each leaf node (blobs with no dependencies). Blobs are
-           added to the sorting as soon as all their dependencies have been
-           added (which means that by then, all dependencies are satisfied).
+        '''Computes a topological sorting of the dependency graph. 
+        
+        A topological sorting basically is the result of a series of
+        breadth-first searches starting at each leaf node (blobs with no
+        dependencies). Blobs are added to the sorting as soon as all their
+        dependencies have been added (which means that by then, all
+        dependencies are satisfied).
 
-           http://en.wikipedia.org/wiki/Topological_sorting.'''
+        For more information, see
+        http://en.wikipedia.org/wiki/Topological_sorting.
+        
+        '''
 
         # map blobs to sets of satisfied dependencies. this is to detect when
         # we can actually add blobs to the BFS queue. rather than dropping

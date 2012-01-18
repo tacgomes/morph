@@ -199,7 +199,6 @@ class Morph(cliapp.Application):
 
             # compute a build order from the graph
             blobs, order = graph.build_order()
-            sort_func = (lambda x,y : cmp(str(x), str(y)))
             self.output.write('build order:\n')
             for group in order:
                 self.output.write('  group:\n')

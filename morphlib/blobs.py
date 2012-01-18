@@ -16,15 +16,18 @@
 
 class Blob(object):
 
-    def __init__(self, parent, morph):
-        self.parent = parent
+    def __init__(self, morph):
+        self.parents = []
         self.morph = morph
-        self.dependencies = set()
-        self.dependents = set()
+        self.dependencies = []
+        self.dependents = []
+
+    def add_parent(self, parent):
+        self.parents.append(parent)
 
     def add_dependency(self, other):
-        self.dependencies.add(other)
-        other.dependents.add(self)
+        self.dependencies.append(other)
+        other.dependents.append(self)
 
     def remove_dependency(self, other):
         self.dependencies.remove(other)
