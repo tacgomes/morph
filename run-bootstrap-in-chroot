@@ -4,7 +4,12 @@ set -e
 
 export LC_ALL=C
 
-dir="squeeze-chroot"
+if [ "x$1" = x ]
+then
+    dir="squeeze-chroot"
+else
+    dir="$1"
+fi
 mirror="http://192.168.1.185/debian"
 
 mkdir "$dir"
@@ -22,10 +27,12 @@ cat <<EOF > "$dir/etc/hosts"
 EOF
 
 cp baserock-bootstrap "$dir/."
+mkdir -p "$dir/tree/baserock"
+cp -r "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
 mount -t proc proc "$dir/proc"
 mount -t sysfs sysfs "$dir/sys"
-if chroot "$dir" bash -x baserock-bootstrap yes
+if chroot "$dir" bash -x baserock-bootstrap no
 then
     exit=0
 else
