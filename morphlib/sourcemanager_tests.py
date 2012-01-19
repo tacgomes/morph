@@ -22,10 +22,12 @@ from urlparse import urlparse
 
 import morphlib
 
+
 class DummyApp(object):
    def __init__(self):
         self.settings = { 'git-base-url': ['.',] }
         self.msg = lambda msg: None
+
 
 class SourceManagerTests(unittest.TestCase):
 
@@ -34,7 +36,6 @@ class SourceManagerTests(unittest.TestCase):
 
     def tearDown(self):
         pass
-
 
     def test_get_sha1_treeish_for_self(self):
         tempdir = tempfile.mkdtemp()
@@ -126,5 +127,3 @@ class SourceManagerTests(unittest.TestCase):
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
-
-
