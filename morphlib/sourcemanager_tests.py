@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,15 +14,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import json
-import StringIO
 import unittest
 import tempfile
 import shutil
 import os
-import urllib
 from urlparse import urlparse
-from tempfile import mkdtemp
 
 import morphlib
 
@@ -44,7 +40,8 @@ class SourceManagerTests(unittest.TestCase):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
-        t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
+        t = s.get_treeish(os.getcwd(),
+                          '41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
@@ -53,11 +50,13 @@ class SourceManagerTests(unittest.TestCase):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
-        t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
+        t = s.get_treeish(os.getcwd(),
+                          '41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
-        t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
+        t = s.get_treeish(os.getcwd(),
+                          '41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
@@ -66,7 +65,7 @@ class SourceManagerTests(unittest.TestCase):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
-        t = s.get_treeish(os.getcwd(),'master')
+        t = s.get_treeish(os.getcwd(), 'master')
         assert(t.ref == 'refs/heads/master')
 
         shutil.rmtree(tempdir)
@@ -76,7 +75,8 @@ class SourceManagerTests(unittest.TestCase):
         bundle_server_loc = tempdir+'/bundle_server'
         os.mkdir(bundle_server_loc)
         bundle_name = morphlib.sourcemanager.quote_url(os.getcwd()) + '.bndl'
-        shutil.copy(os.getcwd() +'/testdata/morph.bndl', bundle_server_loc + '/' +bundle_name)
+        shutil.copy(os.getcwd() +'/testdata/morph.bndl',
+                    bundle_server_loc + '/' +bundle_name)
 
         app = DummyApp()
         app.settings['bundle-server'] = 'file://' + bundle_server_loc
@@ -89,7 +89,8 @@ class SourceManagerTests(unittest.TestCase):
 
         s._wget = wget
 
-        t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
+        t = s.get_treeish(os.getcwd(),
+                          '41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
@@ -107,7 +108,8 @@ class SourceManagerTests(unittest.TestCase):
             shutil.copy(path, s.source_cache_dir)
 
         s._wget = wget
-        self.assertRaises(morphlib.sourcemanager.SourceNotFound, s.get_treeish, 'asdf','41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertRaises(morphlib.sourcemanager.SourceNotFound, s.get_treeish,
+                          'asdf','41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
 
@@ -119,7 +121,8 @@ class SourceManagerTests(unittest.TestCase):
 
 
         s = morphlib.sourcemanager.SourceManager(tempdir, app) 
-        t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
+        t = s.get_treeish(os.getcwd(),
+                          '41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
