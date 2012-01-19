@@ -22,38 +22,40 @@ import unittest
 import morphlib
 
 
-def recursive_lstat(root):
-    '''Return a list of (pathname, stat result) pairs for everything in root.
-    
-    Pathnames are relative to root. Directories are recursed into.
-    The stat result is selective, not all fields are used.
-    
-    '''
-    
-    def remove_root(pathname):
-        assert pathname.startswith(root)
-        if pathname == root:
-            return '.'
-        else:
-            return pathname[len(root)+1:]
-    
-    def lstat(filename):
-        st = os.lstat(filename)
-        return (st.st_mode, st.st_size, int(st.st_mtime))
+class BinsTest(unittest.TestCase):
 
-    result = []
+    def recursive_lstat(self, root):
+        '''Return a list of (pathname, stat) pairs for everything in root.
+        
+        Pathnames are relative to root. Directories are recursed into.
+        The stat result is selective, not all fields are used.
+        
+        '''
+        
+        def remove_root(pathname):
+            self.assertTrue(pathname.startswith(root))
+            if pathname == root:
+                return '.'
+            else:
+                return pathname[len(root)+1:]
+        
+        def lstat(filename):
+            st = os.lstat(filename)
+            return (st.st_mode, st.st_size, int(st.st_mtime))
     
-    for dirname, subdirs, basenames in os.walk(root):
-        result.append((remove_root(dirname), lstat(dirname)))
-        for basename in sorted(basenames):
-            filename = os.path.join(dirname, basename)
-            result.append((remove_root(filename), lstat(filename)))
-        subdirs.sort()
-    
-    return result
+        result = []
+        
+        for dirname, subdirs, basenames in os.walk(root):
+            result.append((remove_root(dirname), lstat(dirname)))
+            for basename in sorted(basenames):
+                filename = os.path.join(dirname, basename)
+                result.append((remove_root(filename), lstat(filename)))
+            subdirs.sort()
+        
+        return result
 
 
-class ChunkTests(unittest.TestCase):
+class ChunkTests(BinsTest):
 
     def setUp(self):
         self.ex = morphlib.execute.Execute('.', lambda s: None)
@@ -84,16 +86,17 @@ class ChunkTests(unittest.TestCase):
                                    self.ex)
         empty = os.path.join(self.tempdir, 'empty')
         os.mkdir(empty)
-        self.assertEqual([x for x,y in recursive_lstat(self.instdir)], ['.'])
+        self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
+                         ['.'])
 
     def test_creates_and_unpacks_chunk_exactly(self):
         self.populate_instdir()
-        orig_files = recursive_lstat(self.instdir)
+        orig_files = self.recursive_lstat(self.instdir)
         morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['.'],
                                    self.ex)
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
-        self.assertEqual(orig_files, recursive_lstat(self.unpacked))
+        self.assertEqual(orig_files, self.recursive_lstat(self.unpacked))
 
     def test_uses_only_matching_names(self):
         self.populate_instdir()
@@ -101,12 +104,12 @@ class ChunkTests(unittest.TestCase):
                                    self.ex)
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
-        self.assertEqual([x for x,y in recursive_lstat(self.unpacked)],
+        self.assertEqual([x for x,y in self.recursive_lstat(self.unpacked)],
                          ['.', 'bin', 'bin/foo'])
-        self.assertEqual([x for x,y in recursive_lstat(self.instdir)],
+        self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
 
-class StratumTests(unittest.TestCase):
+class StratumTests(BinsTest):
 
     def setUp(self):
         self.ex = morphlib.execute.Execute('.', lambda s: None)
@@ -127,6 +130,6 @@ class StratumTests(unittest.TestCase):
         morphlib.bins.create_stratum(self.instdir, self.stratum_file, self.ex)
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.stratum_file, self.unpacked, self.ex)
-        self.assertEqual(recursive_lstat(self.instdir),
-                         recursive_lstat(self.unpacked))
+        self.assertEqual(self.recursive_lstat(self.instdir),
+                         self.recursive_lstat(self.unpacked))
 

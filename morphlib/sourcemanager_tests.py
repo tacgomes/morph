@@ -43,7 +43,7 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(os.getcwd(),
                           '41ee528492db9bd41604311b100da5a871098b3a')
-        assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertEquals(t.sha1, '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
 
@@ -53,12 +53,12 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(os.getcwd(),
                           '41ee528492db9bd41604311b100da5a871098b3a')
-        assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertEquals(t.sha1, '41ee528492db9bd41604311b100da5a871098b3a')
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(os.getcwd(),
                           '41ee528492db9bd41604311b100da5a871098b3a')
-        assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertEquals(t.sha1, '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
 
@@ -67,7 +67,7 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(os.getcwd(), 'master')
-        assert(t.ref == 'refs/heads/master')
+        self.assertEquals(t.ref, 'refs/heads/master')
 
         shutil.rmtree(tempdir)
 
@@ -92,7 +92,7 @@ class SourceManagerTests(unittest.TestCase):
 
         t = s.get_treeish(os.getcwd(),
                           '41ee528492db9bd41604311b100da5a871098b3a')
-        assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertEquals(t.sha1, '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
 
@@ -124,6 +124,6 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(tempdir, app) 
         t = s.get_treeish(os.getcwd(),
                           '41ee528492db9bd41604311b100da5a871098b3a')
-        assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
+        self.assertEquals(t.sha1, '41ee528492db9bd41604311b100da5a871098b3a')
 
         shutil.rmtree(tempdir)
