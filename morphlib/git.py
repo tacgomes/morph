@@ -19,6 +19,7 @@ import urlparse
 import binascii
 import morphlib
 import os
+import cliapp
 
 
 class NoMorphs(Exception):
@@ -36,7 +37,7 @@ class TooManyMorphs(Exception):
                             'Too many morphologies at %s:%s: %s' %
                                 (repo, ref, ', '.join(morphs)))
 
-class InvalidTreeish(Exception):
+class InvalidTreeish(cliapp.AppException):
 
     def __init__(self, repo, ref):
         Exception.__init__(self, 
@@ -60,20 +61,18 @@ class Treeish:
             self.sha1 = refs[0]
             self.ref = refs[1]
         except morphlib.execute.CommandFailure:
-            self._is_treeish(ref)
+            self._is_sha(ref)
 
-    def _is_treeish(self, ref):
+    def _is_sha(self, ref):
+	if len(ref)!=40:
+            raise InvalidTreeish(self.repo,ref)
+
         try:
-            if len(ref)==40:
                 binascii.unhexlify(ref)	
                 ex = morphlib.execute.Execute(self.repo, self.msg)
-                try:
-                    refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
-                    self.sha1=ref
-                except morphlib.execute.CommandFailure:
-                    raise InvalidTreeish(self.repo,ref)
-
-        except TypeError:
+                refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
+                self.sha1=ref
+        except (TypeError, morphlib.execute.CommandFailure):
             raise InvalidTreeish(self.repo,ref)
 
 def export_sources(treeish, tar_filename):
@@ -106,4 +105,13 @@ def add_remote(gitdir, name, url):
     '''add remote with name 'name' for url at gitdir'''
     ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
     return ex.runv(['git', 'remote', 'add', '-f', name, url])
+
+# FIXME: All usage of this must die and Treeishes should be used
+def get_commit_id(repo, ref):
+    '''Return the full SHA-1 commit id for a repo+ref.'''
+    scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
+    assert scheme == 'file'
+    ex = morphlib.execute.Execute(path, msg=logging.debug)
+    out = ex.runv(['git', 'rev-list', '-n1', ref])
+    return out.strip()
 

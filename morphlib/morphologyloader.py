@@ -21,6 +21,7 @@ import urlparse
 import morphlib
 
 
+#FIXME should use Treeishes everywhere and get stuff from the SourceManager
 class MorphologyLoader(object):
 
     '''Load morphologies from git and parse them into Morphology objects.'''
@@ -45,7 +46,9 @@ class MorphologyLoader(object):
             return morph
 
     def _get_morph_text(self, repo, ref, filename): # pragma: no cover
-        return morphlib.git.get_morph_text(repo, ref, filename)
+	path = urlparse.urlparse(repo).path
+	t = morphlib.git.Treeish(path, ref)
+        return morphlib.git.get_morph_text(t, filename)
 
     def _get_morph_from_git(self, repo, ref, filename):
         morph_text = self._get_morph_text(repo, ref, filename)

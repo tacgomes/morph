@@ -243,7 +243,10 @@ class Chunk(BinaryBlob):
             self.dump_memory_profile('before creating source and tarball '
                                         'for chunk')
             tarball = self.cache_prefix + '.src.tar'
-            morphlib.git.export_sources(self.repo, self.ref, tarball)
+            #FIXME Ugh use treeish everwhere
+            path = urlparse.urlparse(self.repo).path
+            t = morphlib.git.Treeish (path, self.ref)
+            morphlib.git.export_sources(t, tarball)
             self.dump_memory_profile('after exporting sources')
             os.mkdir(self.builddir)
             self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])

@@ -1,4 +1,1 @@
-ERROR: Command failed: git cat-file blob non-existent-branch:hello.morph
-Output from command:
-fatal: Not a valid object name non-existent-branch:hello.morph
-
+ERROR: non-existent-branch is an invalid reference for repo /chunk-repo
