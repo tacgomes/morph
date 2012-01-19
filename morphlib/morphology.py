@@ -23,30 +23,28 @@ class Morphology(object):
 
     '''Represent a morphology: description of how to build binaries.'''
     
-    def __init__(self, repo, ref, fp, baseurl=None):
-        self.repo = repo
-        self.ref = ref
+    def __init__(self, treeish, fp):
+        self.treeish = treeish
+        self.filename = fp.name
 
         self._fp = fp
-        self._baseurl = baseurl or ''
         self._load()
 
     def _load(self):
-        logging.debug('Loading morphology %s' % self._fp.name)
+        logging.debug('Loading morphology %s from %s' % 
+                      (self._fp.name, self.treeish))
         try:
             self._dict = json.load(self._fp)
         except ValueError:
-            logging.error('Failed to load morphology %s' % self._fp.name)
+            logging.error('Failed to load morphology %s from %s' % 
+                          (self._fp.name, self.treeish))
             raise
 
         if self.kind == 'stratum':
             for source in self.sources:
                 if 'repo' not in source:
                     source[u'repo'] = source['name']
-                repo = self._join_with_baseurl(source['repo'])
-                source[u'repo'] = unicode(repo)
-
-        self.filename = self._fp.name
+                source[u'repo'] = unicode(source['repo'])
 
     @property
     def name(self):
@@ -110,20 +108,7 @@ class Morphology(object):
     def test_stories(self):
         return self._dict.get('test-stories', [])
 
-    def _join_with_baseurl(self, url):
-        is_relative = (':' not in url or
-                       '/' not in url or
-                       url.find('/') < url.find(':'))
-        if is_relative:
-            if not url.endswith('/'):
-                url += '/'
-            baseurl = self._baseurl
-            if baseurl and not baseurl.endswith('/'):
-                baseurl += '/'
-            return baseurl + url
-        else:
-            return url
-
     def __str__(self): # pragma: no cover
-        return '%s|%s|%s' % (os.path.basename(os.path.dirname(self.repo)),
-                             self.ref, os.path.basename(self.filename))
+        return '%s|%s|%s' % (self.treeish.original_repo,
+                             self.treeish.ref,
+                             os.path.basename(self.filename))

@@ -14,11 +14,15 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import json
 import StringIO
 import unittest
 
 import morphlib
+
+
+class FakeTreeish(object):
+
+    pass
 
 
 class MockFile(StringIO.StringIO):
@@ -30,19 +34,31 @@ class MockFile(StringIO.StringIO):
 
 class MorphologyTests(unittest.TestCase):
 
+    def test_constructor_with_treeish(self):
+        faketreeish = FakeTreeish()
+        morph = morphlib.morphology.Morphology(
+                      faketreeish,
+                      MockFile('''
+                        {
+                            "name": "hello",
+                            "kind": "chunk"
+                        }'''))
+        self.assertEqual(morph.treeish, faketreeish)
+
     def test_fails_invalid_chunk_morphology(self):
         def failtest():
-            morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
-                          MockFile('''
-                            {
-                                "name": "hello",
-                            }'''))
+            morphlib.morphology.Morphology(
+                      FakeTreeish(),
+                      MockFile('''
+                        {
+                            "name": "hello",
+                        }'''))
         self.assertRaises(ValueError, failtest)
  
     def test_accepts_valid_chunk_morphology(self):
+        faketreeish = FakeTreeish()
         morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
+                          faketreeish,
                           MockFile('''
                             {
                                 "name": "hello",
@@ -69,8 +85,7 @@ class MorphologyTests(unittest.TestCase):
                                 }
                             }'''))
 
-        self.assertEqual(morph.repo, 'repo')
-        self.assertEqual(morph.ref, 'ref')
+        self.assertEqual(morph.treeish, faketreeish)
         self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.name, 'hello')
         self.assertEqual(morph.kind, 'chunk')
@@ -92,7 +107,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_build_system_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
+                          FakeTreeish(),
                           MockFile('''
                             {
                                 "name": "hello",
@@ -102,7 +117,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_max_jobs_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
+                          FakeTreeish(),
                           MockFile('''
                             {
                                 "name": "hello",
@@ -112,7 +127,7 @@ class MorphologyTests(unittest.TestCase):
 
     def test_accepts_valid_stratum_morphology(self):
         morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
+                          FakeTreeish(),
                           MockFile('''
                             {
                                 "name": "hello",
@@ -124,22 +139,21 @@ class MorphologyTests(unittest.TestCase):
                                             "ref": "ref"
                                         }
                                     ]
-                            }'''),
-                            baseurl='git://example.com')
+                            }'''))
         self.assertEqual(morph.kind, 'stratum')
         self.assertEqual(morph.filename, 'mockfile')
         self.assertEqual(morph.sources,
                          [
                             {
                                 u'name': u'foo', 
-                                u'repo': u'git://example.com/foo/', 
-                                u'ref': u'ref'
+                                u'repo': u'foo',
+                                u'ref': u'ref',
                             },
                          ])
 
     def test_accepts_valid_system_morphology(self):
         morph = morphlib.morphology.Morphology(
-                          'repo', 'ref',
+                          FakeTreeish(),
                           MockFile('''
                             {
                                 "name": "hello",
@@ -158,35 +172,3 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.disk_size, '1G')
         self.assertEqual(morph.strata, ['foo', 'bar'])
         self.assertEqual(morph.test_stories, ['test-1', 'test-2'])
-
-
-class StratumRepoTests(unittest.TestCase):
-
-    def stratum(self, repo):
-        return morphlib.morphology.Morphology(
-                          'repo', 'ref',
-                          MockFile('''
-                            {
-                                "name": "hello",
-                                "kind": "stratum", 
-                                "sources": 
-                                    [
-                                        {
-                                            "name": "foo",
-                                            "repo": "%s",
-                                            "ref": "HEAD"
-                                        }
-                                    ]
-                            }''' % repo),
-                            baseurl='git://git.baserock.org/')
-
-    def test_leaves_absolute_repo_in_source_dict_as_is(self):
-        stratum = self.stratum('git://git.baserock.org/foo/')
-        self.assertEqual(stratum.sources[0]['repo'], 
-                         'git://git.baserock.org/foo/')
-
-    def test_makes_relative_repo_url_absolute_in_source_dict(self):
-        stratum = self.stratum('foo')
-        self.assertEqual(stratum.sources[0]['repo'], 
-                         'git://git.baserock.org/foo/')
-

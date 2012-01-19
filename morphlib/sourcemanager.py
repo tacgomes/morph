@@ -46,16 +46,21 @@ class SourceNotFound(Exception):
 
 class SourceManager(object):
 
-    def __init__(self, cachedir, app):
-        self.source_cache_dir = cachedir
+    def __init__(self, app, cachedir=None):
         self.msg = app.msg
         self.settings = app.settings
+        self.cached_treeishes = {}
+        self.cache_dir = cachedir 
+        if not self.cache_dir:
+            self.cache_dir = os.path.join(app.settings['cachedir'], 'gits')
 
     def _get_git_cache(self, repo):
         name = quote_url(repo)
-        location = self.source_cache_dir + '/' + name
+        location = self.cache_dir + '/' + name
 
         if os.path.exists(location):
+            self.msg('updating cached version of %s' % location)
+            morphlib.git.update_remote(location, "origin")
             return True, location
 
         success = False
@@ -63,7 +68,7 @@ class SourceManager(object):
         self.msg('Making sure we have a local cache of the git repo')
 
         bundle = None
-        if self.settings.has_key('bundle-server'):
+        if self.settings['bundle-server']:
             bundle_server = self.settings['bundle-server']
             if not bundle_server.endswith('/'):
                 bundle_server += '/'
@@ -77,7 +82,7 @@ class SourceManager(object):
             try:
                 urllib2.urlopen(req)
                 self._wget(lookup_url)
-                bundle = self.source_cache_dir + '/' + bundle
+                bundle = self.cache_dir + '/' + bundle
             except urllib2.URLError:
                 self.msg("Unable to find bundle %s on %s" %
                          (bundle, bundle_server))
@@ -100,7 +105,7 @@ class SourceManager(object):
         return success, location
             
     def _wget(self,url): # pragma: no cover
-        ex = morphlib.execute.Execute(self.source_cache_dir, msg=self.msg)
+        ex = morphlib.execute.Execute(self.cache_dir, msg=self.msg)
         ex.runv(['wget', '-c', url])
 
     def get_treeish(self, repo, ref):
@@ -132,13 +137,13 @@ class SourceManager(object):
             full_repo = urlparse.urljoin(base_url, repo)
 
             self.msg('cache git base_url=\'%s\' full repo url=\'%s\'' %
-                     (base_url,full_repo))
+                     (base_url, full_repo))
             
             success, gitcache = self._get_git_cache(full_repo);
 
         if not success:
             raise SourceNotFound(repo,ref)
 
-        self.msg("creating treeish for %s ref %s" % (gitcache,ref))
-        treeish = Treeish(gitcache, ref, self.msg)
+        self.msg("creating treeish for %s ref %s" % (gitcache, ref))
+        treeish = Treeish(gitcache, repo, ref, self.msg)
         return treeish

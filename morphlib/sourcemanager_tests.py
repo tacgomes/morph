@@ -25,8 +25,13 @@ import morphlib
 
 
 class DummyApp(object):
-   def __init__(self):
-        self.settings = { 'git-base-url': ['.',] }
+
+    def __init__(self):
+        self.settings = {
+            'git-base-url': ['.',],
+            'bundle-server': None,
+            'cachedir': '/foo/bar/baz',
+        }
         self.msg = lambda msg: None
 
 
@@ -37,18 +42,29 @@ class SourceManagerTests(unittest.TestCase):
         env = os.environ
         env["DATADIR"]=self.temprepodir
         subprocess.call("./tests/show-dependencies.setup", shell=True, env=env)
-	self.temprepo = self.temprepodir + '/test-repo/'
+        self.temprepo = self.temprepodir + '/test-repo/'
         bundle_name = morphlib.sourcemanager.quote_url(self.temprepo) + '.bndl'
         subprocess.call("git bundle create %s/%s master" % (self.temprepodir, bundle_name),
-		shell=True, cwd=self.temprepo)
+        shell=True, cwd=self.temprepo)
 
     def tearDown(self):
         shutil.rmtree(self.temprepodir)
 
+    def test_constructor_with_and_without_cachedir(self):
+        app = DummyApp()
+        
+        tempdir = '/bla/bla/bla'
+        s = morphlib.sourcemanager.SourceManager(app, tempdir)
+        self.assertEqual(s.cache_dir, tempdir)
+
+        s = morphlib.sourcemanager.SourceManager(app)
+        self.assertEqual(s.cache_dir,
+                         os.path.join(app.settings['cachedir'], 'gits'))
+
     def test_get_sha1_treeish_for_self(self):
         tempdir = tempfile.mkdtemp()
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
@@ -58,12 +74,12 @@ class SourceManagerTests(unittest.TestCase):
     def test_get_sha1_treeish_for_self_twice(self):
         tempdir = tempfile.mkdtemp()
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
@@ -73,9 +89,9 @@ class SourceManagerTests(unittest.TestCase):
     def test_get_ref_treeish_for_self(self):
         tempdir = tempfile.mkdtemp()
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
         t = s.get_treeish(self.temprepo, 'master')
-        self.assertEquals(t.ref, 'refs/heads/master')
+        self.assertEquals(t.ref, 'refs/remotes/origin/master')
 
         shutil.rmtree(tempdir)
 
@@ -86,11 +102,11 @@ class SourceManagerTests(unittest.TestCase):
         app = DummyApp()
         app.settings['bundle-server'] = 'file://' + bundle_server_loc
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, app)
+        s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url):
             path=urlparse(url).path
-            shutil.copy(path, s.source_cache_dir)
+            shutil.copy(path, s.cache_dir)
 
         s._wget = wget
 
@@ -100,17 +116,16 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-
     def test_get_sha1_treeish_for_self_bundle_fail(self):
         tempdir = tempfile.mkdtemp()
         app = DummyApp()
         app.settings['bundle-server'] = 'file://' + self.temprepodir
 
-        s = morphlib.sourcemanager.SourceManager(tempdir, app)
+        s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url):
             path=urlparse(url).path
-            shutil.copy(path, s.source_cache_dir)
+            shutil.copy(path, s.cache_dir)
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.SourceNotFound, s.get_treeish,
@@ -124,8 +139,7 @@ class SourceManagerTests(unittest.TestCase):
         app = DummyApp()
         app.settings['git-base-url'] = ['.', '/somewhere/else']
 
-
-        s = morphlib.sourcemanager.SourceManager(tempdir, app) 
+        s = morphlib.sourcemanager.SourceManager(app, tempdir)
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')

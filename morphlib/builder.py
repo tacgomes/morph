@@ -286,10 +286,7 @@ class ChunkBuilder(BlobBuilder):
             self.dump_memory_profile('before creating source and tarball '
                                         'for chunk')
             tarball = self.cache_prefix + '.src.tar'
-            #FIXME Ugh use treeish everwhere
-            path = urlparse.urlparse(self.blob.morph.repo).path
-            t = morphlib.git.Treeish(path, self.blob.morph.ref)
-            morphlib.git.export_sources(t, tarball)
+            morphlib.git.export_sources(self.blob.morph.treeish, tarball)
             self.dump_memory_profile('after exporting sources')
             os.mkdir(self.builddir)
             self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
@@ -490,14 +487,15 @@ class Builder(object):
     
     The objects may be chunks or strata.'''
     
-    def __init__(self, tempdir, app, morph_loader):
+    def __init__(self, tempdir, app, morph_loader, source_manager):
         self.tempdir = tempdir
         self.real_msg = app.msg
         self.settings = app.settings
         self.dump_memory_profile = app.dump_memory_profile
         self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
-        self.indent = 0
         self.morph_loader = morph_loader
+        self.source_manager = source_manager
+        self.indent = 0
 
     def msg(self, text):
         spaces = '  ' * self.indent
@@ -569,7 +567,7 @@ class Builder(object):
             raise TypeError('Blob %s has unknown type %s' %
                             (str(blob), type(blob)))
 
-        cache_id = self.get_blob_cache_id(blob)
+        cache_id = self.get_cache_id(blob)
         logging.debug('cache id: %s' % repr(cache_id))
         self.dump_memory_profile('after computing cache id')
 
@@ -584,44 +582,41 @@ class Builder(object):
         
         return builder
 
-    def get_blob_cache_id(self, blob):
-        # FIXME os.path.basename() only works if the .morph file is an
-        # immediate children of the repo location and is not located in
-        # a subfolder
-        return self.get_cache_id(blob.morph.repo,
-                                 blob.morph.ref,
-                                 os.path.basename(blob.morph.filename))
-            
-    def get_cache_id(self, repo, ref, morph_filename):
-        logging.debug('get_cache_id(%s, %s, %s)' %
-                      (repo, ref, morph_filename))
-        morph = self.morph_loader.load(repo, ref, morph_filename)
-        if morph.kind == 'chunk':
+    def get_cache_id(self, blob):
+        logging.debug('get_cache_id(%s)' % blob)
+
+        if blob.morph.kind == 'chunk':
             kids = []
-        elif morph.kind == 'stratum':
+        elif blob.morph.kind == 'stratum':
             kids = []
-            for source in morph.sources:
-                kid_repo = source['repo']
-                kid_ref = source['ref']
-                kid_filename = (source['morph'] 
-                                if 'morph' in source 
-                                else source['name'])
-                kid_filename = '%s.morph' % kid_filename
-                kid_cache_id = self.get_cache_id(kid_repo, kid_ref, 
-                                                 kid_filename)
-                kids.append(kid_cache_id)
-        elif morph.kind == 'system':
+            for source in blob.morph.sources:
+                repo = source['repo']
+                ref = source['ref']
+                treeish = self.source_manager.get_treeish(repo, ref)
+                filename = (source['morph']
+                            if 'morph' in source
+                            else source['name'])
+                filename = '%s.morph' % filename
+                morph = self.morph_loader.load(treeish, filename)
+                chunk = morphlib.blobs.Blob.create_blob(morph)
+                cache_id = self.get_cache_id(chunk)
+                kids.append(cache_id)
+        elif blob.morph.kind == 'system':
             kids = []
-            for stratum in morph.strata:
-                kid_filename = '%s.morph' % stratum
-                kid_cache_id = self.get_cache_id(repo, ref, kid_filename)
-                kids.append(kid_cache_id)
+            for stratum_name in blob.morph.strata:
+                filename = '%s.morph' % stratum_name
+                morph = self.morph_loader.load(blob.morph.treeish, filename)
+                stratum = morphlib.blobs.Blob.create_blob(morph)
+                cache_id = self.get_cache_id(stratum)
+                kids.append(cache_id)
         else:
-            raise NotImplementedError('unknown morph kind %s' % morph.kind)
+            raise NotImplementedError('unknown morph kind %s' %
+                                      blob.morph.kind)
+
         dict_key = {
-            'name': morph.name,
+            'name': blob.morph.name,
             'arch': morphlib.util.arch(),
-            'ref': morphlib.git.get_commit_id(repo, ref),
+            'ref': blob.morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),
         }
         return dict_key

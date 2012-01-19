@@ -21,6 +21,52 @@ import morphlib
 
 class BlobsTests(unittest.TestCase):
 
+    def test_create_a_chunk_blob(self):
+        class FakeChunkMorph(object):
+            @property
+            def kind(self):
+                return 'chunk'
+
+        morph = FakeChunkMorph()
+        chunk = morphlib.blobs.Blob.create_blob(morph)
+        self.assertTrue(isinstance(chunk, morphlib.blobs.Chunk))
+        self.assertEqual(morph, chunk.morph)
+
+    def test_create_a_stratum_blob(self):
+        class FakeStratumMorph(object):
+            @property
+            def kind(self):
+                return 'stratum'
+
+        morph = FakeStratumMorph()
+        stratum = morphlib.blobs.Blob.create_blob(morph)
+        self.assertTrue(isinstance(stratum, morphlib.blobs.Stratum))
+        self.assertEqual(morph, stratum.morph)
+
+    def test_create_a_system_blob(self):
+        class FakeSystemMorph(object):
+            @property
+            def kind(self):
+                return 'system'
+
+        morph = FakeSystemMorph()
+        system = morphlib.blobs.Blob.create_blob(morph)
+        self.assertTrue(isinstance(system, morphlib.blobs.System))
+        self.assertEqual(morph, system.morph)
+
+    def test_create_an_invalid_blob(self):
+        class FakeInvalidMorph(object):
+            @property
+            def kind(self):
+                return 'invalid'
+
+            @property
+            def filename(self):
+                return '/foo/bar/baz.morph'
+
+        morph = FakeInvalidMorph()
+        self.assertRaises(TypeError, morphlib.blobs.Blob.create_blob, morph)
+
     def test_blob_with_parents(self):
         blob1 = morphlib.blobs.Blob(None)
         blob2 = morphlib.blobs.Blob(None)
@@ -93,17 +139,23 @@ class BlobsTests(unittest.TestCase):
         self.assertFalse(blob2.depends_on(blob1))
 
     def test_chunks(self):
-        settings = { 'git-base-url': '' }
+        settings = { 'git-base-url': [] }
         loader = morphlib.morphologyloader.MorphologyLoader(settings)
         loader._get_morph_text = self.get_morph_text
-        
-        stratum_morph = loader.load('repo', 'ref', 'foo.morph')
+
+        class FakeTreeish(object):
+            def __init__(self):
+                self.original_repo = 'test-repo'
+        faketreeish = FakeTreeish()
+
+        faketreeish.original_repo = 'hello'
+        stratum_morph = loader.load(faketreeish, 'foo.morph')
         stratum = morphlib.blobs.Stratum(stratum_morph)
         self.assertEquals(len(stratum.chunks), 1)
         self.assertTrue('foo' in stratum.chunks)
         self.assertEqual(['.'], stratum.chunks['foo'])
 
-        chunk_morph = loader.load('repo', 'ref', 'bar.morph')
+        chunk_morph = loader.load(faketreeish, 'bar.morph')
         chunk = morphlib.blobs.Chunk(chunk_morph)
         self.assertEqual(len(chunk.chunks), 2)
         self.assertTrue('include' in chunk.chunks)
@@ -111,7 +163,7 @@ class BlobsTests(unittest.TestCase):
         self.assertTrue('src' in chunk.chunks)
         self.assertEqual(chunk.chunks['src'], ['src/'])
 
-    def get_morph_text(self, repo, ref, filename):
+    def get_morph_text(self, treeish, filename):
         if filename == 'foo.morph':
             return ('''
                     {

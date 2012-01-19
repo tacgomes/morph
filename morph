@@ -3,7 +3,7 @@
 # WARNING: THIS IS HIGHLY EXPERIMENTAL CODE RIGHT NOW. JUST PROOF OF CONCEPT.
 # DO NOT RUN UNTIL YOU KNOW WHAT YOU ARE DOING.
 # 
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011-2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import os
 import urlparse
 
 import morphlib
+from morphlib.morphologyloader import MorphologyLoader
 from morphlib.builddependencygraph import BuildDependencyGraph
 
 
@@ -79,8 +80,10 @@ class Morph(cliapp.Application):
         '''
 
         tempdir = morphlib.tempdir.Tempdir()
-        loader = morphlib.morphologyloader.MorphologyLoader(self.settings)
-        builder = morphlib.builder.Builder(tempdir, self, loader)
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self)
+        builder = morphlib.builder.Builder(tempdir, self, morph_loader,
+                                           source_manager)
 
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
@@ -90,21 +93,13 @@ class Morph(cliapp.Application):
             repo, ref, filename = args[:3]
             args = args[3:]
 
-            # resolve the URL to the repository
-            base_url = self.settings['git-base-url']
-            if not base_url.endswith('/'):
-                base_url += '/'
-            repo = urlparse.urljoin(base_url, repo)
-            if not repo.endswith('/'):
-                repo += '/'
-
             # derive a build order from the dependency graph
-            morphology = loader.load(repo, ref, filename)
-            graph = BuildDependencyGraph(loader, morphology)
+            graph = BuildDependencyGraph(source_manager, morph_loader,
+                                         repo, ref, filename)
             graph.resolve()
             blobs, order = graph.build_order()
 
-            self.msg('Building %s' % morphology)
+            self.msg('Building %s|%s|%s' % (repo, ref, filename))
 
             # build things in this order
             ret.append(builder.build(blobs, order))
@@ -172,25 +167,17 @@ class Morph(cliapp.Application):
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
 
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self)
+
         while len(args) >= 3:
             # read the build tuple from the command line
             repo, ref, filename = args[:3]
             args = args[3:]
 
-            # resolve the URL to the repository
-            base_url = self.settings['git-base-url']
-            if not base_url.endswith('/'):
-                base_url += '/'
-            repo = urlparse.urljoin(base_url, repo)
-            if not repo.endswith('/'):
-                repo += '/'
-
-            # load the morphology corresponding to the build tuple
-            loader = morphlib.morphologyloader.MorphologyLoader(self.settings)
-            morphology = loader.load(repo, ref, filename)
-
             # create a dependency graph for the morphology
-            graph = BuildDependencyGraph(loader, morphology)
+            graph = BuildDependencyGraph(source_manager, morph_loader,
+                                         repo, ref, filename)
             graph.resolve()
 
             # print the graph
@@ -207,6 +194,26 @@ class Morph(cliapp.Application):
                 self.output.write('  group:\n')
                 for blob in sorted(group, key=str):
                     self.output.write('    %s\n' % blob)
+
+    def cmd_update_gits(self, args):
+        tempdir = morphlib.tempdir.Tempdir()
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self)
+        while len(args) >= 3:
+            # read the build tuple from the command line
+            repo, ref, filename = args[:3]
+            args = args[3:]
+
+            # first step: clone the corresponding repo
+            treeish = source_manager.get_treeish(repo, ref)
+            morph = morph_loader.load(treeish, filename)
+            blob = morphlib.blobs.Blob.create_blob(morph)
+
+            # second step: compute the cache ID, which will implicitly
+            # clone all repositories needed to build the blob
+            builder = morphlib.builder.Builder(tempdir, self, morph_loader,
+                                               source_manager)
+            builder.get_cache_id(blob)
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

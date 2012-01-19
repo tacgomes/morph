@@ -14,14 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import os
 import StringIO
 import urlparse
 
 import morphlib
 
 
-#FIXME should use Treeishes everywhere and get stuff from the SourceManager
 class MorphologyLoader(object):
 
     '''Load morphologies from git and parse them into Morphology objects.'''
@@ -30,31 +28,20 @@ class MorphologyLoader(object):
         self.settings = settings
         self.morphologies = {}
 
-    def load(self, repo, ref, filename):
-        base_url = self.settings['git-base-url']
-        if not base_url.endswith('/'):
-            base_url += '/'
-        repo = urlparse.urljoin(base_url, repo)
-
-        key = (repo, ref, filename)
-        
+    def load(self, treeish, filename):
+        key = (treeish, filename)
         if key in self.morphologies:
             return self.morphologies[key]
         else:
-            morph = self._get_morph_from_git(repo, ref, filename)
+            morph = self._get_morph_from_git(treeish, filename)
             self.morphologies[key] = morph
             return morph
 
-    def _get_morph_text(self, repo, ref, filename): # pragma: no cover
-        path = urlparse.urlparse(repo).path
-        t = morphlib.git.Treeish(path, ref)
-        return morphlib.git.get_morph_text(t, filename)
+    def _get_morph_text(self, treeish, filename): # pragma: no cover
+        return morphlib.git.get_morph_text(treeish, filename)
 
-    def _get_morph_from_git(self, repo, ref, filename):
-        morph_text = self._get_morph_text(repo, ref, filename)
-        scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
-        f = StringIO.StringIO(morph_text)
-        f.name = os.path.join(path, filename)
-        morph = morphlib.morphology.Morphology(repo, ref, f,
-                                               self.settings['git-base-url'])
-        return morph
+    def _get_morph_from_git(self, treeish, filename):
+        morph_text = self._get_morph_text(treeish, filename)
+        fp = StringIO.StringIO(morph_text)
+        fp.name = filename
+        return morphlib.morphology.Morphology(treeish, fp)

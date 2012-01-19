@@ -26,11 +26,16 @@ class MorphologyLoaderTests(unittest.TestCase):
         loader = morphlib.morphologyloader.MorphologyLoader(settings)
         loader._get_morph_text = self.get_morph_text
         
-        morph1 = loader.load('repo', 'ref', 'hello.morph')
-        morph2 = loader.load('repo', 'ref', 'hello.morph')
+        class FakeTreeish(object):
+            def __init__(self):
+                self.original_repo = 'test-repo'
+        faketreeish = FakeTreeish()
+        
+        morph1 = loader.load(faketreeish, 'foo.morph')
+        morph2 = loader.load(faketreeish, 'foo.morph')
         self.assertEqual(morph1, morph2)
 
-    def get_morph_text(self, repo, ref, filename):
+    def get_morph_text(self, treeish, filename):
         return ('''
                 {
                     "name": "foo",

@@ -31,13 +31,18 @@ class BuildDependencyGraph(object): # pragma: no cover
     
     '''
     
-    def __init__(self, loader, morph):
-        self.loader = loader
-        self.morph = morph
+    def __init__(self, source_manager, morph_loader, repo, ref, filename):
+        self.source_manager = source_manager
+        self.morph_loader = morph_loader
+        self.root_repo = repo
+        self.root_ref = ref
+        self.root_filename = filename
         self.blobs = set()
 
-    def create_blob(self, morph):
+    def create_blob(self, treeish, filename):
         '''Creates a blob from a morphology.'''
+
+        morph = self.morph_loader.load(treeish, filename)
 
         if morph.kind == 'stratum':
             return morphlib.blobs.Stratum(morph)
@@ -46,19 +51,19 @@ class BuildDependencyGraph(object): # pragma: no cover
         else:
             return morphlib.blobs.System(morph)
 
-    def get_blob(self, info):
-        '''Takes a (repo, ref, filename) tuple and looks up the blob for it.
+    def get_blob(self, treeish, filename):
+        '''Takes a repo, ref, filename and looks up the blob for them.
 
         Loads the corresponding morphology and chunk/stratum/system object
         on-demand if it is not cached yet.
            
         '''
 
-        blob = self.cached_blobs.get(info, None)
+        key = (treeish, filename)
+        blob = self.cached_blobs.get(key, None)
         if not blob:
-            morphology = self.loader.load(info[0], info[1], info[2])
-            blob = self.create_blob(morphology)
-            self.cached_blobs[info] = blob
+            blob = self.create_blob(treeish, filename)
+            self.cached_blobs[key] = blob
         return blob
 
     def resolve(self):
@@ -72,17 +77,17 @@ class BuildDependencyGraph(object): # pragma: no cover
         self.resolve_chunks()
 
     def resolve_root(self):
-        # convert the morphology to a chunk/stratum/system object
-        root = self.create_blob(self.morph)
+        # prepare the repo, load the morphology and blob information
+        treeish = self.source_manager.get_treeish(self.root_repo,
+                                                  self.root_ref)
+        root = self.get_blob(treeish, self.root_filename)
         self.blobs.add(root)
 
         # load all strata the morph depends on (only if it's a system image)
         if root.morph.kind == 'system':
             for stratum_name in root.morph.strata:
-                info = (root.morph.repo,
-                        root.morph.ref,
-                        '%s.morph' % stratum_name)
-                stratum = self.get_blob(info)
+                filename = '%s.morph' % stratum_name
+                stratum = self.get_blob(treeish, filename)
                 root.add_dependency(stratum)
                 stratum.add_parent(root)
                 self.blobs.add(stratum)
@@ -112,14 +117,9 @@ class BuildDependencyGraph(object): # pragma: no cover
             # verify that the build-depends format is valid
             if isinstance(stratum.morph.build_depends, list):
                 for depname in stratum.morph.build_depends:
-                    # prepare a tuple for the dependency stratum
-                    repo = stratum.morph.repo
-                    ref = stratum.morph.ref
-                    filename = '%s.morph' % depname
-                    info = (repo, ref, filename)
-
                     # load the dependency stratum on demand
-                    depstratum = self.get_blob(info)
+                    depstratum = self.get_blob(stratum.morph.treeish,
+                                               '%s.morph' % depname)
                     self.blobs.add(depstratum)
 
                     # add the dependency stratum to the graph
@@ -137,10 +137,6 @@ class BuildDependencyGraph(object): # pragma: no cover
         appropriate. Chunk morphologies and blobs are loaded on demand.
         
         '''
-
-        if self.morph.kind == 'chunk':
-            blob = self.create_blob(self.morph)
-            self.blobs.add(blob)
 
         blobs = list(self.blobs)
         for blob in blobs:
@@ -164,10 +160,10 @@ class BuildDependencyGraph(object): # pragma: no cover
             filename = '%s.morph' % (source['morph']
                                      if 'morph' in source
                                      else source['name'])
-            info = (repo, ref, filename)
 
             # load the chunk on demand
-            chunk = self.get_blob(info)
+            treeish = self.source_manager.get_treeish(repo, ref)
+            chunk = self.get_blob(treeish, filename)
             chunk.add_parent(stratum)
 
             # store (name -> chunk) association to avoid loading the chunk twice
@@ -190,15 +186,14 @@ class BuildDependencyGraph(object): # pragma: no cover
                         dependency = name_to_chunk[depname]
                         chunk.add_dependency(dependency)
                     else:
-                        filename = os.path.basename(stratum.morph.filename)
                         raise Exception('%s: source %s references %s before it '
-                                        'is defined' % (filename,
+                                        'is defined' % (stratum.morph.filename,
                                                         source['name'],
                                                         depname))
             else:
-                filename = os.path.basename(stratum.morph.filename)
                 raise Exception('%s: source %s uses an invalid build-depends '
-                                'format' % (filename, source['name']))
+                                'format' %
+                                (stratum.morph.filename, source['name']))
             
             # add the chunk to stratum and graph
             stratum_chunks.add(chunk)
@@ -304,6 +299,9 @@ class BuildDependencyGraph(object): # pragma: no cover
         # have found at least one cyclic dependency
         if len(sorting) < len(self.blobs):
             raise Exception('Cyclic dependencies found in the dependency '
-                            'graph of "%s"' % self.morph)
+                            'graph of %s|%s|%s' % 
+                            (self.root_repo, 
+                             self.root_ref,
+                             self.root_filename))
 
         return sorting

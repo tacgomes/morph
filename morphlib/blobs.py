@@ -14,7 +14,22 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import os
+
+
 class Blob(object):
+
+    @staticmethod
+    def create_blob(morph):
+        if morph.kind == 'stratum':
+            return Stratum(morph)
+        elif morph.kind == 'chunk':
+            return Chunk(morph)
+        elif morph.kind == 'system':
+            return System(morph)
+        else:
+            raise TypeError('Morphology %s has an unknown type: %s' % 
+                            (morph.filename, morph.kind))
 
     def __init__(self, morph):
         self.parents = []

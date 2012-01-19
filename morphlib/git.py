@@ -25,47 +25,60 @@ import cliapp
 class NoMorphs(Exception):
 
     def __init__(self, repo, ref):
-        Exception.__init__(self, 
-                            'Cannot find any morpologies at %s:%s' %
-                                (repo, ref))
+        Exception.__init__(self, 'Cannot find any morpologies at %s:%s' %
+                           (repo, ref))
 
 
 class TooManyMorphs(Exception):
 
     def __init__(self, repo, ref, morphs):
-        Exception.__init__(self, 
-                            'Too many morphologies at %s:%s: %s' %
-                                (repo, ref, ', '.join(morphs)))
+        Exception.__init__(self, 'Too many morphologies at %s:%s: %s' %
+                           (repo, ref, ', '.join(morphs)))
+
 
 class InvalidTreeish(cliapp.AppException):
 
     def __init__(self, repo, ref):
-        Exception.__init__(self, 
-                            '%s is an invalid reference for repo %s' %
-                                (ref,repo))
+        Exception.__init__(self, '%s is an invalid reference for repo %s' %
+                           (ref, repo))
 
 
-class Treeish:
-    def __init__(self, repo, ref, msg=logging.debug):
+class Treeish(object):
+
+    def __init__(self, repo, original_repo, ref, msg=logging.debug):
         self.repo = repo
         self.msg = msg
         self.sha1 = None
         self.ref = None
+        self.original_repo = original_repo
         self._resolve_ref(ref) 
-        
+
+    def __hash__(self):
+        return hash((self.repo, self.ref))
+
+    def __eq__(self, other):
+        return other.repo == self.repo and other.ref == self.ref
+
+    def __str__(self):
+        return '%s:%s' % (self.repo, self.ref)
+
     def _resolve_ref(self, ref):
         ex = morphlib.execute.Execute(self.repo, self.msg)
         try:
-            refs = ex.runv(['git', 'show-ref', ref]).split()
-            binascii.unhexlify(refs[0]) #Valid hex?
-            self.sha1 = refs[0]
-            self.ref = refs[1]
+            refs = ex.runv(['git', 'show-ref', ref]).split('\n')
+
+            # drop the refs that are not from origin
+            refs = [x.split() for x in refs if 'origin' in x]
+
+            binascii.unhexlify(refs[0][0]) #Valid hex?
+            self.sha1 = refs[0][0]
+            self.ref = refs[0][1]
         except morphlib.execute.CommandFailure:
             self._is_sha(ref)
 
     def _is_sha(self, ref):
-        if len(ref)!=40:
-            raise InvalidTreeish(self.repo,ref)
+        if len(ref) != 40:
+            raise InvalidTreeish(self.original_repo, ref)
 
         try:
                 binascii.unhexlify(ref)
@@ -73,13 +86,13 @@ class Treeish:
                 ex.runv(['git', 'rev-list', '--no-walk', ref])
                 self.sha1=ref
         except (TypeError, morphlib.execute.CommandFailure):
-            raise InvalidTreeish(self.repo,ref)
+            raise InvalidTreeish(self.original_repo, ref)
 
 def export_sources(treeish, tar_filename):
     '''Export the contents of a specific commit into a compressed tarball.'''
     ex = morphlib.execute.Execute('.', msg=logging.debug)
-    ex.runv(['git', 'archive', '-o', tar_filename, '--remote', treeish.repo,
-             treeish.sha1])
+    ex.runv(['git', 'archive', '-o', tar_filename, '--remote',
+             'file://%s' % treeish.repo, treeish.sha1])
 
 def get_morph_text(treeish, filename):
     '''Return a morphology from a git repository.'''
@@ -108,12 +121,6 @@ def add_remote(gitdir, name, url):
     ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
     return ex.runv(['git', 'remote', 'add', '-f', name, url])
 
-# FIXME: All usage of this must die and Treeishes should be used
-def get_commit_id(repo, ref):
-    '''Return the full SHA-1 commit id for a repo+ref.'''
-    scheme, netlock, path, params, query, frag = urlparse.urlparse(repo)
-    assert scheme == 'file'
-    ex = morphlib.execute.Execute(path, msg=logging.debug)
-    out = ex.runv(['git', 'rev-list', '-n1', ref])
-    return out.strip()
-
+def update_remote(gitdir, name):
+    ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
+    return ex.runv(['git', 'remote', 'update', name])
