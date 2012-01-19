@@ -22,8 +22,8 @@ import morphlib
 class BuildDependencyGraphTests(unittest.TestCase):
 
     def test_node_add_remove_dependency(self):
-        node1 = morphlib.blobs.Blob(None, None)
-        node2 = morphlib.blobs.Blob(None, None)
+        node1 = morphlib.blobs.Blob(None)
+        node2 = morphlib.blobs.Blob(None)
 
         node1.add_dependency(node2)
 

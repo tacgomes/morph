@@ -52,6 +52,7 @@ dependency tree:
   test-repo|master|xfce-core.morph
     -> test-repo|master|exo.morph
     -> test-repo|master|garcon.morph
+    -> test-repo|master|gtk-stack.morph
     -> test-repo|master|gtk-xfce-engine.morph
     -> test-repo|master|libxfce4ui.morph
     -> test-repo|master|libxfce4util.morph

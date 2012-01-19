@@ -46,51 +46,11 @@ class BuildDependencyGraph(object): # pragma: no cover
         else:
             return morphlib.blobs.System(morph)
 
-    def resolve(self):
-        '''Constructs the graph by resolving dependencies recursively.'''
-
-        self.cached_blobs = {}
-        self._resolve_strata()
-        self._resolve_chunks()
-
-    def build_order(self):
-        '''Returns a queue of build groups in a valid order.
-        
-        This function computes a topological sorting of the dependency graph
-        and generates a deque of groups, each of which contains a set of items
-        that are independent and can be built in parallel. The items in each
-        group are guaranteed to depend only on items in previous groups.
-        
-        '''
-
-        sorting = self._compute_topological_sorting()
-        groups = collections.deque()
-
-        # create the first group
-        group = set()
-        groups.append(group)
-
-        # traverse the graph in topological order
-        for blob in sorting:
-            # add the current item to the current group, or a new group
-            # if one of its dependencies is in the current one
-            create_group = False
-            for dependency in blob.dependencies:
-                if dependency in group:
-                    create_group = True
-            if create_group:
-                group = set()
-                groups.append(group)
-            group.add(blob)
-
-        # return the set of blobs and the build groups
-        return set(self.blobs), groups
-
-    def _get_blob(self, info):
+    def get_blob(self, info):
         '''Takes a (repo, ref, filename) tuple and looks up the blob for it.
 
-        Loads the corresponding morphology and blob on-demand if it is
-        not cached yet.
+        Loads the corresponding morphology and chunk/stratum/system object
+        on-demand if it is not cached yet.
            
         '''
 
@@ -101,7 +61,33 @@ class BuildDependencyGraph(object): # pragma: no cover
             self.cached_blobs[info] = blob
         return blob
 
-    def _resolve_strata(self):
+    def resolve(self):
+        '''Constructs the graph by resolving dependencies recursively.'''
+
+        self.cached_blobs = {}
+        self.blobs = set()
+
+        self.resolve_root()
+        self.resolve_strata()
+        self.resolve_chunks()
+
+    def resolve_root(self):
+        # convert the morphology to a chunk/stratum/system object
+        root = self.create_blob(self.morph)
+        self.blobs.add(root)
+
+        # load all strata the morph depends on (only if it's a system image)
+        if root.morph.kind == 'system':
+            for stratum_name in root.morph.strata:
+                info = (root.morph.repo,
+                        root.morph.ref,
+                        '%s.morph' % stratum_name)
+                stratum = self.get_blob(info)
+                root.add_dependency(stratum)
+                stratum.add_parent(root)
+                self.blobs.add(stratum)
+
+    def resolve_strata(self):
         '''Generates a dependency graph of strata recursively.
 
         It starts with the input morphology and attempts to resolve all its
@@ -110,44 +96,40 @@ class BuildDependencyGraph(object): # pragma: no cover
            
         '''
 
-        if self.morph.kind == 'stratum':
-            # turn the morphology into a stratum object
-            stratum = self.create_blob(self.morph)
+        # start the BFS at all input strata
+        queue = collections.deque()
+        strata = [x for x in self.blobs if x.morph.kind == 'stratum']
+        queue.extend(strata)
+        
+        while len(queue) > 0:
+            stratum = queue.popleft()
 
-            # start the BFS at the input stratum
-            queue = collections.deque()
-            queue.append(stratum)
-            self.blobs.add(stratum)
+            # the DFS recursion ends whenever we have a stratum
+            # that depends on nothing else
+            if not stratum.morph.build_depends:
+                continue
             
-            while len(queue) > 0:
-                stratum = queue.popleft()
+            # verify that the build-depends format is valid
+            if isinstance(stratum.morph.build_depends, list):
+                for depname in stratum.morph.build_depends:
+                    # prepare a tuple for the dependency stratum
+                    repo = stratum.morph.repo
+                    ref = stratum.morph.ref
+                    filename = '%s.morph' % depname
+                    info = (repo, ref, filename)
 
-                # the DFS recursion ends whenever we have a stratum
-                # that depends on nothing else
-                if not stratum.morph.build_depends:
-                    continue
-                
-                # verify that the build-depends format is valid
-                if isinstance(stratum.morph.build_depends, list):
-                    for depname in stratum.morph.build_depends:
-                        # prepare a tuple for the dependency stratum
-                        repo = stratum.morph.repo
-                        ref = stratum.morph.ref
-                        filename = '%s.morph' % depname
-                        info = (repo, ref, filename)
+                    # load the dependency stratum on demand
+                    depstratum = self.get_blob(info)
+                    self.blobs.add(depstratum)
 
-                        # load the dependency stratum on demand
-                        depstratum = self._get_blob(info)
+                    # add the dependency stratum to the graph
+                    stratum.add_dependency(depstratum)
+                    queue.append(depstratum)
+            else:
+                raise Exception('%s uses an invalid "build-depends" format'
+                                % stratum)
 
-                        # add the dependency stratum to the graph
-                        stratum.add_dependency(depstratum)
-                        queue.append(depstratum)
-                        self.blobs.add(depstratum)
-                else:
-                    raise Exception('%s uses an invalid "build-depends" format'
-                                    % stratum)
-
-    def _resolve_chunks(self):
+    def resolve_chunks(self):
         '''Resolves all chunks of the strata and inserts them into the graph.
         
         Starting with a dependency graph of strata, this method fills the
@@ -163,9 +145,9 @@ class BuildDependencyGraph(object): # pragma: no cover
         blobs = list(self.blobs)
         for blob in blobs:
             if isinstance(blob, morphlib.blobs.Stratum):
-                self._resolve_stratum_chunks(blob)
+                self.resolve_stratum_chunks(blob)
 
-    def _resolve_stratum_chunks(self, stratum):
+    def resolve_stratum_chunks(self, stratum):
         # the set of chunks contained in the stratum
         stratum_chunks = set()
 
@@ -185,7 +167,7 @@ class BuildDependencyGraph(object): # pragma: no cover
             info = (repo, ref, filename)
 
             # load the chunk on demand
-            chunk = self._get_blob(info)
+            chunk = self.get_blob(info)
             chunk.add_parent(stratum)
 
             # store (name -> chunk) association to avoid loading the chunk twice
@@ -228,15 +210,48 @@ class BuildDependencyGraph(object): # pragma: no cover
             for dependency in stratum.dependencies:
                 chunk.add_dependency(dependency)
 
-        # clear the dependencies of the stratum
-        for dependency in set(stratum.dependencies):
-            stratum.remove_dependency(dependency)
+        ## clear the dependencies of the stratum
+        #for dependency in set(stratum.dependencies):
+        #    stratum.remove_dependency(dependency)
 
         # make the stratum depend on all its chunks
         for chunk in stratum_chunks:
             stratum.add_dependency(chunk)
 
-    def _compute_topological_sorting(self):
+    def build_order(self):
+        '''Returns a queue of build groups in a valid order.
+        
+        This function computes a topological sorting of the dependency graph
+        and generates a deque of groups, each of which contains a set of items
+        that are independent and can be built in parallel. The items in each
+        group are guaranteed to depend only on items in previous groups.
+        
+        '''
+
+        sorting = self.compute_topological_sorting()
+        groups = collections.deque()
+
+        # create the first group
+        group = set()
+        groups.append(group)
+
+        # traverse the graph in topological order
+        for blob in sorting:
+            # add the current item to the current group, or a new group
+            # if one of its dependencies is in the current one
+            create_group = False
+            for dependency in blob.dependencies:
+                if dependency in group:
+                    create_group = True
+            if create_group:
+                group = set()
+                groups.append(group)
+            group.add(blob)
+
+        # return the set of blobs and the build groups
+        return set(self.blobs), groups
+
+    def compute_topological_sorting(self):
         '''Computes a topological sorting of the dependency graph. 
         
         A topological sorting basically is the result of a series of

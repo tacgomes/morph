@@ -374,18 +374,14 @@ class SystemBuilder(BlobBuilder):
         for stratum_name in self.morph.strata:
             yield self.repo, self.ref, stratum_name, [stratum_name]
 
-    def builds(self):
-        filename = self.filename(self.morph.name)
-        return { self.morph.name: filename }
-
     def do_build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
         # Create image.
         with self.build_watch('create-image'):
-            image_name = self.tempdir.join('%s.img' % self.morph.name)
+            image_name = self.tempdir.join('%s.img' % self.blob.morph.name)
             self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
-                          self.morph.disk_size])
+                          self.blob.morph.disk_size])
 
         # Partition it.
         with self.build_watch('partition-image'):
@@ -411,7 +407,7 @@ class SystemBuilder(BlobBuilder):
             # Create filesystem.
             with self.build_watch('create-filesystem'):
                 self.ex.runv(['mkfs', '-t', 'ext3', partition])
-            
+
             # Mount it.
             with self.build_watch('mount-filesystem'):
                 mount_point = self.tempdir.join('mnt')
@@ -421,7 +417,7 @@ class SystemBuilder(BlobBuilder):
             # Unpack all strata into filesystem.
             # Also, run ldconfig.
             with self.build_watch('unpack-strata'):
-                for name, filename in self.built:
+                for name, filename in self.stage_items:
                     self.msg('unpack %s from %s' % (name, filename))
                     self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
                 ldconfig(self.ex, mount_point)
@@ -429,6 +425,8 @@ class SystemBuilder(BlobBuilder):
             # Create fstab.
             with self.build_watch('create-fstab'):
                 fstab = self.tempdir.join('mnt/etc/fstab')
+                if not os.path.exists(os.path.dirname(fstab)):
+                    os.makedirs(os.path.dirname(fstab))
                 # sorry about the hack, I wish I knew a better way
                 self.ex.runv(['tee', fstab], feed_stdin='''
 proc      /proc proc  defaults          0 0
@@ -480,10 +478,10 @@ append root=/dev/sda1 init=/sbin/init quiet rw
 
         # Move image file to cache.
         with self.build_watch('cache-image'):
-            filename = self.filename(self.morph.name)
+            filename = self.filename(self.blob.morph.name)
             self.ex.runv(['mv', image_name, filename])
 
-        return { self.morph.name: filename }
+        return { self.blob.morph.name: filename }
 
 class Builder(object):
 
