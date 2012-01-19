@@ -17,6 +17,17 @@
 
 set -e
 
+GIT_AUTHOR_NAME="An Author"
+GIT_AUTHOR_EMAIL="an.author@test.org"
+GIT_AUTHOR_DATE=2005-04-07T22:13:13
+GIT_COMMITTER_NAME="An Committer"
+GIT_COMMITTER_EMAIL="a.committer@test.org"
+GIT_COMMITTER_DATE=2005-04-07T22:13:13
+
+export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE
+export GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+
+
 # Create a repository
 repo="$DATADIR/test-repo"
 mkdir "$repo"
@@ -54,7 +65,7 @@ do
 EOF
     git add $component.morph
 done
-git commit --quiet -m "add .c source file and GTK chunk morphologies"
+git commit --quiet -m "add .c source file and GTK chunk morphologies" 
 
 # Define a stratum for the GTK stack
 cat <<EOF > gtk-stack.morph
