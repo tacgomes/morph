@@ -18,6 +18,7 @@ import logging
 import urlparse
 import binascii
 import morphlib
+import os
 
 
 class NoMorphs(Exception):
@@ -44,14 +45,15 @@ class InvalidTreeish(Exception):
 
 
 class Treeish:
-    def __init__(self, repo, ref):
+    def __init__(self, repo, ref, msg=logging.debug):
         self.repo = repo
+        self.msg = msg
         self.sha1 = None
         self.ref = None
         self._resolve_ref(ref) 
         
     def _resolve_ref(self, ref):
-        ex = morphlib.execute.Execute(self.repo, msg=logging.debug)
+        ex = morphlib.execute.Execute(self.repo, self.msg)
         try:
             refs = ex.runv(['git', 'show-ref', ref]).split()
             binascii.unhexlify(refs[0]) #Valid hex?
@@ -64,10 +66,10 @@ class Treeish:
         try:
             if len(ref)==40:
                 binascii.unhexlify(ref)	
-                ex = morphlib.execute.Execute(self.repo, msg=logging.debug)
+                ex = morphlib.execute.Execute(self.repo, self.msg)
                 try:
                     refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
-                    self.sha1=REF
+                    self.sha1=ref
                 except morphlib.execute.CommandFailure:
                     raise InvalidTreeish(self.repo,ref)
 
@@ -93,4 +95,15 @@ def clone(location, repo):
     '''clone at git repo into location'''
     ex = morphlib.execute.Execute('.', msg=logging.debug)
     return ex.runv(['git', 'clone', repo, location])
+
+def init(location):
+    '''initialise git repo at location'''
+    os.mkdir(location)
+    ex = morphlib.execute.Execute(location, msg=logging.debug)
+    return ex.runv(['git', 'init'])
+
+def add_remote(gitdir, name, url):
+    '''add remote with name 'name' for url at gitdir'''
+    ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
+    return ex.runv(['git', 'remote', 'add', '-f', name, url])
 
