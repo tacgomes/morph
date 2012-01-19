@@ -50,8 +50,8 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(self.temprepo,
-                          'a8169ec3d4e5ecef442d65213cd7741d217377c3')
-        self.assertEquals(t.sha1, 'a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 
@@ -60,13 +60,13 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(self.temprepo,
-                          'a8169ec3d4e5ecef442d65213cd7741d217377c3')
-        self.assertEquals(t.sha1, 'a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         s = morphlib.sourcemanager.SourceManager(tempdir, DummyApp())
         t = s.get_treeish(self.temprepo,
-                          'a8169ec3d4e5ecef442d65213cd7741d217377c3')
-        self.assertEquals(t.sha1, 'a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 
@@ -95,8 +95,8 @@ class SourceManagerTests(unittest.TestCase):
         s._wget = wget
 
         t = s.get_treeish(self.temprepo,
-                          'a8169ec3d4e5ecef442d65213cd7741d217377c3')
-        self.assertEquals(t.sha1, 'a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 
@@ -114,7 +114,7 @@ class SourceManagerTests(unittest.TestCase):
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.SourceNotFound, s.get_treeish,
-                          'asdf','a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'asdf','e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 
@@ -127,7 +127,7 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(tempdir, app) 
         t = s.get_treeish(self.temprepo,
-                          'a8169ec3d4e5ecef442d65213cd7741d217377c3')
-        self.assertEquals(t.sha1, 'a8169ec3d4e5ecef442d65213cd7741d217377c3')
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
