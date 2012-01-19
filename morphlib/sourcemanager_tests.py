@@ -92,6 +92,7 @@ class SourceManagerTests(unittest.TestCase):
         t = s.get_treeish(os.getcwd(),'41ee528492db9bd41604311b100da5a871098b3a')
         assert(t.sha1 == '41ee528492db9bd41604311b100da5a871098b3a')
 
+        shutil.rmtree(tempdir)
 
 
     def test_get_sha1_treeish_for_self_bundle_fail(self):
