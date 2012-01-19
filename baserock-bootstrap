@@ -780,7 +780,7 @@ pass2_build_with_morph_in_chroot()
 set -e
 set -x
 
-/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
+#/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 python ./morph --verbose build \
