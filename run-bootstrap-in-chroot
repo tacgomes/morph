@@ -17,7 +17,7 @@ mkdir "$dir"
 debootstrap \
 --include=build-essential,\
 gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
-help2man,texinfo,sudo \
+help2man,texinfo,sudo,qemu-utils,parted,kpartx,mbr,extlinux \
 squeeze "$dir" "$mirror"
 
 hostname > "$dir/etc/hostname"
