@@ -25,6 +25,9 @@ class Blob(object):
     def add_parent(self, parent):
         self.parents.append(parent)
 
+    def remove_parent(self, parent):
+        self.parents.remove(parent)
+
     def add_dependency(self, other):
         self.dependencies.append(other)
         other.dependents.append(self)
@@ -43,7 +46,7 @@ class Blob(object):
         else:
             return { self.morph.name: ['.'] }
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         return str(self.morph)
 
 
