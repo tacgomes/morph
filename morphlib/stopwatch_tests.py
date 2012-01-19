@@ -32,7 +32,7 @@ class StopwatchTests(unittest.TestCase):
         self.stopwatch.tick('tick', 'a')
         self.assertTrue(self.stopwatch.times('tick'))
         self.assertTrue(self.stopwatch.time('tick', 'a'))
-        self.assertIn('a', self.stopwatch.times('tick'))
+        self.assertTrue('a' in self.stopwatch.times('tick'))
         self.assertEqual(self.stopwatch.time('tick', 'a'),
             self.stopwatch.times('tick')['a'])
         
@@ -60,16 +60,16 @@ class StopwatchTests(unittest.TestCase):
     def test_with(self):
         with self.stopwatch('foo'):
             pass
-        self.assert_(self.stopwatch.start_stop_seconds('foo') < 1.0)
+        self.assertTrue(self.stopwatch.start_stop_seconds('foo') < 1.0)
         
     def test_with_within_with(self):
         with self.stopwatch('foo'):
             with self.stopwatch('bar'):
                 pass
-        self.assert_(self.stopwatch.start_time('foo'))
-        self.assert_(self.stopwatch.stop_time('foo'))
-        self.assert_(self.stopwatch.start_time('bar'))
-        self.assert_(self.stopwatch.stop_time('bar'))
-        self.assert_(self.stopwatch.start_stop_seconds('foo') < 1.0)
-        self.assert_(self.stopwatch.start_stop_seconds('bar') < 1.0)
+        self.assertTrue(self.stopwatch.start_time('foo') is not None)
+        self.assertTrue(self.stopwatch.stop_time('foo') is not None)
+        self.assertTrue(self.stopwatch.start_time('bar') is not None)
+        self.assertTrue(self.stopwatch.stop_time('bar') is not None)
+        self.assertTrue(self.stopwatch.start_stop_seconds('foo') < 1.0)
+        self.assertTrue(self.stopwatch.start_stop_seconds('bar') < 1.0)
 
