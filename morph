@@ -32,8 +32,11 @@ class Morph(cliapp.Application):
 
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'], 'show what is happening')
-        self.settings.string(['git-base-url'],
+        self.settings.string_list(['git-base-url'],
                              'prepend URL to git repos that are not URLs',
+                             metavar='URL')
+        self.settings.string(['bundle-server'],
+                             'base URL to download bundles',
                              metavar='URL')
         self.settings.string(['cachedir'], 
                              'put build results in DIR (default: %default)',
