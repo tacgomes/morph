@@ -30,6 +30,16 @@ class MockFile(StringIO.StringIO):
 
 class MorphologyTests(unittest.TestCase):
 
+    def test_fails_invalid_chunk_morphology(self):
+        def failtest():
+            morph = morphlib.morphology.Morphology(
+                          'repo', 'ref',
+                          MockFile('''
+                            {
+                                "name": "hello",
+                            }'''))
+        self.assertRaises(ValueError, failtest)
+ 
     def test_accepts_valid_chunk_morphology(self):
         morph = morphlib.morphology.Morphology(
                           'repo', 'ref',

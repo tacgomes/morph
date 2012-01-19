@@ -4,25 +4,30 @@ set -e
 set +h
 set -u
 
+BASEDIR=$(dirname $(readlink -f $0))
+
 LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
 SNAPSHOT="${1:-'no'}"
 
-JOBS=$((echo -n '1.5*'; grep -c '^processor' /proc/cpuinfo) | 
-       bc -lq | 
-       sed 's/\..*//')
+CPUS=$(grep -c '^processor' /proc/cpuinfo)
+JOBS=$(expr 2 '*' $CPUS)
 
 export LC_ALL=C
 export LFS_TGT=$(uname -m)-lfs-linux-gnu
-export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
-HOST_CP=/bin/cp
-HOST_MKDIR=/bin/mkdir
-HOST_DIRNAME=/usr/bin/dirname
-HOST_SED=/bin/sed
-HOST_SUDO=/usr/bin/sudo
+HOST_CAT=`which cat`
+HOST_CP=`which cp`
+HOST_MKDIR=`which mkdir`
+HOST_DIRNAME=`which dirname`
+HOST_SED=`which sed`
+HOST_SUDO=`which sudo`
+HOST_READLINK=`which readlink`
+HOST_CHMOD=`which chmod`
+
+export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
 download()
 {
@@ -41,7 +46,7 @@ download_all()
     while read url
     do
         download "$url"
-    done < "$(dirname $0)/wget-list"
+    done < "$BASEDIR/wget-list"
 }
 
 
@@ -71,8 +76,10 @@ pass1_directories()
     [ -e "$LFS/sys" ] || $HOST_MKDIR -p "$LFS/sys"
     [ -e "$LFS/tmp" ] || $HOST_MKDIR -p "$LFS/tmp"
     [ -e "$LFS/dev" ] || $HOST_MKDIR -p "$LFS/dev"
-    [ -e "$LFS/dev/console" ] || sudo mknod -m 600 "$LFS/dev/console" c 5 1
-    [ -e "$LFS/dev/null" ] || sudo mknod -m 666 "$LFS/dev/null" c 1 3
+    [ -e "$LFS/dev/console" ] || $HOST_SUDO mknod -m 600 "$LFS/dev/console" c 5 1
+    [ -e "$LFS/dev/null" ] || $HOST_SUDO mknod -m 666 "$LFS/dev/null" c 1 3
+    [ -e "$LFS/dev/random" ] || $HOST_SUDO mknod -m 644 "$LFS/dev/random" c 1 8
+    [ -e "$LFS/dev/urandom" ] || $HOST_SUDO mknod -m 644 "$LFS/dev/urandom" c 1 9
 }
 
 
@@ -367,6 +374,7 @@ pass1_bash()
         make -j$JOBS
 #       make tests
         make install
+	ln -s "$tools/bin/bash" "$tools/bin/sh"
         rm -rf "$sources/bash-4.2"
     fi
 }
@@ -467,18 +475,16 @@ pass1_gawk()
 }
 
 
-pass1_gettext_msgfmt()
+pass1_gettext()
 {
     echo "Building gettext"
     if [ ! -e "$tools/bin/msgfmt" ]
     then
         unpack gettext-0.18.1.1
         cd "$sources/gettext-0.18.1.1"
-        cd gettext-tools
-        ./configure --prefix="$tools" --disable-shared
-        make -C gnulib-lib
-        make -C src msgfmt
-        cp -v src/msgfmt "$tools/bin"
+        ./configure --prefix="$tools"
+        make -j$JOBS
+        make install
         rm -rf "$sources/gettext-0.18.1.1"
     fi
 }
@@ -605,7 +611,8 @@ pass1_tar()
     then
         unpack tar-1.26
         cd "$sources/tar-1.26"
-        ./configure --prefix="$tools"
+	# mknod check fails without
+        FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix="$tools"
         make -j$JOBS
 #       make check
         make install
@@ -703,7 +710,7 @@ pass1_strip_tools()
 
 pass1_fix_perms()
 {
-    sudo -p'Password for chown: ' chown -R root:root "$LFS"
+    $HOST_SUDO -p'Password for chown: ' chown -R root:root "$LFS"
 }
 
 
@@ -730,30 +737,38 @@ pass2_prepare_for_chroot()
         /bin/ln -s / "$LFS/$LFS"
     fi
 
-    $HOST_SUDO mkdir -p "$LFS/etc"
-    $HOST_SUDO chmod 777 "$LFS/etc"
-    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
-    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
-    cat <<EOF > "$LFS/etc/ld.so.conf"
+    if [ ! -d "$LFS/etc" ]
+    then
+	    $HOST_SUDO mkdir -p "$LFS/etc"
+	    $HOST_SUDO chmod 777 "$LFS/etc"
+	    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
+	    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
+	    cat <<EOF > "$LFS/etc/ld.so.conf"
 /lib64
 /lib
 /usr/lib64
 /usr/lib
 EOF
+    fi
     
     $HOST_MKDIR -p "$LFS/etc"
-    echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
-    echo 'root::0:' > "$LFS/etc/group"
+    [ -e "$LFS/etc/passwd" ] || echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
+    [ -e "$LFS/etc/group" ] || echo 'root::0:' > "$LFS/etc/group"
 
-    echo 'baserock-boot' | 
+    [ -e "$LFS/etc/hostname" ] || echo 'baserock-boot' | 
         $HOST_SUDO /usr/bin/tee "$LFS/etc/hostname" > /dev/null
 
     # Add symlinks for common locations of specific tools
     # These are needed for #! lines in scripts
-    $HOST_MKDIR -p "$LFS/bin"
-    $HOST_SUDO ln -sf ../tools/bin/sh "$LFS/bin/sh"
-    $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
-    $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
+    [ -e "$LFS/bin" ] || $HOST_MKDIR -p "$LFS/bin"
+    [ -e "$LFS/bin/sh" ] || $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/sh"
+    [ -e "$LFS/bin/bash" ] || $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
+    [ -e "$LFS/bin/pwd" ] || $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
+    [ -e "$LFS/bin/echo" ] || $HOST_SUDO ln -sf ../tools/bin/echo "$LFS/bin/echo"
+    if [ ! -e "$LFS/usr/bin/perl" ]; then
+        $HOST_MKDIR -p $LFS/usr/bin
+        $HOST_SUDO ln -sf ../../tools/bin/perl "$LFS/usr/bin/perl"
+    fi
 }
 
 
@@ -779,23 +794,29 @@ python ./morph --verbose build \
         --max-jobs=1 \
         --git-base-url=file:///baserock/gits/
 EOF
-    chmod +x "$LFS/baserock/build.sh"
-    if ! mount | grep "$LFS/proc" >/dev/null
-    then
-        $HOST_SUDO mount -t proc proc "$LFS/proc"
+    $HOST_CHMOD +x "$LFS/baserock/build.sh"
+    local do_chroot="$BASEDIR/do-chroot"
+    if [ ! -e "$do_chroot" ]; then
+        $HOST_CAT >"$do_chroot" <<EOF
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    $HOST_SUDO mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
+fi
+$HOST_SUDO $HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+$HOST_SUDO /usr/sbin/chroot "$LFS" \\
+    /tools/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \\
+    BOOTSTRAP_TOOLS="$LFS/tools" \\
+    "\${@-\$SHELL}"
+$HOST_SUDO umount "$LFS/proc" "$LFS/sys"
+EOF
+        $HOST_CHMOD +x "$do_chroot"
     fi
-    if ! mount | grep "$LFS/sys" >/dev/null
-    then
-        $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
-    fi
-    ldpath="/lib:/lib64:/usr/lib:/usr/lib64:/tools/lib:/tools/lib64"
-    $HOST_SUDO /usr/sbin/chroot "$LFS" \
-        /tools/bin/env -i HOME=/baserock TERM=$TERM \
-        PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \
-        LD_LIBRARY_PATH="$ldpath" \
-        BOOTSTRAP_TOOLS="$LFS/tools" \
-        /baserock/build.sh
-    $HOST_SUDO umount "$LFS/proc" "$LFS/sys"
+    "$do_chroot" /baserock/build.sh
 }
 
 
@@ -865,25 +886,25 @@ pass1_gcc_2
 pass1_sanity_check
 pass1_zlib
 pass1_ncurses
-pass1_busybox
+#pass1_busybox
 pass1_bash
-#pass1_bzip2
-#pass1_coreutils
-#pass1_diffutils
+pass1_bzip2
+pass1_coreutils
+pass1_diffutils
 pass1_file
-#pass1_findutils
+pass1_findutils
 pass1_gawk
-pass1_gettext_msgfmt
-#pass1_grep
+pass1_gettext
+pass1_grep
 pass1_gzip
 pass1_m4
 pass1_make
 pass1_patch
 pass1_perl
-#pass1_sed
-#pass1_tar
+pass1_sed
+pass1_tar
 pass1_texinfo
-#pass1_xz
+pass1_xz
 pass1_python
 pass1_cliapp
 pass1_git
@@ -893,8 +914,8 @@ pass1_git
 if [ "$SNAPSHOT" = yes ]
 then
     cd "$LFS/.."
-    tar -caf tree-snapshot.tar.gz tree
-    echo "See snapshot in tree-snapshot.tar.gz"
+    tar -caf tree-snapshot.tar tree
+    echo "See snapshot in tree-snapshot.tar"
     exit
 fi
 

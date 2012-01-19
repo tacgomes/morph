@@ -11,7 +11,7 @@ mkdir "$dir"
 
 debootstrap \
 --include=build-essential,\
-bc,gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
+gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo \
 squeeze "$dir" "$mirror"
 
