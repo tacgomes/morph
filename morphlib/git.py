@@ -70,6 +70,7 @@ class Treeish:
         try:
                 binascii.unhexlify(ref)
                 ex = morphlib.execute.Execute(self.repo, self.msg)
+                # TODO why is refs unused here? can we remove it?
                 refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
                 self.sha1=ref
         except (TypeError, morphlib.execute.CommandFailure):
@@ -78,12 +79,14 @@ class Treeish:
 def export_sources(treeish, tar_filename):
     '''Export the contents of a specific commit into a compressed tarball.'''
     ex = morphlib.execute.Execute('.', msg=logging.debug)
-    ex.runv(['git', 'archive', '-o', tar_filename, '--remote', treeish.repo, treeish.sha1])
+    ex.runv(['git', 'archive', '-o', tar_filename, '--remote', treeish.repo,
+             treeish.sha1])
 
 def get_morph_text(treeish, filename):
     '''Return a morphology from a git repository.'''
     ex = morphlib.execute.Execute(treeish.repo, msg=logging.debug)
-    return ex.runv(['git', 'cat-file', 'blob', '%s:%s' % (treeish.sha1, filename)])
+    return ex.runv(['git', 'cat-file', 'blob', '%s:%s'
+                   % (treeish.sha1, filename)])
 
 def extract_bundle(location, bundle):
     '''Extract a bundle into git at location'''
