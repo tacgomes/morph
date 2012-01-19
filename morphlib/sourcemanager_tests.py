@@ -74,7 +74,7 @@ class SourceManagerTests(unittest.TestCase):
     def test_get_sha1_treeish_for_self_bundle(self):
         tempdir = tempfile.mkdtemp()
         bundle_server_loc = tempdir+'/bundle_server'
-	os.mkdir(bundle_server_loc)
+        os.mkdir(bundle_server_loc)
         bundle_name = morphlib.sourcemanager.quote_url(os.getcwd()) + '.bndl'
         shutil.copy(os.getcwd() +'/testdata/morph.bndl', bundle_server_loc + '/' +bundle_name)
 
@@ -84,7 +84,7 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(tempdir, app)
 
         def wget(url):
-       	    path=urlparse(url).path
+            path=urlparse(url).path
             shutil.copy(path, s.source_cache_dir)
 
         s._wget = wget

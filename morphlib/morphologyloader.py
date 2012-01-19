@@ -46,8 +46,8 @@ class MorphologyLoader(object):
             return morph
 
     def _get_morph_text(self, repo, ref, filename): # pragma: no cover
-	path = urlparse.urlparse(repo).path
-	t = morphlib.git.Treeish(path, ref)
+        path = urlparse.urlparse(repo).path
+        t = morphlib.git.Treeish(path, ref)
         return morphlib.git.get_morph_text(t, filename)
 
     def _get_morph_from_git(self, repo, ref, filename):

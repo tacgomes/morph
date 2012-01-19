@@ -64,11 +64,11 @@ class Treeish:
             self._is_sha(ref)
 
     def _is_sha(self, ref):
-	if len(ref)!=40:
+        if len(ref)!=40:
             raise InvalidTreeish(self.repo,ref)
 
         try:
-                binascii.unhexlify(ref)	
+                binascii.unhexlify(ref)
                 ex = morphlib.execute.Execute(self.repo, self.msg)
                 refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
                 self.sha1=ref

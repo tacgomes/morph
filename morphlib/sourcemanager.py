@@ -35,7 +35,7 @@ urlparse.uses_fragment.extend(gitscheme)
 
 _valid_chars = string.digits + string.letters + ':%_'
 
-def quote_url(url):	
+def quote_url(url):
     transl = lambda x: x if x in _valid_chars else '_'
     return ''.join([transl(x) for x in url])
 
@@ -80,9 +80,9 @@ class SourceManager(object):
             try:
                 urllib2.urlopen(req)
                 self._wget(lookup_url)
-		bundle = self.source_cache_dir + '/' + bundle
+                bundle = self.source_cache_dir + '/' + bundle
             except urllib2.URLError, e:
-		self.msg("Unable to find bundle %s on %s" % (bundle, bundle_server))
+                self.msg("Unable to find bundle %s on %s" % (bundle, bundle_server))
                 bundle=None
         try:
             if bundle:
@@ -128,7 +128,7 @@ class SourceManager(object):
             
             success, gitcache = self._get_git_cache(full_repo);
 
-        if not success:	
+        if not success:
             raise SourceNotFound(repo,ref)
 
         self.msg("creating treeish for %s ref %s" % (gitcache,ref))
