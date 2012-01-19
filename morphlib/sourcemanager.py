@@ -104,6 +104,16 @@ class SourceManager(object):
         ex.runv(['wget', '-c', url])
 
     def get_treeish(self, repo, ref):
+        '''Returns a Treeish for a URL or repo name with a given reference.
+
+        If the source hasn't been cloned yet, this will fetch it, either using
+        clone or by fetching a bundle. 
+        
+        Raises morphlib.git.InvalidTreeish if the reference cannot be found.
+        Raises morphlib.sourcemanager.SourceNotFound if source cannot be found.
+
+        '''
+
         self.msg('checking cache for git %s|%s' % (repo, ref))
 
         #TODO is it actually an error to have no base url? 

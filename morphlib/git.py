@@ -70,8 +70,7 @@ class Treeish:
         try:
                 binascii.unhexlify(ref)
                 ex = morphlib.execute.Execute(self.repo, self.msg)
-                # TODO why is refs unused here? can we remove it?
-                refs = ex.runv(['git', 'rev-list', '--no-walk', ref])
+                ex.runv(['git', 'rev-list', '--no-walk', ref])
                 self.sha1=ref
         except (TypeError, morphlib.execute.CommandFailure):
             raise InvalidTreeish(self.repo,ref)
