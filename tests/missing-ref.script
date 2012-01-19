@@ -24,4 +24,4 @@ cache="$DATADIR/build-chunk-cache"
     --cachedir="$cache" --keep-path --no-distcc 2> "$DATADIR/build-chunk-cache.stderr"
 err=$?
 cat "$DATADIR/build-chunk-cache.stderr" | sed "s%$DATADIR%%" 1>&2
-exit $?
+exit $err
