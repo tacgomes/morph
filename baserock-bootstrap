@@ -835,6 +835,7 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO mkfs -t ext4 "$part"
     mp="$(mktemp -d)"
     $HOST_SUDO mount "$part" "$mp"
+    trap "$HOST_SUDO umount $part; $HOST_SUDO kpartx -dv $img" EXIT
 
     for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
     do
