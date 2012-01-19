@@ -17,6 +17,9 @@
 
 set -e
 
+# Setting all these means that we will always create a repository
+# with identical commit sha1s
+
 GIT_AUTHOR_NAME="An Author"
 GIT_AUTHOR_EMAIL="an.author@test.org"
 GIT_AUTHOR_DATE=2005-04-07T22:13:13
