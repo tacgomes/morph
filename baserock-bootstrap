@@ -800,6 +800,8 @@ EOF
     local do_chroot="$BASEDIR/do-chroot"
     if [ ! -e "$do_chroot" ]; then
         $HOST_CAT >"$do_chroot" <<EOF
+set -e
+set -x
 if ! mount | grep "$LFS/proc" >/dev/null
 then
     $HOST_SUDO mount -t proc proc "$LFS/proc"
