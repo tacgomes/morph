@@ -55,60 +55,43 @@ cat <<EOF > "$dir/etc/hosts"
 127.0.1.1   $(hostname)
 EOF
 
-cp baserock-bootstrap "$dir/."
-mkdir -p "$dir/tree/baserock"
-cp -r "$HOME/baserock/gits" "$dir/tree/baserock/gits"
-sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
-
+# Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
 if [ "$snapshot" = yes ] && [ -e "$snapshotdir/pass1-snapshot.tar" ]
 then
-    if tar -C "$dir" -xf "$snapshotdir/pass1-snapshot.tar"
-    then
-        exit=0
-    else
-        exit=$?
-    fi
-elif [ "$snapshot" = yes ]
-then
-    if mount_virtual "$dir" && chroot "$dir" bash -x baserock-bootstrap yes &&
-       unmount_virtual "$dir"
-    then
-        if tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
-        then
-            if mount_virtual "$dir" &&
-               chroot "$dir" bash -x baserock-bootstrap no &&
-               unmount_virtual "$dir"
-            then
-                exit=0
-            else
-                exit=$?
-            fi
-        else
-            exit=$?
-        fi
-    else
-        exit=$?
-    fi
+    tar -C "$dir" -xf "$snapshotdir/pass1-snapshot.tar"
 else
     if mount_virtual "$dir" && 
-       chroot "$dir" bash -x baserock-bootstrap no &&
+       chroot "$dir" bash -x baserock-bootstrap yes &&
        unmount_virtual "$dir"
     then
-        exit=0
+        :
     else
-        exit=$?
+        unmount_virtual "$dir"
+        exit 1
+    fi
+
+    if [ "$snapshot" = yes ]
+    then
+        tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
     fi
 fi
 
-if [ "$exit" = 0 ] && 
-   mount_virtual "$dir" &&
-   chroot "$dir" bash -x baserock-bootstrap no &&
+# Update the git repos.
+mkdir -p "$dir/tree/baserock"
+rm -rf "$dir/tree/baserock/gits"
+cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
+
+# Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
+# it's already built.
+cp baserock-bootstrap "$dir/."
+sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
+if mount_virtual "$dir" && 
+   chroot "$dir" bash -x baserock-bootstrap yes &&
    unmount_virtual "$dir"
 then
-    exit=0
+    :
 else
-    exit=$?
+    unmount_virtual "$dir"
+    exit 1
 fi
 
-unmount_virtual "$dir"
-exit $exit
