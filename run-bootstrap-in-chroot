@@ -28,8 +28,8 @@ else
 fi
 mirror="http://192.168.1.185/debian"
 
-umount "$dir/proc" || true
-umount "$dir/sys" || true
+
+unmount_virtual "$dir"
 rm -rf "$dir"
 mkdir "$dir"
 
@@ -86,7 +86,7 @@ cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 cp baserock-bootstrap "$dir/."
 sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
 if mount_virtual "$dir" && 
-   chroot "$dir" bash -x baserock-bootstrap yes &&
+   chroot "$dir" bash -x baserock-bootstrap no &&
    unmount_virtual "$dir"
 then
     :
