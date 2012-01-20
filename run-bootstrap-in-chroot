@@ -62,7 +62,7 @@ elif [ "$snapshot" = yes ]
 then
     if chroot "$dir" bash -x baserock-bootstrap yes
     then
-        if tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar"
+        if tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
         then
             if chroot "$dir" bash -x baserock-bootstrap no
             then
