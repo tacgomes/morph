@@ -10,7 +10,7 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-SNAPSHOT="${1:-'no'}"
+PASS1ONLY="${1:-'no'}"
 
 CPUS=$(grep -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
@@ -914,11 +914,9 @@ pass1_git
 #pass1_strip_tools
 #pass1_fix_perms
 
-if [ "$SNAPSHOT" = yes ]
+if [ "$PASS1ONLY" = yes ]
 then
-    cd "$LFS/.."
-    tar -caf tree-snapshot.tar tree
-    echo "See snapshot in tree-snapshot.tar"
+    echo "Only doing pass1"
     exit
 fi
 
@@ -926,3 +924,4 @@ pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
 pass2_build_devel_system_outside_chroot
+
