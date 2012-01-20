@@ -2,6 +2,18 @@
 
 set -e
 
+mount_virtual()
+{
+    mount -t proc proc "$1/proc"
+    mount -t sysfs sysfs "$1/sys"
+}
+
+unmount_virtual()
+{
+    umount "$1/proc" || true
+    umount "$1/sys" || true
+}
+
 export LC_ALL=C
 
 if [ "x$1" = x ]
@@ -47,8 +59,6 @@ cp baserock-bootstrap "$dir/."
 mkdir -p "$dir/tree/baserock"
 cp -r "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
-mount -t proc proc "$dir/proc"
-mount -t sysfs sysfs "$dir/sys"
 
 if [ "$snapshot" = yes ] && [ -e "$snapshotdir/pass1-snapshot.tar" ]
 then
@@ -60,15 +70,14 @@ then
     fi
 elif [ "$snapshot" = yes ]
 then
-    if chroot "$dir" bash -x baserock-bootstrap yes
+    if mount_virtual "$dir" && chroot "$dir" bash -x baserock-bootstrap yes &&
+       unmount_virtual "$dir"
     then
-        if umount "$dir/proc" && 
-           umount "$dir/sys" &&
-           tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
-           mount -t proc proc "$dir/proc" &&
-           mount -t proc proc "$dir/proc"
+        if tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
         then
-            if chroot "$dir" bash -x baserock-bootstrap no
+            if mount_virtual "$dir" &&
+               chroot "$dir" bash -x baserock-bootstrap no &&
+               unmount_virtual "$dir"
             then
                 exit=0
             else
@@ -81,7 +90,9 @@ then
         exit=$?
     fi
 else
-    if chroot "$dir" bash -x baserock-bootstrap no
+    if mount_virtual "$dir" && 
+       chroot "$dir" bash -x baserock-bootstrap no &&
+       unmount_virtual "$dir"
     then
         exit=0
     else
@@ -89,13 +100,15 @@ else
     fi
 fi
 
-if [ "$exit" = 0 ] && chroot "$dir" bash -x baserock-bootstrap no
+if [ "$exit" = 0 ] && 
+   mount_virtual "$dir" &&
+   chroot "$dir" bash -x baserock-bootstrap no &&
+   unmount_virtual "$dir"
 then
     exit=0
 else
     exit=$?
 fi
 
-umount "$dir/sys"
-umount "$dir/proc"
+unmount_virtual "$dir"
 exit $exit
