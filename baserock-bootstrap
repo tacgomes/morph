@@ -800,6 +800,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot"
     if [ ! -e "$do_chroot" ]; then
         $HOST_CAT >"$do_chroot" <<EOF
+trap "umount $LFS/proc $LFS/sys" EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
