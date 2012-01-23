@@ -94,33 +94,33 @@ def export_sources(treeish, tar_filename):
     ex.runv(['git', 'archive', '-o', tar_filename, '--remote',
              'file://%s' % treeish.repo, treeish.sha1])
 
-def get_morph_text(treeish, filename):
+def get_morph_text(treeish, filename, msg=logging.debug):
     '''Return a morphology from a git repository.'''
-    ex = morphlib.execute.Execute(treeish.repo, msg=logging.debug)
+    ex = morphlib.execute.Execute(treeish.repo, msg=msg)
     return ex.runv(['git', 'cat-file', 'blob', '%s:%s'
                    % (treeish.sha1, filename)])
 
-def extract_bundle(location, bundle):
+def extract_bundle(location, bundle, msg=logging.debug):
     '''Extract a bundle into git at location'''
-    ex = morphlib.execute.Execute(location, msg=logging.debug)
+    ex = morphlib.execute.Execute(location, msg=msg)
     return ex.runv(['git', 'bundle', 'unbundle', bundle])
 
-def clone(location, repo):
+def clone(location, repo, msg=logging.debug):
     '''clone at git repo into location'''
-    ex = morphlib.execute.Execute('.', msg=logging.debug)
+    ex = morphlib.execute.Execute('.', msg=msg)
     return ex.runv(['git', 'clone', repo, location])
 
-def init(location):
+def init(location, msg=logging.debug):
     '''initialise git repo at location'''
     os.mkdir(location)
-    ex = morphlib.execute.Execute(location, msg=logging.debug)
+    ex = morphlib.execute.Execute(location, msg=msg)
     return ex.runv(['git', 'init'])
 
-def add_remote(gitdir, name, url):
+def add_remote(gitdir, name, url, msg=logging.debug):
     '''add remote with name 'name' for url at gitdir'''
-    ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
+    ex = morphlib.execute.Execute(gitdir, msg=msg)
     return ex.runv(['git', 'remote', 'add', '-f', name, url])
 
-def update_remote(gitdir, name):
-    ex = morphlib.execute.Execute(gitdir, msg=logging.debug)
+def update_remote(gitdir, name, msg=logging.debug):
+    ex = morphlib.execute.Execute(gitdir, msg=msg)
     return ex.runv(['git', 'remote', 'update', name])

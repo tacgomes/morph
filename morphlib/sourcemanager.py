@@ -47,62 +47,74 @@ class SourceNotFound(Exception):
 class SourceManager(object):
 
     def __init__(self, app, cachedir=None):
-        self.msg = app.msg
+        self.real_msg = app.msg
         self.settings = app.settings
         self.cached_treeishes = {}
         self.cache_dir = cachedir 
         if not self.cache_dir:
             self.cache_dir = os.path.join(app.settings['cachedir'], 'gits')
+        self.indent = 0
+
+    def indent_more(self):
+        self.indent += 1
+    
+    def indent_less(self):
+        self.indent -= 1
+
+    def msg(self, text):
+        spaces = '  ' * self.indent
+        self.real_msg('%s%s' % (spaces, text))
 
     def _get_git_cache(self, repo):
         name = quote_url(repo)
         location = self.cache_dir + '/' + name
 
         if os.path.exists(location):
-            #self.msg('Updating cached version of %s' % location)
-            morphlib.git.update_remote(location, "origin")
+            self.msg('Have a cached clone, update origin')
+            morphlib.git.update_remote(location, "origin", self.msg)
             return True, location
+        else:
+            self.msg('Need to clone from %s' % repo)
 
-        success = False
-
-        #self.msg('Making sure we have a local cache of the git repo')
-
-        bundle = None
-        if self.settings['bundle-server']:
-            bundle_server = self.settings['bundle-server']
-            if not bundle_server.endswith('/'):
-                bundle_server += '/'
-            #self.msg("  Using bundle server %s, looking for bundle for %s" %
-            #         (bundle_server, name))
-            bundle = name + ".bndl"
-            lookup_url = urlparse.urljoin(bundle_server, bundle)
-            #self.msg('  Checking for bundle %s' % lookup_url)
-            req = urllib2.Request(lookup_url)
-
-            try:
-                urllib2.urlopen(req)
-                self._wget(lookup_url)
-                bundle = self.cache_dir + '/' + bundle
-            except urllib2.URLError:
-                #self.msg("  Unable to find bundle %s on %s" %
-                #         (bundle, bundle_server))
-                bundle = None
-        try:
-            if bundle:
-                #self.msg("  Initialising git repo at %s" % location)
-                morphlib.git.init(location)
-                #self.msg("extracting bundle %s into %s" % (bundle, location))
-                morphlib.git.extract_bundle(location, bundle)
-                #self.msg("  Adding origin %s" % repo)
-                morphlib.git.add_remote(location,'origin', repo)
-            else:
-                #self.msg("  Cloning %s into %s" % (repo, location))
-                morphlib.git.clone(location, repo)
-            success = True
-        except morphlib.execute.CommandFailure:
             success = False
-                
-        return success, location
+
+            bundle = None
+            if self.settings['bundle-server']:
+                bundle_server = self.settings['bundle-server']
+                if not bundle_server.endswith('/'):
+                    bundle_server += '/'
+                self.msg('Using bundle server %s, looking for bundle for %s' %
+                         (bundle_server, name))
+                bundle = name + ".bndl"
+                lookup_url = urlparse.urljoin(bundle_server, bundle)
+                self.msg('Checking for bundle %s' % lookup_url)
+                req = urllib2.Request(lookup_url)
+
+                try:
+                    urllib2.urlopen(req)
+                    self._wget(lookup_url)
+                    bundle = self.cache_dir + '/' + bundle
+                except urllib2.URLError:
+                    self.msg('Unable to find bundle %s on %s' %
+                             (bundle, bundle_server))
+                    bundle = None
+            try:
+                if bundle:
+                    self.msg('Initialising repository at %s' % location)
+                    morphlib.git.init(location, self.msg)
+                    self.msg('Extracting bundle %s into %s' %
+                             (bundle, location))
+                    morphlib.git.extract_bundle(location, bundle, self.msg)
+                    self.msg('Adding origin %s' % repo)
+                    morphlib.git.add_remote(location,'origin', repo, self.msg)
+                else:
+                    self.msg('Cloning %s into %s' % (repo, location))
+                    morphlib.git.clone(location, repo, self.msg)
+                success = True
+            except morphlib.execute.CommandFailure:
+                success = False
+                    
+            return success, location
             
     def _wget(self,url): # pragma: no cover
         ex = morphlib.execute.Execute(self.cache_dir, msg=self.msg)
@@ -119,24 +131,33 @@ class SourceManager(object):
 
         '''
 
-        #TODO is it actually an error to have no base url? 
-        base_urls = self.settings['git-base-url']
-        success = False;
+        # load the corresponding treeish on demand
+        if (repo, ref) not in self.cached_treeishes:
+            #TODO is it actually an error to have no base url? 
+            base_urls = self.settings['git-base-url']
+            success = False
 
-        for base_url in base_urls:    
-            if success:
-                #self.msg("success!")
-                break
+            for base_url in base_urls:    
+                if not base_url.endswith('/'):
+                    base_url += '/'
+                full_repo = urlparse.urljoin(base_url, repo)
+                
+                self.msg('Updating repository %s' % quote_url(full_repo))
+                self.indent_more()
 
-            if not base_url.endswith('/'):
-                base_url += '/'
-            full_repo = urlparse.urljoin(base_url, repo)
-            
-            success, gitcache = self._get_git_cache(full_repo);
+                success, gitcache = self._get_git_cache(full_repo)
 
-        if not success:
-            raise SourceNotFound(repo,ref)
+                if success:
+                    # create the treeish; cache it to avoid loading it twice
+                    treeish = Treeish(gitcache, repo, ref, self.msg)
+                    self.cached_treeishes[(repo, ref)] = treeish
+                else:
+                    raise SourceNotFound(repo,ref)
 
-        #self.msg("creating treeish for %s ref %s" % (gitcache, ref))
-        treeish = Treeish(gitcache, repo, ref, self.msg)
-        return treeish
+                self.indent_less()
+
+                if success:
+                    break
+
+        # we should now have a cached treeish either way
+        return self.cached_treeishes[(repo, ref)]
