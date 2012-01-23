@@ -67,6 +67,12 @@ class Morph(cliapp.Application):
                               metavar='TIMEOUT',
                               default=10)
 
+        self.settings.string_list(['worker'],
+                                  'IP or host name of a machine to distribute '
+                                  'build work to',
+                                  metavar='HOSTNAME')
+
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -102,7 +108,7 @@ class Morph(cliapp.Application):
 
             # build things in this order
             ret.append(builder.build(blobs, order))
-        
+
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)
         ex.runv(["rm", "-rf", tempdir.dirname])
@@ -111,20 +117,20 @@ class Morph(cliapp.Application):
             raise cliapp.AppException('Extra args on command line: %s' % args)
 
         return ret
-            
+
     def cmd_testsysimg(self, args):
         '''Run tests for a built system image.
-        
+
         Command line arguments are the filename of the system image,
         and the filenames of the Python modules that contain the test
         "stories". Each module must have a variable called "story",
         which is a list of tuples. Each tuple is either two strings
         (one to send, the other a regular expression for what is expected
         in return), or two strings and a timeout in seconds.
-        
+
         testsysimg runs the image under KVM, and accesses it via a
         serial console, and runs the test stories, one by one.
-        
+
         '''
 
         if not args:
@@ -145,11 +151,11 @@ class Morph(cliapp.Application):
 
     def cmd_test(self, args):
         '''Build and test a system morphology.
-        
+
         The tests are specified in the morphology's test-stories field.
-        
+
         '''
-        
+
         for morph, built in self.cmd_build(args):
             if morph.kind == 'system':
                 self.msg('running tests on system %s' % morph.name)
@@ -213,6 +219,52 @@ class Morph(cliapp.Application):
             builder = morphlib.builder.Builder(tempdir, self, morph_loader,
                                                source_manager)
             builder.get_cache_id(blob)
+
+    def cmd_build_distributed(self, args):
+        tempdir = morphlib.tempdir.Tempdir()
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self)
+
+        # create a build controller
+        controller = morphlib.buildcontroller.BuildController(self, tempdir)
+
+        # create and add the build workers
+        if len(self.settings['worker']) == 0:
+            worker = morphlib.buildworker.LocalBuildWorker("local-1", self)
+            controller.add_worker(worker)
+            worker = morphlib.buildworker.LocalBuildWorker("local-2", self)
+            controller.add_worker(worker)
+        else:
+            for worker in self.settings['worker']:
+                worker = morphlib.buildworker.RemoteBuildWorker(self)
+                controller.add_worker(worker)
+
+        result = []
+
+        while len(args) >= 3:
+            # read the build tuple from the command line
+            repo, ref, filename = args[:3]
+            args = args[3:]
+
+            # derive a build order from the dependency graph
+            graph = BuildDependencyGraph(source_manager, morph_loader,
+                                         repo, ref, filename)
+            graph.resolve()
+            blobs, order = graph.build_order()
+
+            self.msg('Building %s|%s|%s' % (repo, ref, filename))
+
+            # build the tuple and all its dependencies
+            result.append(controller.build(blobs, order))
+
+        # we may not have permission to tempdir.remove()
+        ex = morphlib.execute.Execute('.', lambda msg: None)
+        ex.runv(["rm", "-rf", tempdir.dirname])
+
+        if args:
+            raise cliapp.AppException('Extra args on command line: %s' % args)
+
+        return result
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

@@ -22,7 +22,9 @@ __version__ = '0.0'
 
 import bins
 import blobs
+import buildcontroller
 import builddependencygraph
+import buildworker
 import builder
 import cachedir
 import execute

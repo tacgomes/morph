@@ -69,11 +69,11 @@ class SourceManager(object):
         location = self.cache_dir + '/' + name
 
         if os.path.exists(location):
-            self.msg('Have a cached clone, update origin')
+            self.msg('Cached clone exists, updating origin')
             morphlib.git.update_remote(location, "origin", self.msg)
             return True, location
         else:
-            self.msg('Need to clone from %s' % repo)
+            self.msg('No cached clone found, fetching from %s' % repo)
 
             success = False
 
