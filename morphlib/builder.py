@@ -17,7 +17,6 @@
 import json
 import logging
 import os
-import urlparse
 
 import morphlib
 
@@ -106,6 +105,9 @@ class BlobBuilder(object):
             self.dump_memory_profile('after installing chunk')
 
             built_items.append((name, filename))
+
+        # store the logged build times in the cache
+        self.save_build_times()
 
         return built_items
 
