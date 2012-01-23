@@ -22,7 +22,6 @@
 import cliapp
 import logging
 import os
-import urlparse
 
 import morphlib
 from morphlib.morphologyloader import MorphologyLoader

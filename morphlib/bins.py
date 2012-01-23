@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011-2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,9 +25,6 @@ import logging
 import os
 import re
 import tarfile
-import tempfile
-
-import morphlib
 
 
 def create_chunk(rootdir, chunk_filename, regexps, ex,

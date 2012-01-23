@@ -19,7 +19,7 @@ import tempfile
 import shutil
 import os
 import subprocess
-from urlparse import urlparse
+import urlparse
 
 import morphlib
 
@@ -44,7 +44,8 @@ class SourceManagerTests(unittest.TestCase):
         subprocess.call("./tests/show-dependencies.setup", shell=True, env=env)
         self.temprepo = self.temprepodir + '/test-repo/'
         bundle_name = morphlib.sourcemanager.quote_url(self.temprepo) + '.bndl'
-        subprocess.call("git bundle create %s/%s master" % (self.temprepodir, bundle_name),
+        subprocess.call("git bundle create %s/%s master" %
+                        (self.temprepodir, bundle_name),
         shell=True, cwd=self.temprepo)
 
     def tearDown(self):
@@ -105,7 +106,7 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url):
-            path=urlparse(url).path
+            path=urlparse.urlparse(url).path
             shutil.copy(path, s.cache_dir)
 
         s._wget = wget
@@ -124,7 +125,7 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url):
-            path=urlparse(url).path
+            path=urlparse.urlparse(url).path
             shutil.copy(path, s.cache_dir)
 
         s._wget = wget

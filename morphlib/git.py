@@ -15,7 +15,6 @@
 
 
 import logging
-import urlparse
 import binascii
 import morphlib
 import os

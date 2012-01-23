@@ -1,4 +1,4 @@
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011-2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,8 +15,7 @@
 
 
 import operator
-
-from datetime import datetime
+import datetime
 
 
 class Stopwatch(object):
@@ -28,7 +27,7 @@ class Stopwatch(object):
     def tick(self, reference_object, name):
         if not reference_object in self.ticks:
             self.ticks[reference_object] = {}
-        self.ticks[reference_object][name] = datetime.now()
+        self.ticks[reference_object][name] = datetime.datetime.now()
 
     def start(self, reference_object):
         self.tick(reference_object, 'start')

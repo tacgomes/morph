@@ -20,7 +20,6 @@ import urllib2
 import string
 
 import morphlib
-from morphlib.git import Treeish
 
 
 gitscheme=["git",]
@@ -149,7 +148,8 @@ class SourceManager(object):
 
                 if success:
                     # create the treeish; cache it to avoid loading it twice
-                    treeish = Treeish(gitcache, repo, ref, self.msg)
+                    treeish = morphlib.git.Treeish(gitcache, repo, ref,
+                                                   self.msg)
                     self.cached_treeishes[(repo, ref)] = treeish
                 else:
                     raise SourceNotFound(repo,ref)
