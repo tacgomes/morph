@@ -66,8 +66,9 @@ class BuildController(object):
         # log the result of all workers that we are moving from busy to idle
         for worker in finished:
             self.msg('Built %s using worker %s' % (worker.blob, worker))
-            for line in worker.output.split('\n'):
-                self.msg('> %s' % line)
+            if worker.output:
+                for line in worker.output.split('\n'):
+                    self.msg('> %s' % line)
 
         # mark all finished workers as being idle
         for worker in finished:
