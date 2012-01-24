@@ -47,12 +47,11 @@ class BuildController(object):
         self.workers.add(worker)
         self.mark_idle(worker)
 
-    def wait_for_workers(self, need_idle=False, timeout=100):
+    def wait_for_workers(self, need_idle=False, timeout=0.1):
         # first, check if any of the busy workers are finished
         while all(not x.check_complete(timeout) for x in self.busy_workers):
             # wait and repeat if they are all busy and we have no idle workers
             if need_idle and len(self.idle_workers) == 0:
-                self.msg('Waiting for idle workers...')
                 time.sleep(0.250)
             else:
                 break
