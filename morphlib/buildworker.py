@@ -73,6 +73,65 @@ class BuildWorker(object):
     def error(self):
         return self._error
 
+    def options(self):
+        '''Returns an array of command line options for the settings.
+        
+        NOTE: This is just a hack that uses internals of the cliapp.Settings
+        class. We need to merge this kind of functionality into cliapp and
+        remove this hack!
+        
+        '''
+
+        # use the canonical names of the settings to generate cmdline options
+        names = list(self.settings._canonical_names)
+
+        # internal function to combine an option name and a value into string
+        def combine(name, value):
+            if name.startswith('--'):
+                if isinstance(value, bool):
+                    if value:
+                        return '%s' % name
+                else:
+                    return '%s=%s' % (name, value)
+            else:
+                if isinstance(value, bool):
+                    if value:
+                        return '%s' % name
+                else:
+                    return '%s %s' % (name, value)
+
+        # generate a list of (setting name, option name) pairs
+        options_list = []
+        options = self.settings._option_names(names)
+        name_pairs = [(names[i], options[i]) for i in xrange(0, len(names))]
+
+        # convert all settings into command line arguments; drop absent
+        # settings and make sure to convert all values correctly
+        for name, option in name_pairs:
+            value = self.settings[name]
+            if isinstance(value, list):
+                for listval in value:
+                    if isinstance(listval, str):
+                        if len(listval) > 0:
+                            string = combine(option, listval)
+                            if string:
+                                options_list.append(string)
+                    else:
+                        string = combine(option, listval)
+                        if string:
+                            options_list.append(string)
+            else:
+                if isinstance(value, str):
+                    if len(value) > 0:
+                        string = combine(option, value)
+                        if string:
+                            options_list.append(string)
+                else:
+                    string = combine(option, value)
+                    if string:
+                        options_list.append(string)
+        return options_list
+
     def __str__(self):
         return self.name
 
@@ -86,7 +145,9 @@ class LocalBuildWorker(BuildWorker):
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
+        args = self.options()
         cmdline = ['morph', 'build', repo, ref, filename]
+        cmdline.extend(args)
 
         # run morph locally in a child process
         try:
@@ -121,9 +182,14 @@ class RemoteBuildWorker(BuildWorker):
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
-        cmdline = ['ssh', self.hostname]
-        cmdline.extend(['sudo' if sudo else 'fakeroot-sysv'])
+        args = self.options()
+        cmdline = ['ssh']
+        if sudo:
+            cmdline.extend(['-t', '-t', '-t', self.hostname, 'sudo', '-S'])
+        else:
+            cmdline.extend([self.hostname, 'fakeroot'])
         cmdline.extend(['morph', 'build', repo, ref, filename])
+        cmdline.extend(args)
 
         # run morph on the other machine
         try:
