@@ -22,15 +22,15 @@ import morphlib
 
 class BuildWorker(object):
 
-    def __init__(self, name, app):
+    def __init__(self, name, ident, app):
         self.name = name
+        self.ident = ident
         self.settings = app.settings
         self.real_msg = app.msg
         self.indent = 2
         self.idle_since = datetime.datetime.now()
-
-    def __str__(self):
-        return self.name
+        self.manager = Manager()
+        self.reset()
 
     def indent_more(self):
         self.indent += 1
@@ -42,40 +42,13 @@ class BuildWorker(object):
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
-    def build(self, blob):
-        raise NotImplementedError
-
-    def check_complete(self, timeout):
-        raise NotImplementedError
-
-
-class LocalBuildWorker(BuildWorker):
-
-    def __init__(self, name, app):
-        BuildWorker.__init__(self, name, app)
-        self.manager = Manager()
-        self.reset()
-
     def reset(self):
         self.process = None
         self.blob = None
         self._output = self.manager.list()
 
-    def run(self, repo, ref, filename, output):
-        ex = morphlib.execute.Execute('.', self.msg)
-        stdout = ex.runv(['./morph', '--verbose', '--keep-path',
-                          'build', repo, ref, filename])
-        output.append(stdout)
-
     def build(self, blob):
-        self.reset()
-        self.blob = blob
-        args = (blob.morph.treeish.original_repo,
-                blob.morph.treeish.ref,
-                blob.morph.filename,
-                self._output)
-        self.process = Process(group=None, target=self.run, args=args)
-        self.process.start()
+        raise NotImplementedError
 
     def check_complete(self, timeout):
         if self.process:
@@ -90,10 +63,64 @@ class LocalBuildWorker(BuildWorker):
 
     @property
     def output(self):
-        return self._output[0]
+        try:
+            return self._output[0]
+        except IndexError:
+            return None
+
+    def __str__(self):
+        return self.name
+
+
+class LocalBuildWorker(BuildWorker):
+
+    def __init__(self, name, ident, app):
+        BuildWorker.__init__(self, name, ident, app)
+
+    def run(self, repo, ref, filename, output):
+        ex = morphlib.execute.Execute('.', self.msg)
+        stdout = ex.runv(['./morph', '--verbose', '--keep-path',
+                          'build', repo, ref, filename])
+        output.append(stdout)
+        
+        # TODO report errors back to the caller
+
+    def build(self, blob):
+        self.reset()
+        self.blob = blob
+        args = (blob.morph.treeish.original_repo,
+                blob.morph.treeish.ref,
+                blob.morph.filename,
+                self._output)
+        self.process = Process(group=None, target=self.run, args=args)
+        self.process.start()
 
 
 class RemoteBuildWorker(BuildWorker):
 
-    def __init__(self, app):
-        BuildWorker.__init__(self, app)
+    def __init__(self, name, ident, app):
+        BuildWorker.__init__(self, name, ident, app)
+        self.hostname = ident
+
+    def run(self, repo, ref, filename, output):
+        ex = morphlib.execute.Execute('.', self.msg)
+
+        # generate command line options
+        cmdline = ['ssh', self.hostname]
+        cmdline.extend(['fakeroot', 'morph', 'build', repo, ref, filename])
+
+        # run morph on the other machine
+        stdout = ex.runv(cmdline)
+        output.append(stdout)
+
+        # TODO report errors back to the caller
+
+    def build(self, blob):
+        self.reset()
+        self.blob = blob
+        args = (blob.morph.treeish.original_repo,
+                blob.morph.treeish.ref,
+                blob.morph.filename,
+                self._output)
+        self.process = Process(group=None, target=self.run, args=args)
+        self.process.start()

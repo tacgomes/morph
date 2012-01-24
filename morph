@@ -24,6 +24,8 @@ import logging
 import os
 
 import morphlib
+from morphlib import buildworker
+from morphlib import buildcontroller
 from morphlib.morphologyloader import MorphologyLoader
 from morphlib.builddependencygraph import BuildDependencyGraph
 
@@ -226,17 +228,19 @@ class Morph(cliapp.Application):
         source_manager = morphlib.sourcemanager.SourceManager(self)
 
         # create a build controller
-        controller = morphlib.buildcontroller.BuildController(self, tempdir)
+        controller = buildcontroller.BuildController(self, tempdir)
 
         # create and add the build workers
         if len(self.settings['worker']) == 0:
-            worker = morphlib.buildworker.LocalBuildWorker("local-1", self)
-            controller.add_worker(worker)
-            worker = morphlib.buildworker.LocalBuildWorker("local-2", self)
-            controller.add_worker(worker)
+            num_workers = morphlib.util.make_concurrency()
+            for i in range(num_workers):
+                name = controller.generate_worker_name('local')
+                worker = buildworker.LocalBuildWorker(name, 'local', self)
+                controller.add_worker(worker)
         else:
             for worker in self.settings['worker']:
-                worker = morphlib.buildworker.RemoteBuildWorker(self)
+                name = controller.generate_worker_name(worker)
+                worker = buildworker.RemoteBuildWorker(name, worker, self)
                 controller.add_worker(worker)
 
         result = []

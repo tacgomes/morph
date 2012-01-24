@@ -43,6 +43,10 @@ class BuildController(object):
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
+    def generate_worker_name(self, ident):
+        similar_workers = [x for x in self.workers if x.ident == ident]
+        return '%s-%s' % (ident, len(similar_workers) + 1)
+
     def add_worker(self, worker):
         self.workers.add(worker)
         self.mark_idle(worker)
