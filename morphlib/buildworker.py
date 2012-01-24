@@ -46,6 +46,7 @@ class BuildWorker(object):
         self.process = None
         self.blob = None
         self._output = self.manager.list()
+        self._error = self.manager.dict()
 
     def build(self, blob):
         raise NotImplementedError
@@ -68,6 +69,10 @@ class BuildWorker(object):
         except IndexError:
             return None
 
+    @property
+    def error(self):
+        return self._error
+
     def __str__(self):
         return self.name
 
@@ -77,21 +82,31 @@ class LocalBuildWorker(BuildWorker):
     def __init__(self, name, ident, app):
         BuildWorker.__init__(self, name, ident, app)
 
-    def run(self, repo, ref, filename, output):
+    def run(self, repo, ref, filename, output, error):
         ex = morphlib.execute.Execute('.', self.msg)
-        stdout = ex.runv(['./morph', '--verbose', '--keep-path',
-                          'build', repo, ref, filename])
-        output.append(stdout)
-        
-        # TODO report errors back to the caller
 
+        # generate command line options
+        cmdline = ['morph', 'build', repo, ref, filename]
+
+        # run morph locally in a child process
+        try:
+            stdout = ex.runv(cmdline)
+            output.append(stdout)
+        except OSError, e:
+            error['error'] = str(e)
+            error['command'] = ' '.join(cmdline)
+        except morphlib.execute.CommandFailure, e:
+            error['error'] = str(e)
+            error['command'] = ' '.join(cmdline)
+        
     def build(self, blob):
         self.reset()
         self.blob = blob
         args = (blob.morph.treeish.original_repo,
                 blob.morph.treeish.ref,
                 blob.morph.filename,
-                self._output)
+                self._output,
+                self._error)
         self.process = Process(group=None, target=self.run, args=args)
         self.process.start()
 
@@ -102,25 +117,33 @@ class RemoteBuildWorker(BuildWorker):
         BuildWorker.__init__(self, name, ident, app)
         self.hostname = ident
 
-    def run(self, repo, ref, filename, output):
+    def run(self, repo, ref, filename, sudo, output, error):
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
         cmdline = ['ssh', self.hostname]
-        cmdline.extend(['fakeroot', 'morph', 'build', repo, ref, filename])
+        cmdline.extend(['sudo' if sudo else 'fakeroot-sysv'])
+        cmdline.extend(['morph', 'build', repo, ref, filename])
 
         # run morph on the other machine
-        stdout = ex.runv(cmdline)
-        output.append(stdout)
-
-        # TODO report errors back to the caller
-
+        try:
+            stdout = ex.runv(cmdline)
+            output.append(stdout)
+        except OSError, e:
+            error['error'] = str(e)
+            error['command'] = ' '.join(cmdline)
+        except morphlib.execute.CommandFailure, e:
+            error['error'] = str(e)
+            error['command'] = ' '.join(cmdline)
+        
     def build(self, blob):
         self.reset()
         self.blob = blob
         args = (blob.morph.treeish.original_repo,
                 blob.morph.treeish.ref,
                 blob.morph.filename,
-                self._output)
+                blob.morph.kind == 'system',
+                self._output,
+                self._error)
         self.process = Process(group=None, target=self.run, args=args)
         self.process.start()

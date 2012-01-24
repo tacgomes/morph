@@ -69,6 +69,10 @@ class BuildController(object):
             if worker.output:
                 for line in worker.output.split('\n'):
                     self.msg('> %s' % line)
+            if worker.error:
+                import morphlib
+                raise morphlib.execute.CommandFailure(worker.error['command'],
+                                                      worker.error['error'])
 
         # mark all finished workers as being idle
         for worker in finished:
