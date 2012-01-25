@@ -1,0 +1,7 @@
+./
+baserock/
+baserock/hello-stratum.meta
+baserock/hello.meta
+bin/
+bin/hello
+etc/
