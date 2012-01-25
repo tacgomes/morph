@@ -32,13 +32,13 @@ class BuildWorker(object):
         self.manager = Manager()
         self.reset()
 
-    def indent_more(self):
+    def indent_more(self): # pragma: no cover
         self.indent += 1
 
-    def indent_less(self):
+    def indent_less(self): # pragma: no cover
         self.indent -= 1
 
-    def msg(self, text):
+    def msg(self, text): # pragma: no cover
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
@@ -51,7 +51,7 @@ class BuildWorker(object):
     def build(self, blob):
         raise NotImplementedError
 
-    def check_complete(self, timeout):
+    def check_complete(self, timeout): # pragma: no cover
         if self.process:
             self.process.join(timeout)
             if self.process.is_alive():
@@ -63,17 +63,17 @@ class BuildWorker(object):
             return True
 
     @property
-    def output(self):
+    def output(self): # pragma: no cover
         try:
             return self._output[0]
         except IndexError:
             return None
 
     @property
-    def error(self):
+    def error(self): # pragma: no cover
         return self._error
 
-    def options(self):
+    def options(self): # pragma: no cover
         '''Returns an array of command line options for the settings.
         
         NOTE: This is just a hack that uses internals of the cliapp.Settings
@@ -141,7 +141,7 @@ class LocalBuildWorker(BuildWorker):
     def __init__(self, name, ident, app):
         BuildWorker.__init__(self, name, ident, app)
 
-    def run(self, repo, ref, filename, output, error):
+    def run(self, repo, ref, filename, output, error): # pragma: no cover
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
@@ -160,7 +160,7 @@ class LocalBuildWorker(BuildWorker):
             error['error'] = str(e)
             error['command'] = ' '.join(cmdline)
         
-    def build(self, blob):
+    def build(self, blob): # pragma: no cover
         self.reset()
         self.blob = blob
         args = (blob.morph.treeish.original_repo,
@@ -178,7 +178,7 @@ class RemoteBuildWorker(BuildWorker):
         BuildWorker.__init__(self, name, ident, app)
         self.hostname = ident
 
-    def run(self, repo, ref, filename, sudo, output, error):
+    def run(self, repo, ref, filename, sudo, output, error): # pragma: no cover
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
@@ -202,7 +202,7 @@ class RemoteBuildWorker(BuildWorker):
             error['error'] = str(e)
             error['command'] = ' '.join(cmdline)
         
-    def build(self, blob):
+    def build(self, blob): # pragma: no cover
         self.reset()
         self.blob = blob
         args = (blob.morph.treeish.original_repo,

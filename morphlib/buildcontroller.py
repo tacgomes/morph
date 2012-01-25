@@ -33,13 +33,13 @@ class BuildController(object):
         self.blobs = set()
         self.build_order = collections.deque()
 
-    def indent_more(self):
+    def indent_more(self): # pragma: no cover
         self.indent += 1
 
-    def indent_less(self):
+    def indent_less(self): # pragma: no cover
         self.indent -= 1
 
-    def msg(self, text):
+    def msg(self, text): # pragma: no cover
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
@@ -51,9 +51,9 @@ class BuildController(object):
         self.workers.add(worker)
         self.mark_idle(worker)
 
-    def wait_for_workers(self, need_idle=False, timeout=0.1):
+    def wait_for_workers(self, need_idle=False, timeout=0.1): # pragma: no cover
         # first, check if any of the busy workers are finished
-        while all([not x.check_complete(timeout) for x in self.busy_workers]):
+        while all([x.check_complete(timeout) for x in self.busy_workers]):
             # wait and repeat if they are all busy and we have no idle workers
             if need_idle and len(self.idle_workers) == 0:
                 time.sleep(0.250)
@@ -78,7 +78,7 @@ class BuildController(object):
         for worker in finished:
             self.mark_idle(worker)
 
-    def wait_for_worker(self):
+    def wait_for_worker(self): # pragma: no cover
         # wait for at least one worker to be idle
         self.wait_for_workers(need_idle = True)
 
@@ -88,7 +88,7 @@ class BuildController(object):
         # return the worker that has been idling for the longest period of time
         return idle_workers[0]
 
-    def build(self, blobs, build_order):
+    def build(self, blobs, build_order): # pragma: no cover
         self.blobs = blobs
         self.build_order = build_order
 
@@ -114,13 +114,13 @@ class BuildController(object):
 
         return result
 
-    def mark_idle(self, worker):
+    def mark_idle(self, worker): # pragma: no cover
         if worker not in self.idle_workers:
             self.idle_workers.add(worker)
         if worker in self.busy_workers:
             self.busy_workers.remove(worker)
 
-    def mark_busy(self, worker):
+    def mark_busy(self, worker): # pragma: no cover
         if worker not in self.busy_workers:
             self.busy_workers.add(worker)
         if worker in self.idle_workers:
