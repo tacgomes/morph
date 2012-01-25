@@ -63,14 +63,14 @@ class BuildWorker(object):
             return True
 
     @property
-    def output(self): # pragma: no cover
+    def output(self):
         try:
             return self._output[0]
         except IndexError:
             return None
 
     @property
-    def error(self): # pragma: no cover
+    def error(self):
         return self._error
 
     def options(self): # pragma: no cover

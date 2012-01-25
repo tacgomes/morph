@@ -63,3 +63,13 @@ class BuildWorkerTests(unittest.TestCase):
         self.assertEqual(worker.ident, 'user@host')
         self.assertEqual(worker.hostname, 'user@host')
         self.assertEqual(worker.settings, app.settings)
+
+    def test_output_property(self):
+        app = DummyApp()
+        worker = buildworker.BuildWorker('local-1', 'local', app)
+        self.assertEqual(worker.output, None)
+
+    def test_error_property(self):
+        app = DummyApp()
+        worker = buildworker.BuildWorker('local-1', 'local', app)
+        self.assertTrue(len(worker.error) == 0)
