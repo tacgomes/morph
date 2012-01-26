@@ -187,9 +187,10 @@ class RemoteBuildWorker(BuildWorker):
 
         # generate command line options
         args = self.options()
-        cmdline = ['ssh', '-t', '-t', '-q', self.hostname]
+        cmdline = ['ssh', '-q', self.hostname]
         if sudo:
-            cmdline.extend(['sudo', '-S', 'bash', '--login', '-c'])
+            cmdline.extend(['-t', '-t', '-t', 'sudo', '-S',
+                            'bash', '--login', '-c'])
             cmdline.extend(['"'])
             cmdline.extend(['morph', 'build-single', repo, ref, filename])
             cmdline.extend(args)
