@@ -183,13 +183,17 @@ class RemoteBuildWorker(BuildWorker):
 
         # generate command line options
         args = self.options()
-        cmdline = ['ssh']
+        cmdline = ['ssh', '-t', '-t', '-q', self.hostname]
         if sudo:
-            cmdline.extend(['-t', '-t', '-t', self.hostname, 'sudo', '-S'])
+            cmdline.extend(['sudo', '-S', 'bash', '--login', '-c'])
+            cmdline.extend(['"'])
+            cmdline.extend(['morph', 'build', repo, ref, filename])
+            cmdline.extend(args)
+            cmdline.extend(['"'])
         else:
-            cmdline.extend([self.hostname, 'fakeroot'])
-        cmdline.extend(['morph', 'build', repo, ref, filename])
-        cmdline.extend(args)
+            cmdline.extend(['fakeroot'])
+            cmdline.extend(['morph', 'build', repo, ref, filename])
+            cmdline.extend(args)
 
         # run morph on the other machine
         try:
