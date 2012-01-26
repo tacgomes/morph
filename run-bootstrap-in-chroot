@@ -19,11 +19,11 @@ export LC_ALL=C
 if [ "x$1" = x ]
 then
     dir="squeeze-chroot"
-    snapshot=no
+    snapshot=false
 else
     mkdir -p "$1"
     dir="$1/squeeze-chroot"
-    snapshot=yes
+    snapshot=true
     snapshotdir="$1"
 fi
 mirror="http://192.168.1.185/debian"
@@ -33,7 +33,7 @@ unmount_virtual "$dir"
 rm -rf "$dir"
 mkdir "$dir"
 
-if [ "$snapshot" = yes ] && [ -e "$snapshotdir/squeeze.tar" ]
+if "$snapshot" && [ -e "$snapshotdir/squeeze.tar" ]
 then
     tar -C "$dir" -xf "$snapshotdir/squeeze.tar"
 else
@@ -43,7 +43,7 @@ gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,qemu-utils,parted,kpartx,mbr,extlinux \
 squeeze "$dir" "$mirror"
     
-    if [ "$snapshot" = yes ]
+    if "$snapshot"
     then
         tar -caf "$snapshotdir/squeeze.tar" -C "$dir" .
     fi
@@ -56,12 +56,12 @@ cat <<EOF > "$dir/etc/hosts"
 EOF
 
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
-if [ "$snapshot" = yes ] && [ -e "$snapshotdir/pass1-snapshot.tar" ]
+if "$snapshot" && [ -e "$snapshotdir/pass1-snapshot.tar" ]
 then
     tar -C "$dir" -xf "$snapshotdir/pass1-snapshot.tar"
 else
     if mount_virtual "$dir" && 
-       chroot "$dir" bash -x baserock-bootstrap yes &&
+       chroot "$dir" bash -x baserock-bootstrap true &&
        unmount_virtual "$dir"
     then
         :
@@ -70,7 +70,7 @@ else
         exit 1
     fi
 
-    if [ "$snapshot" = yes ]
+    if "$snapshot"
     then
         tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
     fi
@@ -86,7 +86,7 @@ cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 cp baserock-bootstrap "$dir/."
 sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
 if mount_virtual "$dir" && 
-   chroot "$dir" bash -x baserock-bootstrap no &&
+   chroot "$dir" bash -x baserock-bootstrap false &&
    unmount_virtual "$dir"
 then
     :

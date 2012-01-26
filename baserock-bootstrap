@@ -10,7 +10,13 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-PASS1ONLY="${1:-'no'}"
+case "$1" in
+y|ye|yes|t|tr|tru|true)
+    PASS1ONLY=true
+    ;;
+n|no|f|fa|fal|fals|false|*)
+    PASS1ONLY=false
+esac
 
 CPUS=$(grep -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
@@ -917,7 +923,7 @@ pass1_git
 #pass1_strip_tools
 #pass1_fix_perms
 
-if [ "$PASS1ONLY" = yes ]
+if "$PASS1ONLY"
 then
     echo "Only doing pass1"
     exit
