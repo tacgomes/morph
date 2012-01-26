@@ -546,13 +546,46 @@ class Builder(object):
                 
                 for parent in blob.parents:
                     for item, filename in built_items:
-                        self.msg('Marking %s to be staged for %s'
-                                 % (item, parent))
+                        self.msg('Marking %s to be staged for %s' %
+                                 (item, parent))
 
                     parent_builder = builders[parent]
                     parent_builder.stage_items += built_items
 
                 self.indent_less()
+
+        self.indent_less()
+
+        return ret
+
+    def build_single(self, blob, blobs, build_order):
+        self.indent_more()
+
+        # first pass: create builders for all blobs
+        builders = {}
+        for group in build_order:
+            for blob in group:
+                builder = self.create_blob_builder(blob)
+                builders[blob] = builder
+
+        # second pass: walk the build order blob by blob, mark blobs
+        # to be staged for their parents, but do not build them
+        ret = []
+        for group in build_order:
+            for blob in group:
+                built_items = builders[blob].builds()
+                for parent in blob.parents:
+                    stage_items = []
+                    for name, filename in built_items.items():
+                        self.msg('Marking %s to be staged for %s' %
+                                 (name, parent))
+                        stage_items.append((name, filename))
+
+                    parent_builder = builders[parent]
+                    parent_builder.stage_items.extend(stage_items)
+
+        # build the single blob now
+        ret.append(builders[blob].build())
 
         self.indent_less()
 

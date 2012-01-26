@@ -149,7 +149,7 @@ class LocalBuildWorker(BuildWorker):
         cmdline = []
         if sudo:
             cmdline.extend(['sudo'])
-        cmdline.extend(['morph', 'build', repo, ref, filename])
+        cmdline.extend(['morph', 'build-single', repo, ref, filename])
         cmdline.extend(args)
 
         # run morph locally in a child process
@@ -191,12 +191,12 @@ class RemoteBuildWorker(BuildWorker):
         if sudo:
             cmdline.extend(['sudo', '-S', 'bash', '--login', '-c'])
             cmdline.extend(['"'])
-            cmdline.extend(['morph', 'build', repo, ref, filename])
+            cmdline.extend(['morph', 'build-single', repo, ref, filename])
             cmdline.extend(args)
             cmdline.extend(['"'])
         else:
             cmdline.extend(['fakeroot'])
-            cmdline.extend(['morph', 'build', repo, ref, filename])
+            cmdline.extend(['morph', 'build-single', repo, ref, filename])
             cmdline.extend(args)
 
         # run morph on the other machine

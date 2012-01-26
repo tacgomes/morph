@@ -222,6 +222,42 @@ class Morph(cliapp.Application):
                                                source_manager)
             builder.get_cache_id(blob)
 
+    def cmd_build_single(self, args):
+        tempdir = morphlib.tempdir.Tempdir()
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                                                              update=False)
+        builder = morphlib.builder.Builder(tempdir, self, morph_loader,
+                                           source_manager)
+
+        if not os.path.exists(self.settings['cachedir']):
+            os.mkdir(self.settings['cachedir'])
+
+        ret = []
+        while len(args) >= 3:
+            repo, ref, filename = args[:3]
+            args = args[3:]
+
+            # derive a build order from the dependency graph
+            graph = BuildDependencyGraph(source_manager, morph_loader,
+                                         repo, ref, filename)
+            blob = graph.resolve()
+            blobs, order = graph.build_order()
+
+            self.msg('Building %s' % blob)
+
+            # build things in this order
+            ret.append(builder.build_single(blob, blobs, order))
+
+        # we may not have permission to tempdir.remove()
+        ex = morphlib.execute.Execute('.', lambda msg: None)
+        ex.runv(["rm", "-rf", tempdir.dirname])
+
+        if args:
+            raise cliapp.AppException('Extra args on command line: %s' % args)
+
+        return ret
+
     def cmd_build_distributed(self, args):
         tempdir = morphlib.tempdir.Tempdir()
         morph_loader = MorphologyLoader(self.settings)
