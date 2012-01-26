@@ -45,11 +45,12 @@ class SourceNotFound(Exception):
 
 class SourceManager(object):
 
-    def __init__(self, app, cachedir=None):
+    def __init__(self, app, cachedir=None, update=True):
         self.real_msg = app.msg
         self.settings = app.settings
         self.cached_treeishes = {}
         self.cache_dir = cachedir 
+        self.update = update
         if not self.cache_dir:
             self.cache_dir = os.path.join(app.settings['cachedir'], 'gits')
         self.indent = 0
@@ -69,8 +70,11 @@ class SourceManager(object):
         location = self.cache_dir + '/' + name
 
         if os.path.exists(location):
-            self.msg('Cached clone exists, updating origin')
-            morphlib.git.update_remote(location, "origin", self.msg)
+            if self.update:
+                self.msg('Cached clone exists, updating origin')
+                morphlib.git.update_remote(location, "origin", self.msg)
+            else: # pragma: no cover
+                self.msg('Cached clone exists, assuming origin is up to date')
             return True, location
         else:
             self.msg('No cached clone found, fetching from %s' % repo)
