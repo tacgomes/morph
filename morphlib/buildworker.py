@@ -141,12 +141,15 @@ class LocalBuildWorker(BuildWorker):
     def __init__(self, name, ident, app):
         BuildWorker.__init__(self, name, ident, app)
 
-    def run(self, repo, ref, filename, output, error): # pragma: no cover
+    def run(self, repo, ref, filename, sudo, output, error): # pragma: no cover
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
         args = self.options()
-        cmdline = ['morph', 'build', repo, ref, filename]
+        cmdline = []
+        if sudo:
+            cmdline.extend(['sudo'])
+        cmdline.extend(['morph', 'build-single', repo, ref, filename])
         cmdline.extend(args)
 
         # run morph locally in a child process
@@ -166,6 +169,7 @@ class LocalBuildWorker(BuildWorker):
         args = (blob.morph.treeish.original_repo,
                 blob.morph.treeish.ref,
                 blob.morph.filename,
+                blob.morph.kind == 'system',
                 self._output,
                 self._error)
         self.process = Process(group=None, target=self.run, args=args)
@@ -183,13 +187,18 @@ class RemoteBuildWorker(BuildWorker):
 
         # generate command line options
         args = self.options()
-        cmdline = ['ssh']
+        cmdline = ['ssh', '-q', self.hostname]
         if sudo:
-            cmdline.extend(['-t', '-t', '-t', self.hostname, 'sudo', '-S'])
+            cmdline.extend(['-t', '-t', '-t', 'sudo', '-S',
+                            'bash', '--login', '-c'])
+            cmdline.extend(['"'])
+            cmdline.extend(['morph', 'build-single', repo, ref, filename])
+            cmdline.extend(args)
+            cmdline.extend(['"'])
         else:
-            cmdline.extend([self.hostname, 'fakeroot'])
-        cmdline.extend(['morph', 'build', repo, ref, filename])
-        cmdline.extend(args)
+            cmdline.extend(['fakeroot'])
+            cmdline.extend(['morph', 'build-single', repo, ref, filename])
+            cmdline.extend(args)
 
         # run morph on the other machine
         try:

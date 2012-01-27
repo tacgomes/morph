@@ -72,9 +72,10 @@ class BuildDependencyGraph(object): # pragma: no cover
         self.cached_blobs = {}
         self.blobs = set()
 
-        self.resolve_root()
+        root = self.resolve_root()
         self.resolve_strata()
         self.resolve_chunks()
+        return root
 
     def resolve_root(self):
         # prepare the repo, load the morphology and blob information
@@ -91,6 +92,8 @@ class BuildDependencyGraph(object): # pragma: no cover
                 root.add_dependency(stratum)
                 stratum.add_parent(root)
                 self.blobs.add(stratum)
+
+        return root
 
     def resolve_strata(self):
         '''Generates a dependency graph of strata recursively.

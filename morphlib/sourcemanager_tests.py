@@ -134,7 +134,7 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-    def test_get_sha1_treeish_for_self_multple_base(self):
+    def test_get_sha1_treeish_for_self_multiple_base(self):
 
         tempdir = tempfile.mkdtemp()
         app = DummyApp()
