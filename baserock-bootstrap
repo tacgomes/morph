@@ -339,7 +339,7 @@ pass1_zlib()
         unpack zlib-1.2.5
         cd "$sources/zlib-1.2.5"
         ./configure --prefix="$tools"
-        make -j$JOBS
+        make -j1
         make install
         rm -rf "$sources/zlib-1.2.5"
     fi
