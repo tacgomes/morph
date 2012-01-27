@@ -26,8 +26,16 @@ else
     snapshot=true
     snapshotdir="$1"
 fi
-mirror="http://192.168.1.185/debian"
-
+if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
+    ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
+then
+    echo It is recommended that mirrors are used
+    if test -t 0 -o -p /dev/stdin; then #check for interactive stdin
+        read -p "continue anyway? " || exit 1
+    fi
+fi
+#DEBIAN_MIRROR="http://192.168.1.185/debian"
+#LFS_MIRROR=http://192.168.1.185/lfs/
 
 unmount_virtual "$dir"
 rm -rf "$dir"
@@ -41,7 +49,7 @@ else
     --include=build-essential,\
 gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,qemu-utils,parted,kpartx,mbr,extlinux \
-squeeze "$dir" "$mirror"
+squeeze "$dir" "$DEBIAN_MIRROR"
     
     if "$snapshot"
     then
@@ -54,6 +62,15 @@ cat <<EOF > "$dir/etc/hosts"
 127.0.0.1   localhost
 127.0.1.1   `hostname`
 EOF
+
+cp baserock-bootstrap "$dir/."
+if [ "x$LFS_MIRROR" = x ]; then
+    cp wget-list "$dir/wget-list"
+else
+    perl -M'Env' -lpe 's|^.*/|$LFS_MIRROR|' wget-list >"$dir/wget-list"
+    #gawk -v m="$LFS_MIRROR" '{gsub(/^.*\//, m)}; 1' wget-list >"$dir/wget-list"
+    #sed "s,^.*/,$LFS_MIRROR," wget-list > "$dir/wget-list"
+fi
 
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
 if "$snapshot" && [ -e "$snapshotdir/pass1-snapshot.tar" ]
@@ -83,8 +100,6 @@ cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 
 # Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
 # it's already built.
-cp baserock-bootstrap "$dir/."
-sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
 if mount_virtual "$dir" && 
    chroot "$dir" bash -x baserock-bootstrap false &&
    unmount_virtual "$dir"
