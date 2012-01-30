@@ -203,7 +203,6 @@ class Morph(cliapp.Application):
                     self.output.write('    %s\n' % blob)
 
     def cmd_update_gits(self, args):
-        tempdir = morphlib.tempdir.Tempdir()
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
         while len(args) >= 3:
@@ -211,16 +210,11 @@ class Morph(cliapp.Application):
             repo, ref, filename = args[:3]
             args = args[3:]
 
-            # first step: clone the corresponding repo
-            treeish = source_manager.get_treeish(repo, ref)
-            morph = morph_loader.load(treeish, filename)
-            blob = morphlib.blobs.Blob.create_blob(morph)
-
-            # second step: compute the cache ID, which will implicitly
+            # resolve the dependency graph, which will implicitly
             # clone all repositories needed to build the blob
-            builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                               source_manager)
-            builder.get_cache_id(blob)
+            graph = BuildDependencyGraph(source_manager, morph_loader,
+                                         repo, ref, filename)
+            graph.resolve()
 
     def cmd_build_single(self, args):
         tempdir = morphlib.tempdir.Tempdir()
