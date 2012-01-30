@@ -2,12 +2,6 @@
 
 set -e
 
-mount_virtual()
-{
-    mount -t proc proc "$1/proc"
-    mount -t sysfs sysfs "$1/sys"
-}
-
 unmount_virtual()
 {
     umount "$1/proc" || true
@@ -26,6 +20,21 @@ else
     snapshot=true
     snapshotdir="$1"
 fi
+
+if [ ! -x ./do-squeeze-chroot ]; then
+    cat >"./do-squeeze-chroot" <<EOF
+#!/bin/sh
+if mount -t proc proc "$dir/proc"; then
+  if mount -t sysfs sysfs "$dir/sys"; then
+    chroot "$dir" "\$@"
+    umount "$dir/sys"
+  fi
+  umount "$dir/proc"
+fi
+EOF
+    chmod +x "./do-squeeze-chroot"
+fi
+
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
     ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
 then
@@ -63,7 +72,6 @@ cat <<EOF > "$dir/etc/hosts"
 127.0.1.1   `hostname`
 EOF
 
-cp baserock-bootstrap "$dir/."
 if [ "x$LFS_MIRROR" = x ]; then
     cp wget-list "$dir/wget-list"
 else
@@ -76,17 +84,10 @@ fi
 if "$snapshot" && [ -e "$snapshotdir/pass1-snapshot.tar" ]
 then
     tar -C "$dir" -xf "$snapshotdir/pass1-snapshot.tar"
+    cp baserock-bootstrap "$dir/." #update bootstrap script
 else
-    if mount_virtual "$dir" && 
-       chroot "$dir" bash -x baserock-bootstrap true &&
-       unmount_virtual "$dir"
-    then
-        :
-    else
-        unmount_virtual "$dir"
-        exit 1
-    fi
-
+    cp baserock-bootstrap "$dir/."
+    "./do-squeeze-chroot" bash -x baserock-bootstrap true || exit 1
     if "$snapshot"
     then
         tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
@@ -100,13 +101,4 @@ cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
 
 # Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
 # it's already built.
-if mount_virtual "$dir" && 
-   chroot "$dir" bash -x baserock-bootstrap false &&
-   unmount_virtual "$dir"
-then
-    :
-else
-    unmount_virtual "$dir"
-    exit 1
-fi
-
+"./do-squeeze-chroot" bash -x baserock-bootstrap false || exit 1
