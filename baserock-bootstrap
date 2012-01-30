@@ -791,14 +791,13 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 python ./morph --verbose build \
-    file:///baserock/gits/morphs/ master devel.morph \
-    file:///baserock/gits/morphs/ master linux-stratum.morph \
     file:///baserock/gits/morphs/ master foundation.morph \
+    file:///baserock/gits/morphs/ master linux-stratum.morph \
+    file:///baserock/gits/morphs/ master devel.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
-        --max-jobs=1 \
         --keep-path \
         --git-base-url=file:///baserock/gits/
 EOF
