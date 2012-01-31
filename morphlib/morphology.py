@@ -108,6 +108,13 @@ class Morphology(object):
     def test_stories(self):
         return self._dict.get('test-stories', [])
 
+    def __eq__(self, other):
+        return (self.filename == other.filename and
+                self.treeish == other.treeish)
+
+    def __hash__(self):
+        return hash((self.filename, self.treeish))
+
     def __str__(self): # pragma: no cover
         return '%s|%s|%s' % (self.treeish.original_repo,
                              self.treeish.ref,

@@ -172,3 +172,35 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(morph.disk_size, '1G')
         self.assertEqual(morph.strata, ['foo', 'bar'])
         self.assertEqual(morph.test_stories, ['test-1', 'test-2'])
+
+    def test_hashing_and_equality_checks(self):
+        mockfile1 = MockFile('''
+                        {
+                            "name": "foo",
+                            "kind": "chunk"
+                        }''')
+        mockfile1.name = 'mockfile1'
+        mockfile2 = MockFile('''
+                        {
+                            "name": "foo",
+                            "kind": "chunk"
+                        }''')
+        mockfile2.name = 'mockfile1'
+        mockfile3 = MockFile('''
+                        {
+                            "name": "bar",
+                            "kind": "chunk"
+                        }''')
+        mockfile3.name = 'mockfile2'
+
+        treeish = FakeTreeish()
+
+        morph1 = morphlib.morphology.Morphology(treeish, mockfile1)
+        morph2 = morphlib.morphology.Morphology(treeish, mockfile2)
+        morph3 = morphlib.morphology.Morphology(treeish, mockfile3)
+
+        self.assertEqual(hash(morph1), hash(morph2))
+        self.assertEqual(morph1, morph2)
+
+        self.assertNotEqual(hash(morph1), hash(morph3))
+        self.assertNotEqual(morph1, morph3)

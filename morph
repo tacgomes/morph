@@ -228,20 +228,53 @@ class Morph(cliapp.Application):
             os.mkdir(self.settings['cachedir'])
 
         ret = []
-        while len(args) >= 3:
+        if len(args) >= 3:
             repo, ref, filename = args[:3]
             args = args[3:]
 
             # derive a build order from the dependency graph
             graph = BuildDependencyGraph(source_manager, morph_loader,
                                          repo, ref, filename)
-            blob = graph.resolve()
+            first_blob = graph.resolve()
             blobs, order = graph.build_order()
 
-            self.msg('Building %s' % blob)
+            # parse the second blob, if there is one
+            second_blob = None
+            if len(args) >= 3:
+                repo, ref, filename = args[:3]
+                args = args[3:]
 
-            # build things in this order
-            ret.append(builder.build_single(blob, blobs, order))
+                # load the blob manually
+                treeish = source_manager.get_treeish(repo, ref)
+                morphology = morph_loader.load(treeish, filename)
+                second_blob = morphlib.blobs.Blob.create_blob(morphology)
+
+                try:
+                    # find the corresponding blob object in the blobs
+                    # returned from the dependency graph
+                    second_blob = [x for x in blobs if x == second_blob][0]
+                except IndexError:
+                    raise cliapp.AppException('%s and %s are unrelated' %
+                                              (first_blob, second_blob))
+
+            # build the single blob
+            if second_blob:
+                # verify that the two input blobs are valid
+                if first_blob.morph.kind != 'stratum':
+                    raise cliapp.AppException('The first tuple %s needs to '
+                                              'refer to a stratum' %
+                                              first_blob)
+                if second_blob.morph.kind != 'chunk':
+                    raise cliapp.AppException('The first tuple %s needs to '
+                                              'refer to a chunk' % second_blob)
+
+                # build now
+                self.msg('Building %s' % second_blob)
+                ret.append(builder.build_single(second_blob, blobs, order))
+            else:
+                # build the blob now
+                self.msg('Building %s' % first_blob)
+                ret.append(builder.build_single(first_blob, blobs, order))
 
         # we may not have permission to tempdir.remove()
         ex = morphlib.execute.Execute('.', lambda msg: None)

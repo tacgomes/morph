@@ -19,25 +19,27 @@ import unittest
 import morphlib
 
 
+class FakeChunkMorph(object):
+    @property
+    def kind(self):
+        return 'chunk'
+
+
+class FakeStratumMorph(object):
+    @property
+    def kind(self):
+        return 'stratum'
+
+
 class BlobsTests(unittest.TestCase):
 
     def test_create_a_chunk_blob(self):
-        class FakeChunkMorph(object):
-            @property
-            def kind(self):
-                return 'chunk'
-
         morph = FakeChunkMorph()
         chunk = morphlib.blobs.Blob.create_blob(morph)
         self.assertTrue(isinstance(chunk, morphlib.blobs.Chunk))
         self.assertEqual(morph, chunk.morph)
 
     def test_create_a_stratum_blob(self):
-        class FakeStratumMorph(object):
-            @property
-            def kind(self):
-                return 'stratum'
-
         morph = FakeStratumMorph()
         stratum = morphlib.blobs.Blob.create_blob(morph)
         self.assertTrue(isinstance(stratum, morphlib.blobs.Stratum))
@@ -68,9 +70,9 @@ class BlobsTests(unittest.TestCase):
         self.assertRaises(TypeError, morphlib.blobs.Blob.create_blob, morph)
 
     def test_blob_with_parents(self):
-        blob1 = morphlib.blobs.Blob(None)
-        blob2 = morphlib.blobs.Blob(None)
-        blob3 = morphlib.blobs.Blob(None)
+        blob1 = morphlib.blobs.Blob(FakeChunkMorph())
+        blob2 = morphlib.blobs.Blob(FakeStratumMorph())
+        blob3 = morphlib.blobs.Blob(FakeStratumMorph())
 
         self.assertEqual(len(blob1.parents), 0)
 
@@ -105,7 +107,7 @@ class BlobsTests(unittest.TestCase):
 
         self.assertTrue(blob2 in blob1.dependencies)
         self.assertTrue(blob1 in blob2.dependents)
-        
+
         self.assertTrue(blob1.depends_on(blob2))
 
         blob2.add_dependency(blob1)
@@ -137,6 +139,18 @@ class BlobsTests(unittest.TestCase):
 
         self.assertFalse(blob1.depends_on(blob2))
         self.assertFalse(blob2.depends_on(blob1))
+
+    def test_hashing_and_equality_checks(self):
+        morph = FakeChunkMorph()
+        blob1 = morphlib.blobs.Blob.create_blob(morph)
+        blob2 = morphlib.blobs.Blob.create_blob(morph)
+        blob3 = morphlib.blobs.Blob.create_blob(FakeChunkMorph())
+
+        self.assertEqual(hash(blob1), hash(blob2))
+        self.assertEqual(blob1, blob2)
+
+        self.assertNotEqual(hash(blob1), hash(blob3))
+        self.assertNotEqual(blob1, blob3)
 
     def test_chunks(self):
         settings = { 'git-base-url': [] }

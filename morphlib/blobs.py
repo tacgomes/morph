@@ -35,10 +35,12 @@ class Blob(object):
         self.dependents = []
 
     def add_parent(self, parent):
-        self.parents.append(parent)
+        if not parent in self.parents:
+            self.parents.append(parent)
 
     def remove_parent(self, parent):
-        self.parents.remove(parent)
+        if parent in self.parents:
+            self.parents.remove(parent)
 
     def add_dependency(self, other):
         self.dependencies.append(other)
@@ -57,6 +59,12 @@ class Blob(object):
             return self.morph.chunks
         else:
             return { self.morph.name: ['.'] }
+
+    def __eq__(self, other):
+        return self.morph == other.morph
+
+    def __hash__(self):
+        return hash(self.morph)
 
     def __str__(self): # pragma: no cover
         return str(self.morph)

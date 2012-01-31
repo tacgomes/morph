@@ -141,7 +141,8 @@ class LocalBuildWorker(BuildWorker):
     def __init__(self, name, ident, app):
         BuildWorker.__init__(self, name, ident, app)
 
-    def run(self, repo, ref, filename, sudo, output, error): # pragma: no cover
+    def run(self, first_tuple, second_tuple, sudo, output,
+            error): # pragma: no cover
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
@@ -149,7 +150,14 @@ class LocalBuildWorker(BuildWorker):
         cmdline = []
         if sudo:
             cmdline.extend(['sudo'])
-        cmdline.extend(['morph', 'build-single', repo, ref, filename])
+        cmdline.extend(['morph', 'build-single'])
+        cmdline.extend([first_tuple['repo'],
+                        first_tuple['ref'],
+                        first_tuple['filename']])
+        if second_tuple:
+            cmdline.extend([second_tuple['repo'],
+                            second_tuple['ref'],
+                            second_tuple['filename']])
         cmdline.extend(args)
 
         # run morph locally in a child process
@@ -166,9 +174,23 @@ class LocalBuildWorker(BuildWorker):
     def build(self, blob): # pragma: no cover
         self.reset()
         self.blob = blob
-        args = (blob.morph.treeish.original_repo,
-                blob.morph.treeish.ref,
-                blob.morph.filename,
+
+        first_tuple = None
+        if len(blob.parents) > 0:
+            first_tuple = {
+                'repo': blob.parents[0].morph.treeish.original_repo,
+                'ref': blob.parents[0].morph.treeish.ref,
+                'filename': blob.parents[0].morph.filename,
+            }
+
+        blob_tuple = {
+            'repo': blob.morph.treeish.original_repo,
+            'ref': blob.morph.treeish.ref,
+            'filename': blob.morph.filename,
+        }
+
+        args = (first_tuple if first_tuple else blob_tuple,
+                blob_tuple if first_tuple else None,
                 blob.morph.kind == 'system',
                 self._output,
                 self._error)
@@ -182,7 +204,8 @@ class RemoteBuildWorker(BuildWorker):
         BuildWorker.__init__(self, name, ident, app)
         self.hostname = ident
 
-    def run(self, repo, ref, filename, sudo, output, error): # pragma: no cover
+    def run(self, first_tuple, second_tuple, sudo, output,
+            error): # pragma: no cover
         ex = morphlib.execute.Execute('.', self.msg)
 
         # generate command line options
@@ -193,11 +216,25 @@ class RemoteBuildWorker(BuildWorker):
                             'bash', '--login', '-c'])
             cmdline.extend(['"'])
             cmdline.extend(['morph', 'build-single', repo, ref, filename])
+            cmdline.extend([first_tuple['repo'],
+                            first_tuple['ref'],
+                            first_tuple['filename']])
+            if second_tuple:
+                cmdline.extend([second_tuple['repo'],
+                                second_tuple['ref'],
+                                second_tuple['filename']])
             cmdline.extend(args)
             cmdline.extend(['"'])
         else:
             cmdline.extend(['fakeroot'])
             cmdline.extend(['morph', 'build-single', repo, ref, filename])
+            cmdline.extend([first_tuple['repo'],
+                            first_tuple['ref'],
+                            first_tuple['filename']])
+            if second_tuple:
+                cmdline.extend([second_tuple['repo'],
+                                second_tuple['ref'],
+                                second_tuple['filename']])
             cmdline.extend(args)
 
         # run morph on the other machine
@@ -214,9 +251,23 @@ class RemoteBuildWorker(BuildWorker):
     def build(self, blob): # pragma: no cover
         self.reset()
         self.blob = blob
-        args = (blob.morph.treeish.original_repo,
-                blob.morph.treeish.ref,
-                blob.morph.filename,
+
+        first_tuple = None
+        if len(blob.parents) > 0:
+            first_tuple = {
+                'repo': blob.parents[0].morph.treeish.original_repo,
+                'ref': blob.parents[0].morph.treeish.ref,
+                'filename': blob.parents[0].morph.filename,
+            }
+
+        blob_tuple = {
+            'repo': blob.morph.treeish.original_repo,
+            'ref': blob.morph.treeish.ref,
+            'filename': blob.morph.filename,
+        }
+
+        args = (first_tuple if first_tuple else blob_tuple,
+                blob_tuple if first_tuple else None,
                 blob.morph.kind == 'system',
                 self._output,
                 self._error)
