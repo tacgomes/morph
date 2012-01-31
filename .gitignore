@@ -5,3 +5,4 @@
 *.stdout-diff
 *.stderr-actual
 *.stderr-diff
+do-squeeze-chroot
