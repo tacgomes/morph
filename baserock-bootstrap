@@ -10,7 +10,13 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-SNAPSHOT="${1:-'no'}"
+case "$1" in
+y|ye|yes|t|tr|tru|true)
+    PASS1ONLY=true
+    ;;
+n|no|f|fa|fal|fals|false|*)
+    PASS1ONLY=false
+esac
 
 CPUS=$(grep -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
@@ -780,24 +786,28 @@ pass2_build_with_morph_in_chroot()
 set -e
 set -x
 
-/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
+#/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
+export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 python ./morph --verbose build \
-    file:///baserock/gits/morphs/ master linux-stratum.morph \
-    file:///baserock/gits/morphs/ master foundation.morph \
+    file:///baserock/gits/morphs/ baserock/bootstrap foundation.morph \
     file:///baserock/gits/morphs/ master devel.morph \
+    file:///baserock/gits/morphs/ master linux-stratum.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
-        --max-jobs=1 \
+        --keep-path \
         --git-base-url=file:///baserock/gits/
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot"
     if [ ! -e "$do_chroot" ]; then
         $HOST_CAT >"$do_chroot" <<EOF
+trap "umount $LFS/proc $LFS/sys" EXIT
+set -e
+set -x
 if ! mount | grep "$LFS/proc" >/dev/null
 then
     $HOST_SUDO mount -t proc proc "$LFS/proc"
@@ -835,6 +845,7 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO mkfs -t ext4 "$part"
     mp="$(mktemp -d)"
     $HOST_SUDO mount "$part" "$mp"
+    trap "$HOST_SUDO umount $part; $HOST_SUDO kpartx -dv $img" EXIT
 
     for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
     do
@@ -911,11 +922,9 @@ pass1_git
 #pass1_strip_tools
 #pass1_fix_perms
 
-if [ "$SNAPSHOT" = yes ]
+if "$PASS1ONLY"
 then
-    cd "$LFS/.."
-    tar -caf tree-snapshot.tar tree
-    echo "See snapshot in tree-snapshot.tar"
+    echo "Only doing pass1"
     exit
 fi
 
@@ -923,3 +932,4 @@ pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
 pass2_build_devel_system_outside_chroot
+

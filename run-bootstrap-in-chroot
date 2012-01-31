@@ -2,35 +2,103 @@
 
 set -e
 
+unmount_virtual()
+{
+    umount "$1/proc" || true
+    umount "$1/sys" || true
+}
+
 export LC_ALL=C
 
-dir="squeeze-chroot"
-mirror="http://192.168.1.185/debian"
+if [ "x$1" = x ]
+then
+    dir="squeeze-chroot"
+    snapshot=false
+else
+    mkdir -p "$1"
+    dir="$1/squeeze-chroot"
+    snapshot=true
+    snapshotdir="$1"
+fi
 
+if [ ! -x ./do-squeeze-chroot ]; then
+    cat >"./do-squeeze-chroot" <<EOF
+#!/bin/sh
+if mount -t proc proc "$dir/proc"; then
+  if mount -t sysfs sysfs "$dir/sys"; then
+    chroot "$dir" "\$@"
+    umount "$dir/sys"
+  fi
+  umount "$dir/proc"
+fi
+EOF
+    chmod +x "./do-squeeze-chroot"
+fi
+
+if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
+    ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
+then
+    echo It is recommended that mirrors are used
+    if test -t 0 -o -p /dev/stdin; then #check for interactive stdin
+        read -p "continue anyway? " || exit 1
+    fi
+fi
+#DEBIAN_MIRROR="http://192.168.1.185/debian"
+#LFS_MIRROR=http://192.168.1.185/lfs/
+
+unmount_virtual "$dir"
+rm -rf "$dir"
 mkdir "$dir"
 
-debootstrap \
---include=build-essential,\
+if "$snapshot" && [ -e "$snapshotdir/squeeze.tar" ]
+then
+    tar -C "$dir" -xf "$snapshotdir/squeeze.tar"
+else
+    debootstrap \
+    --include=build-essential,\
 gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
-help2man,texinfo,sudo \
-squeeze "$dir" "$mirror"
+help2man,texinfo,sudo,qemu-utils,parted,kpartx,mbr,extlinux \
+squeeze "$dir" "$DEBIAN_MIRROR"
+    
+    if "$snapshot"
+    then
+        tar -caf "$snapshotdir/squeeze.tar" -C "$dir" .
+    fi
+fi
 
 hostname > "$dir/etc/hostname"
 cat <<EOF > "$dir/etc/hosts"
 127.0.0.1   localhost
-127.0.1.1   $(hostname)
+127.0.1.1   `hostname`
 EOF
 
-cp baserock-bootstrap "$dir/."
-sed 's,^.*/,http://192.168.1.185/lfs/,' wget-list > "$dir/wget-list"
-mount -t proc proc "$dir/proc"
-mount -t sysfs sysfs "$dir/sys"
-if chroot "$dir" bash -x baserock-bootstrap yes
-then
-    exit=0
+if [ "x$LFS_MIRROR" = x ]; then
+    cp wget-list "$dir/wget-list"
 else
-    exit=$?
+    perl -M'Env' -lpe 's|^.*/|$LFS_MIRROR|' wget-list >"$dir/wget-list"
+    #gawk -v m="$LFS_MIRROR" '{gsub(/^.*\//, m)}; 1' wget-list >"$dir/wget-list"
+    #sed "s,^.*/,$LFS_MIRROR," wget-list > "$dir/wget-list"
 fi
-umount "$dir/sys"
-umount "$dir/proc"
-exit $exit
+
+# Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
+if "$snapshot" && [ -e "$snapshotdir/pass1-snapshot.tar" ]
+then
+    tar -C "$dir" -xf "$snapshotdir/pass1-snapshot.tar"
+    cp baserock-bootstrap "$dir/." #update bootstrap script
+else
+    cp baserock-bootstrap "$dir/."
+    "./do-squeeze-chroot" bash -x baserock-bootstrap true || exit 1
+    if "$snapshot"
+    then
+        tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
+    fi
+fi
+
+# Update the git repos.
+mkdir -p "$dir/tree/baserock"
+rm -rf "$dir/tree/baserock/gits"
+cp -rl "$HOME/baserock/gits" "$dir/tree/baserock/gits"
+
+# Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
+# it's already built.
+"./do-squeeze-chroot" bash -x baserock-bootstrap false || exit 1
