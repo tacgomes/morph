@@ -18,6 +18,7 @@ import collections
 import json
 import logging
 import os
+import shutil
 
 import morphlib
 
@@ -62,14 +63,20 @@ class BlobBuilder(object):
         self.destdir = None
         self.staging = None
         self.settings = None
-        self.msg = None
+        self.real_msg = None
         self.cache_prefix = None
         self.tempdir = None
+        self.logfile = None
         self.stage_items = []
         self.dump_memory_profile = lambda msg: None
 
         # Stopwatch to measure build times
         self.build_watch = morphlib.stopwatch.Stopwatch()
+
+    def msg(self, text):
+        self.real_msg(text)
+        if self.logfile and not self.logfile.closed:
+            self.logfile.write('%s\n' % text)
 
     def builds(self):
         ret = {}
@@ -78,6 +85,8 @@ class BlobBuilder(object):
         return ret
 
     def build(self):
+        self.prepare_logfile()
+
         # create the staging area on demand
         if not os.path.exists(self.staging):
             os.mkdir(self.staging)
@@ -109,6 +118,9 @@ class BlobBuilder(object):
 
         # store the logged build times in the cache
         self.save_build_times()
+
+        # store the log file in the cache
+        self.save_logfile()
 
         return built_items
 
@@ -170,6 +182,16 @@ class BlobBuilder(object):
                 'delta': '%.4f' % self.build_watch.start_stop_seconds(stage)
             }
         self.write_cache_metadata(meta)
+
+    def prepare_logfile(self):
+        filename = self.tempdir.join('%s.log' % self.blob.morph.name)
+        self.logfile = open(filename, 'w+', 0)
+
+    def save_logfile(self):
+        self.logfile.close()
+        filename = '%s.log' % self.cache_prefix
+        self.msg('Saving build log to %s' % filename)
+        shutil.copyfile(self.logfile.name, filename)
 
 
 class ChunkBuilder(BlobBuilder):
@@ -613,7 +635,7 @@ class Builder(object):
         builder.destdir = self.tempdir.join('%s.inst' % blob.morph.name)
         builder.staging = self.tempdir.join('staging')
         builder.settings = self.settings
-        builder.msg = self.msg
+        builder.real_msg = self.msg
         builder.cache_prefix = self.cachedir.name(cache_id)
         builder.tempdir = self.tempdir
         builder.dump_memory_profile = self.dump_memory_profile
