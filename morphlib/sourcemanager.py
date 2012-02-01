@@ -154,6 +154,8 @@ class SourceManager(object):
                 if success:
                     treeish = morphlib.git.Treeish(gitcache, repo, ref,
                                                    self.msg)
+                    self.indent_less()
+                    break
 
                 self.indent_less()
 
