@@ -16,6 +16,7 @@
 
 import os
 import shutil
+import stat
 import tempfile
 import unittest
 
@@ -41,7 +42,10 @@ class BinsTest(unittest.TestCase):
         
         def lstat(filename):
             st = os.lstat(filename)
-            return (st.st_mode, st.st_size, int(st.st_mtime))
+            if stat.S_ISDIR(st.st_mode):
+                return (st.st_mode, 0, 0)
+            else:
+                return (st.st_mode, st.st_size, st.st_mtime)
     
         result = []
         
@@ -68,18 +72,24 @@ class ChunkTests(BinsTest):
         shutil.rmtree(self.tempdir)
 
     def populate_instdir(self):
+        timestamp = 12765
+
         os.mkdir(self.instdir)
         
         bindir = os.path.join(self.instdir, 'bin')
         os.mkdir(bindir)
-        with open(os.path.join(bindir, 'foo'), 'w'):
+        filename = os.path.join(bindir, 'foo')
+        with open(filename, 'w'):
             pass
+        os.utime(filename, (timestamp, timestamp))
 
         libdir = os.path.join(self.instdir, 'lib')
         os.mkdir(libdir)
-        with open(os.path.join(libdir, 'libfoo.so'), 'w'):
+        filename = os.path.join(libdir, 'libfoo.so')
+        with open(filename, 'w'):
             pass
-
+        os.utime(filename, (timestamp, timestamp))
+        
     def test_empties_everything(self):
         self.populate_instdir()
         morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['.'],
