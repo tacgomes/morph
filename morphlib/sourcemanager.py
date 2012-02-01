@@ -136,11 +136,12 @@ class SourceManager(object):
 
         # load the corresponding treeish on demand
         if (repo, ref) not in self.cached_treeishes:
-            #TODO is it actually an error to have no base url? 
-            base_urls = self.settings['git-base-url']
-            success = False
+            # variable for storing the loaded treeish
+            treeish = None
 
-            for base_url in base_urls:    
+            # try loading it from all base URLs
+            for base_url in self.settings['git-base-url']:
+                # generate the full repo URL
                 if not base_url.endswith('/'):
                     base_url += '/'
                 full_repo = urlparse.urljoin(base_url, repo)
@@ -148,20 +149,19 @@ class SourceManager(object):
                 self.msg('Updating repository %s' % quote_url(full_repo))
                 self.indent_more()
 
+                # try to clone/update the repo so that we can obtain a treeish
                 success, gitcache = self._get_git_cache(full_repo)
-
                 if success:
-                    # create the treeish; cache it to avoid loading it twice
                     treeish = morphlib.git.Treeish(gitcache, repo, ref,
                                                    self.msg)
-                    self.cached_treeishes[(repo, ref)] = treeish
-                else:
-                    raise SourceNotFound(repo,ref)
 
                 self.indent_less()
 
-                if success:
-                    break
+            # if we have a treeish now, cache it to avoid loading it twice
+            if treeish:
+                self.cached_treeishes[(repo, ref)] = treeish
+            else:
+                raise SourceNotFound(repo, ref)
 
-        # we should now have a cached treeish either way
+        # we should now have a cached treeish to use now
         return self.cached_treeishes[(repo, ref)]
