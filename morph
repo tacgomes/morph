@@ -79,7 +79,9 @@ class Morph(cliapp.Application):
         '''Build a binary from a morphology.
         
         Command line arguments are the repository, git tree-ish reference,
-        and morphology filename. The binary gets put into the cache.
+        and morphology filename. Morph takes care of building all dependencies
+        before building the morphology. All generated binaries are put into the
+        cache.
         
         (The triplet of command line arguments may be repeated as many
         times as necessary.)
@@ -217,6 +219,23 @@ class Morph(cliapp.Application):
             graph.resolve()
 
     def cmd_build_single(self, args):
+        '''Build a binary from a morphology but do not build its dependencies.
+        
+        To build a system or stratum morphology, simply specify the repository,
+        a git tree-ish reference and the morphology filename on the command
+        line. To build a chunk morphology, first provide the repository,
+        reference and morphology filename of its surrounding stratum and then
+        provide the same information for the chunk morphology itself. This is
+        needed to resolve the dependencies of the chunk using the stratum as
+        the build context and to unpack these dependencies in the staging area
+        prior to building the chunk.
+
+        This command differs from 'build' in that it only builds the morphology
+        specified on the command line. Dependencies are assumed to have been
+        built prior to running this command and are only unpacked into the
+        staging area.
+
+        '''
         tempdir = morphlib.tempdir.Tempdir()
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self,
@@ -286,6 +305,27 @@ class Morph(cliapp.Application):
         return ret
 
     def cmd_build_distributed(self, args):
+        '''Build a binary from a morphology, distributing work where possible.
+        
+        Command line arguments are the repository, git tree-ish reference,
+        and morphology filename. Morph takes care of building all dependencies
+        before building the morphology. All generated binaries are put into the
+        cache.
+
+        This command differs from 'build' in that it distributes work to
+        other machines where possible. This may include preparing the source
+        tree, preparing the staging area, building individual chunks and
+        caching the built items.
+        
+        Distributing currently works by running 'morph build-single' on other
+        machines via SSH. The machines to be used for this are specified using
+        the '-w/--worker' command line options.
+        
+        (The triplet of command line arguments may be repeated as many
+        times as necessary.)
+
+        '''
+        
         tempdir = morphlib.tempdir.Tempdir()
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
