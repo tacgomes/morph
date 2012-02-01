@@ -107,7 +107,7 @@ def extract_bundle(location, bundle, msg=logging.debug):
 def clone(location, repo, msg=logging.debug):
     '''clone at git repo into location'''
     ex = morphlib.execute.Execute('.', msg=msg)
-    return ex.runv(['git', 'clone', repo, location])
+    return ex.runv(['git', 'clone', '-l', repo, location])
 
 def init(location, msg=logging.debug):
     '''initialise git repo at location'''
