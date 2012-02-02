@@ -87,11 +87,11 @@ class Treeish(object):
         except (TypeError, morphlib.execute.CommandFailure):
             raise InvalidTreeish(self.original_repo, ref)
 
-def export_sources(treeish, tar_filename):
+def export_sources(treeish, tar_filename, msg=logging.debug):
     '''Export the contents of a specific commit into a compressed tarball.'''
-    ex = morphlib.execute.Execute('.', msg=logging.debug)
-    ex.runv(['git', 'archive', '-o', tar_filename, '--remote',
-             'file://%s' % treeish.repo, treeish.sha1])
+    ex = morphlib.execute.Execute('.', msg=msg)
+    ex.env['GIT_DIR'] = os.path.join(treeish.repo, '.git')
+    ex.runv(['git', 'archive', '-o', tar_filename, treeish.sha1])
 
 def get_morph_text(treeish, filename, msg=logging.debug):
     '''Return a morphology from a git repository.'''

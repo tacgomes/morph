@@ -311,7 +311,8 @@ class ChunkBuilder(BlobBuilder):
             self.dump_memory_profile('before creating source and tarball '
                                         'for chunk')
             tarball = self.cache_prefix + '.src.tar'
-            morphlib.git.export_sources(self.blob.morph.treeish, tarball)
+            morphlib.git.export_sources(self.blob.morph.treeish, tarball,
+                                        msg=self.msg)
             self.dump_memory_profile('after exporting sources')
             os.mkdir(self.builddir)
             self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
