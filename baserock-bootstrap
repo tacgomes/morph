@@ -842,6 +842,8 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO install-mbr "$img"
     part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
     trap "$HOST_SUDO kpartx -dv $img" EXIT
+    # mapper may not yet be ready
+    while test ! -e "$part"; do : done
     $HOST_SUDO mkfs -t ext4 "$part"
     mp="$(mktemp -d)"
     $HOST_SUDO mount "$part" "$mp"
