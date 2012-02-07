@@ -870,8 +870,6 @@ EOF
     $HOST_SUDO extlinux --install "$mp"
     sync
     sleep 2
-
-    $HOST_SUDO umount "$mp"
 }
 
 
