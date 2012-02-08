@@ -380,6 +380,27 @@ class Morph(cliapp.Application):
             self.output.write('%s\n' % msg)
             self.output.flush()
 
+    def runcmd(self, argv, *args, **kwargs):
+        # check which msg function to use
+        msg = self.msg
+        if 'msg' in kwargs:
+            msg = kwargs['msg']
+            del kwargs['msg']
+
+        # convert the command line arguments into a string
+        commands = [argv] + list(args)
+        for command in commands:
+            if isinstance(command, list):
+                for i in xrange(0, len(command)):
+                    command[i] = str(command[i])
+        commands = [' '.join(command) for command in commands]
+
+        # print the command line
+        msg('# %s' % ' | '.join(commands))
+
+        # run the command line
+        cliapp.Application.runcmd(self, argv, *args, **kwargs)
+
 
 if __name__ == '__main__':
     Morph().run()

@@ -87,7 +87,11 @@ class Treeish(object):
                 binascii.unhexlify(ref)
                 ex = morphlib.execute.Execute(self.repo, self.msg)
                 ex.runv(['git', 'rev-list', '--no-walk', ref])
-                self.sha1=ref
+                self.sha1 = ref
+                # NOTE this is a hack, but we really don't want to add
+                # conditionals all over the place in order to handle
+                # situations where we only have a .sha1, do we?
+                self.ref = ref
         except (TypeError, morphlib.execute.CommandFailure):
             raise InvalidReferenceError(self.original_repo, ref)
 
@@ -238,3 +242,9 @@ def add_remote(gitdir, name, url, msg=logging.debug):
 def update_remote(gitdir, name, msg=logging.debug):
     ex = morphlib.execute.Execute(gitdir, msg=msg)
     return ex.runv(['git', 'remote', 'update', name])
+
+def archive_and_extract(app, treeish, destdir, msg=logging.debug):
+    return app.runcmd(['git', 'archive', treeish.ref],
+                      ['tar', '-C', destdir, '-xv'],
+                      cwd=treeish.repo,
+                      msg=msg)

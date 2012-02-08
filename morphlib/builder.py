@@ -55,7 +55,8 @@ def ldconfig(ex, rootdir):
 
 class BlobBuilder(object):
 
-    def __init__(self, blob):
+    def __init__(self, app, blob):
+        self.app = app
         self.blob = blob
         
         # The following MUST get set by the caller.
@@ -219,7 +220,7 @@ class ChunkBuilder(BlobBuilder):
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
         self.setup_env()
 
-        self.create_source_and_tarball()
+        self.prepare_build_directory()
 
         os.mkdir(self.destdir)
         if self.blob.morph.build_system:
@@ -305,19 +306,21 @@ class ChunkBuilder(BlobBuilder):
         for key in sorted(self.ex.env):
             logging.debug('  %s=%s' % (key, self.ex.env[key]))
 
-    def create_source_and_tarball(self):
-        self.msg('Creating source tree and tarball')
-        with self.build_watch('create-source-tarball'):
-            self.dump_memory_profile('before creating source and tarball '
-                                        'for chunk')
-            tarball = self.cache_prefix + '.src.tar'
-            morphlib.git.export_sources(self.blob.morph.treeish, tarball,
-                                        msg=self.msg)
-            self.dump_memory_profile('after exporting sources')
-            os.mkdir(self.builddir)
-            self.ex.runv(['tar', '-C', self.builddir, '-xf', tarball])
-            self.dump_memory_profile('after creating source and tarball '
-                                        'for chunk')
+    def prepare_build_directory(self):
+        os.mkdir(self.builddir)
+
+        def extract_treeish(treeish, destdir):
+            self.msg('Extracting %s into %s' %
+                     (treeish.repo, self.builddir))
+
+            morphlib.git.archive_and_extract(
+                    self.app, treeish, destdir, self.msg)
+
+            for submodule in treeish.submodules:
+                directory = os.path.join(destdir, submodule.path)
+                extract_treeish(submodule.treeish, directory)
+
+        extract_treeish(self.blob.morph.treeish, self.builddir)
 
     def build_using_buildsystem(self):
         bs_name = self.blob.morph.build_system
@@ -515,6 +518,7 @@ class Builder(object):
     
     def __init__(self, tempdir, app, morph_loader, source_manager):
         self.tempdir = tempdir
+        self.app = app
         self.real_msg = app.msg
         self.settings = app.settings
         self.dump_memory_profile = app.dump_memory_profile
@@ -619,11 +623,11 @@ class Builder(object):
 
     def create_blob_builder(self, blob):
         if isinstance(blob, morphlib.blobs.Stratum):
-            builder = StratumBuilder(blob)
+            builder = StratumBuilder(self.app, blob)
         elif isinstance(blob, morphlib.blobs.Chunk):
-            builder = ChunkBuilder(blob)
+            builder = ChunkBuilder(self.app, blob)
         elif isinstance(blob, morphlib.blobs.System):
-            builder = SystemBuilder(blob)
+            builder = SystemBuilder(self.app, blob)
         else:
             raise TypeError('Blob %s has unknown type %s' %
                             (str(blob), type(blob)))
