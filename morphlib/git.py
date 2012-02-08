@@ -221,7 +221,7 @@ def get_morph_text(treeish, filename, msg=logging.debug):
 def extract_bundle(location, bundle, msg=logging.debug):
     '''Extract a bundle into git at location'''
     ex = morphlib.execute.Execute(location, msg=msg)
-    return ex.runv(['git', 'bundle', 'unbundle', bundle])
+    return ex.runv(['git', 'clone', bundle, '.'])
 
 def clone(location, repo, msg=logging.debug):
     '''clone at git repo into location'''
@@ -234,10 +234,10 @@ def init(location, msg=logging.debug):
     ex = morphlib.execute.Execute(location, msg=msg)
     return ex.runv(['git', 'init'])
 
-def add_remote(gitdir, name, url, msg=logging.debug):
-    '''add remote with name 'name' for url at gitdir'''
+def set_remote(gitdir, name, url, msg=logging.debug):
+    '''Set remote with name 'name' use a given url at gitdir'''
     ex = morphlib.execute.Execute(gitdir, msg=msg)
-    return ex.runv(['git', 'remote', 'add', '-f', name, url])
+    return ex.runv(['git', 'remote', 'set-url', name, url])
 
 def update_remote(gitdir, name, msg=logging.debug):
     ex = morphlib.execute.Execute(gitdir, msg=msg)

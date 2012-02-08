@@ -104,12 +104,14 @@ class SourceManager(object):
             try:
                 if bundle:
                     self.msg('Initialising repository at %s' % location)
-                    morphlib.git.init(location, self.msg)
+                    os.mkdir(location)
                     self.msg('Extracting bundle %s into %s' %
                              (bundle, location))
                     morphlib.git.extract_bundle(location, bundle, self.msg)
-                    self.msg('Adding origin %s' % repo)
-                    morphlib.git.add_remote(location,'origin', repo, self.msg)
+                    self.msg('Setting origin to %s' % repo)
+                    morphlib.git.set_remote(location,'origin', repo, self.msg)
+                    self.msg('Updating from origin')
+                    morphlib.git.update_remote(location, "origin", self.msg)
                 else:
                     self.msg('Cloning %s into %s' % (repo, location))
                     morphlib.git.clone(location, repo, self.msg)
