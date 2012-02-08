@@ -96,6 +96,15 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
+    def test_get_ref_treeish_for_self_without_submodules(self):
+        tempdir = tempfile.mkdtemp()
+
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
+        t = s.get_treeish(self.temprepo, 'master')
+        self.assertEquals(len(t.submodules), 0)
+
+        shutil.rmtree(tempdir)
+
     def test_get_sha1_treeish_for_self_bundle(self):
         tempdir = tempfile.mkdtemp()
         bundle_server_loc = self.temprepodir
@@ -129,8 +138,9 @@ class SourceManagerTests(unittest.TestCase):
             shutil.copy(path, s.cache_dir)
 
         s._wget = wget
-        self.assertRaises(morphlib.sourcemanager.SourceNotFound, s.get_treeish,
-                          'asdf','e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertRaises(morphlib.sourcemanager.RepositoryUpdateError,
+                          s.get_treeish, 'asdf',
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 

@@ -14,11 +14,15 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import logging
 import binascii
-import morphlib
-import os
 import cliapp
+import ConfigParser
+import logging
+import os
+import re
+import StringIO
+
+import morphlib
 
 
 class NoMorphs(Exception):
@@ -35,7 +39,7 @@ class TooManyMorphs(Exception):
                            (repo, ref, ', '.join(morphs)))
 
 
-class InvalidTreeish(cliapp.AppException):
+class InvalidReferenceError(cliapp.AppException):
 
     def __init__(self, repo, ref):
         Exception.__init__(self, '%s is an invalid reference for repo %s' %
@@ -77,7 +81,7 @@ class Treeish(object):
 
     def _is_sha(self, ref):
         if len(ref) != 40:
-            raise InvalidTreeish(self.original_repo, ref)
+            raise InvalidReferenceError(self.original_repo, ref)
 
         try:
                 binascii.unhexlify(ref)
@@ -85,7 +89,118 @@ class Treeish(object):
                 ex.runv(['git', 'rev-list', '--no-walk', ref])
                 self.sha1=ref
         except (TypeError, morphlib.execute.CommandFailure):
-            raise InvalidTreeish(self.original_repo, ref)
+            raise InvalidReferenceError(self.original_repo, ref)
+
+
+class NoModulesFileError(cliapp.AppException):
+
+    def __init__(self, treeish):
+        Exception.__init__(self, '%s has no .gitmodules file.' % treeish)
+
+
+class Submodule(object):
+
+    def __init__(self, parent_treeish, name, url, path):
+        self.parent_treeish = parent_treeish
+        self.name = name
+        self.url = url
+        self.path = path
+
+
+class ModulesFileParseError(cliapp.AppException):
+
+    def __init__(self, treeish, message):
+        Exception.__init__(self, 'Failed to parse %s:.gitmodules: %s' %
+                           (treeish, message))
+
+
+class InvalidSectionError(cliapp.AppException):
+
+    def __init__(self, treeish, section):
+        Exception.__init__(self,
+                           '%s:.gitmodules: Found a misformatted section '
+                           'title: [%s]' % (treeish, section))
+
+
+class MissingSubmoduleCommitError(cliapp.AppException):
+
+    def __init__(self, treeish, submodule):
+        Exception.__init__(self,
+                           '%s:.gitmodules: No commit object found for '
+                           'submodule "%s"' % (treeish, submodule))
+
+
+class Submodules(object):
+
+    def __init__(self, treeish, msg=logging.debug):
+        self.treeish = treeish
+        self.msg = msg
+        self.submodules = []
+
+    def load(self):
+        content = self._read_gitmodules_file()
+
+        io = StringIO.StringIO(content)
+        parser = ConfigParser.RawConfigParser()
+        parser.readfp(io)
+
+        self._validate_and_read_entries(parser)
+        self._resolve_commits()
+
+    def _read_gitmodules_file(self):
+        try:
+            # try to read the .gitmodules file from the repo/ref
+            ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
+            content = ex.runv(['git', 'cat-file', 'blob', '%s:.gitmodules' %
+                               self.treeish.ref])
+
+            # drop indentation in sections, as RawConfigParser cannot handle it
+            return '\n'.join([line.strip() for line in content.splitlines()])
+        except morphlib.execute.CommandFailure:
+            raise NoModulesFileError(self.treeish)
+
+    def _validate_and_read_entries(self, parser):
+        for section in parser.sections():
+            # validate section name against the 'section "foo"' pattern
+            section_pattern = r'submodule "(.*)"'
+            if re.match(section_pattern, section):
+                # parse the submodule name, URL and path
+                name = re.sub(section_pattern, r'\1', section)
+                url = parser.get(section, 'url')
+                path = parser.get(section, 'path')
+
+                # add a submodule object to the list
+                submodule = Submodule(self.treeish, name, url, path)
+                self.submodules.append(submodule)
+            else:
+                raise InvalidSectionError(self.treeish, section)
+
+    def _resolve_commits(self):
+        ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
+        for submodule in self.submodules:
+            try:
+                # list objects in the parent repo tree to find the commit
+                # object that corresponds to the submodule
+                commit = ex.runv(['git', 'ls-tree', self.treeish.ref,
+                                  submodule.name])
+
+                # read the commit hash from the output
+                submodule.commit = commit.split()[2]
+
+                # fail if the commit hash is invalid
+                if len(submodule.commit) != 40:
+                    raise MissingSubmoduleCommitError(self.treeish,
+                                                      submodule.name)
+            except morphlib.execute.CommandFailure:
+                raise MissingSubmoduleCommitError(self.treeish, submodule.name)
+
+    def __iter__(self):
+        for submodule in self.submodules:
+            yield submodule
+
+    def __len__(self):
+        return len(self.submodules)
+
 
 def export_sources(treeish, tar_filename, msg=logging.debug):
     '''Export the contents of a specific commit into a compressed tarball.'''

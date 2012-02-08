@@ -37,7 +37,7 @@ def quote_url(url):
     return ''.join([transl(x) for x in url])
 
 
-class SourceNotFound(Exception):
+class RepositoryUpdateError(Exception):
 
     def __init__(self, repo, ref):
         Exception.__init__(self, 'No source found at %s:%s' % (repo, ref))
@@ -123,47 +123,74 @@ class SourceManager(object):
         ex = morphlib.execute.Execute(self.cache_dir, msg=self.msg)
         ex.runv(['wget', '-c', url])
 
+    def _cache_git_from_base_urls(self, repo, ref):
+        treeish = None
+
+        # try all base URLs to load the treeish
+        for base_url in self.settings['git-base-url']:
+            # generate the full repo URL
+            if not base_url.endswith('/'):
+                base_url += '/'
+            full_repo = urlparse.urljoin(base_url, repo)
+
+            self.msg('Updating repository %s' % quote_url(full_repo))
+            self.indent_more()
+
+            # try to clone/update the repo so that we can obtain a treeish
+            success, gitcache = self._get_git_cache(full_repo)
+            if success:
+                treeish = morphlib.git.Treeish(gitcache, repo, ref, self.msg)
+                self.indent_less()
+                break
+
+            self.indent_less()
+
+        if treeish:
+            return treeish
+        else:
+            raise RepositoryUpdateError(repo, ref)
+
+    def _resolve_submodules(self, treeish):
+        self.indent_more()
+
+        # resolve submodules
+        treeish.submodules = morphlib.git.Submodules(treeish, self.msg)
+        try:
+            # load submodules from .gitmodules
+            treeish.submodules.load()
+
+            # resolve the tree-ishes for all submodules recursively
+            for submodule in treeish.submodules: # pragma: no cover
+                submodule.treeish = self.get_treeish(submodule.url,
+                                                     submodule.commit)
+        except morphlib.git.NoModulesFileError:
+            # this is not really an error, the repository simply
+            # does not specify any git submodules
+            pass
+
+        self.indent_less()
+
     def get_treeish(self, repo, ref):
         '''Returns a Treeish for a URL or repo name with a given reference.
 
         If the source hasn't been cloned yet, this will fetch it, either using
         clone or by fetching a bundle. 
         
-        Raises morphlib.git.InvalidTreeish if the reference cannot be found.
-        Raises morphlib.sourcemanager.SourceNotFound if source cannot be found.
+        Raises morphlib.git.InvalidReferenceError if the reference cannot be
+        found. Raises morphlib.sourcemanager.RepositoryUpdateError if the
+        repository cannot be cloned or updated.
 
         '''
 
-        # load the corresponding treeish on demand
         if (repo, ref) not in self.cached_treeishes:
-            # variable for storing the loaded treeish
-            treeish = None
+            # load the corresponding treeish on demand
+            treeish = self._cache_git_from_base_urls(repo, ref)
 
-            # try loading it from all base URLs
-            for base_url in self.settings['git-base-url']:
-                # generate the full repo URL
-                if not base_url.endswith('/'):
-                    base_url += '/'
-                full_repo = urlparse.urljoin(base_url, repo)
-                
-                self.msg('Updating repository %s' % quote_url(full_repo))
-                self.indent_more()
+            # have a treeish now, cache it to avoid loading it twice
+            self.cached_treeishes[(repo, ref)] = treeish
 
-                # try to clone/update the repo so that we can obtain a treeish
-                success, gitcache = self._get_git_cache(full_repo)
-                if success:
-                    treeish = morphlib.git.Treeish(gitcache, repo, ref,
-                                                   self.msg)
-                    self.indent_less()
-                    break
-
-                self.indent_less()
-
-            # if we have a treeish now, cache it to avoid loading it twice
-            if treeish:
-                self.cached_treeishes[(repo, ref)] = treeish
-            else:
-                raise SourceNotFound(repo, ref)
+            # load tree-ishes for submodules, if necessary
+            self._resolve_submodules(treeish)
 
         # we should now have a cached treeish to use now
         return self.cached_treeishes[(repo, ref)]
