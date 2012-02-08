@@ -89,7 +89,7 @@ class SourceManager(object):
                 self.msg('Using bundle server %s, looking for bundle for %s' %
                          (bundle_server, name))
                 bundle = name + ".bndl"
-                lookup_url = urlparse.urljoin(bundle_server, bundle)
+                lookup_url = bundle_server + bundle
                 self.msg('Checking for bundle %s' % lookup_url)
                 req = urllib2.Request(lookup_url)
 
