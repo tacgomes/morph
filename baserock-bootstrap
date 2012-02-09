@@ -10,7 +10,7 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-case "$1" in
+case "${1:-''}" in
 y|ye|yes|t|tr|tru|true)
     PASS1ONLY=true
     ;;
