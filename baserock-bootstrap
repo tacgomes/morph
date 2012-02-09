@@ -790,6 +790,21 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
+while ! python ./morph --verbose update-gits \
+    file:///baserock/gits/morphs/ baserock/bootstrap foundation.morph \
+    file:///baserock/gits/morphs/ master devel.morph \
+    file:///baserock/gits/morphs/ master linux-stratum.morph \
+        --bootstrap \
+        --cachedir=/baserock/cache \
+        --log=/baserock/morph.log \
+        --dump-memory-profile=none \
+        --keep-path \
+        --bundle-server="$GIT_BUNDLES" \
+        --git-base-url=git://gitorious.org/baserock/ \
+        --git-base-url=git://gitorious.org/baserock-morphs/
+do
+    echo eeekk try again
+done
 python ./morph --verbose build \
     file:///baserock/gits/morphs/ baserock/bootstrap foundation.morph \
     file:///baserock/gits/morphs/ master devel.morph \
@@ -799,7 +814,9 @@ python ./morph --verbose build \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --git-base-url=file:///baserock/gits/
+        --bundle-server="$GIT_BUNDLES" \
+        --git-base-url=git://gitorious.org/baserock/ \
+        --git-base-url=git://gitorious.org/baserock-morphs/
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot"
@@ -832,6 +849,8 @@ EOF
 
 pass2_build_devel_system_outside_chroot()
 {
+    echo "Building devel system image"
+
     cd "$LFS/.."
     img="devsys.img"
 
@@ -932,4 +951,6 @@ pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
 pass2_build_devel_system_outside_chroot
+
+echo "Finished OK"
 

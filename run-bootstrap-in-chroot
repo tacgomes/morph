@@ -37,6 +37,7 @@ fi
 
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
     ([ "x$GITS" = x ] && echo GITS is unspecified >&2) ||
+    ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2) ||
     ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
 then
     echo It is recommended that mirrors are used
