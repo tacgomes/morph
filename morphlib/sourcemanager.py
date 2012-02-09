@@ -74,7 +74,7 @@ class SourceManager(object):
                 self.msg('Cached clone exists, updating origin')
                 try:
                     morphlib.git.update_remote(location, "origin", self.msg)
-                except morphlib.execute.CommandFailure, e:
+                except morphlib.execute.CommandFailure, e: # pragma: no cover
                     logging.warning('Ignoring git error:\n%s' % str(e))
             else: # pragma: no cover
                 self.msg('Cached clone exists, assuming origin is up to date')
@@ -116,7 +116,7 @@ class SourceManager(object):
                     self.msg('Updating from origin')
                     try:
                         morphlib.git.update_remote(location, "origin", self.msg)
-                    except morphlib.execute.CommandFailure, e:
+                    except morphlib.execute.CommandFailure, e: # pragma: no cover
                         logging.warning('Ignoring git failure:\n%s' % str(e))
                 else:
                     self.msg('Cloning %s into %s' % (repo, location))
