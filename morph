@@ -58,6 +58,10 @@ class Morph(cliapp.Application):
                               'build stuff in bootstrap mode; this is '
                                 'DANGEROUS and will install stuff on your '
                                 'system')
+        self.settings.boolean(['ignore-submodules'],
+                              'do not cache repositories of submodules and '
+                              'unpack them into the build directory',
+                              default=True)
 
         self.settings.boolean(['test-console'], 
                               'show what the system outputs on the serial '

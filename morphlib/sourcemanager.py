@@ -70,7 +70,7 @@ class SourceManager(object):
         location = self.cache_dir + '/' + name
 
         if os.path.exists(location):
-            if self.update:
+            if self.update: # pragma: no cover
                 self.msg('Cached clone exists, updating origin')
                 try:
                     morphlib.git.update_remote(location, "origin", self.msg)
@@ -78,7 +78,7 @@ class SourceManager(object):
                     logging.warning('Ignoring git error:\n%s' % str(e))
             else: # pragma: no cover
                 self.msg('Cached clone exists, assuming origin is up to date')
-            return True, location
+            return True, location # pragma: no cover
         else:
             self.msg('No cached clone found, fetching from %s' % repo)
 
@@ -169,7 +169,7 @@ class SourceManager(object):
         else:
             raise RepositoryUpdateError(repo, ref)
 
-    def _resolve_submodules(self, treeish):
+    def _resolve_submodules(self, treeish): # pragma: no cover
         self.indent_more()
 
         # resolve submodules
@@ -201,15 +201,18 @@ class SourceManager(object):
 
         '''
 
-        if (repo, ref) not in self.cached_treeishes:
+        if (repo, ref) not in self.cached_treeishes: # pragma: no cover
             # load the corresponding treeish on demand
             treeish = self._cache_git_from_base_urls(repo, ref)
 
             # have a treeish now, cache it to avoid loading it twice
             self.cached_treeishes[(repo, ref)] = treeish
 
-            # load tree-ishes for submodules, if necessary
-            self._resolve_submodules(treeish)
+            # load tree-ishes for submodules, if necessary and desired
+            if self.settings['ignore-submodules']:
+                treeish.submodules = []
+            else:
+                self._resolve_submodules(treeish)
 
         # we should now have a cached treeish to use now
-        return self.cached_treeishes[(repo, ref)]
+        return self.cached_treeishes[(repo, ref)] # pragma: no cover

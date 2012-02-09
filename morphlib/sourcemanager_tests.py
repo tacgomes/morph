@@ -31,6 +31,7 @@ class DummyApp(object):
             'git-base-url': ['.',],
             'bundle-server': None,
             'cachedir': '/foo/bar/baz',
+            'ignore-submodules': False
         }
         self.msg = lambda msg: None
 
