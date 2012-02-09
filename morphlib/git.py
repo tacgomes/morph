@@ -149,7 +149,6 @@ class Submodules(object):
         parser.readfp(io)
 
         self._validate_and_read_entries(parser)
-        self._resolve_commits()
 
     def _read_gitmodules_file(self):
         try:
@@ -164,6 +163,7 @@ class Submodules(object):
             raise NoModulesFileError(self.treeish)
 
     def _validate_and_read_entries(self, parser):
+        ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
         for section in parser.sections():
             # validate section name against the 'section "foo"' pattern
             section_pattern = r'submodule "(.*)"'
@@ -173,30 +173,34 @@ class Submodules(object):
                 url = parser.get(section, 'url')
                 path = parser.get(section, 'path')
 
-                # add a submodule object to the list
+                # create a submodule object
                 submodule = Submodule(self.treeish, name, url, path)
-                self.submodules.append(submodule)
+                try:
+                    # list objects in the parent repo tree to find the commit
+                    # object that corresponds to the submodule
+                    commit = ex.runv(['git', 'ls-tree', self.treeish.ref,
+                                      submodule.name])
+
+                    # read the commit hash from the output
+                    fields = commit.split()
+                    if fields[1] == 'commit':
+                        submodule.commit = commit.split()[2]
+
+                        # fail if the commit hash is invalid
+                        if len(submodule.commit) != 40:
+                            raise MissingSubmoduleCommitError(self.treeish,
+                                                          submodule.name)
+
+                        # add a submodule object to the list
+                        self.submodules.append(submodule)
+                    else:
+                        self.msg('Skipping submodule "%s" as %s has '
+                                 'a non-commit object for it' %
+                                 (submodule.name, self.treeish))
+                except morphlib.execute.CommandFailure:
+                    raise MissingSubmoduleCommitError(self.treeish, submodule.name)
             else:
                 raise InvalidSectionError(self.treeish, section)
-
-    def _resolve_commits(self):
-        ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
-        for submodule in self.submodules:
-            try:
-                # list objects in the parent repo tree to find the commit
-                # object that corresponds to the submodule
-                commit = ex.runv(['git', 'ls-tree', self.treeish.ref,
-                                  submodule.name])
-
-                # read the commit hash from the output
-                submodule.commit = commit.split()[2]
-
-                # fail if the commit hash is invalid
-                if len(submodule.commit) != 40:
-                    raise MissingSubmoduleCommitError(self.treeish,
-                                                      submodule.name)
-            except morphlib.execute.CommandFailure:
-                raise MissingSubmoduleCommitError(self.treeish, submodule.name)
 
     def __iter__(self):
         for submodule in self.submodules:
