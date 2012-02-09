@@ -36,7 +36,6 @@ EOF
 fi
 
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
-    ([ "x$GITS" = x ] && echo GITS is unspecified >&2) ||
     ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2) ||
     ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
 then
@@ -100,7 +99,8 @@ fi
 mkdir -p "$dir/tree/baserock"
 rm -rf "$dir/tree/baserock/gits"
 mkdir "$dir/tree/baserock/gits"
-cp -r "$GITS/morph" "$dir/tree/baserock/gits/."
+mkdir "$dir/tree/baserock/gits/morph"
+cp -r . "$dir/tree/baserock/gits/morph/."
 
 # Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
 # it's already built.
