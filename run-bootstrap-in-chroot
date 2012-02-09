@@ -99,7 +99,8 @@ fi
 # Update the git repos.
 mkdir -p "$dir/tree/baserock"
 rm -rf "$dir/tree/baserock/gits"
-cp -rl "$GITS" "$dir/tree/baserock/gits"
+mkdir "$dir/tree/baserock/gits"
+cp -r "$GITS/morph" "$dir/tree/baserock/gits/."
 
 # Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
 # it's already built.
