@@ -60,8 +60,7 @@ class Morph(cliapp.Application):
                                 'system')
         self.settings.boolean(['ignore-submodules'],
                               'do not cache repositories of submodules and '
-                              'unpack them into the build directory',
-                              default=True)
+                              'unpack them into the build directory')
 
         self.settings.boolean(['test-console'], 
                               'show what the system outputs on the serial '
