@@ -62,6 +62,7 @@ class BlobBuilder(object):
         # The following MUST get set by the caller.
         self.builddir = None
         self.destdir = None
+        self.prefixdir = None
         self.staging = None
         self.settings = None
         self.real_msg = None
@@ -156,10 +157,9 @@ class BlobBuilder(object):
         for key, value in kwargs.iteritems():
             meta[key] = value
         
-        dirname = os.path.join(self.destdir, 'baserock')
-        filename = os.path.join(dirname, '%s.meta' % blob_name)
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
+        filename = os.path.join(self.prefixdir, '%s.meta' % blob_name)
+        if not os.path.exists(self.prefixdir):
+            os.mkdir(self.prefixdir)
             
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
@@ -200,8 +200,11 @@ class ChunkBuilder(BlobBuilder):
     build_system = {
         'autotools': {
             'configure-commands': [
-                'if [ -e autogen.sh ]; then ./autogen.sh; fi',
-                './configure --prefix=/usr',
+                'if [ -e autogen.sh ]; then'
+                ' ./autogen.sh --prefix="$PREFIX"; '
+                'else'
+                ' ./configure --prefix="$PREFIX"; '
+                'fi',
             ],
             'build-commands': [
                 'make',
@@ -243,6 +246,7 @@ class ChunkBuilder(BlobBuilder):
             'TMPDIR',
             'LD_PRELOAD',
             'LD_LIBRARY_PATH',
+            'PKG_CONFIG_PATH',
             'FAKEROOTKEY',
             'FAKED_MODE',
             'FAKEROOT_FD_BASE',
@@ -272,6 +276,14 @@ class ChunkBuilder(BlobBuilder):
             path = ':'.join(os.path.join(self.tempdir.dirname, x) 
                                          for x in bindirs)
             self.ex.env['PATH'] = path
+
+        self.ex.env['PREFIX'] = self.settings['prefix']
+        self.ex.env['PKG_CONFIG_PATH'] = ('%s:%s' %
+                (os.path.join(self.prefixdir, 'lib', 'pkgconfig'),
+                 self.ex.env['PKG_CONFIG_PATH']))
+        self.ex.env['LD_LIBRARY_PATH'] = ('%s:%s' %
+                (os.path.join(self.prefixdir, 'lib'),
+                 self.ex.env['LD_LIBRARY_PATH']))
 
         self.ex.env['WORKAREA'] = self.tempdir.dirname
         self.ex.env['DESTDIR'] = self.destdir + '/'
@@ -638,6 +650,14 @@ class Builder(object):
 
         builder.builddir = self.tempdir.join('%s.build' % blob.morph.name)
         builder.destdir = self.tempdir.join('%s.inst' % blob.morph.name)
+        if self.settings['prefix'] != '/usr':
+            relative_prefix = self.settings['prefix']
+            if relative_prefix.startswith('/'):
+                relative_prefix = relative_prefix[1:]
+            builder.prefixdir = os.path.join(
+                    builder.destdir, relative_prefix, 'baserock')
+        else:
+            builder.prefixdir = os.path.join(builder.destdir, 'baserock')
         builder.staging = self.tempdir.join('staging')
         builder.settings = self.settings
         builder.real_msg = self.msg
