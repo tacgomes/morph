@@ -109,6 +109,8 @@ class BuildWorker(object):
         # settings and make sure to convert all values correctly
         for name, option in name_pairs:
             value = self.settings[name]
+            if not value:
+                continue
             if isinstance(value, list):
                 for listval in value:
                     if isinstance(listval, str):
