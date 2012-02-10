@@ -44,8 +44,8 @@ class Morph(cliapp.Application):
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
         self.settings.string(['tempdir'],
-                             'temporary to use for builds',
-                             metavar='DIR', default='/tmp')
+                             'temporary directory to use for builds',
+                             metavar='DIR', default=os.environ.get('TMPDIR'))
         self.settings.boolean(['no-ccache'], 'do not use ccache')
         self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.integer(['max-jobs'], 
