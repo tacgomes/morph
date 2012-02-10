@@ -43,6 +43,9 @@ class Morph(cliapp.Application):
         self.settings.string(['cachedir'], 
                              'put build results in DIR (default: %default)',
                              metavar='DIR', default='.')
+        self.settings.string(['tempdir'],
+                             'temporary to use for builds',
+                             metavar='DIR', default='/tmp')
         self.settings.boolean(['no-ccache'], 'do not use ccache')
         self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.integer(['max-jobs'], 
@@ -91,7 +94,7 @@ class Morph(cliapp.Application):
         
         '''
 
-        tempdir = morphlib.tempdir.Tempdir()
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
         builder = morphlib.builder.Builder(tempdir, self, morph_loader,
@@ -239,7 +242,7 @@ class Morph(cliapp.Application):
         staging area.
 
         '''
-        tempdir = morphlib.tempdir.Tempdir()
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self,
                                                               update=False)
@@ -329,7 +332,7 @@ class Morph(cliapp.Application):
 
         '''
         
-        tempdir = morphlib.tempdir.Tempdir()
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
 
