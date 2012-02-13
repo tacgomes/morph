@@ -12,14 +12,14 @@ export LC_ALL=C
 
 if [ "x$1" = x ]
 then
-    dir="squeeze-chroot"
-    snapshot=false
-else
-    mkdir -p "$1"
-    dir="$1/squeeze-chroot"
-    snapshot=true
-    snapshotdir="$1"
+    echo "Usage: $0 chroot-dir" 1>&2
+    exit 1
 fi
+
+mkdir -p "$1"
+dir="$1/squeeze-chroot"
+snapshot=true
+snapshotdir="$1"
 
 cat >"./do-squeeze-chroot" <<EOF
 #!/bin/sh
