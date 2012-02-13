@@ -52,18 +52,21 @@ class SourceManagerTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temprepodir)
 
-    def test_constructor_with_and_without_cachedir(self):
+    def test_uses_provided_cache_dir(self):
         app = DummyApp()
         
         tempdir = '/bla/bla/bla'
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
         self.assertEqual(s.cache_dir, tempdir)
 
+    def test_uses_cachedir_gits_if_no_cache_dir_provided(self):
+        app = DummyApp()
+
         s = morphlib.sourcemanager.SourceManager(app)
         self.assertEqual(s.cache_dir,
                          os.path.join(app.settings['cachedir'], 'gits'))
 
-    def test_get_sha1_treeish_for_self(self):
+    def test_resolves_sha1_treeish_for_test_repo_correctly(self):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
@@ -73,22 +76,31 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-    def test_get_sha1_treeish_for_self_twice(self):
+    def test_resolves_sha1_treeish_for_test_repo_correctly_twice(self):
         tempdir = tempfile.mkdtemp()
 
+        # try two times with different source manager objects
+        s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
+        t = s.get_treeish(self.temprepo,
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
+        # try two times with the same source manager object
         s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
+        t = s.get_treeish(self.temprepo,
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         t = s.get_treeish(self.temprepo,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEquals(t.sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
         shutil.rmtree(tempdir)
 
-    def test_get_ref_treeish_for_self(self):
+    def test_resolves_ref_treeish_for_test_repo_correctly(self):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
@@ -97,7 +109,7 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-    def test_get_ref_treeish_for_self_without_submodules(self):
+    def test_resolves_ref_treeish_for_test_repo_without_submodules(self):
         tempdir = tempfile.mkdtemp()
 
         s = morphlib.sourcemanager.SourceManager(DummyApp(), tempdir)
@@ -106,7 +118,7 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-    def test_get_sha1_treeish_for_self_bundle(self):
+    def test_resolves_sha1_treeish_for_test_repo_correctly_from_bundle(self):
         tempdir = tempfile.mkdtemp()
         bundle_server_loc = self.temprepodir
 
@@ -118,6 +130,7 @@ class SourceManagerTests(unittest.TestCase):
         def wget(url):
             path=urlparse.urlparse(url).path
             shutil.copy(path, s.cache_dir)
+            return self.temprepo
 
         s._wget = wget
 
@@ -127,7 +140,25 @@ class SourceManagerTests(unittest.TestCase):
 
         shutil.rmtree(tempdir)
 
-    def test_get_sha1_treeish_for_self_bundle_fail(self):
+    def test_fails_to_resolves_sha1_treeish_for_non_existent_repo(self):
+        tempdir = tempfile.mkdtemp()
+        app = DummyApp()
+
+        s = morphlib.sourcemanager.SourceManager(app, tempdir)
+
+        def wget(url):
+            path=urlparse.urlparse(url).path
+            shutil.copy(path, s.cache_dir)
+            return self.temprepo
+
+        s._wget = wget
+        self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
+                          s.get_treeish, 'asdf',
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+
+        shutil.rmtree(tempdir)
+
+    def test_fails_to_resolves_sha1_treeish_for_non_existent_repo_bundle(self):
         tempdir = tempfile.mkdtemp()
         app = DummyApp()
         app.settings['bundle-server'] = 'file://' + self.temprepodir
@@ -137,9 +168,10 @@ class SourceManagerTests(unittest.TestCase):
         def wget(url):
             path=urlparse.urlparse(url).path
             shutil.copy(path, s.cache_dir)
+            return self.temprepo
 
         s._wget = wget
-        self.assertRaises(morphlib.sourcemanager.RepositoryUpdateError,
+        self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
                           s.get_treeish, 'asdf',
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
