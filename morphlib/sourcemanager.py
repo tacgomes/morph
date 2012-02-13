@@ -81,49 +81,56 @@ class SourceManager(object):
                 self.msg('Cached clone exists, assuming origin is up to date')
             return True, location # pragma: no cover
         else:
-            self.msg('No cached clone found, fetching from %s' % repo)
+            if self.update:
+                self.msg('No cached clone found, fetching from %s' % repo)
 
-            success = False
+                success = False
 
-            bundle = None
-            if self.settings['bundle-server']:
-                bundle_server = self.settings['bundle-server']
-                if not bundle_server.endswith('/'):
-                    bundle_server += '/'
-                self.msg('Using bundle server %s, looking for bundle for %s' %
-                         (bundle_server, name))
-                bundle = name + ".bndl"
-                lookup_url = bundle_server + bundle
-                self.msg('Checking for bundle %s' % lookup_url)
-                req = urllib2.Request(lookup_url)
+                bundle = None
+                if self.settings['bundle-server']:
+                    bundle_server = self.settings['bundle-server']
+                    if not bundle_server.endswith('/'):
+                        bundle_server += '/'
+                    self.msg('Using bundle server %s, looking for bundle '
+                             'for %s' % (bundle_server, name))
+                    bundle = name + ".bndl"
+                    lookup_url = bundle_server + bundle
+                    self.msg('Checking for bundle %s' % lookup_url)
+                    req = urllib2.Request(lookup_url)
 
-                try:
-                    urllib2.urlopen(req)
-                    self._wget(lookup_url)
-                    bundle = self.cache_dir + '/' + bundle
-                except urllib2.URLError:
-                    self.msg('Unable to find bundle %s on %s' %
-                             (bundle, bundle_server))
-                    bundle = None
-            try:
-                if bundle:
-                    self.msg('Initialising repository at %s' % location)
-                    os.mkdir(location)
-                    self.msg('Extracting bundle %s into %s' %
-                             (bundle, location))
-                    morphlib.git.extract_bundle(location, bundle, self.msg)
-                    self.msg('Setting origin to %s' % repo)
-                    morphlib.git.set_remote(location,'origin', repo, self.msg)
-                    self.msg('Updating from origin')
                     try:
-                        morphlib.git.update_remote(location, "origin", self.msg)
-                    except morphlib.execute.CommandFailure, e: # pragma: no cover
-                        logging.warning('Ignoring git failure:\n%s' % str(e))
-                else:
-                    self.msg('Cloning %s into %s' % (repo, location))
-                    morphlib.git.clone(location, repo, self.msg)
-                success = True
-            except morphlib.execute.CommandFailure:
+                        urllib2.urlopen(req)
+                        self._wget(lookup_url)
+                        bundle = self.cache_dir + '/' + bundle
+                    except urllib2.URLError:
+                        self.msg('Unable to find bundle %s on %s' %
+                                 (bundle, bundle_server))
+                        bundle = None
+                try:
+                    if bundle:
+                        self.msg('Initialising repository at %s' % location)
+                        os.mkdir(location)
+                        self.msg('Extracting bundle %s into %s' %
+                                 (bundle, location))
+                        morphlib.git.extract_bundle(location, bundle, self.msg)
+                        self.msg('Setting origin to %s' % repo)
+                        morphlib.git.set_remote(location,'origin', repo,
+                                                self.msg)
+                        self.msg('Updating from origin')
+                        try:
+                            morphlib.git.update_remote(location, "origin",
+                                                       self.msg)
+                        except morphlib.execute.CommandFailure, e: # pragma: no cover
+                            logging.warning('Ignoring git failure:\n%s' %
+                                            str(e))
+                    else:
+                        self.msg('Cloning %s into %s' % (repo, location))
+                        morphlib.git.clone(location, repo, self.msg)
+                    success = True
+                except morphlib.execute.CommandFailure:
+                    success = False
+            else: # pragma: no cover
+                self.msg('No cached clone found, skipping this location')
                 success = False
                     
             return success, location
