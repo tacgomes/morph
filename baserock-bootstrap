@@ -791,7 +791,7 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 while ! python ./morph --verbose update-gits \
-    morphs baserock/bootstrap foundation.morph \
+    morphs master foundation.morph \
     morphs master devel.morph \
     morphs master linux-stratum.morph \
         --bootstrap \
@@ -807,7 +807,7 @@ do
     echo eeekk try again
 done
 python ./morph --verbose build \
-    morphs baserock/bootstrap foundation.morph \
+    morphs master foundation.morph \
     morphs master devel.morph \
     morphs master linux-stratum.morph \
         --bootstrap \
