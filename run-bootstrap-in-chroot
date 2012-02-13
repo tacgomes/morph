@@ -21,8 +21,7 @@ else
     snapshotdir="$1"
 fi
 
-if [ ! -x ./do-squeeze-chroot ]; then
-    cat >"./do-squeeze-chroot" <<EOF
+cat >"./do-squeeze-chroot" <<EOF
 #!/bin/sh
 if mount -t proc proc "$dir/proc"; then
   if mount -t sysfs sysfs "$dir/sys"; then
@@ -32,8 +31,7 @@ if mount -t proc proc "$dir/proc"; then
   umount "$dir/proc"
 fi
 EOF
-    chmod +x "./do-squeeze-chroot"
-fi
+chmod +x "./do-squeeze-chroot"
 
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
     ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2) ||
