@@ -70,7 +70,7 @@ class Treeish(object):
         try:
             refs = ex.runv(['git', 'show-ref', ref]).split('\n')
 
-            # drop the refs that are not from origin
+            # split each ref line into an array, drop non-origin branches
             refs = [x.split() for x in refs if 'origin' in x]
 
             binascii.unhexlify(refs[0][0]) #Valid hex?
@@ -189,7 +189,7 @@ class Submodules(object):
                         # fail if the commit hash is invalid
                         if len(submodule.commit) != 40:
                             raise MissingSubmoduleCommitError(self.treeish,
-                                                          submodule.name)
+                                                              submodule.name)
 
                         # add a submodule object to the list
                         self.submodules.append(submodule)
@@ -198,7 +198,8 @@ class Submodules(object):
                                  'a non-commit object for it' %
                                  (submodule.name, self.treeish))
                 except morphlib.execute.CommandFailure:
-                    raise MissingSubmoduleCommitError(self.treeish, submodule.name)
+                    raise MissingSubmoduleCommitError(self.treeish,
+                                                      submodule.name)
             else:
                 raise InvalidSectionError(self.treeish, section)
 
@@ -225,12 +226,12 @@ def get_morph_text(treeish, filename, msg=logging.debug):
 def extract_bundle(location, bundle, msg=logging.debug):
     '''Extract a bundle into git at location'''
     ex = morphlib.execute.Execute(location, msg=msg)
-    return ex.runv(['git', 'clone', bundle, '.'])
+    return ex.runv(['git', 'clone', '-n', bundle, '.'])
 
 def clone(location, repo, msg=logging.debug):
     '''clone at git repo into location'''
     ex = morphlib.execute.Execute('.', msg=msg)
-    return ex.runv(['git', 'clone', '-l', repo, location])
+    return ex.runv(['git', 'clone', '-n', '-l', repo, location])
 
 def init(location, msg=logging.debug):
     '''initialise git repo at location'''
