@@ -96,8 +96,9 @@ class SourceManager(object):
 
         return saved_name
 
-    def _cache_repo_from_bundle_server(self, server, repo_url, quoted_url,
-            cached_repo):
+    def _cache_repo_from_bundle(self, server, repo_url):
+        quoted_url = quote_url(repo_url)
+        cached_repo = os.path.join(self.cache_dir, quoted_url)
         bundle_name = '%s.bndl' % quoted_url
         bundle_url = server + bundle_name
         self.msg('Trying to fetch bundle %s' % bundle_url)
@@ -134,22 +135,11 @@ class SourceManager(object):
         quoted_url = quote_url(repo_url)
         cached_repo = os.path.join(self.cache_dir, quoted_url)
 
-        if os.path.exists(cached_repo):
+        if os.path.exists(cached_repo): # pragma: no cover
             # the cache location exists, assume this is what we want
             self.msg('Using cached clone %s of %s' % (cached_repo, repo_url))
             return cached_repo
         else:
-            # try fetching from the bundle server first
-            if self.settings['bundle-server']:
-                server = self.settings['bundle-server']
-                if not server.endswith('/'):
-                    server += '/'
-
-                # we have a bundle server, try to fetch from there
-                if self._cache_repo_from_bundle_server(
-                        server, repo_url, quoted_url, cached_repo):
-                    return cached_repo
-
             # bundle server did not have a bundle for the repo
             self.msg('Cloning %s into %s' % (repo_url, cached_repo))
             try:
@@ -164,16 +154,39 @@ class SourceManager(object):
         self.indent_more()
 >>>>>>> a4ff907... Rewrite get_treeish(), fetching and update code.
 
+        def fixup_url(url):
+            return (url if url.endswith('/') else url + '/')
+
+        # create absolute repo URLs
+        repo_urls = [urlparse.urljoin(fixup_url(x), repo)
+                     for x in self.settings['git-base-url']]
+
         cached_repo = None
 
-        # try all the base URLs to find or obtain a cached clone of the repo
-        for base_url in self.settings['git-base-url']:
-            if not base_url.endswith('/'):
-                base_url += '/'
-            repo_url = urlparse.urljoin(base_url, repo)
-            cached_repo = self._cache_repo_from_url(repo_url)
-            if cached_repo:
+        # check if we have a cached version of the repo
+        for repo_url in repo_urls:
+            quoted_url = quote_url(repo_url)
+            cached_repo_dirname = os.path.join(self.cache_dir, quoted_url)
+            if os.path.exists(cached_repo_dirname):
+                cached_repo = cached_repo_dirname
                 break
+
+        # first pass, try all base URLs with the bundle server
+        if not cached_repo and self.settings['bundle-server']:
+            server = fixup_url(self.settings['bundle-server'])
+
+            for repo_url in repo_urls:
+                cached_repo = self._cache_repo_from_bundle(server, repo_url)
+                if cached_repo:
+                    break
+
+        # second pass, try cloning from base URLs directly
+        if not cached_repo:
+            # try all URLs to find or obtain a cached clone of the repo
+            for repo_url in repo_urls:
+                cached_repo = self._cache_repo_from_url(repo_url)
+                if cached_repo:
+                    break
 
         if cached_repo:
             # we have a cached version of the repo now
