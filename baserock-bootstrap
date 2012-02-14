@@ -952,7 +952,7 @@ fi
 pass2_get_sources
 pass2_prepare_for_chroot
 pass2_build_with_morph_in_chroot
-pass2_build_devel_system_outside_chroot
+#pass2_build_devel_system_outside_chroot
 
 echo "Finished OK"
 
