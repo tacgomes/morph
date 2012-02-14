@@ -64,10 +64,6 @@ class Morph(cliapp.Application):
         self.settings.boolean(['ignore-submodules'],
                               'do not cache repositories of submodules and '
                               'unpack them into the build directory')
-        self.settings.string(['prefix'],
-                             'installation prefix to be used for chunks',
-                             metavar='PATH',
-                             default='/usr')
 
         self.settings.boolean(['test-console'], 
                               'show what the system outputs on the serial '
