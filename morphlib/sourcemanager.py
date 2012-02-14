@@ -196,7 +196,9 @@ class SourceManager(object):
                                                self.msg)
                 except morphlib.execute.CommandFailure, e: # pragma: no cover
                     self.indent_less()
-                    raise RepositoryUpdateError(repo, ref, e)
+                    # ignore remote update failures during bootstrap
+                    if not self.settings['bootstrap']:
+                        raise RepositoryUpdateError(repo, ref, e)
             else: # pragma: no cover
                 self.msg('Assuming cached repository %s is up to date' %
                          cached_repo)
