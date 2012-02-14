@@ -84,7 +84,7 @@ then
     cp baserock-bootstrap "$dir/." #update bootstrap script
 else
     cp baserock-bootstrap "$dir/."
-    "./do-squeeze-chroot" bash -x baserock-bootstrap true || exit 1
+    "./do-squeeze-chroot" bash -x baserock-bootstrap pass1 || exit 1
     if "$snapshot"
     then
         tar -C "$dir" -caf "$snapshotdir/pass1-snapshot.tar" .
@@ -98,6 +98,22 @@ mkdir "$dir/tree/baserock/gits"
 mkdir "$dir/tree/baserock/gits/morph"
 cp -r . "$dir/tree/baserock/gits/morph/."
 
-# Run pass2 of bootstrap. This actually runs pass1 too, but quickly, since
-# it's already built.
-"./do-squeeze-chroot" bash -x baserock-bootstrap false || exit 1
+# Unpack existing snapshot, or run pass2 of bootstrap and then make snapshot.
+if "$snapshot" && [ -e "$snapshotdir/pass2-snapshot.tar" ]
+then
+    tar -C "$dir" -xf "$snapshotdir/pass2-snapshot.tar"
+    cp baserock-bootstrap "$dir/." #update bootstrap script
+else
+    cp baserock-bootstrap "$dir/."
+    "./do-squeeze-chroot" bash -x baserock-bootstrap pass2 || exit 1
+    if "$snapshot"
+    then
+        tar -C "$dir" -caf "$snapshotdir/pass2-snapshot.tar" .
+    fi
+fi
+
+# Run pass3 of bootstrap.
+"./do-squeeze-chroot" bash -x baserock-bootstrap pass3 || exit 1
+
+echo "Passes 1, 2, and 3 of bootstrap done (possibly cached)."
+

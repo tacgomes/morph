@@ -10,13 +10,8 @@ LFS="$(pwd)/tree"
 allsources="$LFS/../../lfs-tarballs"
 sources="$LFS/sources"
 tools="$LFS/tools"
-case "${1:-''}" in
-y|ye|yes|t|tr|tru|true)
-    PASS1ONLY=true
-    ;;
-n|no|f|fa|fal|fals|false|*)
-    PASS1ONLY=false
-esac
+
+buildwhat="$1"
 
 CPUS=$(grep -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
@@ -907,52 +902,57 @@ then
 fi
 download_all
 
-pass1_binutils_1
-pass1_gcc_1
-pass1_linux_api_headers
-pass1_glibc
-pass1_adjust_gcc_specs
-pass1_sanity_check
-pass1_binutils_2
-pass1_gcc_2
-pass1_sanity_check
-pass1_zlib
-pass1_ncurses
-#pass1_busybox
-pass1_bash
-pass1_bzip2
-pass1_coreutils
-pass1_diffutils
-pass1_file
-pass1_findutils
-pass1_gawk
-pass1_gettext
-pass1_grep
-pass1_gzip
-pass1_m4
-pass1_make
-pass1_patch
-pass1_perl
-pass1_sed
-pass1_tar
-pass1_texinfo
-pass1_xz
-pass1_python
-pass1_cliapp
-pass1_git
-#pass1_strip_tools
-#pass1_fix_perms
+case "$buildwhat" in
+    pass1)
+        pass1_binutils_1
+        pass1_gcc_1
+        pass1_linux_api_headers
+        pass1_glibc
+        pass1_adjust_gcc_specs
+        pass1_sanity_check
+        pass1_binutils_2
+        pass1_gcc_2
+        pass1_sanity_check
+        pass1_zlib
+        pass1_ncurses
+        #pass1_busybox
+        pass1_bash
+        pass1_bzip2
+        pass1_coreutils
+        pass1_diffutils
+        pass1_file
+        pass1_findutils
+        pass1_gawk
+        pass1_gettext
+        pass1_grep
+        pass1_gzip
+        pass1_m4
+        pass1_make
+        pass1_patch
+        pass1_perl
+        pass1_sed
+        pass1_tar
+        pass1_texinfo
+        pass1_xz
+        pass1_python
+        pass1_cliapp
+        pass1_git
+        #pass1_strip_tools
+        #pass1_fix_perms
+        ;;
+    pass2)
+        pass2_get_sources
+        pass2_prepare_for_chroot
+        pass2_build_with_morph_in_chroot
+        #pass2_build_devel_system_outside_chroot
+        ;;
+    pass3)
+        echo "Pass3 not yet implemented, sorry" 1>&2
+        exit 1
+    *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
+        exit 1
+        ;;
+esac
 
-if "$PASS1ONLY"
-then
-    echo "Only doing pass1"
-    exit
-fi
-
-pass2_get_sources
-pass2_prepare_for_chroot
-pass2_build_with_morph_in_chroot
-#pass2_build_devel_system_outside_chroot
-
-echo "Finished OK"
+echo "$buildwhat finished OK"
 
