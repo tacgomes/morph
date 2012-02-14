@@ -140,15 +140,21 @@ class SourceManager(object):
         # ex = morphlib.execute.Execute(self.cache_dir, msg=self.msg)
         # ex.runv(['wget', '-c', url])
         # so we do it poorly in pure Python instead
-        f = urllib2.urlopen(url)
-        data = f.read()
-        f.close()
         t = urlparse.urlparse(url)
         path = t[2]
         basename = os.path.basename(path)
         saved_name = os.path.join(self.cache_dir, basename)
-        with open(saved_name, 'wb') as f:
-            f.write(data)
+
+        source_handle = urllib2.urlopen(url)
+        target_handle = open(saved_name, 'wb')
+
+        data = source_handle.read(4096)
+        while data:
+            target_handle.write(data)
+            data = source_handle.read(4096)
+
+        source_handle.close()
+        target_handle.close()
 
     def _cache_git_from_base_urls(self, repo, ref):
         treeish = None
