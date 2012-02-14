@@ -152,7 +152,6 @@ class SourceManager(object):
     def _cache_repo_from_base_urls(self, repo, ref):
         self.msg('Checking repository %s' % repo)
         self.indent_more()
->>>>>>> a4ff907... Rewrite get_treeish(), fetching and update code.
 
         def fixup_url(url):
             return (url if url.endswith('/') else url + '/')
