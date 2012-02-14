@@ -195,6 +195,7 @@ class SourceManager(object):
                     morphlib.git.update_remote(cached_repo, 'origin',
                                                self.msg)
                 except morphlib.execute.CommandFailure, e: # pragma: no cover
+                    self.msg('Failed to update origin: %s' % e)
                     self.indent_less()
                     # ignore remote update failures during bootstrap
                     if not self.settings['bootstrap']:
