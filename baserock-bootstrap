@@ -949,6 +949,7 @@ case "$buildwhat" in
     pass3)
         echo "Pass3 not yet implemented, sorry" 1>&2
         exit 1
+        ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1
         ;;
