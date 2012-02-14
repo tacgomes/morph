@@ -100,7 +100,7 @@ class SourceManager(object):
             cached_repo):
         bundle_name = '%s.bndl' % quoted_url
         bundle_url = server + bundle_name
-        self.msg('Fetching bundle %s' % bundle_url)
+        self.msg('Trying to fetch bundle %s' % bundle_url)
         request = urllib2.Request(bundle_url)
         try:
             urllib2.urlopen(request)
@@ -139,23 +139,25 @@ class SourceManager(object):
             self.msg('Using cached clone %s of %s' % (cached_repo, repo_url))
             return cached_repo
         else:
+            # try fetching from the bundle server first
             if self.settings['bundle-server']:
                 server = self.settings['bundle-server']
                 if not server.endswith('/'):
                     server += '/'
 
                 # we have a bundle server, try to fetch from there
-                return self._cache_repo_from_bundle_server(
-                        server, repo_url, quoted_url, cached_repo)
-            else:
-                # we do not use bundles, so just try to clone
-                self.msg('Cloning %s into %s' % (repo_url, cached_repo))
-                try:
-                    morphlib.git.clone(cached_repo, repo_url, self.msg)
+                if self._cache_repo_from_bundle_server(
+                        server, repo_url, quoted_url, cached_repo):
                     return cached_repo
-                except morphlib.execute.CommandFailure, e:
-                    self.msg('Failed to clone from %s: %s' % (repo_url, e))
-                    return None
+
+            # bundle server did not have a bundle for the repo
+            self.msg('Cloning %s into %s' % (repo_url, cached_repo))
+            try:
+                morphlib.git.clone(cached_repo, repo_url, self.msg)
+                return cached_repo
+            except morphlib.execute.CommandFailure, e:
+                self.msg('Failed to clone from %s: %s' % (repo_url, e))
+                return None
 
     def _cache_repo_from_base_urls(self, repo, ref):
         self.msg('Checking repository %s' % repo)
