@@ -821,10 +821,11 @@ python ./morph --verbose build \
         --git-base-url=git://gitorious.org/baserock-morphs/
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
-    local do_chroot="$BASEDIR/do-chroot"
+    local do_chroot="$BASEDIR/do-chroot.bash"
     if [ ! -e "$do_chroot" ]; then
         $HOST_CAT >"$do_chroot" <<EOF
-trap "umount $LFS/proc $LFS/sys" EXIT
+#!/bin/bash
+trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -841,7 +842,6 @@ $HOST_SUDO /usr/sbin/chroot "$LFS" \\
     PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \\
     BOOTSTRAP_TOOLS="$LFS/tools" \\
     "\${@-\$SHELL}"
-$HOST_SUDO umount "$LFS/proc" "$LFS/sys"
 EOF
         $HOST_CHMOD +x "$do_chroot"
     fi
@@ -862,13 +862,13 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO parted -s "$img" set 1 boot on
     $HOST_SUDO install-mbr "$img"
     part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
-    trap "$HOST_SUDO kpartx -dv $img" EXIT
+    trap "$HOST_SUDO kpartx -dv $img" INT TERM EXIT
     # mapper may not yet be ready
     while test ! -e "$part"; do :; done
     $HOST_SUDO mkfs -t ext4 "$part"
     mp="$(mktemp -d)"
     $HOST_SUDO mount "$part" "$mp"
-    trap "$HOST_SUDO umount $part; $HOST_SUDO kpartx -dv $img" EXIT
+    trap "$HOST_SUDO umount $part; $HOST_SUDO kpartx -dv $img" INT TERM EXIT
 
     for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
     do
