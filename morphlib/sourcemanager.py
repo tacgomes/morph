@@ -111,7 +111,6 @@ class SourceManager(object):
                          (bundle, cached_repo))
                 try:
                     os.mkdir(cached_repo)
-                    print cached_repo, bundle, self.msg
                     morphlib.git.extract_bundle(cached_repo, bundle,
                                                 self.msg)
                     self.msg('Setting origin to %s' % repo_url)
