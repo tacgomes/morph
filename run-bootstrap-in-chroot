@@ -6,6 +6,8 @@ unmount_virtual()
 {
     umount "$1/proc" || true
     umount "$1/sys" || true
+    umount "$1/tree/proc" || true
+    umount "$1/tree/sys" || true
 }
 
 export LC_ALL=C
