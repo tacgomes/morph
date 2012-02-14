@@ -37,10 +37,8 @@ if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
     ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2) ||
     ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
 then
-    echo It is recommended that mirrors are used
-    if test -t 0 -o -p /dev/stdin; then #check for interactive stdin
-        read -p "continue anyway? " || exit 1
-    fi
+    echo You have to set DEBIAN_MIRROR and other environment variables 1>&2
+    exit 1
 fi
 #DEBIAN_MIRROR="http://192.168.1.185/debian"
 #LFS_MIRROR=http://192.168.1.185/lfs/
