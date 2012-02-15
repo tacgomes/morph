@@ -223,10 +223,7 @@ class ChunkBuilder(BlobBuilder):
         self.prepare_build_directory()
 
         os.mkdir(self.destdir)
-        if self.blob.morph.build_system:
-            self.build_using_buildsystem()
-        else:
-            self.build_using_commands()
+        self.build_with_system_or_commands()
         self.dump_memory_profile('after building chunk')
 
         chunks = self.create_chunks()
@@ -322,21 +319,31 @@ class ChunkBuilder(BlobBuilder):
 
         extract_treeish(self.blob.morph.treeish, self.builddir)
 
-    def build_using_buildsystem(self):
-        bs_name = self.blob.morph.build_system
-        self.msg('Building using well-known build system %s' % bs_name)
-        bs = self.build_system[bs_name]
-        self.run_sequentially('configure', bs['configure-commands'])
-        self.run_in_parallel('build', bs['build-commands'])
-        self.run_sequentially('test', bs['test-commands'])
-        self.run_sequentially('install', bs['install-commands'])
+    def build_with_system_or_commands(self):
+        '''Run explicit commands or commands from build system.
+        
+        Use explicit commands, if given, and build system commands if one
+        has been specified.
+        
+        '''
 
-    def build_using_commands(self):
-        self.msg('Building using explicit commands')
-        self.run_sequentially('configure', self.blob.morph.configure_commands)
-        self.run_in_parallel('build', self.blob.morph.build_commands)
-        self.run_sequentially('test', self.blob.morph.test_commands)
-        self.run_sequentially('install', self.blob.morph.install_commands)
+        bs_name = self.blob.morph.build_system
+        if bs_name:
+            bs = self.build_system[bs_name]
+        else:
+            bs = {}
+
+        def run_them(runner, what):
+            key = '%s-commands' % what
+            attr = '%s_commands' % what
+            cmds = bs.get(key, [])
+            cmds = getattr(self.blob.morph, attr, cmds)
+            runner(what, cmds)
+
+        run_them(self.run_sequentially, 'configure')
+        run_them(self.run_in_parallel, 'build')
+        run_them(self.run_sequentially, 'test')
+        run_them(self.run_sequentially, 'install')
 
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
