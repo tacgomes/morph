@@ -897,6 +897,69 @@ pass3_remove_tools()
     $HOST_SUDO rm -rf "$LFS/tools"
 }
 
+pass3_build_with_morph_in_chroot()
+{
+    echo "Building Baserock with morph"
+    cat <<EOF > "$LFS/baserock/build_pass3.sh"
+#!/bin/bash
+set -e
+set -x
+
+cd /baserock/gits/morph
+mkdir -p /baserock/cache
+export PATH="/usr/bin:/bin"
+while ! python ./morph --verbose update-gits \
+    morphs master foundation.morph \
+    morphs master devel.morph \
+    morphs master linux-stratum.morph \
+        --bootstrap \
+        --cachedir=/baserock/cache \
+        --log=/baserock/morph.log \
+        --dump-memory-profile=none \
+        --keep-path \
+        --bundle-server="$GIT_BUNDLES" \
+        --git-base-url=git://gitorious.org/baserock-morphs/ \
+        --git-base-url=git://gitorious.org/baserock/
+do
+    echo eeekk try again
+done
+python ./morph --verbose build \
+    morphs master foundation.morph \
+    morphs master devel.morph \
+    morphs master linux-stratum.morph \
+        --bootstrap \
+        --cachedir=/baserock/cache \
+        --log=/baserock/morph.log \
+        --dump-memory-profile=none \
+        --keep-path \
+        --bundle-server="$GIT_BUNDLES" \
+        --git-base-url=git://gitorious.org/baserock-morphs/ \
+        --git-base-url=git://gitorious.org/baserock/
+EOF
+    $HOST_CHMOD +x "$LFS/baserock/build_pass3.sh"
+    local do_chroot="$BASEDIR/do-chroot.bash"
+    $HOST_CAT >"$do_chroot" <<EOF
+#!/bin/bash
+trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
+set -e
+set -x
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    $HOST_SUDO mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
+fi
+$HOST_SUDO $HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+$HOST_SUDO /usr/sbin/chroot "$LFS" \\
+    /usr/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin" \\
+    "\${@-\$SHELL}"
+EOF
+    $HOST_CHMOD +x "$do_chroot"
+    "$do_chroot" /baserock/build_pass3.sh
+}
 
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
@@ -955,6 +1018,7 @@ case "$buildwhat" in
         ;;
     pass3)
         pass3_remove_tools
+        pass3_build_with_morph_in_chroot
         exit 1
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
