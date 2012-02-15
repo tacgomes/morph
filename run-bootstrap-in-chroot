@@ -49,9 +49,10 @@ unmount_virtual "$dir"
 rm -rf "$dir"
 mkdir "$dir"
 
-if "$snapshot" && [ -e "$snapshotdir/squeeze.tar" ]
+chrootsnapshot="$snapshotdir/squeeze.tar"
+if "$snapshot" && [ -e "$chrootsnapshot" ]
 then
-    tar -C "$dir" -xf "$snapshotdir/squeeze.tar"
+    tar -C "$dir" -xf "$chrootsnapshot"
 else
     debootstrap \
     --include=build-essential,\
@@ -61,7 +62,7 @@ squeeze "$dir" "$DEBIAN_MIRROR"
     
     if "$snapshot"
     then
-        tar -caf "$snapshotdir/squeeze.tar" -C "$dir" .
+        tar -caf "$chrootsnapshot" -C "$dir" .
     fi
 fi
 
