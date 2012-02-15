@@ -49,7 +49,7 @@ unmount_virtual "$dir"
 rm -rf "$dir"
 mkdir "$dir"
 
-chrootsnapshot="$snapshotdir/squeeze.tar"
+chrootsnapshot="$snapshotdir/squeeze.tar.gz"
 if "$snapshot" && [ -e "$chrootsnapshot" ]
 then
     tar -C "$dir" -xf "$chrootsnapshot"
