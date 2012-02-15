@@ -198,6 +198,20 @@ class BlobBuilder(object):
 class ChunkBuilder(BlobBuilder):
 
     build_system = {
+        'dummy': {
+            'configure-commands': [
+                'echo dummy configure',
+            ],
+            'build-commands': [
+                'echo dummy build',
+            ],
+            'test-commands': [
+                'echo dummy test',
+            ],
+            'install-commands': [
+                'echo dummy install',
+            ],
+        },
         'autotools': {
             'configure-commands': [
                 'if [ -e autogen.sh ]; then ./autogen.sh; fi',
@@ -337,7 +351,7 @@ class ChunkBuilder(BlobBuilder):
             key = '%s-commands' % what
             attr = '%s_commands' % what
             cmds = bs.get(key, [])
-            cmds = getattr(self.blob.morph, attr, cmds)
+            cmds = getattr(self.blob.morph, attr, []) or cmds
             runner(what, cmds)
 
         run_them(self.run_sequentially, 'configure')

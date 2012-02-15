@@ -57,6 +57,7 @@ cat <<EOF > hello.morph
 {
     "name": "hello",
     "kind": "chunk",
+    "build-system": "dummy",
     "build-commands": [
         "gcc -o hello hello.c"
     ],
