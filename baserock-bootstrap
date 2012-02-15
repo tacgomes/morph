@@ -796,8 +796,8 @@ while ! python ./morph --verbose update-gits \
         --dump-memory-profile=none \
         --keep-path \
         --bundle-server="$GIT_BUNDLES" \
-        --git-base-url=git://gitorious.org/baserock/ \
-        --git-base-url=git://gitorious.org/baserock-morphs/
+        --git-base-url=git://gitorious.org/baserock-morphs/ \
+        --git-base-url=git://gitorious.org/baserock/
 do
     echo eeekk try again
 done
@@ -812,8 +812,8 @@ python ./morph --verbose build \
         --dump-memory-profile=none \
         --keep-path \
         --bundle-server="$GIT_BUNDLES" \
-        --git-base-url=git://gitorious.org/baserock/ \
-        --git-base-url=git://gitorious.org/baserock-morphs/
+        --git-base-url=git://gitorious.org/baserock-morphs/ \
+        --git-base-url=git://gitorious.org/baserock/
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
