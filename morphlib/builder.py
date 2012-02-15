@@ -362,7 +362,7 @@ class ChunkBuilder(BlobBuilder):
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
         with self.build_watch(what):
-            self.ex.run(commands)
+            self.run_commands(commands)
 
     def run_sequentially(self, what, commands):
         self.msg ('commands: %s' % what)
@@ -370,9 +370,31 @@ class ChunkBuilder(BlobBuilder):
             flags = self.ex.env['MAKEFLAGS']
             self.ex.env['MAKEFLAGS'] = '-j1'
             logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
-            self.ex.run(commands)
+            self.run_commands(commands)
             self.ex.env['MAKEFLAGS'] = flags
             logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
+
+    def run_commands(self, commands):
+        if self.settings['staging-chroot']:
+            ex = morphlib.execute.Execute(self.staging, self.msg)
+            ex.env.clear()
+            for key in self.ex.env:
+                ex.env[key] = self.ex.env[key]
+            assert self.builddir.startswith(self.staging + '/')
+            builddir = self.builddir[len(self.staging):]
+            for cmd in commands:
+                script = os.path.join(self.staging, 'temp.sh')
+                with open(script, 'w') as f:
+                    f.write('#!/bin/sh\n')
+                    f.write('set -ex\n')
+                    f.write('cd %s\n' % builddir)
+                    f.write('%s\n' % cmd)
+                os.chmod(script, 0555)
+                chroot_cmd = '/usr/sbin/chroot %s ./temp.sh' % self.staging
+                ex.run([chroot_cmd])
+                os.remove(script)
+        else:
+            self.ex.run(commands)
 
     def create_chunks(self):
         chunks = []
@@ -657,9 +679,10 @@ class Builder(object):
         logging.debug('cache id: %s' % repr(cache_id))
         self.dump_memory_profile('after computing cache id')
 
-        builder.builddir = self.tempdir.join('%s.build' % blob.morph.name)
-        builder.destdir = self.tempdir.join('%s.inst' % blob.morph.name)
         builder.staging = self.tempdir.join('staging')
+        s = builder.staging
+        builder.builddir = os.path.join(s, '%s.build' % blob.morph.name)
+        builder.destdir = os.path.join(s, '%s.inst' % blob.morph.name)
         builder.settings = self.settings
         builder.real_msg = self.msg
         builder.cache_prefix = self.cachedir.name(cache_id)

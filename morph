@@ -65,6 +65,16 @@ class Morph(cliapp.Application):
                               'do not cache repositories of submodules and '
                               'unpack them into the build directory')
 
+        self.settings.string_list(['staging-filler'],
+                                  'unpack BLOB into staging area for '
+                                    'non-bootstrap builds (this will '
+                                    'eventually be replaced with proper '
+                                    'build dependencies)',
+                                   metavar='BLOB')
+        self.settings.boolean(['staging-chroot'],
+                              'build things in a staging chroot '
+                                '(require real root to use)')
+
         self.settings.boolean(['test-console'], 
                               'show what the system outputs on the serial '
                                     'console during tests')
@@ -94,17 +104,25 @@ class Morph(cliapp.Application):
         
         '''
 
-        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
-        morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self)
-        builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                           source_manager)
 
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
 
         ret = []
         while len(args) >= 3:
+            tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
+            morph_loader = MorphologyLoader(self.settings)
+            source_manager = morphlib.sourcemanager.SourceManager(self)
+            builder = morphlib.builder.Builder(tempdir, self, morph_loader,
+                                               source_manager)
+
+            # Unpack manually specified build dependencies.
+            staging = tempdir.join('staging')
+            os.mkdir(staging)
+            ex = morphlib.execute.Execute('/', self.msg)
+            for bin in self.settings['staging-filler']:
+                morphlib.bins.unpack_binary(bin, staging, ex)
+
             repo, ref, filename = args[:3]
             args = args[3:]
 
@@ -119,9 +137,9 @@ class Morph(cliapp.Application):
             # build things in this order
             ret.append(builder.build(blobs, order))
 
-        # we may not have permission to tempdir.remove()
-        ex = morphlib.execute.Execute('.', lambda msg: None)
-        ex.runv(["rm", "-rf", tempdir.dirname])
+            # we may not have permission to tempdir.remove()
+            ex = morphlib.execute.Execute('.', lambda msg: None)
+            ex.runv(["rm", "-rf", tempdir.dirname])
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
