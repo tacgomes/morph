@@ -891,6 +891,13 @@ EOF
 }
 
 
+pass3_remove_tools()
+{
+    echo "Removing $LFS/tools"
+    $HOST_SUDO rm -rf "$LFS/tools"
+}
+
+
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
@@ -947,7 +954,7 @@ case "$buildwhat" in
         #pass2_build_devel_system_outside_chroot
         ;;
     pass3)
-        echo "Pass3 not yet implemented, sorry" 1>&2
+        pass3_remove_tools
         exit 1
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
