@@ -752,12 +752,12 @@ pass2_prepare_for_chroot()
 EOF
     fi
     
-    $HOST_MKDIR -p "$LFS/etc"
+#    $HOST_MKDIR -p "$LFS/etc"
     [ -e "$LFS/etc/passwd" ] || echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
     [ -e "$LFS/etc/group" ] || echo 'root::0:' > "$LFS/etc/group"
 
-    [ -e "$LFS/etc/hostname" ] || echo 'baserock-boot' | 
-        $HOST_SUDO /usr/bin/tee "$LFS/etc/hostname" > /dev/null
+#    [ -e "$LFS/etc/hostname" ] || echo 'baserock-boot' | 
+#        $HOST_SUDO /usr/bin/tee "$LFS/etc/hostname" > /dev/null
 
     # Add symlinks for common locations of specific tools
     # These are needed for #! lines in scripts
@@ -773,7 +773,7 @@ EOF
 }
 
 
-pass2_build_with_morph_in_chroot()
+pass2_get_sources_with_morph_in_chroot()
 {
     echo "Building Baserock with morph"
     cat <<EOF > "$LFS/baserock/build.sh"
@@ -781,7 +781,6 @@ pass2_build_with_morph_in_chroot()
 set -e
 set -x
 
-#/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
@@ -801,6 +800,48 @@ while ! python ./morph --verbose update-gits \
 do
     echo eeekk try again
 done
+EOF
+    $HOST_CHMOD +x "$LFS/baserock/build.sh"
+    local do_chroot="$BASEDIR/do-chroot.bash"
+    if [ ! -e "$do_chroot" ]; then
+        $HOST_CAT <<EOF >"$do_chroot"
+#!/bin/bash
+trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
+set -e
+set -x
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    $HOST_SUDO mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    $HOST_SUDO mount -t sysfs sysfs "$LFS/sys"
+fi
+$HOST_SUDO $HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+$HOST_SUDO /usr/sbin/chroot "$LFS" \\
+    /tools/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \\
+    BOOTSTRAP_TOOLS="$LFS/tools" \\
+    "\${@-\$SHELL}"
+EOF
+        $HOST_CHMOD +x "$do_chroot"
+    fi
+    "$do_chroot" /baserock/build.sh
+}
+
+
+pass2_build_with_morph_in_chroot()
+{
+    echo "Building Baserock with morph"
+    cat <<EOF > "$LFS/baserock/build.sh"
+#!/tools/bin/bash
+set -e
+set -x
+
+#/tools/bin/ldconfig -f /etc/ld.so.conf -C /etc/ld.so.cache
+cd /baserock/gits/morph
+mkdir -p /baserock/cache
+export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 python ./morph --verbose build \
     morphs master foundation.morph \
     morphs master devel-bootstrap.morph \
@@ -818,7 +859,7 @@ EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
     if [ ! -e "$do_chroot" ]; then
-        $HOST_CAT >"$do_chroot" <<EOF
+        $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
 trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
 set -e
@@ -927,7 +968,8 @@ python ./morph --verbose build \
     morphs master foundation.morph \
     morphs master devel.morph \
     morphs master linux-stratum.morph \
-        --bootstrap \
+        --staging-chroot \
+        $(for x in $LFS/baserock/cache/*.stratum.*; do echo -n "--staging-filler=$x "; done) \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
@@ -1010,9 +1052,12 @@ case "$buildwhat" in
         #pass1_strip_tools
         #pass1_fix_perms
         ;;
-    pass2)
+    pass2a)
         pass2_get_sources
         pass2_prepare_for_chroot
+        pass2_get_sources_with_morph_in_chroot
+        ;;
+    pass2b)
         pass2_build_with_morph_in_chroot
         #pass2_build_devel_system_outside_chroot
         ;;
