@@ -941,20 +941,25 @@ pass3_remove_tools()
 pass3_build_with_morph_in_chroot()
 {
     echo "Building Baserock with morph"
+
+    cd $LFS/baserock/gits/morph
+    mv $LFS/baserock/cache $LFS/baserock/cache.pass2
+    mkdir $LFS/baserock/cache
+
     cat <<EOF > "$LFS/baserock/build_pass3.sh"
 #!/bin/bash
 set -e
 set -x
 
-cd /baserock/gits/morph
-mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin"
+cd /baserock/gits/morph
 python ./morph --verbose build \
     morphs master foundation.morph \
     morphs master devel.morph \
     morphs master linux-stratum.morph \
         --staging-chroot \
-        $(for x in $LFS/baserock/cache/*.stratum.*; do echo -n "--staging-filler=$x "; done) \
+        $(for x in $LFS/baserock/cache.pass2/*.stratum.*;  \
+            do echo -n "--staging-filler=$x "; done) \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
