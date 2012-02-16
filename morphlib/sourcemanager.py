@@ -81,6 +81,7 @@ class SourceManager(object):
         t = urlparse.urlparse(url)
         path = t[2]
         basename = os.path.basename(path)
+        basename = '_'.join(basename.split(':'))
         saved_name = os.path.join(self.cache_dir, basename)
 
         source_handle = urllib2.urlopen(url)
