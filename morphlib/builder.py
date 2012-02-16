@@ -47,7 +47,7 @@ def ldconfig(ex, rootdir):
         cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
         old_path = ex.env['PATH']
         ex.env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
-        ex.runv(['ldconfig', '-f', conf, '-C', cache, '-r', rootdir])
+        ex.runv(['ldconfig', '-r', rootdir])
         ex.env['PATH'] = old_path
     else:
         logging.debug('No %s, not running ldconfig' % conf)
@@ -140,7 +140,7 @@ class BlobBuilder(object):
             ldconfig(ex, '/')
         else:
             self.msg('Unpacking chunk %s into staging' % chunk_name)
-            ex = morphlib.execute.Execute(self.staging, self.msg)
+            ex = morphlib.execute.Execute('/', self.msg)
             morphlib.bins.unpack_binary(chunk_filename, self.staging, ex)
             ldconfig(ex, self.staging)
 
