@@ -214,7 +214,8 @@ class ChunkBuilder(BlobBuilder):
         },
         'autotools': {
             'configure-commands': [
-                'if [ -e autogen.sh ]; then ./autogen.sh; fi',
+                'if [ -e autogen.sh ]; then ./autogen.sh; ' +
+                'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
                 './configure --prefix=/usr',
             ],
             'build-commands': [
