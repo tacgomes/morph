@@ -949,21 +949,6 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin"
-while ! python ./morph --verbose update-gits \
-    morphs master foundation.morph \
-    morphs master devel.morph \
-    morphs master linux-stratum.morph \
-        --bootstrap \
-        --cachedir=/baserock/cache \
-        --log=/baserock/morph.log \
-        --dump-memory-profile=none \
-        --keep-path \
-        --bundle-server="$GIT_BUNDLES" \
-        --git-base-url=git://gitorious.org/baserock-morphs/ \
-        --git-base-url=git://gitorious.org/baserock/
-do
-    echo eeekk try again
-done
 python ./morph --verbose build \
     morphs master foundation.morph \
     morphs master devel.morph \
