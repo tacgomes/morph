@@ -10,13 +10,28 @@ unmount_virtual()
     umount "$1/tree/sys" || true
 }
 
+pass_snapshot()
+{
+    echo -n "$snapshotdir/$1-snapshot.tar.gz"
+}
+
+has_pass()
+{
+    if [ -e $(pass_snapshot "$1") ]
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
 run_pass()
 {
     local dir="$1"
     local passname="$2"
-    local tarball="$snapshotdir/$passname-snapshot.tar.gz"
+    local tarball=$(pass_snapshot "$passname")
 
-    if "$snapshot" && [ -e "$tarball" ]
+    if has_pass "$passname"
     then
         tar -C "$dir" -xf "$tarball"
         cp baserock-bootstrap "$dir/." # update bootstrap script
@@ -100,8 +115,15 @@ else
     #sed "s,^.*/,$LFS_MIRROR," wget-list > "$dir/wget-list"
 fi
 
+
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
-run_pass "$dir" pass1
+
+
+if ! has_pass pass2a
+then
+    run_pass "$dir" pass1
+fi
+
 
 # Update the git repos.
 mkdir -p "$dir/tree/baserock"
@@ -110,11 +132,12 @@ mkdir "$dir/tree/baserock/gits"
 mkdir "$dir/tree/baserock/gits/morph"
 cp -r . "$dir/tree/baserock/gits/morph/."
 
-# Unpack existing snapshot, or run pass2 of bootstrap and then make snapshot.
-run_pass "$dir" pass2a
-run_pass "$dir" pass2b
+if ! has_pass pass2b
+then
+    run_pass "$dir" pass2a
+fi
 
-# Run pass3 of bootstrap.
+run_pass "$dir" pass2b
 "./do-squeeze-chroot" bash -x baserock-bootstrap pass3 || exit 1
 
 echo "Passes 1, 2, and 3 of bootstrap done (possibly cached)."
