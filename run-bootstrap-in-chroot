@@ -25,6 +25,15 @@ has_pass()
     fi
 }
 
+update_morph()
+{
+    local dir="$1"
+    cp baserock-bootstrap "$dir/." # update bootstrap script
+    rm -rf "$dir/tree/baserock/gits/morph"
+    mkdir -p "$dir/tree/baserock/gits/morph"
+    cp -r . "$dir/tree/baserock/gits/morph/."
+}
+
 run_pass()
 {
     local dir="$1"
@@ -34,9 +43,9 @@ run_pass()
     if has_pass "$passname"
     then
         tar -C "$dir" -xf "$tarball"
-        cp baserock-bootstrap "$dir/." # update bootstrap script
+        update_morph "$dir"
     else
-        cp baserock-bootstrap "$dir/."
+        update_morph "$dir"
         "./do-squeeze-chroot" bash -x baserock-bootstrap "$passname" || exit 1
         if "$snapshot"
         then
@@ -124,13 +133,6 @@ then
     run_pass "$dir" pass1
 fi
 
-
-# Update the git repos.
-mkdir -p "$dir/tree/baserock"
-rm -rf "$dir/tree/baserock/gits"
-mkdir "$dir/tree/baserock/gits"
-mkdir "$dir/tree/baserock/gits/morph"
-cp -r . "$dir/tree/baserock/gits/morph/."
 
 if ! has_pass pass2b
 then
