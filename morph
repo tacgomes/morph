@@ -65,6 +65,11 @@ class Morph(cliapp.Application):
                               'do not cache repositories of submodules and '
                               'unpack them into the build directory')
 
+        self.settings.boolean(['no-git-update'],
+                              'do not update the cached git repositories '
+                                'during a build (user must have done that '
+                                'already using the update-gits subcommand)')
+
         self.settings.string_list(['staging-filler'],
                                   'unpack BLOB into staging area for '
                                     'non-bootstrap builds (this will '
@@ -112,7 +117,8 @@ class Morph(cliapp.Application):
         while len(args) >= 3:
             tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
             morph_loader = MorphologyLoader(self.settings)
-            source_manager = morphlib.sourcemanager.SourceManager(self)
+            source_manager = morphlib.sourcemanager.SourceManager(self,
+                                update=not self.settings['no-git-update'])
             builder = morphlib.builder.Builder(tempdir, self, morph_loader,
                                                source_manager)
 
@@ -201,7 +207,8 @@ class Morph(cliapp.Application):
         '''Dumps the dependency tree of all input morphologies.'''
 
         morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                            update=not self.settings['no-git-update'])
 
         while len(args) >= 3:
             # read the build tuple from the command line
@@ -352,7 +359,8 @@ class Morph(cliapp.Application):
         
         tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
         morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                                update=not self.settings['no-git-update'])
 
         # create a build controller
         controller = buildcontroller.BuildController(self, tempdir)
