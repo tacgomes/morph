@@ -789,7 +789,6 @@ while ! python ./morph --verbose update-gits \
     morphs master devel-bootstrap.morph \
     morphs master linux-stratum.morph \
         --bootstrap \
-        --ignore-submodules \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
@@ -847,7 +846,6 @@ python ./morph --verbose build \
     morphs master devel-bootstrap.morph \
     morphs master linux-stratum.morph \
         --bootstrap \
-        --ignore-submodules \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
