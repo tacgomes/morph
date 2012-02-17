@@ -853,6 +853,7 @@ python ./morph --verbose build \
     morphs master devel-bootstrap.morph \
     morphs master linux-stratum.morph \
         --bootstrap \
+        --no-git-update \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
@@ -1035,6 +1036,7 @@ python ./morph --verbose build \
         --staging-chroot \
         $(for x in $LFS/baserock/cache.pass2/*.stratum.*;  \
             do echo -n "--staging-filler=$x "; done) \
+        --no-git-update \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
