@@ -384,6 +384,7 @@ class ChunkBuilder(BlobBuilder):
             assert self.builddir.startswith(self.staging + '/')
             builddir = self.builddir[len(self.staging):]
             for cmd in commands:
+                self.msg('about to execute in chroot: %s' % cmd)
                 script = os.path.join(self.staging, 'temp.sh')
                 with open(script, 'w') as f:
                     f.write('#!/bin/sh\n')
