@@ -183,7 +183,7 @@ class Submodules(object):
 
                     # read the commit hash from the output
                     fields = commit.split()
-                    if fields[1] == 'commit':
+                    if len(fields) >= 2 and fields[1] == 'commit':
                         submodule.commit = commit.split()[2]
 
                         # fail if the commit hash is invalid
