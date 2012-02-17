@@ -940,9 +940,10 @@ pass3_build_with_morph_in_chroot()
 {
     echo "Building Baserock with morph"
 
-    cd $LFS/baserock/gits/morph
-    mv $LFS/baserock/cache $LFS/baserock/cache.pass2
-    mkdir $LFS/baserock/cache
+    cd "$LFS/baserock/gits/morph"
+    mv "$LFS/baserock/cache" "$LFS/baserock/cache.pass2"
+    mkdir "$LFS/baserock/cache"
+    mv "$LFS/baserock/cache.pass2/gits" "$LFS/baserock/cache/gits"
 
     cat <<EOF > "$LFS/baserock/build_pass3.sh"
 #!/bin/bash
