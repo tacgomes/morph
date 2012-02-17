@@ -715,6 +715,13 @@ pass1_fix_perms()
 }
 
 
+pass1_cleanup_at_end()
+{
+    echo "Removing unnecessary stuff at the end of pass1"
+    rm -rf "$LFS/tree/sources"
+}
+
+
 pass2_get_sources()
 {
     echo "Get Baserock sources"
@@ -930,6 +937,21 @@ EOF
 }
 
 
+pass2a_cleanup_at_end()
+{
+    echo "Remove unnecessary stuff at the end of pass2a"
+    rm -f "$LFS/baserock/cache/gits/"*.bndl
+}
+
+
+pass2b_cleanup_at_end()
+{
+    echo "Remove unnecessary stuff at the end of pass2b"
+    rm -rf "$LFS/tools"
+    rm -f "$LFS"/baserock/cache/*.chunk.*
+}
+
+
 pass3_remove_tools()
 {
     echo "Removing $LFS/tools"
@@ -1040,15 +1062,18 @@ case "$buildwhat" in
         pass1_git
         #pass1_strip_tools
         #pass1_fix_perms
+        pass1_cleanup_at_end
         ;;
     pass2a)
         pass2_get_sources
         pass2_prepare_for_chroot
         pass2_get_sources_with_morph_in_chroot
+        pass2a_cleanup_at_end
         ;;
     pass2b)
         pass2_build_with_morph_in_chroot
         #pass2_build_devel_system_outside_chroot
+        pass2b_cleanup_at_end
         ;;
     pass3)
         pass3_remove_tools
