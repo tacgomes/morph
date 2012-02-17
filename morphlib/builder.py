@@ -382,6 +382,7 @@ class ChunkBuilder(BlobBuilder):
             for key in self.ex.env:
                 ex.env[key] = self.ex.env[key]
             assert self.builddir.startswith(self.staging + '/')
+            assert self.destdir.startswith(self.staging + '/')
             builddir = self.builddir[len(self.staging):]
             destdir = self.destdir[len(self.staging):]
             for cmd in commands:
