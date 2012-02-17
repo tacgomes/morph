@@ -809,8 +809,7 @@ done
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
-    if [ ! -e "$do_chroot" ]; then
-        $HOST_CAT <<EOF >"$do_chroot"
+    $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
 trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
 set -e
@@ -830,8 +829,7 @@ $HOST_SUDO /usr/sbin/chroot "$LFS" \\
     BOOTSTRAP_TOOLS="$LFS/tools" \\
     "\${@-\$SHELL}"
 EOF
-        $HOST_CHMOD +x "$do_chroot"
-    fi
+    $HOST_CHMOD +x "$do_chroot"
     "$do_chroot" /baserock/build.sh
 }
 
@@ -864,8 +862,7 @@ python ./morph --verbose build \
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
-    if [ ! -e "$do_chroot" ]; then
-        $HOST_CAT <<EOF >"$do_chroot"
+    $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
 trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
 set -e
@@ -885,8 +882,7 @@ $HOST_SUDO /usr/sbin/chroot "$LFS" \\
     BOOTSTRAP_TOOLS="$LFS/tools" \\
     "\${@-\$SHELL}"
 EOF
-        $HOST_CHMOD +x "$do_chroot"
-    fi
+    $HOST_CHMOD +x "$do_chroot"
     "$do_chroot" /baserock/build.sh
 }
 
@@ -994,8 +990,7 @@ done
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
-    if [ ! -e "$do_chroot" ]; then
-        $HOST_CAT <<EOF >"$do_chroot"
+    $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
 trap "$HOST_SUDO umount $LFS/proc $LFS/sys" INT TERM EXIT
 set -e
@@ -1014,8 +1009,7 @@ $HOST_SUDO /usr/sbin/chroot "$LFS" \\
     PATH="/bin:/usr/bin:/sbin:/usr/sbin" \\
     "\${@-\$SHELL}"
 EOF
-        $HOST_CHMOD +x "$do_chroot"
-    fi
+    $HOST_CHMOD +x "$do_chroot"
     "$do_chroot" /baserock/build.sh
 }
 pass3_build_with_morph_in_chroot()
