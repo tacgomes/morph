@@ -103,6 +103,16 @@ else
 gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,qemu-utils,parted,kpartx,mbr,extlinux \
 squeeze "$dir" "$DEBIAN_MIRROR"
+
+    # We need a backport of tar 1.26. On ARM, older versions (possibly
+    # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
+    # code.liw.fi has the backport, so we'll add that to apt's sources.list
+    # and install tar manually.
+    cat <<EOF >> "$dir/etc/apt/sources.list"
+deb http://code.liw.fi/debian squeeze main
+EOF
+    ./do-squeeze-chroot apt-get update
+    ./do-squeeze-chroot apt-get install --allow-unauthenticated tar
     
     if "$snapshot"
     then
