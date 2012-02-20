@@ -122,18 +122,14 @@ class SourceManager(object):
                     self.msg('Setting origin to %s' % repo_url)
                     morphlib.git.set_remote(cached_repo, 'origin',
                                             repo_url, self.msg)
-                    return cached_repo
+                    return cached_repo, None
                 except morphlib.execute.CommandFailure, e: # pragma: no cover
-                    self.msg('Unable to extract bundle %s: %s' %
-                             (bundle, e))
-                    return None
+                    return None, 'Unable to extract bundle %s: %s' % (bundle,
+                                                                      e)
             except morphlib.execute.CommandFailure, e: # pragma: no cover
-                self.msg('Unable to fetch bundle %s: %s' %
-                         (bundle_url, e))
-                return None
+                return None, 'Unable to fetch bundle %s: %s' % (bundle, e)
         except urllib2.URLError, e:
-            self.msg('Unable to fetch bundle %s: %s' % (bundle_url, e))
-            return None
+            return None, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
 
     def _cache_repo_from_url(self, repo_url):
         # quote the URL and calculate the location for the cached repo
@@ -143,16 +139,14 @@ class SourceManager(object):
         if os.path.exists(cached_repo): # pragma: no cover
             # the cache location exists, assume this is what we want
             self.msg('Using cached clone %s of %s' % (cached_repo, repo_url))
-            return cached_repo
         else:
             # bundle server did not have a bundle for the repo
             self.msg('Cloning %s into %s' % (repo_url, cached_repo))
             try:
                 morphlib.git.clone(cached_repo, repo_url, self.msg)
-                return cached_repo
+                return cached_repo, None
             except morphlib.execute.CommandFailure, e:
-                self.msg('Failed to clone from %s: %s' % (repo_url, e))
-                return None
+                return None, 'Failed to clone from %s: %s' % (repo_url, e)
 
     def _cache_repo_from_base_urls(self, repo, ref):
         self.msg('Checking repository %s' % repo)
@@ -166,6 +160,7 @@ class SourceManager(object):
                      for x in self.settings['git-base-url']]
 
         cached_repo = None
+        errors = []
 
         # check if we have a cached version of the repo
         for repo_url in repo_urls:
@@ -180,17 +175,22 @@ class SourceManager(object):
             server = fixup_url(self.settings['bundle-server'])
 
             for repo_url in repo_urls:
-                cached_repo = self._cache_repo_from_bundle(server, repo_url)
+                cached_repo, error = self._cache_repo_from_bundle(server,
+                                                                  repo_url)
                 if cached_repo:
                     break
+                else:
+                    errors.append(error)
 
         # second pass, try cloning from base URLs directly
         if not cached_repo:
             # try all URLs to find or obtain a cached clone of the repo
             for repo_url in repo_urls:
-                cached_repo = self._cache_repo_from_url(repo_url)
+                cached_repo, error = self._cache_repo_from_url(repo_url)
                 if cached_repo:
                     break
+                else:
+                    errors.append(error)
 
         if cached_repo:
             # we have a cached version of the repo now
@@ -211,6 +211,12 @@ class SourceManager(object):
                          cached_repo)
         else: # pragma: no cover
             # cloning using all individual base URLs failed
+
+            # print all the errors at once to give the user an overview
+            # over what went wrong in which order
+            for error in errors:
+                self.msg(error)
+
             self.indent_less()
             raise RepositoryFetchError(repo)
 
