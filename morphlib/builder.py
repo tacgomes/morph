@@ -386,23 +386,14 @@ class ChunkBuilder(BlobBuilder):
             builddir = self.builddir[len(self.staging):]
             destdir = self.destdir[len(self.staging):]
             for cmd in commands:
-                self.msg('about to execute in chroot: %s' % cmd)
-                script = os.path.join(self.staging, 'temp.sh')
-                with open(script, 'w') as f:
-                    f.write('#!/bin/sh\n')
-                    f.write('set -ex\n')
-                    f.write('cd %s\n' % builddir)
-                    f.write('%s\n' % cmd)
-                os.chmod(script, 0555)
-                chroot_cmd = '/usr/sbin/chroot %s ./temp.sh' % self.staging
                 old_destdir = ex.env.get('DESTDIR', None)
                 ex.env['DESTDIR'] = destdir
-                ex.run([chroot_cmd])
+                ex.runv(['/usr/sbin/chroot', self.staging, 'sh', '-c',
+                         'cd "$1" && shift && eval "$@"', '--', builddir, cmd])
                 if old_destdir is None:
                     del ex.env['DESTDIR']
                 else:
                     ex.env['DESTDIR'] = old_destdir
-                os.remove(script)
         else:
             self.ex.run(commands)
 
