@@ -139,6 +139,7 @@ class SourceManager(object):
         if os.path.exists(cached_repo): # pragma: no cover
             # the cache location exists, assume this is what we want
             self.msg('Using cached clone %s of %s' % (cached_repo, repo_url))
+            return cached_repo, None
         else:
             # bundle server did not have a bundle for the repo
             self.msg('Cloning %s into %s' % (repo_url, cached_repo))
