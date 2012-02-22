@@ -359,7 +359,7 @@ class ChunkBuilder(BlobBuilder):
                 pathname = os.path.join(dirname, basename)
                 os.utime(pathname, (now, now))
             os.utime(dirname, (now, now))
-        
+
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
         
