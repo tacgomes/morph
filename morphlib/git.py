@@ -211,12 +211,6 @@ class Submodules(object):
         return len(self.submodules)
 
 
-def export_sources(treeish, tar_filename, msg=logging.debug):
-    '''Export the contents of a specific commit into a compressed tarball.'''
-    ex = morphlib.execute.Execute('.', msg=msg)
-    ex.env['GIT_DIR'] = os.path.join(treeish.repo, '.git')
-    ex.runv(['git', 'archive', '-o', tar_filename, treeish.sha1])
-
 def get_morph_text(treeish, filename, msg=logging.debug):
     '''Return a morphology from a git repository.'''
     ex = morphlib.execute.Execute(treeish.repo, msg=msg)
@@ -248,8 +242,19 @@ def update_remote(gitdir, name, msg=logging.debug):
     ex = morphlib.execute.Execute(gitdir, msg=msg)
     return ex.runv(['git', 'remote', 'update', name])
 
-def archive_and_extract(app, treeish, destdir, msg=logging.debug):
-    return app.runcmd(['git', 'archive', treeish.ref],
-                      ['tar', '-C', destdir, '-xv'],
-                      cwd=treeish.repo,
-                      msg=msg)
+def copy_repository(treeish, destdir, msg=logging.debug):
+    '''Copies a cached repository into a directory using cp.'''
+    ex = morphlib.execute.Execute('.', msg=msg)
+    return ex.runv(['cp', '-a', os.path.join(treeish.repo, '.git'), destdir])
+
+def checkout_ref(gitdir, ref, msg=logging.debug):
+    '''Checks out a specific ref/SHA1 in a git working tree.'''
+    ex = morphlib.execute.Execute(gitdir, msg=msg)
+    return ex.runv(['git', 'checkout', ref])
+
+def set_submodule_url(gitdir, name, url, msg=logging.debug):
+    '''Changes the URL of a submodule to point to a specific location.'''
+    ex = morphlib.execute.Execute(gitdir, msg=msg)
+    ex.runv(['git', 'config', 'submodule.%s.url' % name, url])
+    ex.runv(['git', 'config', '-f', '.gitmodules',
+             'submodule.%s.url' % name, url])

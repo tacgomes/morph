@@ -325,12 +325,19 @@ class ChunkBuilder(BlobBuilder):
             self.msg('Extracting %s into %s' %
                      (treeish.repo, self.builddir))
 
-            morphlib.git.archive_and_extract(
-                    self.app, treeish, destdir, self.msg)
+            morphlib.git.copy_repository(treeish, destdir, self.msg)
+            morphlib.git.checkout_ref(destdir, treeish.ref, self.msg)
 
             for submodule in treeish.submodules:
                 directory = os.path.join(destdir, submodule.path)
                 extract_treeish(submodule.treeish, directory)
+
+                # we need to do this to keep any "git submodule" commands
+                # from accessing the internet. instead, we redirect them
+                # to the locally cached submodule repo
+                morphlib.git.set_submodule_url(destdir, submodule.name,
+                                               submodule.treeish.repo,
+                                               self.msg)
 
         extract_treeish(self.blob.morph.treeish, self.builddir)
 
