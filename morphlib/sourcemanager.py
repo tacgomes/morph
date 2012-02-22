@@ -14,10 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import logging
 import os
 import urlparse
 import urllib2
+import shutil
 import string
 
 import morphlib
@@ -124,6 +124,8 @@ class SourceManager(object):
                                             repo_url, self.msg)
                     return cached_repo, None
                 except morphlib.execute.CommandFailure, e: # pragma: no cover
+                    if os.path.exists(cached_repo):
+                        shutil.rmtree(cached_repo)
                     self.msg('Unable to extract bundle %s' % bundle)
                     return None, 'Unable to extract bundle %s: %s' % (bundle,
                                                                       e)
@@ -148,6 +150,8 @@ class SourceManager(object):
                 morphlib.git.clone(cached_repo, repo_url, self.msg)
                 return cached_repo, None
             except morphlib.execute.CommandFailure, e:
+                if os.path.exists(cached_repo): # pragma: no cover
+                    shutil.rmtree(cached_repo)
                 return None, 'Unable to clone from %s: %s' % (repo_url, e)
 
     def _cache_repo_from_base_urls(self, repo, ref):
