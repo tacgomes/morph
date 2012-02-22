@@ -66,9 +66,11 @@ class ChunkTests(BinsTest):
         self.tempdir = tempfile.mkdtemp()
         self.instdir = os.path.join(self.tempdir, 'inst')
         self.chunk_file = os.path.join(self.tempdir, 'chunk')
+        self.chunk_f = open(self.chunk_file, 'wb')
         self.unpacked = os.path.join(self.tempdir, 'unpacked')
         
     def tearDown(self):
+        self.chunk_f.close()
         shutil.rmtree(self.tempdir)
 
     def populate_instdir(self):
@@ -92,8 +94,8 @@ class ChunkTests(BinsTest):
         
     def test_empties_everything(self):
         self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['.'],
-                                   self.ex)
+        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['.'], self.ex)
+        self.chunk_f.flush()
         empty = os.path.join(self.tempdir, 'empty')
         os.mkdir(empty)
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
@@ -102,22 +104,24 @@ class ChunkTests(BinsTest):
     def test_creates_and_unpacks_chunk_exactly(self):
         self.populate_instdir()
         orig_files = self.recursive_lstat(self.instdir)
-        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['.'],
-                                   self.ex)
+        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['.'], self.ex)
+        self.chunk_f.flush()
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
         self.assertEqual(orig_files, self.recursive_lstat(self.unpacked))
 
     def test_uses_only_matching_names(self):
         self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_file, ['bin'],
+        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['bin'],
                                    self.ex)
+        self.chunk_f.flush()
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
         self.assertEqual([x for x,y in self.recursive_lstat(self.unpacked)],
                          ['.', 'bin', 'bin/foo'])
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
+
 
 class StratumTests(BinsTest):
 
@@ -126,9 +130,11 @@ class StratumTests(BinsTest):
         self.tempdir = tempfile.mkdtemp()
         self.instdir = os.path.join(self.tempdir, 'inst')
         self.stratum_file = os.path.join(self.tempdir, 'stratum')
+        self.stratum_f = open(self.stratum_file, 'wb')
         self.unpacked = os.path.join(self.tempdir, 'unpacked')
         
     def tearDown(self):
+        self.stratum_f.close()
         shutil.rmtree(self.tempdir)
 
     def populate_instdir(self):
@@ -137,7 +143,8 @@ class StratumTests(BinsTest):
 
     def test_creates_and_unpacks_stratum_exactly(self):
         self.populate_instdir()
-        morphlib.bins.create_stratum(self.instdir, self.stratum_file, self.ex)
+        morphlib.bins.create_stratum(self.instdir, self.stratum_f, self.ex)
+        self.stratum_f.flush()
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.stratum_file, self.unpacked, self.ex)
         self.assertEqual(self.recursive_lstat(self.instdir),

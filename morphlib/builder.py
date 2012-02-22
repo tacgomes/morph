@@ -66,6 +66,8 @@ class BlobBuilder(object):
         self.staging = None
         self.settings = None
         self.real_msg = None
+        self.cachedir = None
+        self.cache_basename = None
         self.cache_prefix = None
         self.tempdir = None
         self.logfile = None
@@ -168,8 +170,7 @@ class BlobBuilder(object):
 
     def write_cache_metadata(self, meta):
         self.msg('Writing metadata to the cache')
-        filename = '%s.meta' % self.cache_prefix
-        with open(filename, 'w') as f:
+        with self.cachedir.open(self.cache_basename + '.meta') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
 
@@ -432,9 +433,12 @@ class ChunkBuilder(BlobBuilder):
                 patterns = self.blob.chunks[chunk_name]
                 patterns += [r'baserock/%s\.' % chunk_name]
                 filename = self.filename(chunk_name)
+                basename = os.path.basename(filename)
                 self.msg('Creating binary for %s' % chunk_name)
-                morphlib.bins.create_chunk(self.destdir, filename, patterns,
-                                           self.ex, self.dump_memory_profile)
+                with self.cachedir.open(filename) as f:
+                    morphlib.bins.create_chunk(self.destdir, f, patterns,
+                                               self.ex, 
+                                               self.dump_memory_profile)
                 chunks.append((chunk_name, filename))
 
         files = os.listdir(self.destdir)
@@ -461,7 +465,9 @@ class StratumBuilder(BlobBuilder):
             self.prepare_binary_metadata(self.blob.morph.name)
             self.msg('Creating binary for %s' % self.blob.morph.name)
             filename = self.filename(self.blob.morph.name)
-            morphlib.bins.create_stratum(self.destdir, filename, ex)
+            basename = os.path.basename(filename)
+            with self.cachedir.open(basename) as f:
+                morphlib.bins.create_stratum(self.destdir, f, ex)
         return { self.blob.morph.name: filename }
 
 
@@ -712,7 +718,9 @@ class Builder(object):
         builder.destdir = os.path.join(s, '%s.inst' % blob.morph.name)
         builder.settings = self.settings
         builder.real_msg = self.msg
+        builder.cachedir = self.cachedir
         builder.cache_prefix = self.cachedir.name(cache_id)
+        builder.cache_basename = os.path.basename(builder.cache_prefix)
         builder.tempdir = self.tempdir
         builder.dump_memory_profile = self.dump_memory_profile
         

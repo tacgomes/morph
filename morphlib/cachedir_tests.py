@@ -14,17 +14,26 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import unittest
 import os
+import shutil
+import tempfile
+import unittest
 
 import morphlib
 
 
 class CacheDirTests(unittest.TestCase):
 
+    def cat(self, relative_name):
+        with open(os.path.join(self.cachedir.dirname, relative_name)) as f:
+            return f.read()
+
     def setUp(self):
-        self.dirname = 'cache/dir'
+        self.dirname = tempfile.mkdtemp()
         self.cachedir = morphlib.cachedir.CacheDir(self.dirname)
+
+    def tearDown(self):
+        shutil.rmtree(self.dirname)
 
     def test_sets_dirname_attribute(self):
         self.assertEqual(self.cachedir.dirname, os.path.abspath(self.dirname))
@@ -87,4 +96,17 @@ class CacheDirTests(unittest.TestCase):
         }
         pathname = self.cachedir.name(dict_key)
         self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
+
+    def test_allows_file_to_be_written(self):
+        f = self.cachedir.open('foo')
+        f.write('bar')
+        f.close()
+        self.assertEqual(self.cat('foo'), 'bar')
+
+    def test_allows_file_to_be_aborted(self):
+        f = self.cachedir.open('foo')
+        f.write('bar')
+        f.abort()
+        pathname = os.path.join(self.cachedir.dirname, 'foo')
+        self.assertFalse(os.path.exists(pathname))
 

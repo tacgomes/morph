@@ -17,6 +17,8 @@
 import hashlib
 import os
 
+import morphlib
+
 
 class CacheDir(object):
 
@@ -61,4 +63,19 @@ class CacheDir(object):
             suffix = ''
 
         return os.path.join(self.dirname, key + suffix)
+
+    def open(self, relative_name):
+        '''Open a file for writing in the cache.
+        
+        The file will be written with a temporary name, and renamed to
+        the final name when the file is closed. Additionally, if the
+        caller decides, mid-writing, that they don't want to write the
+        file after all (e.g., a log file), then the ``abort`` method
+        in the returned file handle can be called to remove the
+        temporary file.
+        
+        '''
+        
+        path = os.path.join(self.dirname, relative_name)
+        return morphlib.savefile.SaveFile(path, 'w')
 

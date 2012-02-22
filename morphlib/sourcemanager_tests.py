@@ -55,7 +55,6 @@ class SourceManagerTests(unittest.TestCase):
         shutil.rmtree(self.temprepodir)
 
     def test_uses_provided_cache_dir(self):
-        return
         app = DummyApp()
         
         tempdir = '/bla/bla/bla'

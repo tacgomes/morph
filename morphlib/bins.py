@@ -27,14 +27,15 @@ import re
 import tarfile
 
 
-def create_chunk(rootdir, chunk_filename, regexps, ex,
-                 dump_memory_profile=None):
+def create_chunk(rootdir, f, regexps, ex, dump_memory_profile=None):
     '''Create a chunk from the contents of a directory.
     
     Only files and directories that match at least one of the regular
     expressions are accepted. The regular expressions are implicitly
     anchored to the beginning of the string, but not the end. The 
     filenames are relative to rootdir.
+    
+    ``f`` is an open file handle, to which the tar file is written.
     
     '''
 
@@ -57,7 +58,7 @@ def create_chunk(rootdir, chunk_filename, regexps, ex,
             yield filename
 
     logging.debug('Creating chunk file %s from %s with regexps %s' % 
-                    (chunk_filename, rootdir, regexps))
+                    (f.name, rootdir, regexps))
     dump_memory_profile('at beginning of create_chunk')
 
     compiled = [re.compile(x) for x in regexps]
@@ -79,7 +80,7 @@ def create_chunk(rootdir, chunk_filename, regexps, ex,
     dump_memory_profile('after walking')
 
     include = sorted(include) # get dirs before contents
-    tar = tarfile.open(name=chunk_filename, mode='w:gz')
+    tar = tarfile.open(fileobj=f, mode='w:gz')
     for filename in include:
         tar.add(filename, arcname=mkrel(filename), recursive=False)
     tar.close()
@@ -94,11 +95,12 @@ def create_chunk(rootdir, chunk_filename, regexps, ex,
     dump_memory_profile('after removing in create_chunks')
 
 
-def create_stratum(rootdir, stratum_filename, ex):
+def create_stratum(rootdir, f, ex):
     '''Create a stratum from the contents of a directory.'''
-    logging.debug('Creating stratum file %s from %s' % 
-                    (stratum_filename, rootdir))
-    ex.runv(['tar', '-C', rootdir, '-caf', stratum_filename, '.'])
+    logging.debug('Creating stratum file %s from %s' % (f.name, rootdir))
+    tar = tarfile.open(fileobj=f, mode='w:gz')
+    tar.add(rootdir, arcname='.')
+    tar.close()
 
 
 def unpack_binary(filename, dirname, ex):
