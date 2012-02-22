@@ -124,6 +124,7 @@ class SourceManager(object):
                                             repo_url, self.msg)
                     return cached_repo, None
                 except morphlib.execute.CommandFailure, e: # pragma: no cover
+                    self.msg('Unable to extract bundle %s' % bundle)
                     return None, 'Unable to extract bundle %s: %s' % (bundle,
                                                                       e)
             except morphlib.execute.CommandFailure, e: # pragma: no cover
@@ -142,12 +143,12 @@ class SourceManager(object):
             return cached_repo, None
         else:
             # bundle server did not have a bundle for the repo
-            self.msg('Cloning %s into %s' % (repo_url, cached_repo))
+            self.msg('Trying to clone %s into %s' % (repo_url, cached_repo))
             try:
                 morphlib.git.clone(cached_repo, repo_url, self.msg)
                 return cached_repo, None
             except morphlib.execute.CommandFailure, e:
-                return None, 'Failed to clone from %s: %s' % (repo_url, e)
+                return None, 'Unable to clone from %s: %s' % (repo_url, e)
 
     def _cache_repo_from_base_urls(self, repo, ref):
         self.msg('Checking repository %s' % repo)
