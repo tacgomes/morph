@@ -185,6 +185,38 @@ pass1_glibc()
 }
 
 
+pass1_eglibc()
+{
+    echo "Building eglibc"
+    if [ ! -e "$tools/lib/libc.so.6" ]
+    then
+        unpack eglibc-2.14
+        cd "$sources/eglibc-2.14"
+        (cd libc && ln -s ../ports ports)
+
+        $HOST_MKDIR "$sources/eglibc-build"
+        cd "$sources/eglibc-build"
+
+        #echo "CFLAGS += -O2 -U_FORTIFY_SOURCE -fno-stack-protector" > configparms
+
+        case `uname -m` in
+            i?86) echo "CFLAGS += -march=i486 -mtune=native" >> configparms ;;
+        esac
+        
+        ../eglibc-2.14/libc/configure --prefix="$tools" \
+            --host=$LFS_TGT --build=$(../eglibc-2.14/scripts/config.guess) \
+            --disable-profile --enable-add-ons \
+            --enable-kernel=2.6.25 --with-headers="$tools/include" \
+            --without-selinux --without-cvs \
+            libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes libc_cv_ssp=no
+
+        make -j$JOBS
+        make install
+        rm -rf "$sources/eglibc-2.14"
+    fi
+}
+
+
 pass1_adjust_gcc_specs()
 {
     echo "Adjusting gcc specs file"
@@ -1080,7 +1112,8 @@ case "$buildwhat" in
         pass1_binutils_1
         pass1_gcc_1
         pass1_linux_api_headers
-        pass1_glibc
+        #pass1_glibc
+        pass1_eglibc
         pass1_adjust_gcc_specs
         pass1_sanity_check
         pass1_binutils_2
