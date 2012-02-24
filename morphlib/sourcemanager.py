@@ -79,18 +79,13 @@ class SourceManager(object):
         spaces = '  ' * self.indent
         self.real_msg('%s%s' % (spaces, text))
 
-    def _wget(self, url): # pragma: no cover
+    def _wget(self, url, filename): # pragma: no cover
         # the following doesn't work during bootstrapping
         # ex = morphlib.execute.Execute(self.cache_dir, msg=self.msg)
         # ex.runv(['wget', '-c', url])
         # so we do it poorly in pure Python instead
-        t = urlparse.urlparse(url)
-        path = t[2]
-        basename = os.path.basename(path)
-        saved_name = os.path.join(self.cache_dir, basename)
-
         source_handle = urllib2.urlopen(url)
-        target_handle = open(saved_name, 'wb')
+        target_handle = open(filename, 'wb')
 
         data = source_handle.read(4096)
         while data:
@@ -100,19 +95,20 @@ class SourceManager(object):
         source_handle.close()
         target_handle.close()
 
-        return saved_name
+        return filename
 
     def _cache_repo_from_bundle(self, server, repo_url):
         quoted_url = quote_url(repo_url)
         cached_repo = os.path.join(self.cache_dir, quoted_url)
         bundle_name = '%s.bndl' % quoted_url
         bundle_url = server + bundle_name
+        bundle = os.path.join(self.cache_dir, bundle_name)
         self.msg('Trying to fetch bundle %s' % bundle_url)
         request = urllib2.Request(bundle_url)
         try:
             urllib2.urlopen(request)
             try:
-                bundle = self._wget(bundle_url)
+                self._wget(bundle_url, bundle)
                 self.msg('Extracting bundle %s into %s' %
                          (bundle, cached_repo))
                 try:
@@ -134,9 +130,6 @@ class SourceManager(object):
                         os.remove(bundle)
             except morphlib.execute.CommandFailure, e: # pragma: no cover
                 return None, 'Unable to fetch bundle %s: %s' % (bundle, e)
-            finally:
-                if os.path.exists(bundle):
-                    os.remove(bundle)
         except urllib2.URLError, e:
             return None, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
 

@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import glob
 import unittest
 import tempfile
 import shutil
@@ -127,10 +128,10 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
-        def wget(url):
-            path=urlparse.urlparse(url).path
-            shutil.copy(path, s.cache_dir)
-            return self.temprepo
+        def wget(url, filename):
+            bundle_file = os.path.join(self.temprepodir,
+                                       os.path.basename(filename))
+            shutil.copy(bundle_file, s.cache_dir)
 
         s._wget = wget
 
@@ -146,10 +147,8 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
-        def wget(url):
-            path=urlparse.urlparse(url).path
-            shutil.copy(path, s.cache_dir)
-            return self.temprepo
+        def wget(url, filename):
+            shutil.copy(filename, s.cache_dir)
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
@@ -165,10 +164,8 @@ class SourceManagerTests(unittest.TestCase):
 
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
-        def wget(url):
-            path=urlparse.urlparse(url).path
-            shutil.copy(path, s.cache_dir)
-            return self.temprepo
+        def wget(url, filename):
+            shutil.copy(filename, s.cache_dir)
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
