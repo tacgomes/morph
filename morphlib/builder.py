@@ -354,12 +354,14 @@ class ChunkBuilder(BlobBuilder):
         '''
         
         now = time.time()
+        dot_git = os.path.join(root, '.git')
         for dirname, subdirs, basenames in os.walk(root, topdown=False):
-            for basename in basenames:
-                pathname = os.path.join(dirname, basename)
-                os.utime(pathname, (now, now))
-            os.utime(dirname, (now, now))
-
+            if dirname != dot_git:
+                for basename in basenames:
+                    pathname = os.path.join(dirname, basename)
+                    os.utime(pathname, (now, now))
+                os.utime(dirname, (now, now))
+        
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
         
