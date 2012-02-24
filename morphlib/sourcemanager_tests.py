@@ -148,7 +148,9 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url, filename):
-            shutil.copy(filename, s.cache_dir)
+            bundle_file = os.path.join(self.temprepodir,
+                                       os.path.basename(filename))
+            shutil.copy(bundle_file, s.cache_dir)
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
@@ -165,7 +167,9 @@ class SourceManagerTests(unittest.TestCase):
         s = morphlib.sourcemanager.SourceManager(app, tempdir)
 
         def wget(url, filename):
-            shutil.copy(filename, s.cache_dir)
+            bundle_file = os.path.join(self.temprepodir,
+                                       os.path.basename(filename))
+            shutil.copy(bundle_file, s.cache_dir)
 
         s._wget = wget
         self.assertRaises(morphlib.sourcemanager.RepositoryFetchError,
