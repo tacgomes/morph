@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import shutil
+import time
 
 import morphlib
 
@@ -327,6 +328,7 @@ class ChunkBuilder(BlobBuilder):
 
             morphlib.git.copy_repository(treeish, destdir, self.msg)
             morphlib.git.checkout_ref(destdir, treeish.ref, self.msg)
+            self.set_mtime_recursively(destdir)
 
             for submodule in treeish.submodules:
                 directory = os.path.join(destdir, submodule.path)
@@ -340,6 +342,23 @@ class ChunkBuilder(BlobBuilder):
                                                self.msg)
 
         extract_treeish(self.blob.morph.treeish, self.builddir)
+
+    def set_mtime_recursively(self, root):
+        '''Set the mtime for every file in a directory tree to the same.
+        
+        We do this because git checkout does not set the mtime to anything,
+        and some projects (binutils, gperf for example) include formatted
+        documentation and try to randomly build things or not because of
+        the timestamps. This should help us get more reliable  builds.
+        
+        '''
+        
+        now = time.time()
+        for dirname, subdirs, basenames in os.walk(root, topdown=False):
+            for basename in basenames:
+                pathname = os.path.join(dirname, basename)
+                os.utime(pathname, (now, now))
+            os.utime(dirname, (now, now))
 
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
