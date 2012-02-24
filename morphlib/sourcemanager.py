@@ -129,8 +129,14 @@ class SourceManager(object):
                     self.msg('Unable to extract bundle %s' % bundle)
                     return None, 'Unable to extract bundle %s: %s' % (bundle,
                                                                       e)
+                finally:
+                    if os.path.exists(bundle):
+                        os.remove(bundle)
             except morphlib.execute.CommandFailure, e: # pragma: no cover
                 return None, 'Unable to fetch bundle %s: %s' % (bundle, e)
+            finally:
+                if os.path.exists(bundle):
+                    os.remove(bundle)
         except urllib2.URLError, e:
             return None, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
 
