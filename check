@@ -2,7 +2,7 @@
 #
 # Run test suite for morph.
 #
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011, 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,3 +21,9 @@ set -e
 
 python setup.py clean check
 fakeroot cmdtest -c ./morph tests
+
+if [ -d .git ];
+then
+    echo "Checking copyright statements"
+    git ls-files | xargs scripts/check-copyright-year
+fi
