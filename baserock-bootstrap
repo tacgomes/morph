@@ -1133,7 +1133,6 @@ case "$buildwhat" in
         pass3_remove_tools
         pass3_get_sources_with_morph_in_chroot
         pass3_build_with_morph_in_chroot
-        exit 1
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1
