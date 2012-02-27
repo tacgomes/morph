@@ -25,9 +25,6 @@ class StopwatchTests(unittest.TestCase):
     def setUp(self):
         self.stopwatch = morphlib.stopwatch.Stopwatch()
         
-    def tearDown(self):
-        pass
-
     def test_tick(self):
         self.stopwatch.tick('tick', 'a')
         self.assertTrue(self.stopwatch.times('tick'))
