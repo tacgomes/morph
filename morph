@@ -59,8 +59,8 @@ class Morph(cliapp.Application):
                                 'DANGEROUS and will install stuff on your '
                                 'system')
         self.settings.boolean(['ignore-submodules'],
-                              'do not cache repositories of submodules and '
-                              'unpack them into the build directory')
+                              'do not cache repositories of git submodules '
+                              'or unpack them into the build directory')
 
         self.settings.boolean(['no-git-update'],
                               'do not update the cached git repositories '
