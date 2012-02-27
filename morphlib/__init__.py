@@ -35,6 +35,5 @@ import savefile
 import sourcemanager
 import stopwatch
 import tempdir
-import tester
 import util
 
