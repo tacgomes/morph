@@ -379,4 +379,4 @@ class Morph(cliapp.Application):
 
 
 if __name__ == '__main__':
-    Morph().run()
+    Morph(version=morphlib.__version__).run()
