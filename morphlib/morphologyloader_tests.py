@@ -36,7 +36,7 @@ class MorphologyLoaderTests(unittest.TestCase):
         self.assertEqual(morph1, morph2)
 
     def get_morph_text(self, treeish, filename):
-        return ('''
+        return '''
                 {
                     "name": "foo",
                     "kind": "stratum",
@@ -47,4 +47,4 @@ class MorphologyLoaderTests(unittest.TestCase):
                             "ref": "master"
                         }
                     ]
-                }''')
+                }'''
