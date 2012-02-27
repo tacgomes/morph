@@ -1,0 +1,86 @@
+#!/usr/bin/python
+#
+# Does the copyright statement include the year of the latest git commit?
+#
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+import re
+
+import cliapp
+
+
+class CheckCopyrightYear(cliapp.Application):
+
+    pat = re.compile(r'^[ #/*]*Copyright\s+(\(C\)\s*)'
+                     r'(?P<years>[0-9, -]+)')
+
+    def add_settings(self):
+        self.settings.boolean(['verbose', 'v'], 'be more verbose')
+
+    def setup(self):
+        self.all_ok = True
+        
+    def cleanup(self):
+        if not self.all_ok:
+            raise cliapp.AppException('Some copyright years need fixing')
+
+    def process_input_line(self, filename, line):
+        m = self.pat.match(line)
+        if not m:
+            return
+
+        year = self.get_git_commit_year(filename)
+
+        ok = False
+        for start, end in self.get_copyright_years(m):
+            if start <= year <= end:
+                ok = True
+
+        if self.settings['verbose']:
+            if ok:
+                self.output.write('OK %s\n' % filename)
+            else:
+                self.output.write('BAD %s:%s:%s\n' % 
+                                    (filename, self.lineno, line.strip()))
+        elif not ok:
+            self.output.write('%s\n' % filename)
+
+        self.all_ok = self.all_ok and ok
+
+    def get_git_commit_year(self, filename):
+        out = self.runcmd(['git', 'log', filename])
+        lines = out.splitlines()
+        assert lines[2].startswith('Date:')
+        words = lines[2].split()
+        return int(words[5])
+
+    def get_copyright_years(self, match):
+        years = match.group('years')
+        groups = [s.strip() for s in years.split(',')]
+
+        for group in groups:
+            if '-' in group:
+                start, end = group.split('-')
+            else:
+                start = end = group
+            start = int(start)
+            end = int(end)
+            yield start, end
+
+
+CheckCopyrightYear().run()
+
