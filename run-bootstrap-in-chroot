@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -40,7 +40,7 @@ run_pass()
     local passname="$2"
     local tarball=$(pass_snapshot "$passname")
 
-    if has_pass "$passname"
+    if "$snapshot" && has_pass "$passname"
     then
         tar -C "$dir" -xf "$tarball"
         update_morph "$dir"
@@ -64,7 +64,7 @@ fi
 
 mkdir -p "$1"
 dir="$1/squeeze-chroot"
-snapshot=true
+: ${snapshot:=true}
 snapshotdir="$1"
 
 cat >"./do-squeeze-chroot" <<EOF
@@ -154,7 +154,7 @@ then
 fi
 
 run_pass "$dir" pass2b
-"./do-squeeze-chroot" bash -x baserock-bootstrap pass3 || exit 1
+snapshot=false run_pass "$dir" pass3
 
 echo "Passes 1, 2, and 3 of bootstrap done (possibly cached)."
 
