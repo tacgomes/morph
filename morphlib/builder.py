@@ -341,7 +341,7 @@ class ChunkBuilder(BlobBuilder):
                                                self.msg)
 
         extract_treeish(self.blob.morph.treeish, self.builddir)
-        self.set_mtime_recursively(destdir)
+        self.set_mtime_recursively(self.builddir)
 
     def set_mtime_recursively(self, root):
         '''Set the mtime for every file in a directory tree to the same.
