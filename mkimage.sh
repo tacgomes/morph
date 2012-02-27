@@ -7,8 +7,8 @@ EOF
 }
 
 if [ "$#" -le 1 ]; then
-	usage
-	exit 1
+    usage
+    exit 1
 fi
 
 img="$1"
@@ -29,7 +29,7 @@ sudo mount "$part" "$mp"
 trap "sudo umount $part; sudo kpartx -dv $img" EXIT
 
 for stratum; do
-	sudo tar -C "$mp" -xf "$stratum"
+    sudo tar -C "$mp" -xf "$stratum"
 done
 
 cat <<EOF | sudo tee "$mp/etc/fstab"

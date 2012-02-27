@@ -379,7 +379,7 @@ pass1_bash()
         make -j$JOBS
 #       make tests
         make install
-	ln -s "$tools/bin/bash" "$tools/bin/sh"
+    ln -s "$tools/bin/bash" "$tools/bin/sh"
         rm -rf "$sources/bash-4.2"
     fi
 }
@@ -616,7 +616,7 @@ pass1_tar()
     then
         unpack tar-1.26
         cd "$sources/tar-1.26"
-	# mknod check fails without
+    # mknod check fails without
         FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix="$tools"
         make -j$JOBS
 #       make check
@@ -751,11 +751,11 @@ pass2_prepare_for_chroot()
 
     if [ ! -d "$LFS/etc" ]
     then
-	    $HOST_SUDO mkdir -p "$LFS/etc"
-	    $HOST_SUDO chmod 777 "$LFS/etc"
-	    $HOST_SUDO touch "$LFS/etc/ld.so.conf"
-	    $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
-	    cat <<EOF > "$LFS/etc/ld.so.conf"
+        $HOST_SUDO mkdir -p "$LFS/etc"
+        $HOST_SUDO chmod 777 "$LFS/etc"
+        $HOST_SUDO touch "$LFS/etc/ld.so.conf"
+        $HOST_SUDO chmod 666 "$LFS/etc/ld.so.conf"
+        cat <<EOF > "$LFS/etc/ld.so.conf"
 /lib64
 /lib
 /usr/lib64

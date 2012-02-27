@@ -26,4 +26,17 @@ if [ -d .git ];
 then
     echo "Checking copyright statements"
     git ls-files | xargs scripts/check-copyright-year
+    
+    echo 'Checking source code for TAB characters'
+    git ls-files |
+    grep -v '\.gz$' |
+    while read x
+    do
+        if tr -cd '\t' < "$x" | grep . > /dev/null
+        then
+            echo "ERROR: $x contains TAB characters" 1>&2
+            errors=1
+        fi
+    done
 fi
+exit $errors
