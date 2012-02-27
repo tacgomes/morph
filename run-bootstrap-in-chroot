@@ -142,13 +142,13 @@ fi
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
 
 
-if ! has_pass pass2a
+if ! "$snapshot" || ! has_pass pass2a
 then
     run_pass "$dir" pass1
 fi
 
 
-if ! has_pass pass2b
+if ! "$snapshot" || ! has_pass pass2b
 then
     run_pass "$dir" pass2a
 fi
