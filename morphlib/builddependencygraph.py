@@ -169,7 +169,8 @@ class BuildDependencyGraph(object): # pragma: no cover
             chunk = self.get_blob(treeish, filename)
             chunk.add_parent(stratum)
 
-            # store (name -> chunk) association to avoid loading the chunk twice
+            # store (name -> chunk) association to avoid loading the chunk 
+            # twice
             name_to_chunk[source['name']] = chunk
 
             # read the build-depends information
@@ -189,8 +190,9 @@ class BuildDependencyGraph(object): # pragma: no cover
                         dependency = name_to_chunk[depname]
                         chunk.add_dependency(dependency)
                     else:
-                        raise Exception('%s: source %s references %s before it '
-                                        'is defined' % (stratum.morph.filename,
+                        raise Exception('%s: source %s references %s before '
+                                        'it is defined' % 
+                                                       (stratum.morph.filename,
                                                         source['name'],
                                                         depname))
             else:

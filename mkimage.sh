@@ -19,7 +19,9 @@ sudo parted -s "$img" mklabel msdos
 sudo parted -s "$img" mkpart primary 0% 100%
 sudo parted -s "$img" set 1 boot on
 sudo install-mbr "$img"
-part=/dev/mapper/$(sudo kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
+part=/dev/mapper/$(sudo kpartx -av "$img" | 
+                   awk '/^add map/ { print $3 }' | 
+                   head -n1)
 trap "sudo kpartx -dv $img" EXIT
 # mapper may not yet be ready
 while test ! -e "$part"; do :; done

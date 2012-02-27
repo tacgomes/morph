@@ -51,7 +51,7 @@ class BuildController(object):
         self.workers.add(worker)
         self.mark_idle(worker)
 
-    def wait_for_workers(self, need_idle=False, timeout=0.1): # pragma: no cover
+    def wait_for_workers(self, need_idle=False,timeout=0.1): # pragma: no cover
         # first, check if any of the busy workers are finished
         while all([not x.check_complete(timeout) for x in self.busy_workers]):
             # wait and repeat if they are all busy and we have no idle workers

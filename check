@@ -27,7 +27,7 @@ then
     echo "Checking copyright statements"
     git ls-files | xargs scripts/check-copyright-year
     
-    echo 'Checking source code for TAB characters'
+    echo 'Checking source code for silliness'
     git ls-files |
     grep -v '\.gz$' |
     while read x
@@ -37,6 +37,18 @@ then
             echo "ERROR: $x contains TAB characters" 1>&2
             errors=1
         fi
+
+        case "$x" in
+            wget-list|baserock-bootstrap)
+                ;;
+            *)
+                if awk 'length > 79' "$x" | grep . > /dev/null
+                then
+                    echo "ERROR: $x has lines longer than 79 chars" 1>&2
+                    errors=1
+                fi
+                ;;
+        esac
     done
 fi
 exit $errors

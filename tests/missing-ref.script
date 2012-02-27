@@ -21,7 +21,8 @@
 cache="$DATADIR/build-chunk-cache"
 ./morph --no-default-configs build chunk-repo non-existent-branch hello.morph \
     --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc 2> "$DATADIR/build-chunk-cache.stderr"
+    --cachedir="$cache" --keep-path --no-distcc \
+        2> "$DATADIR/build-chunk-cache.stderr"
 err=$?
 cat "$DATADIR/build-chunk-cache.stderr" | sed "s%$DATADIR%%" 1>&2
 exit $err

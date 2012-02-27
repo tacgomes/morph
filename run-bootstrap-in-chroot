@@ -134,8 +134,6 @@ if [ "x$LFS_MIRROR" = x ]; then
     cp wget-list "$dir/wget-list"
 else
     perl -M'Env' -lpe 's|^.*/|$LFS_MIRROR|' wget-list >"$dir/wget-list"
-    #gawk -v m="$LFS_MIRROR" '{gsub(/^.*\//, m)}; 1' wget-list >"$dir/wget-list"
-    #sed "s,^.*/,$LFS_MIRROR," wget-list > "$dir/wget-list"
 fi
 
 

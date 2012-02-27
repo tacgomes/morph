@@ -49,7 +49,8 @@ EOF
 git add hello.c
 
 # Define a couple of chunk morphologies for the GTK stack
-gtkcomponents=(freetype fontconfig cairo pango glib gdk-pixbuf gtk dbus-glib dbus)
+gtkcomponents=(freetype fontconfig cairo pango glib gdk-pixbuf gtk 
+               dbus-glib dbus)
 for component in "${gtkcomponents[@]}"
 do
     cat <<EOF > $component.morph
@@ -168,7 +169,9 @@ EOF
 git add hello.c
 
 # Define a couple of chunk morphologies for the GTK stack
-xfcecomponents=(xfce4-dev-tools libxfce4util libxfce4ui exo xfconf garcon thunar tumbler xfce4-panel xfce4-settings xfce4-session xfwm4 xfdesktop xfce4-appfinder gtk-xfce-engine)
+xfcecomponents=(xfce4-dev-tools libxfce4util libxfce4ui exo xfconf garcon 
+                thunar tumbler xfce4-panel xfce4-settings xfce4-session 
+                xfwm4 xfdesktop xfce4-appfinder gtk-xfce-engine)
 for component in "${xfcecomponents[@]}"
 do
     cat <<EOF > $component.morph

@@ -491,7 +491,8 @@ class SystemBuilder(BlobBuilder):
             self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
             self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
                           '0%', '100%'])
-            self.ex.runv(['parted', '-s', image_name, 'set', '1', 'boot', 'on'])
+            self.ex.runv(['parted', '-s', image_name, 
+                          'set', '1', 'boot', 'on'])
 
         # Install first stage boot loader into MBR.
         with self.build_watch('install-mbr'):

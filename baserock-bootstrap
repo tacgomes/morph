@@ -77,10 +77,12 @@ pass1_directories()
     [ -e "$LFS/sys" ] || $HOST_MKDIR -p "$LFS/sys"
     [ -e "$LFS/tmp" ] || $HOST_MKDIR -p "$LFS/tmp"
     [ -e "$LFS/dev" ] || $HOST_MKDIR -p "$LFS/dev"
-    [ -e "$LFS/dev/console" ] || $HOST_SUDO mknod -m 600 "$LFS/dev/console" c 5 1
+    [ -e "$LFS/dev/console" ] || \
+        $HOST_SUDO mknod -m 600 "$LFS/dev/console" c 5 1
     [ -e "$LFS/dev/null" ] || $HOST_SUDO mknod -m 666 "$LFS/dev/null" c 1 3
     [ -e "$LFS/dev/random" ] || $HOST_SUDO mknod -m 644 "$LFS/dev/random" c 1 8
-    [ -e "$LFS/dev/urandom" ] || $HOST_SUDO mknod -m 644 "$LFS/dev/urandom" c 1 9
+    [ -e "$LFS/dev/urandom" ] || \
+        $HOST_SUDO mknod -m 644 "$LFS/dev/urandom" c 1 9
 }
 
 
@@ -168,8 +170,6 @@ pass1_eglibc()
 
         $HOST_MKDIR "$sources/eglibc-build"
         cd "$sources/eglibc-build"
-
-        #echo "CFLAGS += -O2 -U_FORTIFY_SOURCE -fno-stack-protector" > configparms
 
         case `uname -m` in
             i?86) echo "CFLAGS += -march=i486 -mtune=native" >> configparms ;;
@@ -275,11 +275,12 @@ pass1_gcc_2()
         patch -Np1 -i ../gcc-4.6.1-startfiles_fix-1.patch
 
         cp -v gcc/Makefile.in{,.orig}
-        $HOST_SED 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in 
+        $HOST_SED 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig \
+            > gcc/Makefile.in 
 
         cp -v gcc/Makefile.in{,.tmp}
-        $HOST_SED 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
-          > gcc/Makefile.in
+        $HOST_SED 's/^T_CFLAGS =$/& -fomit-frame-pointer/' \
+            gcc/Makefile.in.tmp > gcc/Makefile.in
 
         for file in \
          $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
@@ -764,7 +765,8 @@ EOF
     fi
     
 #    $HOST_MKDIR -p "$LFS/etc"
-    [ -e "$LFS/etc/passwd" ] || echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
+    [ -e "$LFS/etc/passwd" ] || \
+        echo 'root::0:0:root:/root:/bin/bash' > "$LFS/etc/passwd"
     [ -e "$LFS/etc/group" ] || echo 'root::0:' > "$LFS/etc/group"
 
 #    [ -e "$LFS/etc/hostname" ] || echo 'baserock-boot' | 
@@ -774,9 +776,11 @@ EOF
     # These are needed for #! lines in scripts
     [ -e "$LFS/bin" ] || $HOST_MKDIR -p "$LFS/bin"
     [ -e "$LFS/bin/sh" ] || $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/sh"
-    [ -e "$LFS/bin/bash" ] || $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
+    [ -e "$LFS/bin/bash" ] || \
+        $HOST_SUDO ln -sf ../tools/bin/bash "$LFS/bin/bash"
     [ -e "$LFS/bin/pwd" ] || $HOST_SUDO ln -sf ../tools/bin/pwd "$LFS/bin/pwd"
-    [ -e "$LFS/bin/echo" ] || $HOST_SUDO ln -sf ../tools/bin/echo "$LFS/bin/echo"
+    [ -e "$LFS/bin/echo" ] || \
+        $HOST_SUDO ln -sf ../tools/bin/echo "$LFS/bin/echo"
     if [ ! -e "$LFS/usr/bin/perl" ]; then
         $HOST_MKDIR -p $LFS/usr/bin
         $HOST_SUDO ln -sf ../../tools/bin/perl "$LFS/usr/bin/perl"
@@ -903,7 +907,9 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO parted -s "$img" mkpart primary 0% 100%
     $HOST_SUDO parted -s "$img" set 1 boot on
     $HOST_SUDO install-mbr "$img"
-    part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | awk '/^add map/ { print $3 }' | head -n1)
+    part=/dev/mapper/$($HOST_SUDO kpartx -av "$img" | 
+                       awk '/^add map/ { print $3 }' | 
+                       head -n1)
     trap "$HOST_SUDO kpartx -dv $img" INT TERM EXIT
     # mapper may not yet be ready
     while test ! -e "$part"; do :; done
@@ -912,7 +918,8 @@ pass2_build_devel_system_outside_chroot()
     $HOST_SUDO mount "$part" "$mp"
     trap "$HOST_SUDO umount $part; $HOST_SUDO kpartx -dv $img" INT TERM EXIT
 
-    for stratum in "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
+    for stratum in \
+        "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
     do
         $HOST_SUDO tar -C "$mp" -xf "$stratum"
     done
