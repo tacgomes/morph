@@ -172,6 +172,14 @@ class Morph(cliapp.Application):
                     self.output.write('    %s\n' % blob)
 
     def cmd_update_gits(self, args):
+        '''Update cached git repositories.
+
+        Parse the given morphologies, and their dependencies, and
+        update all the git repositories referred to by them in the
+        morph cache directory.
+        
+        '''
+
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
         while len(args) >= 3:
