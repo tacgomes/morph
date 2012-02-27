@@ -328,7 +328,6 @@ class ChunkBuilder(BlobBuilder):
 
             morphlib.git.copy_repository(treeish, destdir, self.msg)
             morphlib.git.checkout_ref(destdir, treeish.ref, self.msg)
-            self.set_mtime_recursively(destdir)
 
             for submodule in treeish.submodules:
                 directory = os.path.join(destdir, submodule.path)
@@ -342,6 +341,7 @@ class ChunkBuilder(BlobBuilder):
                                                self.msg)
 
         extract_treeish(self.blob.morph.treeish, self.builddir)
+        self.set_mtime_recursively(destdir)
 
     def set_mtime_recursively(self, root):
         '''Set the mtime for every file in a directory tree to the same.
