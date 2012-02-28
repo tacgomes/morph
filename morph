@@ -27,22 +27,37 @@ from morphlib.morphologyloader import MorphologyLoader
 from morphlib.builddependencygraph import BuildDependencyGraph
 
 
+defaults = {
+    'git-base-url': [
+        'git://gitorious.org/baserock-morphs/',
+        'git://gitorious.org/baserock/',
+    ],
+    'bundle-server': 'http://roadtrain.codethink.co.uk/bundles/',
+    'cachedir': os.path.expanduser('~/.cache/morph'),
+    'max-jobs': morphlib.util.make_concurrency(),
+}
+
+
 class Morph(cliapp.Application):
 
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'], 'show what is happening')
         self.settings.string_list(['git-base-url'],
                              'prepend URL to git repos that are not URLs',
-                             metavar='URL')
+                             metavar='URL',
+                             default=defaults['git-base-url'])
         self.settings.string(['bundle-server'],
                              'base URL to download bundles',
-                             metavar='URL')
+                             metavar='URL',
+                             default=defaults['bundle-server'])
         self.settings.string(['cachedir'], 
-                             'put build results in DIR (default: %default)',
-                             metavar='DIR', default='.')
+                             'put build results in DIR',
+                             metavar='DIR', 
+                             default=defaults['cachedir'])
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds',
-                             metavar='DIR', default=os.environ.get('TMPDIR'))
+                             metavar='DIR', 
+                             default=os.environ.get('TMPDIR'))
         self.settings.boolean(['no-ccache'], 'do not use ccache')
         self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.integer(['max-jobs'], 
@@ -50,7 +65,7 @@ class Morph(cliapp.Application):
                                 'is to a value based on the number of CPUs '
                                 'in the machine running morph',
                               metavar='N',
-                              default=0)
+                              default=defaults['max-jobs'])
         self.settings.boolean(['keep-path'], 
                               'do not touch the PATH environment variable '
                                 '(use with tests ONLY)')

@@ -301,12 +301,9 @@ class ChunkBuilder(BlobBuilder):
         if self.blob.morph.max_jobs:
             max_jobs = int(self.blob.morph.max_jobs)
             logging.debug('max_jobs from morph: %s' % max_jobs)
-        elif self.settings['max-jobs']:
+        else:
             max_jobs = self.settings['max-jobs']
             logging.debug('max_jobs from settings: %s' % max_jobs)
-        else:
-            max_jobs = morphlib.util.make_concurrency()
-            logging.debug('max_jobs from cpu count: %s' % max_jobs)
         self.ex.env['MAKEFLAGS'] = '-j%d' % max_jobs
 
         if not self.settings['no-ccache']:
