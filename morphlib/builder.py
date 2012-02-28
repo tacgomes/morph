@@ -556,7 +556,7 @@ append root=/dev/sda1 init=/sbin/init quiet rw
                 # Weird hack that makes extlinux work. 
                 # FIXME: There is a bug somewhere.
                 self.ex.runv(['sync'])
-                import time; time.sleep(2)
+                time.sleep(2)
 
             # Unmount.
             with self.build_watch('unmount-filesystem'):
