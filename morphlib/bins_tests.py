@@ -107,8 +107,6 @@ class ChunkTests(BinsTest):
         self.populate_instdir()
         morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['.'], self.ex)
         self.chunk_f.flush()
-        empty = os.path.join(self.tempdir, 'empty')
-        os.mkdir(empty)
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.'])
 
