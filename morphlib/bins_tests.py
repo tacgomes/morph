@@ -103,29 +103,32 @@ class ChunkTests(BinsTest):
             pass
         os.utime(filename, (timestamp, timestamp))
         
-    def test_empties_everything(self):
+        self.instdir_orig_files = self.recursive_lstat(self.instdir)
+
+    def create_chunk(self, regexps):
         self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['.'], self.ex)
+        morphlib.bins.create_chunk(self.instdir, self.chunk_f, regexps, 
+                                   self.ex)
         self.chunk_f.flush()
+
+    def unpack_chunk(self):
+        os.mkdir(self.unpacked)
+        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
+        
+    def test_empties_everything(self):
+        self.create_chunk(['.'])
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.'])
 
     def test_creates_and_unpacks_chunk_exactly(self):
-        self.populate_instdir()
-        orig_files = self.recursive_lstat(self.instdir)
-        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['.'], self.ex)
-        self.chunk_f.flush()
-        os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
-        self.assertEqual(orig_files, self.recursive_lstat(self.unpacked))
+        self.create_chunk(['.'])
+        self.unpack_chunk()
+        self.assertEqual(self.instdir_orig_files, 
+                         self.recursive_lstat(self.unpacked))
 
     def test_uses_only_matching_names(self):
-        self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_f, ['bin'],
-                                   self.ex)
-        self.chunk_f.flush()
-        os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
+        self.create_chunk(['bin'])
+        self.unpack_chunk()
         self.assertEqual([x for x,y in self.recursive_lstat(self.unpacked)],
                          ['.', 'bin', 'bin/foo'])
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
