@@ -56,14 +56,3 @@ class TempdirTests(unittest.TestCase):
         self.assertEqual(self.tempdir.join('/foo'), 
                          os.path.join(self.tempdir.dirname, 'foo'))
 
-    def test_clears_when_empty(self):
-        self.tempdir.clear()
-        self.assertEqual(os.listdir(self.tempdir.dirname), [])
-
-    def test_clears_when_not_empty(self):
-        os.mkdir(self.tempdir.join('foo'))
-        with open(self.tempdir.join('bar'), 'w') as f:
-            f.write('bar')
-        self.tempdir.clear()
-        self.assertEqual(os.listdir(self.tempdir.dirname), [])
-

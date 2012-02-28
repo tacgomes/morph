@@ -34,16 +34,6 @@ class Tempdir(object):
         shutil.rmtree(self.dirname)
         self.dirname = None
 
-    def clear(self):
-        '''Clear temporary directory of everything.'''
-        logging.debug('Removing contents of %s' % self.dirname)
-        for x in os.listdir(self.dirname):
-            filename = self.join(x)
-            if os.path.isdir(filename):
-                shutil.rmtree(filename)
-            else:
-                os.remove(filename)
-
     def join(self, relative):
         '''Return full path to file in temporary directory.
         

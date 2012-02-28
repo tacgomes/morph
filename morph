@@ -145,9 +145,7 @@ class Morph(cliapp.Application):
             # build things in this order
             ret.append(builder.build(blobs, order))
 
-            # we may not have permission to tempdir.remove()
-            ex = morphlib.execute.Execute('.', lambda msg: None)
-            ex.runv(["rm", "-rf", tempdir.dirname])
+            tempdir.remove()
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
@@ -285,9 +283,7 @@ class Morph(cliapp.Application):
                 self.msg('Building %s' % first_blob)
                 ret.append(builder.build_single(first_blob, blobs, order))
 
-        # we may not have permission to tempdir.remove()
-        ex = morphlib.execute.Execute('.', lambda msg: None)
-        ex.runv(["rm", "-rf", tempdir.dirname])
+        tempdir.remove()
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
@@ -355,9 +351,7 @@ class Morph(cliapp.Application):
             # build the tuple and all its dependencies
             result.append(controller.build(blobs, order))
 
-        # we may not have permission to tempdir.remove()
-        ex = morphlib.execute.Execute('.', lambda msg: None)
-        ex.runv(["rm", "-rf", tempdir.dirname])
+        tempdir.remove()
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
