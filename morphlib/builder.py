@@ -621,7 +621,6 @@ class Builder(object):
                 builders[blob] = builder
 
         # second pass: build group by group, item after item
-        ret = []
         for group in build_order:
             for blob in group:
                 self.msg('Building %s' % blob)
@@ -654,8 +653,6 @@ class Builder(object):
 
         self.indent_less()
 
-        return ret
-
     def build_single(self, blob, blobs, build_order):
         self.indent_more()
 
@@ -686,10 +683,8 @@ class Builder(object):
                         visited.add(dep)
 
         # build the single blob now
-        ret = []
-        ret.append(builders[blob].build())
+        builders[blob].build()
         self.indent_less()
-        return ret
 
     def create_blob_builder(self, blob):
         if isinstance(blob, morphlib.blobs.Stratum):
