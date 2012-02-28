@@ -154,8 +154,6 @@ class Morph(cliapp.Application):
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
 
-        return ret
-
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
 
@@ -292,8 +290,6 @@ class Morph(cliapp.Application):
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
 
-        return ret
-
     def cmd_build_distributed(self, args):
         '''Build a binary from a morphology, distributing work where possible.
         
@@ -359,8 +355,6 @@ class Morph(cliapp.Application):
 
         if args:
             raise cliapp.AppException('Extra args on command line: %s' % args)
-
-        return result
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
