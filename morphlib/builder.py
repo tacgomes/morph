@@ -470,10 +470,6 @@ class StratumBuilder(BlobBuilder):
 
 class SystemBuilder(BlobBuilder):
 
-    def needs_built(self):
-        for stratum_name in self.morph.strata:
-            yield self.repo, self.ref, stratum_name, [stratum_name]
-
     def do_build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
