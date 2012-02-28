@@ -46,6 +46,13 @@ def ldconfig(ex, rootdir):
     if os.path.exists(conf):
         logging.debug('Running ldconfig for %s' % rootdir)
         cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
+        
+        # The following trickery with $PATH is necessary during the Baserock
+        # bootstrap build: we are not guaranteed that PATH contains the
+        # directory (/sbin conventionally) that ldconfig is in. Then again,
+        # it might, and if so, we don't want to hardware a particular
+        # location. So we add the possible locations to the end of $PATH
+        # and restore that aftewards.
         old_path = ex.env['PATH']
         ex.env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
         ex.runv(['ldconfig', '-r', rootdir])
