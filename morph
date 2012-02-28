@@ -101,6 +101,17 @@ class Morph(cliapp.Application):
                                   'build work to',
                                   metavar='HOSTNAME')
 
+    def _itertriplets(self, args):
+        '''Generate repo, ref, filename triples from args.'''
+        
+        if (len(args) % 3) != 0:
+            raise cliapp.AppException('Argument list must have full triplets')
+        
+        while args:
+            assert len(args) >= 2, args
+            yield args[0], args[1], args[2]
+            args = args[3:]
+
 
     def cmd_build(self, args):
         '''Build a binary from a morphology.
@@ -120,7 +131,7 @@ class Morph(cliapp.Application):
             os.mkdir(self.settings['cachedir'])
 
         ret = []
-        while len(args) >= 3:
+        for repo, ref, filename in self._itertriplets(args):
             tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
             morph_loader = MorphologyLoader(self.settings)
             source_manager = morphlib.sourcemanager.SourceManager(self,
@@ -135,9 +146,6 @@ class Morph(cliapp.Application):
             for bin in self.settings['staging-filler']:
                 morphlib.bins.unpack_binary(bin, staging, ex)
 
-            repo, ref, filename = args[:3]
-            args = args[3:]
-
             # derive a build order from the dependency graph
             graph = BuildDependencyGraph(source_manager, morph_loader,
                                          repo, ref, filename)
@@ -151,9 +159,6 @@ class Morph(cliapp.Application):
 
             tempdir.remove()
 
-        if args:
-            raise cliapp.AppException('Extra args on command line: %s' % args)
-
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
 
@@ -161,11 +166,7 @@ class Morph(cliapp.Application):
         source_manager = morphlib.sourcemanager.SourceManager(self,
                             update=not self.settings['no-git-update'])
 
-        while len(args) >= 3:
-            # read the build tuple from the command line
-            repo, ref, filename = args[:3]
-            args = args[3:]
-
+        for repo, ref, filename in self._itertriplets(args):
             # create a dependency graph for the morphology
             graph = BuildDependencyGraph(source_manager, morph_loader,
                                          repo, ref, filename)
@@ -197,11 +198,8 @@ class Morph(cliapp.Application):
 
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self)
-        while len(args) >= 3:
-            # read the build tuple from the command line
-            repo, ref, filename = args[:3]
-            args = args[3:]
 
+        for repo, ref, filename in self._itertriplets(args):
             # resolve the dependency graph, which will implicitly
             # clone all repositories needed to build the blob
             graph = BuildDependencyGraph(source_manager, morph_loader,
@@ -335,11 +333,7 @@ class Morph(cliapp.Application):
 
         result = []
 
-        while len(args) >= 3:
-            # read the build tuple from the command line
-            repo, ref, filename = args[:3]
-            args = args[3:]
-
+        for repo, ref, filename in self._itertriplets(args):
             # derive a build order from the dependency graph
             graph = BuildDependencyGraph(source_manager, morph_loader,
                                          repo, ref, filename)
@@ -352,9 +346,6 @@ class Morph(cliapp.Application):
             result.append(controller.build(blobs, order))
 
         tempdir.remove()
-
-        if args:
-            raise cliapp.AppException('Extra args on command line: %s' % args)
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
