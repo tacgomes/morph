@@ -55,7 +55,12 @@ class Morph(cliapp.Application):
                              metavar='DIR', 
                              default=defaults['cachedir'])
         self.settings.string(['tempdir'],
-                             'temporary directory to use for builds',
+                             'temporary directory to use for builds '
+                                '(this is separate from just setting $TMPDIR '
+                                'or /tmp because those are used internally '
+                                'by things that cannot be on NFS, but '
+                                'this setting can point at a directory in '
+                                'NFS)',
                              metavar='DIR', 
                              default=os.environ.get('TMPDIR'))
         self.settings.boolean(['no-ccache'], 'do not use ccache')
