@@ -130,7 +130,6 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
 
-        ret = []
         for repo, ref, filename in self._itertriplets(args):
             tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
             morph_loader = MorphologyLoader(self.settings)
@@ -155,7 +154,7 @@ class Morph(cliapp.Application):
             self.msg('Building %s|%s|%s' % (repo, ref, filename))
 
             # build things in this order
-            ret.append(builder.build(blobs, order))
+            builder.build(blobs, order)
 
             tempdir.remove()
 
@@ -234,7 +233,6 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
 
-        ret = []
         if len(args) >= 3:
             repo, ref, filename = args[:3]
             args = args[3:]
@@ -277,11 +275,11 @@ class Morph(cliapp.Application):
 
                 # build now
                 self.msg('Building %s' % second_blob)
-                ret.append(builder.build_single(second_blob, blobs, order))
+                builder.build_single(second_blob, blobs, order)
             else:
                 # build the blob now
                 self.msg('Building %s' % first_blob)
-                ret.append(builder.build_single(first_blob, blobs, order))
+                builder.build_single(first_blob, blobs, order)
 
         tempdir.remove()
 
