@@ -42,6 +42,17 @@ class BinsTest(unittest.TestCase):
         
         def lstat(filename):
             st = os.lstat(filename)
+            
+            # For directories, the size is dependent on the contents, and
+            # possibly on things that have been deleted already. An unpacked
+            # directory can be identical even if the size field is different.
+            # So we ignore it for directories.
+            #
+            # Similarly, the mtime for a directory will change when we remove
+            # files in the directory, and a different mtime is not necessarily
+            # a sign of a bad unpack. It's possible for the tests to arrange
+            # for everything to be correct as far as directory mtimes are
+            # concerned, but it's not worth it, so we fudge the mtime too.
             if stat.S_ISDIR(st.st_mode):
                 return (st.st_mode, 0, 0)
             else:
