@@ -72,7 +72,6 @@ class Check(Command):
 
 
 setup(name='morph',
-      version=morphlib.__version__,
       description='FIXME',
       long_description='''\
 FIXME

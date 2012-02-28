@@ -17,9 +17,6 @@
 '''Baserock library.'''
 
 
-__version__ = '0.0'
-
-
 import bins
 import blobs
 import buildcontroller
