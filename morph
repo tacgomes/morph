@@ -135,15 +135,14 @@ class Morph(cliapp.Application):
             morph_loader = MorphologyLoader(self.settings)
             source_manager = morphlib.sourcemanager.SourceManager(self,
                                 update=not self.settings['no-git-update'])
+            factory = morphlib.builder.Factory(tempdir)
             builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                               source_manager)
+                                               source_manager, factory)
 
             # Unpack manually specified build dependencies.
-            staging = tempdir.join('staging')
-            os.mkdir(staging)
-            ex = morphlib.execute.Execute('/', self.msg)
+            factory.create_staging()
             for bin in self.settings['staging-filler']:
-                morphlib.bins.unpack_binary(bin, staging, ex)
+                factory.unpack_binary_from_file(bin)
 
             # derive a build order from the dependency graph
             graph = BuildDependencyGraph(source_manager, morph_loader,
@@ -227,11 +226,14 @@ class Morph(cliapp.Application):
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self,
                                                               update=False)
+        factory = morphlib.builder.Factory(tempdir)
         builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                           source_manager)
+                                           source_manager, factory)
 
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
+
+        factory.create_staging()
 
         if len(args) >= 3:
             repo, ref, filename = args[:3]

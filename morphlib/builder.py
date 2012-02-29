@@ -24,7 +24,7 @@ import time
 import morphlib
 
 
-def ldconfig(ex, rootdir):
+def ldconfig(ex, rootdir): # pragma: no cover
     '''Run ldconfig for the filesystem below ``rootdir``.
 
     Essentially, ``rootdir`` specifies the root of a new system.
@@ -61,7 +61,88 @@ def ldconfig(ex, rootdir):
         logging.debug('No %s, not running ldconfig' % conf)
 
 
-class BlobBuilder(object):
+class Factory(object):
+
+    '''Build Baserock binaries.'''
+    
+    def __init__(self, tempdir):
+        self._tempdir = tempdir
+        self.staging = None
+        
+    def create_staging(self):
+        '''Create the staging area.'''
+        self.staging = self._tempdir.join('staging')
+        os.mkdir(self.staging)
+        
+    def remove_staging(self):
+        '''Remove the staging area.'''
+        shutil.rmtree(self.staging)
+        self.staging = None
+
+    def _unpack_binary(self, binary, dirname):
+        '''Unpack binary into a given directory.'''
+        ex = morphlib.execute.Execute('/', logging.debug)
+        morphlib.bins.unpack_binary(binary, dirname, ex)
+
+    def unpack_binary_from_file(self, filename):
+        '''Unpack a binary package from a file, given its name.'''
+        self._unpack_binary(filename, self.staging)
+
+    def unpack_binary_from_file_onto_system(self, filename):
+        '''Unpack contents of a binary package onto the running system.
+        
+        DANGER, WILL ROBINSON! This WILL modify your running system.
+        It should only be used during bootstrapping.
+        
+        '''
+        
+        self._unpack_binary(filename, '/')
+
+    def unpack_sources(self, treeish, srcdir):
+        '''Get sources from to a source directory, for building.
+        
+        The git repository and revision are given via a Treeish object.
+        The source directory must not exist.
+        
+        '''
+
+        def msg(s):
+            pass
+
+        def extract_treeish(treeish, destdir):
+            logging.debug('Extracting %s into %s' % (treeish.repo, destdir))
+            if not os.path.exists(destdir):
+                os.mkdir(destdir)
+            morphlib.git.copy_repository(treeish, destdir, msg)
+            morphlib.git.checkout_ref(destdir, treeish.ref, msg)
+            return [(sub.treeish, os.path.join(destdir, sub.path))
+                    for sub in treeish.submodules]
+
+        todo = [(treeish, srcdir)]
+        while todo:
+            treeish, srcdir = todo.pop()
+            todo += extract_treeish(treeish, srcdir)
+        self.set_mtime_recursively(srcdir)
+
+    def set_mtime_recursively(self, root):
+        '''Set the mtime for every file in a directory tree to the same.
+        
+        We do this because git checkout does not set the mtime to anything,
+        and some projects (binutils, gperf for example) include formatted
+        documentation and try to randomly build things or not because of
+        the timestamps. This should help us get more reliable  builds.
+        
+        '''
+        
+        now = time.time()
+        for dirname, subdirs, basenames in os.walk(root, topdown=False):
+            for basename in basenames:
+                pathname = os.path.join(dirname, basename)
+                os.utime(pathname, (now, now))
+            os.utime(dirname, (now, now))
+
+
+class BlobBuilder(object): # pragma: no cover
 
     def __init__(self, app, blob):
         self.app = app
@@ -70,13 +151,13 @@ class BlobBuilder(object):
         # The following MUST get set by the caller.
         self.builddir = None
         self.destdir = None
-        self.staging = None
         self.settings = None
         self.real_msg = None
         self.cachedir = None
         self.cache_basename = None
         self.cache_prefix = None
         self.tempdir = None
+        self.factory = None
         self.logfile = None
         self.stage_items = []
         self.dump_memory_profile = lambda msg: None
@@ -97,10 +178,6 @@ class BlobBuilder(object):
 
     def build(self):
         self.prepare_logfile()
-
-        # create the staging area on demand
-        if not os.path.exists(self.staging):
-            os.mkdir(self.staging)
 
         # record all items built in the process
         built_items = []
@@ -143,16 +220,15 @@ class BlobBuilder(object):
     def install_chunk(self, chunk_name, chunk_filename):
         if self.blob.morph.kind != 'chunk':
             return
+        ex = morphlib.execute.Execute('/', self.msg)
         if self.settings['bootstrap']:
             self.msg('Unpacking item %s onto system' % chunk_name)
-            ex = morphlib.execute.Execute('/', self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, '/', ex)
+            self.factory.unpack_binary_from_file_onto_system(chunk_filename)
             ldconfig(ex, '/')
         else:
             self.msg('Unpacking chunk %s into staging' % chunk_name)
-            ex = morphlib.execute.Execute('/', self.msg)
-            morphlib.bins.unpack_binary(chunk_filename, self.staging, ex)
-            ldconfig(ex, self.staging)
+            self.factory.unpack_binary_from_file(chunk_filename)
+            ldconfig(ex, self.factory.staging)
 
     def prepare_binary_metadata(self, blob_name, **kwargs):
         '''Add metadata to a binary about to be built.'''
@@ -204,7 +280,7 @@ class BlobBuilder(object):
         shutil.copyfile(self.logfile.name, filename)
 
 
-class ChunkBuilder(BlobBuilder):
+class ChunkBuilder(BlobBuilder): # pragma: no cover
 
     build_system = {
         'dummy': {
@@ -325,45 +401,7 @@ class ChunkBuilder(BlobBuilder):
             logging.debug('  %s=%s' % (key, self.ex.env[key]))
 
     def prepare_build_directory(self):
-        os.mkdir(self.builddir)
-
-        def extract_treeish(treeish, destdir):
-            self.msg('Extracting %s into %s' %
-                     (treeish.repo, self.builddir))
-
-            morphlib.git.copy_repository(treeish, destdir, self.msg)
-            morphlib.git.checkout_ref(destdir, treeish.ref, self.msg)
-
-            for submodule in treeish.submodules:
-                directory = os.path.join(destdir, submodule.path)
-                extract_treeish(submodule.treeish, directory)
-
-                # we need to do this to keep any "git submodule" commands
-                # from accessing the internet. instead, we redirect them
-                # to the locally cached submodule repo
-                morphlib.git.set_submodule_url(destdir, submodule.name,
-                                               submodule.treeish.repo,
-                                               self.msg)
-
-        extract_treeish(self.blob.morph.treeish, self.builddir)
-        self.set_mtime_recursively(self.builddir)
-
-    def set_mtime_recursively(self, root):
-        '''Set the mtime for every file in a directory tree to the same.
-        
-        We do this because git checkout does not set the mtime to anything,
-        and some projects (binutils, gperf for example) include formatted
-        documentation and try to randomly build things or not because of
-        the timestamps. This should help us get more reliable  builds.
-        
-        '''
-        
-        now = time.time()
-        for dirname, subdirs, basenames in os.walk(root, topdown=False):
-            for basename in basenames:
-                pathname = os.path.join(dirname, basename)
-                os.utime(pathname, (now, now))
-            os.utime(dirname, (now, now))
+        self.factory.unpack_sources(self.blob.morph.treeish, self.builddir)
 
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
@@ -408,18 +446,18 @@ class ChunkBuilder(BlobBuilder):
 
     def run_commands(self, commands):
         if self.settings['staging-chroot']:
-            ex = morphlib.execute.Execute(self.staging, self.msg)
+            ex = morphlib.execute.Execute(self.factory.staging, self.msg)
             ex.env.clear()
             for key in self.ex.env:
                 ex.env[key] = self.ex.env[key]
-            assert self.builddir.startswith(self.staging + '/')
-            assert self.destdir.startswith(self.staging + '/')
-            builddir = self.builddir[len(self.staging):]
-            destdir = self.destdir[len(self.staging):]
+            assert self.builddir.startswith(self.factory.staging + '/')
+            assert self.destdir.startswith(self.factory.staging + '/')
+            builddir = self.builddir[len(self.factory.staging):]
+            destdir = self.destdir[len(self.factory.staging):]
             for cmd in commands:
                 old_destdir = ex.env.get('DESTDIR', None)
                 ex.env['DESTDIR'] = destdir
-                ex.runv(['/usr/sbin/chroot', self.staging, 'sh', '-c',
+                ex.runv(['/usr/sbin/chroot', self.factory.staging, 'sh', '-c',
                          'cd "$1" && shift && eval "$@"', '--', builddir, cmd])
                 if old_destdir is None:
                     del ex.env['DESTDIR']
@@ -452,7 +490,7 @@ class ChunkBuilder(BlobBuilder):
         return chunks
 
 
-class StratumBuilder(BlobBuilder):
+class StratumBuilder(BlobBuilder): # pragma: no cover
     
     def builds(self):
         filename = self.filename(self.blob.morph.name)
@@ -475,18 +513,42 @@ class StratumBuilder(BlobBuilder):
         return { self.blob.morph.name: filename }
 
 
-class SystemBuilder(BlobBuilder):
+class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def do_build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
-        # Create image.
+        image_name = self.tempdir.join('%s.img' % self.blob.morph.name)
+        self._create_image(image_name)
+        self._partition_image(image_name)
+        self._install_mbr(image_name)
+        partition = self._setup_device_mapping(image_name)
+
+        mount_point = None
+        try:
+            self._create_fs(partition)
+            mount_point = self.tempdir.join('mnt')
+            self._mount(partition, mount_point)
+            self._unpack_strata(mount_point)
+            self._create_fstab(mount_point)
+            self._install_extlinux(mount_point)
+            self._unmount(mount_point)
+        except BaseException:
+            self._umount(mount_point)
+            self._undo_device_mapping(image_name)
+            raise
+
+        self._undo_device_mapping(image_name)
+        self._move_image_to_cache(image_name)
+
+        return { self.blob.morph.name: filename }
+
+    def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            image_name = self.tempdir.join('%s.img' % self.blob.morph.name)
             self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
                           self.blob.morph.disk_size])
 
-        # Partition it.
+    def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
             self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
             self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
@@ -494,11 +556,11 @@ class SystemBuilder(BlobBuilder):
             self.ex.runv(['parted', '-s', image_name, 
                           'set', '1', 'boot', 'on'])
 
-        # Install first stage boot loader into MBR.
+    def _install_mbr(self, image_name):
         with self.build_watch('install-mbr'):
             self.ex.runv(['install-mbr', image_name])
 
-        # Setup device mapper to access the partition.
+    def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
             out = self.ex.runv(['kpartx', '-av', image_name])
             devices = [line.split()[2]
@@ -506,43 +568,39 @@ class SystemBuilder(BlobBuilder):
                        if line.startswith('add map ')]
             partition = '/dev/mapper/%s' % devices[0]
 
-        mount_point = None
-        try:
-            # Create filesystem.
-            with self.build_watch('create-filesystem'):
-                self.ex.runv(['mkfs', '-t', 'ext3', partition])
+    def _create_fs(self, partition):
+        with self.build_watch('create-filesystem'):
+            self.ex.runv(['mkfs', '-t', 'ext3', partition])
 
-            # Mount it.
-            with self.build_watch('mount-filesystem'):
-                mount_point = self.tempdir.join('mnt')
-                os.mkdir(mount_point)
-                self.ex.runv(['mount', partition, mount_point])
+    def _mount(self, partition, mount_point):
+        with self.build_watch('mount-filesystem'):
+            os.mkdir(mount_point)
+            self.ex.runv(['mount', partition, mount_point])
 
-            # Unpack all strata into filesystem.
-            # Also, run ldconfig.
-            with self.build_watch('unpack-strata'):
-                for name, filename in self.stage_items:
-                    self.msg('unpack %s from %s' % (name, filename))
-                    self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
-                ldconfig(self.ex, mount_point)
+    def _unpack_strata(self, mount_point):
+        with self.build_watch('unpack-strata'):
+            for name, filename in self.stage_items:
+                self.msg('unpack %s from %s' % (name, filename))
+                self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
+            ldconfig(self.ex, mount_point)
 
-            # Create fstab.
-            with self.build_watch('create-fstab'):
-                fstab = self.tempdir.join('mnt/etc/fstab')
-                if not os.path.exists(os.path.dirname(fstab)):
-                    os.makedirs(os.path.dirname(fstab))
-                # sorry about the hack, I wish I knew a better way
-                self.ex.runv(['tee', fstab], feed_stdin='''
+    def _create_fstab(self, mount_point):
+        with self.build_watch('create-fstab'):
+            fstab = os.path.join(mount_point, 'etc', 'fstab')
+            if not os.path.exists(os.path.dirname(fstab)):
+                os.makedirs(os.path.dirname(fstab))
+            # sorry about the hack, I wish I knew a better way
+            self.ex.runv(['tee', fstab], feed_stdin='''
 proc      /proc proc  defaults          0 0
 sysfs     /sys  sysfs defaults          0 0
 /dev/sda1 /     ext4  errors=remount-ro 0 1
 ''', stdout=open(os.devnull,'w'))
 
-            # Install extlinux bootloader.
-            with self.build_watch('install-bootloader'):
-                conf = os.path.join(mount_point, 'extlinux.conf')
-                logging.debug('configure extlinux %s' % conf)
-                self.ex.runv(['tee', conf], feed_stdin='''
+    def _install_extlinux(self, mount_point):
+        with self.build_watch('install-bootloader'):
+            conf = os.path.join(mount_point, 'extlinux.conf')
+            logging.debug('configure extlinux %s' % conf)
+            self.ex.runv(['tee', conf], feed_stdin='''
 default linux
 timeout 1
 
@@ -551,49 +609,35 @@ kernel /vmlinuz
 append root=/dev/sda1 init=/sbin/init quiet rw
 ''', stdout=open(os.devnull, 'w'))
 
-                self.ex.runv(['extlinux', '--install', mount_point])
-                
-                # Weird hack that makes extlinux work. 
-                # FIXME: There is a bug somewhere.
-                self.ex.runv(['sync'])
-                time.sleep(2)
+            self.ex.runv(['extlinux', '--install', mount_point])
+            
+            # Weird hack that makes extlinux work. 
+            # FIXME: There is a bug somewhere.
+            self.ex.runv(['sync'])
+            time.sleep(2)
 
-            # Unmount.
+    def _unmount(self, mount_point):
+        if mount_point is not None:
             with self.build_watch('unmount-filesystem'):
                 self.ex.runv(['umount', mount_point])
-        except BaseException:
-            # Unmount.
-            if mount_point is not None:
-                try:
-                    self.ex.runv(['umount', mount_point])
-                except Exception:
-                    pass
 
-            # Undo device mapping.
-            try:
-                self.ex.runv(['kpartx', '-d', image_name])
-            except Exception:
-                pass
-            raise
-
-        # Undo device mapping.
+    def _undo_device_mapping(self, image_name):
         with self.build_watch('undo-device-mapper'):
             self.ex.runv(['kpartx', '-d', image_name])
 
-        # Move image file to cache.
+    def _move_image_to_cache(self, image_name):
         with self.build_watch('cache-image'):
             filename = self.filename(self.blob.morph.name)
             self.ex.runv(['mv', image_name, filename])
 
-        return { self.blob.morph.name: filename }
 
-class Builder(object):
+class Builder(object): # pragma: no cover
 
     '''Build binary objects for Baserock.
     
     The objects may be chunks or strata.'''
     
-    def __init__(self, tempdir, app, morph_loader, source_manager):
+    def __init__(self, tempdir, app, morph_loader, source_manager, factory):
         self.tempdir = tempdir
         self.app = app
         self.real_msg = app.msg
@@ -602,6 +646,7 @@ class Builder(object):
         self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         self.morph_loader = morph_loader
         self.source_manager = source_manager
+        self.factory = factory
         self.indent = 0
 
     def msg(self, text):
@@ -708,8 +753,8 @@ class Builder(object):
         logging.debug('cache id: %s' % repr(cache_id))
         self.dump_memory_profile('after computing cache id')
 
-        builder.staging = self.tempdir.join('staging')
-        s = builder.staging
+        s = self.factory.staging
+        assert s is not None, repr(s)
         builder.builddir = os.path.join(s, '%s.build' % blob.morph.name)
         builder.destdir = os.path.join(s, '%s.inst' % blob.morph.name)
         builder.settings = self.settings
@@ -718,6 +763,7 @@ class Builder(object):
         builder.cache_prefix = self.cachedir.name(cache_id)
         builder.cache_basename = os.path.basename(builder.cache_prefix)
         builder.tempdir = self.tempdir
+        builder.factory = self.factory
         builder.dump_memory_profile = self.dump_memory_profile
         
         return builder
