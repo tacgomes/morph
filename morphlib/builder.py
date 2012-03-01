@@ -200,10 +200,10 @@ class BlobBuilder(object): # pragma: no cover
             meta[key] = value
         
         dirname = os.path.join(self.destdir, 'baserock')
-        filename = os.path.join(dirname, '%s.meta' % blob_name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
             
+        filename = os.path.join(dirname, '%s.meta' % blob_name)
         with open(filename, 'w') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
