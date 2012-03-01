@@ -563,7 +563,7 @@ class Builder(object): # pragma: no cover
     def indent_less(self):
         self.indent -= 1
 
-    def build(self, blobs, build_order):
+    def build(self, build_order):
         '''Build a list of groups of morphologies. Items in a group
            can be built in parallel.'''
 
@@ -624,7 +624,7 @@ class Builder(object): # pragma: no cover
     def all_built(self, builds):
         return all(os.path.isfile(builds[name]) for name in builds)
 
-    def build_single(self, blob, blobs, build_order):
+    def build_single(self, blob, build_order):
         self.indent_more()
 
         # first pass: create builders for all blobs

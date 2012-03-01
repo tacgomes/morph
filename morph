@@ -151,7 +151,7 @@ class Morph(cliapp.Application):
             self.msg('Building %s|%s|%s' % (repo, ref, filename))
 
             # build things in this order
-            builder.build(blobs, order)
+            builder.build(order)
 
             tempdir.remove()
 
@@ -275,11 +275,11 @@ class Morph(cliapp.Application):
 
                 # build now
                 self.msg('Building %s' % second_blob)
-                builder.build_single(second_blob, blobs, order)
+                builder.build_single(second_blob, order)
             else:
                 # build the blob now
                 self.msg('Building %s' % first_blob)
-                builder.build_single(first_blob, blobs, order)
+                builder.build_single(first_blob, order)
 
         tempdir.remove()
 
