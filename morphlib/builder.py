@@ -449,7 +449,6 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
                 patterns = self.blob.chunks[chunk_name]
                 patterns += [r'baserock/%s\.' % chunk_name]
                 filename = self.filename(chunk_name)
-                basename = os.path.basename(filename)
                 self.msg('Creating binary for %s' % chunk_name)
                 with self.cachedir.open(filename) as f:
                     morphlib.bins.create_chunk(self.destdir, f, patterns,
