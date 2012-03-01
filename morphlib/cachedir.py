@@ -64,7 +64,7 @@ class CacheDir(object):
 
         return os.path.join(self.dirname, key + suffix)
 
-    def open(self, relative_name_or_cache_key, suffix=''):
+    def open(self, relative_name_or_cache_key, suffix='', **kwargs):
         '''Open a file for writing in the cache.
         
         The file will be written with a temporary name, and renamed to
@@ -81,5 +81,7 @@ class CacheDir(object):
         else:
             path = os.path.join(self.dirname, relative_name_or_cache_key)
         path += suffix
-        return morphlib.savefile.SaveFile(path, 'w')
+        if 'mode' not in kwargs:
+            kwargs['mode'] = 'w'
+        return morphlib.savefile.SaveFile(path, **kwargs)
 
