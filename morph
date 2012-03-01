@@ -32,7 +32,6 @@ defaults = {
         'git://gitorious.org/baserock-morphs/',
         'git://gitorious.org/baserock/',
     ],
-    'bundle-server': 'http://roadtrain.codethink.co.uk/bundles/',
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
 }
@@ -48,8 +47,7 @@ class Morph(cliapp.Application):
                              default=defaults['git-base-url'])
         self.settings.string(['bundle-server'],
                              'base URL to download bundles',
-                             metavar='URL',
-                             default=defaults['bundle-server'])
+                             metavar='URL')
         self.settings.string(['cachedir'], 
                              'put build results in DIR',
                              metavar='DIR', 
