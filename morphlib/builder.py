@@ -144,8 +144,7 @@ class Factory(object):
 
 class BlobBuilder(object): # pragma: no cover
 
-    def __init__(self, app, blob):
-        self.app = app
+    def __init__(self, blob):
         self.blob = blob
         
         # The following MUST get set by the caller.
@@ -731,11 +730,11 @@ class Builder(object): # pragma: no cover
 
     def create_blob_builder(self, blob):
         if isinstance(blob, morphlib.blobs.Stratum):
-            builder = StratumBuilder(self.app, blob)
+            builder = StratumBuilder(blob)
         elif isinstance(blob, morphlib.blobs.Chunk):
-            builder = ChunkBuilder(self.app, blob)
+            builder = ChunkBuilder(blob)
         elif isinstance(blob, morphlib.blobs.System):
-            builder = SystemBuilder(self.app, blob)
+            builder = SystemBuilder(blob)
         else:
             raise TypeError('Blob %s has unknown type %s' %
                             (str(blob), type(blob)))
