@@ -178,52 +178,18 @@ class BlobBuilder(object): # pragma: no cover
 
     def build(self):
         self.prepare_logfile()
-
-        # get a list of all the items we have to build for this blob
-        builds = self.builds()
-
-        # if not all build items are in the cache, rebuild the blob
-        if not all(os.path.isfile(builds[name]) for name in builds):
-            with self.build_watch('overall-build'):
-                self.do_build()
-
-        # check again, fail if not all build items were actually built
-        if not all(os.path.isfile(builds[name]) for name in builds):
-            raise Exception('Not all builds results expected from %s were '
-                            'actually built' % self.blob)
-
-        # install all build items to the staging area
-        for name, filename in builds.items():
-            self.msg('Fetching cached %s %s from %s' %
-                     (self.blob.morph.kind, name, filename))
-            self.install_chunk(name, filename)
-            self.dump_memory_profile('after installing chunk')
-
-        # store the logged build times in the cache
+        with self.build_watch('overall-build'):
+            self.do_build()
         self.save_build_times()
-
-        # store the log file in the cache
         self.save_logfile()
         
+        builds = self.builds()
         return builds.items()
 
     def filename(self, name):
         return '%s.%s.%s' % (self.cache_prefix,
                              self.blob.morph.kind,
                              name)
-
-    def install_chunk(self, chunk_name, chunk_filename):
-        if self.blob.morph.kind != 'chunk':
-            return
-        ex = morphlib.execute.Execute('/', self.msg)
-        if self.settings['bootstrap']:
-            self.msg('Unpacking item %s onto system' % chunk_name)
-            self.factory.unpack_binary_from_file_onto_system(chunk_filename)
-            ldconfig(ex, '/')
-        else:
-            self.msg('Unpacking chunk %s into staging' % chunk_name)
-            self.factory.unpack_binary_from_file(chunk_filename)
-            ldconfig(ex, self.factory.staging)
 
     def prepare_binary_metadata(self, blob_name, **kwargs):
         '''Add metadata to a binary about to be built.'''
@@ -323,7 +289,26 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
 
         chunks = self.create_chunks()
         self.dump_memory_profile('after creating build chunks')
+
+        # install all built items to the staging area
+        for name, filename in chunks:
+            self.msg('Fetching cached %s %s from %s' %
+                     (self.blob.morph.kind, name, filename))
+            self.install_chunk(name, filename)
+            self.dump_memory_profile('after installing chunk')
+
         return chunks
+
+    def install_chunk(self, chunk_name, chunk_filename):
+        ex = morphlib.execute.Execute('/', self.msg)
+        if self.settings['bootstrap']:
+            self.msg('Unpacking item %s onto system' % chunk_name)
+            self.factory.unpack_binary_from_file_onto_system(chunk_filename)
+            ldconfig(ex, '/')
+        else:
+            self.msg('Unpacking chunk %s into staging' % chunk_name)
+            self.factory.unpack_binary_from_file(chunk_filename)
+            ldconfig(ex, self.factory.staging)
         
     def setup_env(self):
         path = self.ex.env['PATH']
@@ -686,8 +671,20 @@ class Builder(object): # pragma: no cover
                 #    depbuilder = builders[nondependency]
                 #    depbuilder.unstage()
 
-                built_items = builders[blob].build()
+                builder = builders[blob]
+
+                # get a list of all the items we have to build for this blob
+                builds = builder.builds()
+
+                # if not all build items are in the cache, rebuild the blob
+                if not self.all_built(builds):
+                    built_items = builders[blob].build()
                 
+                # check again, fail if not all build items were actually built
+                if not self.all_built(builds):
+                    raise Exception('Not all builds results expected from %s '
+                                    'were actually built' % self.blob)
+
                 for parent in blob.parents:
                     for item, filename in built_items:
                         self.msg('Marking %s to be staged for %s' %
@@ -699,6 +696,9 @@ class Builder(object): # pragma: no cover
                 self.indent_less()
 
         self.indent_less()
+
+    def all_built(self, builds):
+        return all(os.path.isfile(builds[name]) for name in builds)
 
     def build_single(self, blob, blobs, build_order):
         self.indent_more()
