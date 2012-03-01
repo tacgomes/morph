@@ -171,10 +171,7 @@ class BlobBuilder(object): # pragma: no cover
             self.logfile.write('%s\n' % text)
 
     def builds(self):
-        ret = {}
-        for chunk_name in self.blob.chunks:
-            ret[chunk_name] = self.filename(chunk_name)
-        return ret
+        raise NotImplemented()
 
     def build(self):
         self.prepare_logfile()
@@ -274,6 +271,12 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
             ],
         },
     }
+
+    def builds(self):
+        ret = {}
+        for chunk_name in self.blob.chunks:
+            ret[chunk_name] = self.filename(chunk_name)
+        return ret
 
     def do_build(self):
         self.msg('Creating build tree at %s' % self.builddir)
@@ -494,6 +497,9 @@ class StratumBuilder(BlobBuilder): # pragma: no cover
 
 
 class SystemBuilder(BlobBuilder): # pragma: no cover
+
+    def builds(self):
+        return {}
 
     def do_build(self):
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
