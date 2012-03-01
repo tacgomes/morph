@@ -154,8 +154,7 @@ class BlobBuilder(object): # pragma: no cover
         self.settings = None
         self.real_msg = None
         self.cachedir = None
-        self.cache_basename = None
-        self.cache_prefix = None
+        self.cache_key = None
         self.tempdir = None
         self.factory = None
         self.logfile = None
@@ -184,7 +183,7 @@ class BlobBuilder(object): # pragma: no cover
         return builds.items()
 
     def filename(self, name):
-        return '%s.%s.%s' % (self.cache_prefix,
+        return '%s.%s.%s' % (self.cachedir.name(self.cache_key),
                              self.blob.morph.kind,
                              name)
 
@@ -211,7 +210,7 @@ class BlobBuilder(object): # pragma: no cover
 
     def write_cache_metadata(self, meta):
         self.msg('Writing metadata to the cache')
-        with self.cachedir.open(self.cache_basename + '.meta') as f:
+        with self.cachedir.open(self.cache_key, suffix='.meta') as f:
             json.dump(meta, f, indent=4)
             f.write('\n')
 
@@ -228,14 +227,11 @@ class BlobBuilder(object): # pragma: no cover
         self.write_cache_metadata(meta)
 
     def prepare_logfile(self):
-        filename = self.tempdir.join('%s.log' % self.blob.morph.name)
-        self.logfile = open(filename, 'w+', 0)
+        self.logfile = self.cachedir.open(self.cache_key, suffix='.log', 
+                                          mode='w+', buffering=0)
 
     def save_logfile(self):
         self.logfile.close()
-        filename = '%s.log' % self.cache_prefix
-        self.msg('Saving build log to %s' % filename)
-        shutil.copyfile(self.logfile.name, filename)
 
 
 class ChunkBuilder(BlobBuilder): # pragma: no cover
@@ -761,8 +757,7 @@ class Builder(object): # pragma: no cover
         builder.settings = self.settings
         builder.real_msg = self.msg
         builder.cachedir = self.cachedir
-        builder.cache_prefix = self.cachedir.name(cache_id)
-        builder.cache_basename = os.path.basename(builder.cache_prefix)
+        builder.cache_key = cache_id
         builder.tempdir = self.tempdir
         builder.factory = self.factory
         builder.dump_memory_profile = self.dump_memory_profile
