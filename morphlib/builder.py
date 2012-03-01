@@ -179,9 +179,6 @@ class BlobBuilder(object): # pragma: no cover
     def build(self):
         self.prepare_logfile()
 
-        # record all items built in the process
-        built_items = []
-
         # get a list of all the items we have to build for this blob
         builds = self.builds()
 
@@ -202,15 +199,13 @@ class BlobBuilder(object): # pragma: no cover
             self.install_chunk(name, filename)
             self.dump_memory_profile('after installing chunk')
 
-            built_items.append((name, filename))
-
         # store the logged build times in the cache
         self.save_build_times()
 
         # store the log file in the cache
         self.save_logfile()
-
-        return built_items
+        
+        return builds.items()
 
     def filename(self, name):
         return '%s.%s.%s' % (self.cache_prefix,
