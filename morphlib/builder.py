@@ -144,23 +144,27 @@ class Factory(object):
 
 class BlobBuilder(object): # pragma: no cover
 
-    def __init__(self, blob):
+    def __init__(self, blob, factory, settings, cachedir, cache_key, tempdir,
+                 env):
         self.blob = blob
+        self.factory = factory
+        self.settings = settings
+        self.cachedir = cachedir
+        self.cache_key = cache_key
+        self.tempdir = tempdir
+        self.env = env
         
-        # The following MUST get set by the caller.
-        self.builddir = None
-        self.destdir = None
-        self.settings = None
-        self.real_msg = None
-        self.cachedir = None
-        self.cache_key = None
-        self.tempdir = None
-        self.factory = None
+        self.builddir = os.path.join(self.factory.staging,
+                                     '%s.build' % blob.morph.name)
+
         self.logfile = None
         self.stage_items = []
+        self.real_msg = lambda s: None
         self.dump_memory_profile = lambda msg: None
 
-        # Stopwatch to measure build times
+        self.destdir = os.path.join(self.factory.staging,
+                                    '%s.inst' % blob.morph.name)
+
         self.build_watch = morphlib.stopwatch.Stopwatch()
 
     def msg(self, text):
@@ -730,29 +734,19 @@ class Builder(object): # pragma: no cover
 
     def create_blob_builder(self, blob):
         if isinstance(blob, morphlib.blobs.Stratum):
-            builder = StratumBuilder(blob)
+            klass = StratumBuilder
         elif isinstance(blob, morphlib.blobs.Chunk):
-            builder = ChunkBuilder(blob)
+            klass = ChunkBuilder
         elif isinstance(blob, morphlib.blobs.System):
-            builder = SystemBuilder(blob)
+            klass = SystemBuilder
         else:
             raise TypeError('Blob %s has unknown type %s' %
                             (str(blob), type(blob)))
 
-        cache_id = self.get_cache_id(blob)
-        logging.debug('cache id: %s' % repr(cache_id))
-        self.dump_memory_profile('after computing cache id')
-
-        s = self.factory.staging
-        assert s is not None, repr(s)
-        builder.builddir = os.path.join(s, '%s.build' % blob.morph.name)
-        builder.destdir = os.path.join(s, '%s.inst' % blob.morph.name)
-        builder.settings = self.settings
+        builder = klass(blob, self.factory, self.app.settings, self.cachedir,
+                        self.get_cache_id(blob), self.tempdir,
+                        self.app.clean_env())
         builder.real_msg = self.msg
-        builder.cachedir = self.cachedir
-        builder.cache_key = cache_id
-        builder.tempdir = self.tempdir
-        builder.factory = self.factory
         builder.dump_memory_profile = self.dump_memory_profile
         
         return builder
