@@ -154,9 +154,6 @@ class BlobBuilder(object): # pragma: no cover
         self.tempdir = tempdir
         self.env = env
         
-        self.builddir = os.path.join(self.factory.staging,
-                                     '%s.build' % blob.morph.name)
-
         self.logfile = None
         self.stage_items = []
         self.real_msg = lambda s: None
@@ -276,10 +273,12 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
         return ret
 
     def do_build(self):
+        self.builddir = os.path.join(self.factory.staging,
+                                     '%s.build' % self.blob.morph.name)
         self.msg('Creating build tree at %s' % self.builddir)
 
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
-        self.setup_env()
+        self.ex.env = self.env
 
         self.factory.unpack_sources(self.blob.morph.treeish, self.builddir)
 
@@ -310,76 +309,6 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
             self.factory.unpack_binary_from_file(chunk_filename)
             ldconfig(ex, self.factory.staging)
         
-    def setup_env(self):
-        path = self.ex.env['PATH']
-        tools = self.ex.env.get('BOOTSTRAP_TOOLS')
-        distcc_hosts = self.ex.env.get('DISTCC_HOSTS')
-
-        # copy a set of white-listed variables from the original env
-        copied_vars = dict.fromkeys([
-            'TMPDIR',
-            'LD_PRELOAD',
-            'LD_LIBRARY_PATH',
-            'FAKEROOTKEY',
-            'FAKED_MODE',
-            'FAKEROOT_FD_BASE',
-        ])
-        for name in copied_vars:
-            copied_vars[name] = self.ex.env.get(name, None)
-
-        self.ex.env.clear()
-        
-        # apply the copied variables to the clean env
-        for name in copied_vars:
-            if copied_vars[name] is not None:
-                self.ex.env[name] = copied_vars[name]
-
-        self.ex.env['TERM'] = 'dumb'
-        self.ex.env['SHELL'] = '/bin/sh'
-        self.ex.env['USER'] = \
-            self.ex.env['USERNAME'] = \
-            self.ex.env['LOGNAME'] = 'tomjon'
-        self.ex.env['LC_ALL'] = 'C'
-        self.ex.env['HOME'] = os.path.join(self.tempdir.dirname)
-
-        if self.settings['keep-path'] or self.settings['bootstrap']:
-            self.ex.env['PATH'] = path
-        else:
-            bindirs = ['bin']
-            path = ':'.join(os.path.join(self.tempdir.dirname, x) 
-                                         for x in bindirs)
-            self.ex.env['PATH'] = path
-
-        self.ex.env['WORKAREA'] = self.tempdir.dirname
-        self.ex.env['DESTDIR'] = self.destdir + '/'
-        self.ex.env['TOOLCHAIN_TARGET'] = \
-            '%s-baserock-linux-gnu' % os.uname()[4]
-        self.ex.env['BOOTSTRAP'] = \
-            'true' if self.settings['bootstrap'] else 'false'
-        if tools is not None:
-            self.ex.env['BOOTSTRAP_TOOLS'] = tools
-        if distcc_hosts is not None:
-            self.ex.env['DISTCC_HOSTS'] = distcc_hosts
-
-        if self.blob.morph.max_jobs:
-            max_jobs = int(self.blob.morph.max_jobs)
-            logging.debug('max_jobs from morph: %s' % max_jobs)
-        else:
-            max_jobs = self.settings['max-jobs']
-            logging.debug('max_jobs from settings: %s' % max_jobs)
-        self.ex.env['MAKEFLAGS'] = '-j%d' % max_jobs
-
-        if not self.settings['no-ccache']:
-            self.ex.env['PATH'] = ('/usr/lib/ccache:%s' % 
-                                    self.ex.env['PATH'])
-            self.ex.env['CCACHE_BASEDIR'] = self.tempdir.dirname
-            if not self.settings['no-distcc']:
-                self.ex.env['CCACHE_PREFIX'] = 'distcc'
-
-        logging.debug('Environment for building chunk:')
-        for key in sorted(self.ex.env):
-            logging.debug('  %s=%s' % (key, self.ex.env[key]))
-
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
         
@@ -409,38 +338,34 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
     def run_in_parallel(self, what, commands):
         self.msg('commands: %s' % what)
         with self.build_watch(what):
+            max_jobs = self.blob.morph.max_jobs 
+            if max_jobs is None:
+                max_jobs = self.settings['max-jobs']
+            self.ex.env['MAKEFLAGS'] = '-j%s' % max_jobs
             self.run_commands(commands)
 
     def run_sequentially(self, what, commands):
         self.msg ('commands: %s' % what)
         with self.build_watch(what):
-            flags = self.ex.env['MAKEFLAGS']
             self.ex.env['MAKEFLAGS'] = '-j1'
-            logging.debug('Setting MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
             self.run_commands(commands)
-            self.ex.env['MAKEFLAGS'] = flags
-            logging.debug('Restore MAKEFLAGS=%s' % self.ex.env['MAKEFLAGS'])
 
     def run_commands(self, commands):
         if self.settings['staging-chroot']:
             ex = morphlib.execute.Execute(self.factory.staging, self.msg)
-            ex.env.clear()
-            for key in self.ex.env:
-                ex.env[key] = self.ex.env[key]
+            ex.env = self.ex.env.copy()
+
             assert self.builddir.startswith(self.factory.staging + '/')
             assert self.destdir.startswith(self.factory.staging + '/')
             builddir = self.builddir[len(self.factory.staging):]
             destdir = self.destdir[len(self.factory.staging):]
+            ex.env['DESTDIR'] = destdir
+
             for cmd in commands:
-                old_destdir = ex.env.get('DESTDIR', None)
-                ex.env['DESTDIR'] = destdir
                 ex.runv(['/usr/sbin/chroot', self.factory.staging, 'sh', '-c',
                          'cd "$1" && shift && eval "$@"', '--', builddir, cmd])
-                if old_destdir is None:
-                    del ex.env['DESTDIR']
-                else:
-                    ex.env['DESTDIR'] = old_destdir
         else:
+            self.ex.env['DESTDIR'] = self.destdir
             self.ex.run(commands)
 
     def create_chunks(self):

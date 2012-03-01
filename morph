@@ -373,6 +373,68 @@ class Morph(cliapp.Application):
         # run the command line
         cliapp.Application.runcmd(self, argv, *args, **kwargs)
 
+    # This is in morph so that policy is easily visible, and not embedded
+    # deep down in the call stack.
+    def clean_env(self):
+        '''Create a fresh set of environment variables for a clean build.
+        
+        Return a dict with the new environment.
+        
+        '''
+        
+        path = os.environ['PATH']
+        tools = os.environ.get('BOOTSTRAP_TOOLS')
+        distcc_hosts = os.environ.get('DISTCC_HOSTS')
+
+        # copy a set of white-listed variables from the original env
+        copied_vars = dict.fromkeys([
+            'TMPDIR',
+            'LD_PRELOAD',
+            'LD_LIBRARY_PATH',
+            'FAKEROOTKEY',
+            'FAKED_MODE',
+            'FAKEROOT_FD_BASE',
+        ])
+        for name in copied_vars:
+            copied_vars[name] = os.environ.get(name, None)
+
+        env = {}
+        
+        # apply the copied variables to the clean env
+        for name in copied_vars:
+            if copied_vars[name] is not None:
+                env[name] = copied_vars[name]
+
+        env['TERM'] = 'dumb'
+        env['SHELL'] = '/bin/sh'
+        env['USER'] = \
+            env['USERNAME'] = \
+            env['LOGNAME'] = 'tomjon'
+        env['LC_ALL'] = 'C'
+        env['HOME'] = '/tmp'
+
+        if self.settings['keep-path'] or self.settings['bootstrap']:
+            env['PATH'] = path
+        else:
+            env['PATH'] = '/sbin:/usr/sbin:/bin:/usr/bin'
+
+        env['TOOLCHAIN_TARGET'] = '%s-baserock-linux-gnu' % os.uname()[4]
+        env['BOOTSTRAP'] = 'true' if self.settings['bootstrap'] else 'false'
+        if tools is not None:
+            env['BOOTSTRAP_TOOLS'] = tools
+        if distcc_hosts is not None:
+            env['DISTCC_HOSTS'] = distcc_hosts
+
+        if not self.settings['no-ccache']:
+            env['PATH'] = ('/usr/lib/ccache:%s' % env['PATH'])
+# FIXME: This needs to be made working, but it doesn't really, right now:
+# the tempdir is not available inside the staging chroot.
+#            env['CCACHE_BASEDIR'] = self.tempdir.dirname
+            if not self.settings['no-distcc']:
+                env['CCACHE_PREFIX'] = 'distcc'
+            
+        return env
+
 
 if __name__ == '__main__':
     Morph().run()
