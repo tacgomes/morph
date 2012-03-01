@@ -545,9 +545,9 @@ class Builder(object): # pragma: no cover
         self.tempdir = tempdir
         self.app = app
         self.real_msg = app.msg
-        self.settings = app.settings
         self.dump_memory_profile = app.dump_memory_profile
-        self.cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
+        self.cachedir = morphlib.cachedir.CacheDir(
+                            self.app.settings['cachedir'])
         self.morph_loader = morph_loader
         self.source_manager = source_manager
         self.factory = factory
