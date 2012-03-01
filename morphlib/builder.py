@@ -278,7 +278,7 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
         self.ex = morphlib.execute.Execute(self.builddir, self.msg)
         self.setup_env()
 
-        self.prepare_build_directory()
+        self.factory.unpack_sources(self.blob.morph.treeish, self.builddir)
 
         os.mkdir(self.destdir)
         self.build_with_system_or_commands()
@@ -376,9 +376,6 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
         logging.debug('Environment for building chunk:')
         for key in sorted(self.ex.env):
             logging.debug('  %s=%s' % (key, self.ex.env[key]))
-
-    def prepare_build_directory(self):
-        self.factory.unpack_sources(self.blob.morph.treeish, self.builddir)
 
     def build_with_system_or_commands(self):
         '''Run explicit commands or commands from build system.
