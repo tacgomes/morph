@@ -187,7 +187,7 @@ class BlobBuilder(object): # pragma: no cover
                              self.blob.morph.kind,
                              name)
 
-    def prepare_binary_metadata(self, blob_name, **kwargs):
+    def prepare_binary_metadata(self, blob_name):
         '''Add metadata to a binary about to be built.'''
 
         self.msg('Adding metadata to %s' % blob_name)
@@ -196,8 +196,6 @@ class BlobBuilder(object): # pragma: no cover
             'kind': self.blob.morph.kind,
             'description': self.blob.morph.description,
         }
-        for key, value in kwargs.iteritems():
-            meta[key] = value
         
         dirname = os.path.join(self.destdir, 'baserock')
         if not os.path.exists(dirname):
