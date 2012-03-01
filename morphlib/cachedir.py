@@ -64,7 +64,7 @@ class CacheDir(object):
 
         return os.path.join(self.dirname, key + suffix)
 
-    def open(self, relative_name):
+    def open(self, relative_name_or_cache_key, suffix=''):
         '''Open a file for writing in the cache.
         
         The file will be written with a temporary name, and renamed to
@@ -75,7 +75,11 @@ class CacheDir(object):
         temporary file.
         
         '''
-        
-        path = os.path.join(self.dirname, relative_name)
+
+        if type(relative_name_or_cache_key) is dict:
+            path = self.name(relative_name_or_cache_key)
+        else:
+            path = os.path.join(self.dirname, relative_name_or_cache_key)
+        path += suffix
         return morphlib.savefile.SaveFile(path, 'w')
 
