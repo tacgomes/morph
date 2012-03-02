@@ -250,7 +250,7 @@ def copy_repository(treeish, destdir, msg=logging.debug):
 def checkout_ref(gitdir, ref, msg=logging.debug):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     ex = morphlib.execute.Execute(gitdir, msg=msg)
-    return ex.runv(['git', 'checkout', ref])
+    ex.runv(['git', 'checkout', ref])
 
 def set_submodule_url(gitdir, name, url, msg=logging.debug):
     '''Changes the URL of a submodule to point to a specific location.'''

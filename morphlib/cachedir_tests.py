@@ -97,11 +97,28 @@ class CacheDirTests(unittest.TestCase):
         pathname = self.cachedir.name(dict_key)
         self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
 
-    def test_allows_file_to_be_written(self):
+    def test_allows_file_to_be_written_via_basename(self):
         f = self.cachedir.open('foo')
         f.write('bar')
         f.close()
         self.assertEqual(self.cat('foo'), 'bar')
+
+    def test_allows_file_to_be_written_via_basename_and_suffix(self):
+        f = self.cachedir.open('foo', '.blip')
+        f.write('bar')
+        f.close()
+        self.assertEqual(self.cat('foo.blip'), 'bar')
+
+    def test_allows_file_to_be_written_via_dict_key(self):
+        dict_key = {
+            'kind': 'chunk',
+            'meh': 'moo',
+        }
+        name = self.cachedir.name(dict_key)
+        f = self.cachedir.open(dict_key)
+        f.write('bar')
+        f.close()
+        self.assertEqual(self.cat(name), 'bar')
 
     def test_allows_file_to_be_aborted(self):
         f = self.cachedir.open('foo')

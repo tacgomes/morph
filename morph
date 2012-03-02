@@ -32,7 +32,6 @@ defaults = {
         'git://gitorious.org/baserock-morphs/',
         'git://gitorious.org/baserock/',
     ],
-    'bundle-server': 'http://roadtrain.codethink.co.uk/bundles/',
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
 }
@@ -48,8 +47,7 @@ class Morph(cliapp.Application):
                              default=defaults['git-base-url'])
         self.settings.string(['bundle-server'],
                              'base URL to download bundles',
-                             metavar='URL',
-                             default=defaults['bundle-server'])
+                             metavar='URL')
         self.settings.string(['cachedir'], 
                              'put build results in DIR',
                              metavar='DIR', 
@@ -135,15 +133,14 @@ class Morph(cliapp.Application):
             morph_loader = MorphologyLoader(self.settings)
             source_manager = morphlib.sourcemanager.SourceManager(self,
                                 update=not self.settings['no-git-update'])
+            factory = morphlib.builder.Factory(tempdir)
             builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                               source_manager)
+                                               source_manager, factory)
 
             # Unpack manually specified build dependencies.
-            staging = tempdir.join('staging')
-            os.mkdir(staging)
-            ex = morphlib.execute.Execute('/', self.msg)
+            factory.create_staging()
             for bin in self.settings['staging-filler']:
-                morphlib.bins.unpack_binary(bin, staging, ex)
+                factory.unpack_binary_from_file(bin)
 
             # derive a build order from the dependency graph
             graph = BuildDependencyGraph(source_manager, morph_loader,
@@ -154,7 +151,7 @@ class Morph(cliapp.Application):
             self.msg('Building %s|%s|%s' % (repo, ref, filename))
 
             # build things in this order
-            builder.build(blobs, order)
+            builder.build(order)
 
             tempdir.remove()
 
@@ -227,11 +224,14 @@ class Morph(cliapp.Application):
         morph_loader = MorphologyLoader(self.settings)
         source_manager = morphlib.sourcemanager.SourceManager(self,
                                                               update=False)
+        factory = morphlib.builder.Factory(tempdir)
         builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                           source_manager)
+                                           source_manager, factory)
 
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
+
+        factory.create_staging()
 
         if len(args) >= 3:
             repo, ref, filename = args[:3]
@@ -275,11 +275,11 @@ class Morph(cliapp.Application):
 
                 # build now
                 self.msg('Building %s' % second_blob)
-                builder.build_single(second_blob, blobs, order)
+                builder.build_single(second_blob, order)
             else:
                 # build the blob now
                 self.msg('Building %s' % first_blob)
-                builder.build_single(first_blob, blobs, order)
+                builder.build_single(first_blob, order)
 
         tempdir.remove()
 
@@ -372,6 +372,68 @@ class Morph(cliapp.Application):
 
         # run the command line
         cliapp.Application.runcmd(self, argv, *args, **kwargs)
+
+    # This is in morph so that policy is easily visible, and not embedded
+    # deep down in the call stack.
+    def clean_env(self):
+        '''Create a fresh set of environment variables for a clean build.
+        
+        Return a dict with the new environment.
+        
+        '''
+        
+        path = os.environ['PATH']
+        tools = os.environ.get('BOOTSTRAP_TOOLS')
+        distcc_hosts = os.environ.get('DISTCC_HOSTS')
+
+        # copy a set of white-listed variables from the original env
+        copied_vars = dict.fromkeys([
+            'TMPDIR',
+            'LD_PRELOAD',
+            'LD_LIBRARY_PATH',
+            'FAKEROOTKEY',
+            'FAKED_MODE',
+            'FAKEROOT_FD_BASE',
+        ])
+        for name in copied_vars:
+            copied_vars[name] = os.environ.get(name, None)
+
+        env = {}
+        
+        # apply the copied variables to the clean env
+        for name in copied_vars:
+            if copied_vars[name] is not None:
+                env[name] = copied_vars[name]
+
+        env['TERM'] = 'dumb'
+        env['SHELL'] = '/bin/sh'
+        env['USER'] = \
+            env['USERNAME'] = \
+            env['LOGNAME'] = 'tomjon'
+        env['LC_ALL'] = 'C'
+        env['HOME'] = '/tmp'
+
+        if self.settings['keep-path'] or self.settings['bootstrap']:
+            env['PATH'] = path
+        else:
+            env['PATH'] = '/sbin:/usr/sbin:/bin:/usr/bin'
+
+        env['TOOLCHAIN_TARGET'] = '%s-baserock-linux-gnu' % os.uname()[4]
+        env['BOOTSTRAP'] = 'true' if self.settings['bootstrap'] else 'false'
+        if tools is not None:
+            env['BOOTSTRAP_TOOLS'] = tools
+        if distcc_hosts is not None:
+            env['DISTCC_HOSTS'] = distcc_hosts
+
+        if not self.settings['no-ccache']:
+            env['PATH'] = ('/usr/lib/ccache:%s' % env['PATH'])
+# FIXME: This needs to be made working, but it doesn't really, right now:
+# the tempdir is not available inside the staging chroot.
+#            env['CCACHE_BASEDIR'] = self.tempdir.dirname
+            if not self.settings['no-distcc']:
+                env['CCACHE_PREFIX'] = 'distcc'
+            
+        return env
 
 
 if __name__ == '__main__':
