@@ -40,9 +40,11 @@ something like this:
     cachedir = /home/username/baserock/cache
     log = /home/username/baserock/morph.log
     log-max = 200M
-    git-base-url = file:///home/username/baserock/gits/
+    git-base-url = git://gitorious.org/baserock-morphs
+    bundle-server = http://roadtrain.codethink.co.uk/bundles
 
-You should set at least the above settings.
+All of the above settings apart from `log` are the defaults, so may be
+omitted.
 
 
 Morphology file syntax
@@ -54,7 +56,7 @@ JSON is used for the morphology syntax. For example, to build a chunk:
         "name": "foo",
         "kind": "chunk",
         "configure-commands": [
-            "./configure --prefix=$PREFIX"
+            "./configure --prefix=\"$PREFIX\""
         ],
         "build-commands": [
             "make"
@@ -63,7 +65,7 @@ JSON is used for the morphology syntax. For example, to build a chunk:
             "make check"
         ],
         "install-commands": [
-            "make DESTDIR=$DESTDIR install"
+            "make DESTDIR=\"$DESTDIR\" install"
         ]
     }
 
@@ -77,8 +79,8 @@ For chunks, use the following fields:
 
 * `build-system`: if the program is built using a build system known to
   `morph`, you can set this field and avoid having to set the various
-  `*-commands` fields; only `autotools` is currently known and that
-  requires the `configure` script to have been committed into git; 
+  `*-commands` fields; only `autotools` is currently known; the commands
+  that the build system specifies can be overridden;
   optional
 * `configure-commands`: a list of shell commands to run at the configuraiton
   phase of a build; optional
@@ -256,6 +258,96 @@ Install CoverageTestRunner (from <http://liw.fi/coverage-test-runner/>),
 and check out the `cmdtest` utility (from <http://liw.fi/cmdtest/>).
 
 Run the checks before submitting a patch, please.
+
+
+The Bootstrap Process
+---------------------
+
+The goal of the bootstrap process is to create an environment that has
+only been built with morph. It is a long boring process that can take
+a few hours.
+
+It can be started by running `./run-bootstrap-in-chroot $workingdir`
+with some environment variables set.
+
+The variables are:
+* `DEBIAN_MIRROR`; which must be a path suitable for passing to
+  debootstrap; which at the time of writing allowed http://,
+  file:// or ssh:// urls; **required**
+* `GIT_BUNDLES`; which must be a url to a bundles directory;
+  morph will try to fetch bundles from here before trying the
+  git-base-url; **required**
+* `LFS_MIRROR`; which must point to a directory containing all
+  the tarballs mentioned in `wget-list`; **required**
+* `snapshot`; which should be `false` (or any executable that
+  exits unsuccessfully) if creating a snapshot after each stage
+  of the bootstrap is not desirable; optional
+
+If snapshot is true or omitted then after each stage of the bootstrap
+a tarball of the working directory is created, so that if a later stage
+fails it can start from the last successful stage.
+
+The mirror variables allow the bootstrap to be run more quickly if the
+required files are available locally.
+
+The mirror variables being required and snapshotting defaulting
+to true are artefacts of the bootstrap process' development, where
+only re-running the step that failed and using local mirrors were
+essential for making fixes.
+
+
+Bootstrap stages
+----------------
+
+The stages required for the bootstrap are to create a debian squeeze
+chroot; build a skeleton system using the linux from scratch specified
+tarballs; chroot into this system and build a system using morph with
+bootstrap mode; then build the system again but instead using morph's
+--staging-chroot mode and with the linux from scratch system removed.
+
+The squeeze chroot (stage 0) is used so that the bootstrap process does
+not need to be supported on every available host system, but every host
+system that can run debootstrap can be indirectly supported.
+
+In this stage debootstrap creates a chroot with all the packages required
+to build the linux from scratch system, from then onwards every stage is
+built by running baserock-bootstrap and optionally making a snapshot.
+
+Stage 1 builds everything in a subdirectory of the squeeze-chroot called
+tree, and all the packages are built with --prefix=/tools, so the full
+path for `cat` would be `$workingdir/squeeze-chroot/tree/tools/bin/cat`.
+
+This is done so that we have a known good system to work from, that won't
+become entangled with the final system, which installed with --prefix=/usr.
+
+Stage 2 uses morph to build a system, while chrooted into
+`$workingdir/squeeze-chroot/tree`, this naturally required PATH to include
+/tools/bin.
+
+Morph is used to build the `foundation.morph` and `devel-bootstrap.morph`
+strata in the `morphs` repository. `devel-bootstrap.morph` may not use the
+same morphs as `devel.morph` because the bootstrap requires some hacks that
+aren't required when a fully bootstrapped system is available.
+
+Morph also uses the `--bootstrap` flag to make the chunks be unpacked after
+they have been built, this is required for build-dependencies to be met as
+prerequisites are expected to be available on the system.
+
+After morph has finished a reasonably complete system should be available,
+so `$workingdir/squeeze-chroot/tree/tools` is removed to save space and
+make it obvious if stage 2 is missing anything needed for stage 3.
+
+Stage 3 builds `devel.morph` which does not need all the hacks required
+in building during the bootstrap, so it should be much more like what
+morph will finally build.
+
+Rather than using `--bootstrap`, stage 3 uses `--staging-chroot`, which
+builds and extracts into a chroot, rather than using anything on the host
+system.
+
+For this to be able to build anything `--staging-filler` is used, which
+allows for specifying the environment that chunks are built in. Stage 3
+uses the strata that were build in stage 2.
 
 
 Legalese
