@@ -14,7 +14,7 @@ fi
 img="$1"
 shift
 
-sudo qemu-img create -f raw "$img" 16G
+sudo dd if=/dev/zero of="$img" bs=16G seek=1 count=0
 sudo parted -s "$img" mklabel msdos
 sudo parted -s "$img" mkpart primary 0% 100%
 sudo parted -s "$img" set 1 boot on
