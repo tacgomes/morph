@@ -70,35 +70,45 @@ fi
 img="$1"
 shift
 
+# Create an empty file (a hole) as the raw disk image file.
 dd if=/dev/zero of="$img" bs=16G seek=1 count=0
-parted -s "$img" mklabel msdos
-parted -s "$img" mkpart primary 0% 100%
-parted -s "$img" set 1 boot on
+
+# Partition. See the sfdisk(8) manpage for an explanation of the input.
+sfdisk "$img" <<EOF
+1,,83,*
+EOF
+
+# Install the master boot record boot loader.
 install-mbr "$img"
 
-
+# Access the partition inside the raw disk image file.
 part=$(dummy_kpartx_add "$img")
 trap "dummy_kpartx_delete $img" EXIT
 
-# mapper may not yet be ready
-while test ! -e "$part"; do :; done
+# Create filesystem. Note that for some reason sfdisk and mkfs when used
+# on the loop device from dummy_kpartx_add get the image size wrong by
+# about one block, which makes things break. So we force a filesystem
+# size that fits (even if it doesn't quite fill the image).
+mkfs -t ext4 -q "$part" 4194304
 
-mkfs -t ext4 -q "$part"
-
+# Mount the filesystem.
 mp="$(mktemp -d)"
 mount "$part" "$mp"
 trap "umount $part; dummy_kpartx_delete $img" EXIT
 
+# Unpack all the strata that are to be installed.
 for stratum
 do
     tar -C "$mp" -xf "$stratum"
 done
 
-cat <<EOF | tee "$mp/etc/fstab" > /dev/null
+# Configure fstab for the new system.
+cat <<EOF > "$mp/etc/fstab"
 /dev/sda1 /        ext4   errors=remount-ro 0 1
 EOF
 
-cat <<EOF | tee "$mp/extlinux.conf" > /dev/null
+# Install extlinux as the bootloader.
+cat <<EOF > "$mp/extlinux.conf"
 default linux
 timeout 1
 
@@ -107,7 +117,7 @@ kernel /boot/vmlinuz
 append root=/dev/sda1 init=/sbin/init rw
 EOF
 
-sudo extlinux --install "$mp"
+extlinux --install "$mp"
 sync
 sleep 2
 
