@@ -1,10 +1,52 @@
 #!/bin/bash
-usage(){
-cat >&2 <<EOF
+
+set -ex
+
+usage()
+{
+    cat 1>&2 <<EOF
 Make a system image called DEST filled with the contents of TARBALL...
 usage: $0 DEST TARBALL...
 EOF
 }
+
+
+dummy_kpartx_add() 
+{
+    local img="$1"
+
+    local start=$(sfdisk -d "$img" | 
+                  awk '
+                      $3 == "start=" && $4 != "0," {
+                          gsub(/,/, "", $4)
+                          print $4 * 512
+                      }
+                  ')
+
+    losetup -o "$start" -f "$img"
+    local device=""
+    while true
+    do
+        device=$(losetup -j "$img" | sed 's,^\(/dev/loop[^:]*\):.*,\1,')
+        if [ "x$device" != x ]
+        then
+            break
+        fi
+    done
+    echo "$device"
+}
+
+
+dummy_kpartx_delete()
+{
+    losetup -j "$1" | 
+    sed 's,^\(/dev/loop[^:]*\):.*,\1,' |
+    while read device
+    do
+        losetup -d "$device"
+    done
+}
+
 
 if [ "$#" -le 1 ]; then
     usage
@@ -14,39 +56,44 @@ fi
 img="$1"
 shift
 
-sudo dd if=/dev/zero of="$img" bs=16G seek=1 count=0
-sudo parted -s "$img" mklabel msdos
-sudo parted -s "$img" mkpart primary 0% 100%
-sudo parted -s "$img" set 1 boot on
-sudo install-mbr "$img"
-part=/dev/mapper/$(sudo kpartx -av "$img" | 
-                   awk '/^add map/ { print $3 }' | 
-                   head -n1)
-trap "sudo kpartx -dv $img" EXIT
+dd if=/dev/zero of="$img" bs=16G seek=1 count=0
+parted -s "$img" mklabel msdos
+parted -s "$img" mkpart primary 0% 100%
+parted -s "$img" set 1 boot on
+install-mbr "$img"
+
+
+part=$(dummy_kpartx_add "$img")
+trap "dummy_kpartx_delete $img" EXIT
+
 # mapper may not yet be ready
 while test ! -e "$part"; do :; done
-sudo mkfs -t ext4 "$part"
-mp="$(mktemp -d)"
-sudo mount "$part" "$mp"
-trap "sudo umount $part; sudo kpartx -dv $img" EXIT
 
-for stratum; do
-    sudo tar -C "$mp" -xf "$stratum"
+mkfs -t ext4 -q "$part"
+
+mp="$(mktemp -d)"
+mount "$part" "$mp"
+trap "umount $part; dummy_kpartx_delete $img" EXIT
+
+for stratum
+do
+    tar -C "$mp" -xf "$stratum"
 done
 
-cat <<EOF | sudo tee "$mp/etc/fstab"
+cat <<EOF | tee "$mp/etc/fstab" > /dev/null
 /dev/sda1 /        ext4   errors=remount-ro 0 1
 EOF
 
-cat <<EOF | sudo tee "$mp/extlinux.conf"
+cat <<EOF | tee "$mp/extlinux.conf" > /dev/null
 default linux
 timeout 1
 
 label linux
 kernel /boot/vmlinuz
-append root=/dev/sda1 init=/sbin/init quiet rw
+append root=/dev/sda1 init=/sbin/init rw
 EOF
 
 sudo extlinux --install "$mp"
 sync
 sleep 2
+
