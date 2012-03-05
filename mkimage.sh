@@ -78,6 +78,9 @@ sfdisk "$img" <<EOF
 1,,83,*
 EOF
 
+# Install the master boot record boot loader.
+install-mbr "$img"
+
 # Access the partition inside the raw disk image file.
 part=$(dummy_kpartx_add "$img")
 trap "dummy_kpartx_delete $img" EXIT
