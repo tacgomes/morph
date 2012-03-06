@@ -64,12 +64,10 @@ def create_chunk(rootdir, f, regexps, ex, dump_memory_profile=None):
     compiled = [re.compile(x) for x in regexps]
     include = set()
     for dirname, subdirs, basenames in os.walk(rootdir):
-        if matches(dirname):
-            include.add(dirname)
         subdirpaths = [os.path.join(dirname, x) for x in subdirs]
         subdirsymlinks = [x for x in subdirpaths if os.path.islink(x)]
         filenames = [os.path.join(dirname, x) for x in basenames]
-        for filename in subdirsymlinks + filenames:
+        for filename in [dirname] + subdirsymlinks + filenames:
             if matches(mkrel(filename)):
                 for name in names_to_root(filename):
                     if name not in include:
