@@ -79,7 +79,16 @@ sfdisk "$img" <<EOF
 EOF
 
 # Install the master boot record boot loader. We use the one from extlinux.
-dd if=/usr/lib/extlinux/mbr.bin of="$img" conv=notrunc
+# Depending on where we run this script (Debian vs Baserock), it might
+# be installed in a different place, so we try all known ones.
+for x in /usr/lib/extlinux/mbr.bin /usr/share/syslinux/mbr.bin
+do
+    if [ -e "$x" ]
+    then
+        dd if="$x" of="$img" conv=notrunc
+        break
+    fi
+done
 
 # Access the partition inside the raw disk image file.
 part=$(dummy_kpartx_add "$img")
