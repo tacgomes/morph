@@ -71,7 +71,7 @@ img="$1"
 shift
 
 # Create an empty file (a hole) as the raw disk image file.
-dd if=/dev/zero of="$img" bs=16G seek=1 count=0
+dd if=/dev/zero of="$img" bs=1k seek=16777216 count=0
 
 # Partition. See the sfdisk(8) manpage for an explanation of the input.
 sfdisk "$img" <<EOF
