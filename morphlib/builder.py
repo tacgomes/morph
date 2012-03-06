@@ -178,9 +178,6 @@ class BlobBuilder(object): # pragma: no cover
             self.do_build()
         self.save_build_times()
         self.save_logfile()
-        
-        builds = self.builds()
-        return builds.items()
 
     def filename(self, name):
         return '%s.%s.%s' % (self.cachedir.name(self.cache_key),
@@ -296,8 +293,6 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
             self.install_chunk(name, filename)
             self.dump_memory_profile('after installing chunk')
 
-        return chunks
-
     def install_chunk(self, chunk_name, chunk_filename):
         ex = morphlib.execute.Execute('/', self.msg)
         if self.settings['bootstrap']:
@@ -411,7 +406,6 @@ class StratumBuilder(BlobBuilder): # pragma: no cover
             basename = os.path.basename(filename)
             with self.cachedir.open(basename) as f:
                 morphlib.bins.create_stratum(self.destdir, f, ex)
-        return { self.blob.morph.name: filename }
 
 
 class SystemBuilder(BlobBuilder): # pragma: no cover
@@ -444,8 +438,6 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
         self._undo_device_mapping(image_name)
         self._move_image_to_cache(image_name)
-
-        return { self.blob.morph.name: filename }
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
@@ -602,20 +594,20 @@ class Builder(object): # pragma: no cover
 
                 # if not all build items are in the cache, rebuild the blob
                 if not self.all_built(builds):
-                    built_items = builders[blob].build()
+                    builders[blob].build()
                 
                 # check again, fail if not all build items were actually built
                 if not self.all_built(builds):
                     raise Exception('Not all builds results expected from %s '
-                                    'were actually built' % self.blob)
+                                    'were actually built' % blob)
 
                 for parent in blob.parents:
-                    for item, filename in built_items:
+                    for item, filename in builds.iteritems():
                         self.msg('Marking %s to be staged for %s' %
                                  (item, parent))
 
                     parent_builder = builders[parent]
-                    parent_builder.stage_items += built_items
+                    parent_builder.stage_items += builds.items()
 
                 self.indent_less()
 
@@ -643,7 +635,7 @@ class Builder(object): # pragma: no cover
         while len(queue) > 0:
             dependency = queue.popleft()
             built_items = builders[dependency].builds()
-            for name, filename in built_items.items():
+            for name, filename in built_items.iteritems():
                 self.msg('Marking %s to be staged for %s' % (name, blob))
                 builders[blob].stage_items.append((name, filename))
             for dep in dependency.dependencies:
