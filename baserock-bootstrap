@@ -970,9 +970,11 @@ pass3_get_sources_with_morph_in_chroot()
     # but the cached chunks may be invalid, so
     # move them away 
     cd "$LFS/baserock/gits/morph"
-    mv "$LFS/baserock/cache" "$LFS/baserock/cache.pass2"
-    mkdir -p "$LFS/baserock/cache"
-    mv "$LFS/baserock/cache.pass2/gits" "$LFS/baserock/cache/gits"
+    if [ ! -e "$LFS/baserock/cache.pass2" ]; then
+        mv "$LFS/baserock/cache" "$LFS/baserock/cache.pass2"
+        mkdir -p "$LFS/baserock/cache"
+        mv "$LFS/baserock/cache.pass2/gits" "$LFS/baserock/cache/gits"
+    fi
 
     cat <<EOF > "$LFS/baserock/build.sh"
 #!/bin/bash
