@@ -13,7 +13,7 @@ tools="$LFS/tools"
 
 buildwhat="$1"
 
-CPUS=$(grep -c '^processor' /proc/cpuinfo)
+CPUS=$(grep -i -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
 
 export LC_ALL=C
