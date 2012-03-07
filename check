@@ -20,7 +20,7 @@
 set -e
 
 python setup.py clean check
-fakeroot cmdtest -c ./morph tests
+cmdtest -c ./morph tests
 
 if [ -d .git ];
 then
