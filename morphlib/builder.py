@@ -441,20 +441,22 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            self.ex.runv(['qemu-img', 'create', '-f', 'raw', image_name,
-                          self.blob.morph.disk_size])
+            self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1024',
+                          'seek=' + (self.blob.morph.disk_size / 1024),
+                          'count=0'])
 
     def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
-            self.ex.runv(['parted', '-s', image_name, 'mklabel', 'msdos'])
-            self.ex.runv(['parted', '-s', image_name, 'mkpart', 'primary', 
-                          '0%', '100%'])
-            self.ex.runv(['parted', '-s', image_name, 
-                          'set', '1', 'boot', 'on'])
+            self.ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*')
 
     def _install_mbr(self, image_name):
         with self.build_watch('install-mbr'):
-            self.ex.runv(['install-mbr', image_name])
+            for path in ['/usr/lib/extlinux/mbr.bin',
+                         '/usr/share/syslinux/mbr.bin']:
+                if os.path.exists(path):
+                    os.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
+                                'conv=notrunc'])
+                    break
 
     def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
@@ -466,7 +468,7 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):
-            self.ex.runv(['mkfs', '-t', 'ext3', partition])
+            self.ex.runv(['mkfs', '-t', 'ext4', '-q', partition, 4194304])
 
     def _mount(self, partition, mount_point):
         with self.build_watch('mount-filesystem'):
@@ -485,25 +487,21 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             fstab = os.path.join(mount_point, 'etc', 'fstab')
             if not os.path.exists(os.path.dirname(fstab)):
                 os.makedirs(os.path.dirname(fstab))
-            # sorry about the hack, I wish I knew a better way
-            self.ex.runv(['tee', fstab], feed_stdin='''
-proc      /proc proc  defaults          0 0
-sysfs     /sys  sysfs defaults          0 0
-/dev/sda1 /     ext4  errors=remount-ro 0 1
-''', stdout=open(os.devnull,'w'))
+            with open(fstab, 'w') as f:
+                f.write('proc      /proc proc  defaults          0 0')
+                f.write('sysfs     /sys  sysfs defaults          0 0')
+                f.write('/dev/sda1 /     ext4  errors=remount-ro 0 1')
 
     def _install_extlinux(self, mount_point):
         with self.build_watch('install-bootloader'):
             conf = os.path.join(mount_point, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
-            self.ex.runv(['tee', conf], feed_stdin='''
-default linux
-timeout 1
-
-label linux
-kernel /vmlinuz
-append root=/dev/sda1 init=/sbin/init quiet rw
-''', stdout=open(os.devnull, 'w'))
+            with open(conf, 'w') as f:
+                f.write('default linux')
+                f.write('timeout 1')
+                f.write('label linux')
+                f.write('kernel /boot/vmlinuz')
+                f.write('append root=/dev/sda1 init=/sbin/init quiet rw')
 
             self.ex.runv(['extlinux', '--install', mount_point])
             
