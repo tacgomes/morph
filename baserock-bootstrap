@@ -176,7 +176,7 @@ pass1_eglibc()
         esac
         
         ../eglibc-2.14/libc/configure --prefix="$tools" \
-            --host=$LFS_TGT --build=$(../eglibc-2.14/scripts/config.guess) \
+            --host=$LFS_TGT --build=$(../eglibc-2.14/libc/scripts/config.guess) \
             --disable-profile --enable-add-ons \
             --enable-kernel=2.6.25 --with-headers="$tools/include" \
             --without-selinux --without-cvs \
