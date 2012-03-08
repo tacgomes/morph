@@ -57,7 +57,7 @@ unpack()
     if [ ! -e "$sources/$1" ]
     then
         echo "Unpacking" "$sources/$1"*.tar.*
-        tar -C "$sources" -xf "$sources/$1"*.tar.*
+        time tar -C "$sources" -xf "$sources/$1"*.tar.*
     fi
 }
 
