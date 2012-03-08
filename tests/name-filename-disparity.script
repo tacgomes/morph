@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# Test building a chunk.
+#
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -e
+
+cache="$DATADIR/build-chunk-cache"
+log="$DATADIR/build-chunk-morph.log"
+
+( cd "$DATADIR/chunk-repo"
+  git checkout --quiet farrokh
+  cat >goodbye <<EOF
+#!/bin/sh
+echo Goodbye world, muahahahaha
+EOF
+  git add goodbye
+
+  # add a morph with the same "name" but different commands
+  cat >goodbye.morph <<EOF
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-system": "dummy",
+    "install-commands": [
+        "install -d \\"\$DESTDIR\\"/bin",
+        "install goodbye \\"\$DESTDIR\\"/bin/hello"
+    ]
+}
+EOF
+  git add goodbye.morph
+
+  git commit --quiet -m "add a totally safe script"
+)
+
+# build the dodgy chunk
+./morph --no-default-configs build chunk-repo farrokh goodbye.morph \
+    --git-base-url="file://$DATADIR" \
+    --cachedir="$cache" --keep-path --no-distcc \
+    --log="$log" || cat "$log" 1>&2
+
+# build a stratum 
+./morph --no-default-configs build morphs-repo master hello-stratum.morph \
+    --git-base-url="file://$DATADIR" \
+    --cachedir="$cache" --keep-path --no-distcc \
+    --log="$log" || cat "$log" 1>&2
+
+# unpack it and check the contents
+INSTDIR="$(mktemp -d)"
+trap "rm -rf \"$INSTDIR\"" INT TERM EXIT
+tar -C "$INSTDIR" -xf "$cache/"*hello-stratum*
+test "$("$INSTDIR"/bin/hello)" = "hello, world"
