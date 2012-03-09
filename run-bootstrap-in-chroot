@@ -116,6 +116,15 @@ gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,ccache \
 squeeze "$dir" "$DEBIAN_MIRROR"
 
+    # prepare the ccache directory in the chroot, if necessary
+    if [ "x$CCACHE_HOST_DIR" = "x" ]; then
+      # print a warning if the CCACHE_HOST_DIR is not set
+      echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
+    else
+      # create the directory for cached ccache object files
+      mkdir -p "$1/var/tmp/ccache"
+    fi
+
     # We need a backport of tar 1.26. On ARM, older versions (possibly
     # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
     # code.liw.fi has the backport, so we'll add that to apt's sources.list
@@ -137,15 +146,6 @@ cat <<EOF > "$dir/etc/hosts"
 127.0.0.1   localhost
 127.0.1.1   `hostname`
 EOF
-
-# prepare the ccache directory in the chroot, if necessary
-if [ "x$CCACHE_HOST_DIR" = "x" ]; then
-  # print a warning if the CCACHE_HOST_DIR is not set
-  echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
-else
-  # create the directory for cached ccache object files
-  mkdir -p "$1/var/tmp/ccache"
-fi
 
 if [ "x$LFS_MIRROR" = x ]; then
     cp wget-list "$dir/wget-list"
