@@ -122,7 +122,7 @@ squeeze "$dir" "$DEBIAN_MIRROR"
       echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
     else
       # create the directory for cached ccache object files
-      mkdir -p "$1/var/tmp/ccache"
+      mkdir -p "$dir/var/tmp/ccache"
     fi
 
     # We need a backport of tar 1.26. On ARM, older versions (possibly
