@@ -144,7 +144,7 @@ if [ "x$CCACHE_HOST_DIR" = "x" ]; then
   echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
 else
   # create the directory for cached ccache object files
-  mkdir "$1/var/tmp/ccache"
+  mkdir -p "$1/var/tmp/ccache"
 fi
 
 if [ "x$LFS_MIRROR" = x ]; then
