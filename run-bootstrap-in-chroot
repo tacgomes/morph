@@ -78,8 +78,8 @@ if mount -t proc proc "$dir/proc"; then
   if mount -t sysfs sysfs "$dir/sys"; then
     trap "umount \"$dir/proc\" \"$dir/sys\"" INT TERM EXIT
     if [ "x$CCACHE_HOST_DIR" != "x" ]; then
-      if mount --bind \"$CCACHE_HOST_DIR\" \"$dir/var/tmp/ccache\"; then
-        trap "umount \"$dir/proc\" \"$dir/sys\"" \"$dir/var/tmp/ccache\" \
+      if mount --bind "$CCACHE_HOST_DIR" "$dir/var/tmp/ccache"; then
+        trap "umount \"$dir/proc\" \"$dir/sys\" \"$dir/var/tmp/ccache\"" \
           INT TERM EXIT
         chroot "$dir" "\$@"
       fi
@@ -101,6 +101,12 @@ fi
 #DEBIAN_MIRROR="http://192.168.1.185/debian"
 #LFS_MIRROR=http://192.168.1.185/lfs/
 
+# prepare the ccache directory in the chroot, if necessary
+if [ "x$CCACHE_HOST_DIR" = "x" ]; then
+    # print a warning if the CCACHE_HOST_DIR is not set
+    echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
+fi
+
 unmount_virtual "$dir"
 rm -rf "$dir"
 mkdir "$dir"
@@ -116,14 +122,8 @@ gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,ccache \
 squeeze "$dir" "$DEBIAN_MIRROR"
 
-    # prepare the ccache directory in the chroot, if necessary
-    if [ "x$CCACHE_HOST_DIR" = "x" ]; then
-      # print a warning if the CCACHE_HOST_DIR is not set
-      echo "CCACHE_HOST_DIR is unspecified, but that's ok" >&2
-    else
-      # create the directory for cached ccache object files
-      mkdir -p "$dir/var/tmp/ccache"
-    fi
+    # create the directory for cached ccache object files
+    mkdir -p "$dir/var/tmp/ccache"
 
     # We need a backport of tar 1.26. On ARM, older versions (possibly
     # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
