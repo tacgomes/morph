@@ -17,7 +17,12 @@ CPUS=$(grep -i -c '^processor' /proc/cpuinfo)
 JOBS=$(expr 2 '*' $CPUS)
 
 export LC_ALL=C
-export LFS_TGT=$(uname -m)-lfs-linux-gnu
+
+if (uname -m | grep arm) >/dev/null; then
+    export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
+else
+    export LFS_TGT=$(uname -m)-lfs-linux-gnu
+fi
 
 HOST_CAT=`which cat`
 HOST_CP=`which cp`
