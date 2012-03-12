@@ -1,6 +1,9 @@
 #!/bin/sh
 #
-# Test building a chunk.
+# Test when there are two chunks with the same "name" set in the morphology
+# cause only the first built to be used
+# This can cause build failures when the wrong name is set and could be
+# a vector for including dodgy data in a system
 #
 # Copyright (C) 2012  Codethink Limited
 # 
@@ -60,7 +63,7 @@ EOF
     --log="$log" || cat "$log" 1>&2
 
 # unpack it and check the contents
-INSTDIR="$(mktemp -d)"
-trap "rm -rf \"$INSTDIR\"" INT TERM EXIT
+INSTDIR="$DATADIR"/unpack
+mkdir -p "$INSTDIR"
 tar -C "$INSTDIR" -xf "$cache/"*hello-stratum*
 test "$("$INSTDIR"/bin/hello)" = "hello, world"
