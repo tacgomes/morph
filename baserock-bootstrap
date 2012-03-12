@@ -141,8 +141,11 @@ pass1_gcc_1()
             --with-mpfr-lib=$(pwd)/mpfr/src/.libs
         make -j$JOBS
         make install
-        ln -s libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | \
+        HOST_LIBGCC_EH=`$LFS_TGT-gcc -print-libgcc-file-name | \
             $HOST_SED 's/libgcc/&_eh/'`
+        if ! test -e "$HOST_LIBGCC_EH"; then
+            ln -s libgcc.a "$HOST_LIBGCC_EH"
+        fi
         
         rm -rf "$sources/gcc-build" "$sources/gcc-4.6.1"
     fi
