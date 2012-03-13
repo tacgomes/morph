@@ -289,7 +289,8 @@ pass1_gcc_2()
             gcc/Makefile.in.tmp > gcc/Makefile.in
 
         for file in \
-         $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+         $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h \
+             -o -name linux-eabi.h -o -name linux-elf.h)
         do
           cp -v $file{,.orig}
           $HOST_SED -e "s@/lib\(64\)\?\(32\)\?/ld@$tools&@g" \
