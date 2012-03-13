@@ -542,6 +542,7 @@ class Builder(object): # pragma: no cover
         self.source_manager = source_manager
         self.factory = factory
         self.indent = 0
+        self.env = app.clean_env()
 
     def msg(self, text):
         spaces = '  ' * self.indent
@@ -659,8 +660,7 @@ class Builder(object): # pragma: no cover
                             (str(blob), type(blob)))
 
         builder = klass(blob, self.factory, self.app.settings, self.cachedir,
-                        self.get_cache_id(blob), self.tempdir,
-                        self.app.clean_env())
+                        self.get_cache_id(blob), self.tempdir, self.env)
         builder.real_msg = self.msg
         builder.dump_memory_profile = self.dump_memory_profile
         
@@ -697,11 +697,14 @@ class Builder(object): # pragma: no cover
             raise NotImplementedError('unknown morph kind %s' %
                                       blob.morph.kind)
 
+        build_env = ("USER", "USERNAME", "LOGNAME",
+                     "TOOLCHAIN_TARGET", "BOOTSTRAP")
         dict_key = {
             'name': blob.morph.name,
             'arch': morphlib.util.arch(),
             'ref': blob.morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),
+            'env': ''.join(k + self.env[k] for k in build_env),
         }
         return dict_key
 
