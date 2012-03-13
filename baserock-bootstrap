@@ -29,7 +29,7 @@ HOST_READLINK=`which readlink`
 HOST_CHMOD=`which chmod`
 
 export CCACHE_DIR="/var/tmp/ccache"
-export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
+export PATH="$tools/lib/ccache:$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
 download()
 {
@@ -349,6 +349,28 @@ pass1_zlib()
         make -j1
         make install
         rm -rf "$sources/zlib-1.2.5"
+    fi
+}
+
+
+pass1_ccache()
+{
+    echo "Building ccache"
+    if [ ! -e "$tools/bin/ccache" ]
+    then
+        unpack ccache-3.1.7
+        cd "$sources/ccache-3.1.7"
+        ./configure --prefix="$tools"
+        make -j1
+        make install
+
+        mkdir "$tools/lib/ccache"
+        for name in cc c++ gcc gcc-4.6.1 g++ g++-4.6.1; do
+            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$name"
+            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$LFS_TGT-$name"
+        done
+
+        rm -rf "$sources/ccache-3.1.7"
     fi
 }
 
@@ -1093,6 +1115,7 @@ case "$buildwhat" in
         pass1_gcc_2
         pass1_sanity_check
         pass1_zlib
+        pass1_ccache
         pass1_ncurses
         #pass1_busybox
         pass1_bash
