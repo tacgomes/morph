@@ -34,6 +34,8 @@ defaults = {
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
+    'prefix': '/usr',
+    'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
 }
 
 
@@ -52,6 +54,15 @@ class Morph(cliapp.Application):
                              'put build results in DIR',
                              metavar='DIR', 
                              default=defaults['cachedir'])
+        self.settings.string(['prefix'],
+                             'set the install prefix of built chunks to PREFIX',
+                             metavar='PREFIX', default=defaults['prefix'])
+        self.settings.string(['toolchain-target'],
+                             'set the TOOLCHAIN_TARGET variable which is used '
+                             'in some chunks to determine which architecture '
+                             'to build tools for',
+                             metavar='TOOLCHAIN_TARGET',
+                             default=defaults['toolchain-target'])
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                                 '(this is separate from just setting $TMPDIR '
@@ -418,7 +429,8 @@ class Morph(cliapp.Application):
         else:
             env['PATH'] = '/sbin:/usr/sbin:/bin:/usr/bin'
 
-        env['TOOLCHAIN_TARGET'] = '%s-baserock-linux-gnu' % os.uname()[4]
+        env['TOOLCHAIN_TARGET'] = self.settings['toolchain-target']
+        env['PREFIX'] = self.settings['prefix']
         env['BOOTSTRAP'] = 'true' if self.settings['bootstrap'] else 'false'
         if tools is not None:
             env['BOOTSTRAP_TOOLS'] = tools
