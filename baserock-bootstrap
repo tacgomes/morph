@@ -1095,69 +1095,69 @@ EOF
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
-pass1_directories
+time pass1_directories
 
 if [ -e "$allsources" ]
 then
     $HOST_CP -au "$allsources/." "$LFS/sources/."
 fi
-download_all
+time download_all
 
 case "$buildwhat" in
     pass1)
-        pass1_binutils_1
-        pass1_gcc_1
-        pass1_linux_api_headers
-        pass1_eglibc
-        pass1_adjust_gcc_specs
-        pass1_sanity_check
-        pass1_binutils_2
-        pass1_gcc_2
-        pass1_sanity_check
-        pass1_zlib
-        pass1_ccache
-        pass1_ncurses
-        #pass1_busybox
-        pass1_bash
-        pass1_bzip2
-        pass1_coreutils
-        pass1_diffutils
-        pass1_file
-        pass1_findutils
-        pass1_gawk
-        pass1_gettext
-        pass1_grep
-        pass1_gzip
-        pass1_m4
-        pass1_make
-        pass1_patch
-        pass1_perl
-        pass1_sed
-        pass1_tar
-        pass1_texinfo
-        pass1_xz
-        pass1_python
-        pass1_cliapp
-        pass1_git
+        time pass1_binutils_1
+        time pass1_gcc_1
+        time pass1_linux_api_headers
+        time pass1_eglibc
+        time pass1_adjust_gcc_specs
+        time pass1_sanity_check
+        time pass1_binutils_2
+        time pass1_gcc_2
+        time pass1_sanity_check
+        time pass1_zlib
+        time pass1_ccache
+        time pass1_ncurses
+        #time pass1_busybox
+        time pass1_bash
+        time pass1_bzip2
+        time pass1_coreutils
+        time pass1_diffutils
+        time pass1_file
+        time pass1_findutils
+        time pass1_gawk
+        time pass1_gettext
+        time pass1_grep
+        time pass1_gzip
+        time pass1_m4
+        time pass1_make
+        time pass1_patch
+        time pass1_perl
+        time pass1_sed
+        time pass1_tar
+        time pass1_texinfo
+        time pass1_xz
+        time pass1_python
+        time pass1_cliapp
+        time pass1_git
         #pass1_strip_tools
         #pass1_fix_perms
-        pass1_cleanup_at_end
+        time pass1_cleanup_at_end
         ;;
     pass2a)
-        pass2_get_sources
-        pass2_prepare_for_chroot
-        pass2_get_sources_with_morph_in_chroot
-        pass2a_cleanup_at_end
+        time pass2_get_sources
+        time pass2_prepare_for_chroot
+        time pass2_get_sources_with_morph_in_chroot
+        time pass2a_cleanup_at_end
         ;;
     pass2b)
-        pass2_build_with_morph_in_chroot
-        #pass2_build_devel_system_outside_chroot
-        pass2b_cleanup_at_end
+        time pass2_build_with_morph_in_chroot
+        #time pass2_build_devel_system_outside_chroot
+        time pass2b_cleanup_at_end
         ;;
     pass3)
-        pass3_remove_tools
-        pass3_get_sources_with_morph_in_chroot
-        pass3_build_with_morph_in_chroot
+        time pass3_remove_tools
+        time pass3_get_sources_with_morph_in_chroot
+        time pass3_build_with_morph_in_chroot
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1
