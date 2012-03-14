@@ -250,7 +250,7 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
             'configure-commands': [
                 'if [ -e autogen.sh ]; then ./autogen.sh; ' +
                 'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
-                './configure --prefix=/usr',
+                './configure --prefix="$PREFIX"',
             ],
             'build-commands': [
                 'make',
