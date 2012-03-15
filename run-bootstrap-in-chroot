@@ -118,7 +118,7 @@ then
 else
     debootstrap \
     --include=build-essential,\
-gawk,bison,python,autoconf,autopoint,automake,gettext,libtool,\
+gawk,bison,flex,python,autoconf,autopoint,automake,gettext,libtool,\
 help2man,texinfo,sudo,ccache \
 squeeze "$dir" "$DEBIAN_MIRROR"
 
