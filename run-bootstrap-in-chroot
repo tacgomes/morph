@@ -133,7 +133,7 @@ squeeze "$dir" "$DEBIAN_MIRROR"
 deb http://code.liw.fi/debian squeeze main
 EOF
     ./do-squeeze-chroot apt-get update
-    ./do-squeeze-chroot apt-get install --allow-unauthenticated tar
+    ./do-squeeze-chroot apt-get install --allow-unauthenticated tar python-cliapp
     
     if "$snapshot"
     then
