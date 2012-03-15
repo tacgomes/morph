@@ -74,7 +74,7 @@ pass1_build_with_morph()
         --no-distcc \
         --bootstrap \
         --cachedir=$LFS/baserock/cache \
-        --tempdir=$LFS/tmp
+        --tempdir=$LFS/tmp \
         --log=$LFS/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
