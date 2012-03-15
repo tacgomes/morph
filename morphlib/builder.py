@@ -722,7 +722,7 @@ class Builder(object): # pragma: no cover
                                       blob.morph.kind)
 
         dict_key = {
-            'name': blob.morph.name,
+            'filename': blob.morph.filename,
             'arch': morphlib.util.arch(),
             'ref': blob.morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),
