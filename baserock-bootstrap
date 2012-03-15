@@ -70,6 +70,7 @@ pass1_build_with_morph()
     python ./morph --verbose build \
         morphs rm/morph-pass1 bootstrap-pass1.morph \
         --no-git-update \
+        --no-distcc \
         --bootstrap \
         --cachedir=/tree/baserock/cache \
         --log=/baserock/morph.log \
