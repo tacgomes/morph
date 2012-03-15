@@ -169,7 +169,7 @@ class MorphologyTests(unittest.TestCase):
                                 ]
                             }'''))
         self.assertEqual(morph.kind, 'system')
-        self.assertEqual(morph.disk_size, '1G')
+        self.assertEqual(morph.disk_size, 1024**3)
         self.assertEqual(morph.strata, ['foo', 'bar'])
         self.assertEqual(morph.test_stories, ['test-1', 'test-2'])
 
