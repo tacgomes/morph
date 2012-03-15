@@ -98,8 +98,6 @@ then
     echo You have to set DEBIAN_MIRROR and other environment variables 1>&2
     exit 1
 fi
-#DEBIAN_MIRROR="http://192.168.1.185/debian"
-#LFS_MIRROR=http://192.168.1.185/lfs/
 
 # prepare the ccache directory in the chroot, if necessary
 if [ "x$CCACHE_HOST_DIR" = "x" ]; then
@@ -127,10 +125,10 @@ squeeze "$dir" "$DEBIAN_MIRROR"
 
     # We need a backport of tar 1.26. On ARM, older versions (possibly
     # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
-    # code.liw.fi has the backport, so we'll add that to apt's sources.list
+    # We have a custom apt repository, so we'll add that to apt's sources.list
     # and install tar manually.
     cat <<EOF >> "$dir/etc/apt/sources.list"
-deb http://code.liw.fi/debian squeeze main
+deb http://roadtrain.codethink.co.uk/debrock/ squeeze main
 EOF
     ./do-squeeze-chroot apt-get update
     ./do-squeeze-chroot apt-get install --allow-unauthenticated tar
