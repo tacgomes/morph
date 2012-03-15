@@ -92,14 +92,12 @@ EOF
 chmod +x "./do-squeeze-chroot"
 
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
-    ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2) ||
-    ([ "x$LFS_MIRROR" = x ] && echo LFS_MIRROR is unspecified >&2)
+    ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2)
 then
     echo You have to set DEBIAN_MIRROR and other environment variables 1>&2
     exit 1
 fi
 #DEBIAN_MIRROR="http://192.168.1.185/debian"
-#LFS_MIRROR=http://192.168.1.185/lfs/
 
 # prepare the ccache directory in the chroot, if necessary
 if [ "x$CCACHE_HOST_DIR" = "x" ]; then
@@ -146,13 +144,6 @@ cat <<EOF > "$dir/etc/hosts"
 127.0.0.1   localhost
 127.0.1.1   `hostname`
 EOF
-
-if [ "x$LFS_MIRROR" = x ]; then
-    cp wget-list "$dir/wget-list"
-else
-    perl -M'Env' -lpe 's|^.*/|$LFS_MIRROR|' wget-list >"$dir/wget-list"
-fi
-
 
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
 
