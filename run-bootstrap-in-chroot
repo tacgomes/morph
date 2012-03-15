@@ -156,20 +156,32 @@ fi
 
 # Unpack existing snapshot, or run pass1 of bootstrap and then make snapshot.
 
+if ! "$snapshot" || ! has_pass pass1b
+then
+    run_pass "$dir" pass1a
+fi
 
 if ! "$snapshot" || ! has_pass pass2a
 then
-    run_pass "$dir" pass1
+    run_pass "$dir" pass1b
 fi
-
 
 if ! "$snapshot" || ! has_pass pass2b
 then
     run_pass "$dir" pass2a
 fi
 
-run_pass "$dir" pass2b
-snapshot=false run_pass "$dir" pass3
+if ! "$snapshot" || ! has_pass pass3a
+then
+    run_pass "$dir" pass2b
+fi
+
+if ! "$snapshot" || ! has_pass pass3b
+then
+    run_pass "$dir" pass3a
+fi
+
+snapshot=false run_pass "$dir" pass3b
 
 echo "Passes 1, 2, and 3 of bootstrap done (possibly cached)."
 

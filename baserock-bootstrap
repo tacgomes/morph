@@ -52,8 +52,8 @@ pass1_get_sources_with_morph()
     export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
     while ! python ./morph --verbose update-gits \
         morphs rm/morph-pass1 bootstrap-pass1.morph \
-        --cachedir=/baserock/cache \
-        --log=/baserock/morph.log \
+        --cachedir=/tree/baserock/cache \
+        --log=/tree/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
         --bundle-server="$GIT_BUNDLES"
@@ -71,7 +71,7 @@ pass1_build_with_morph()
         morphs rm/morph-pass1 bootstrap-pass1.morph \
         --no-git-update \
         --bootstrap \
-        --cachedir=/baserock/cache \
+        --cachedir=/tree/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
@@ -374,8 +374,10 @@ echo "LFS_TGT=$LFS_TGT"
 pass1_directories
 
 case "$buildwhat" in
-    pass1)
+    pass1a)
         pass1_get_sources_with_morph
+        ;;
+    pass1b)
         pass1_build_with_morph
         ;;
     pass2a)
@@ -386,12 +388,13 @@ case "$buildwhat" in
         ;;
     pass2b)
         pass2_build_with_morph_in_chroot
-        #pass2_build_devel_system_outside_chroot
         pass2b_cleanup_at_end
         ;;
-    pass3)
+    pass3a)
         pass3_remove_tools
         pass3_get_sources_with_morph_in_chroot
+        ;;
+    pass3b)
         pass3_build_with_morph_in_chroot
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
