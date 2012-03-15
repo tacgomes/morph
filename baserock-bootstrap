@@ -473,7 +473,7 @@ pass1_file()
         unpack file-5.09
         cd "$sources/file-5.09"
         ./configure --prefix="$tools"
-        make -j$JOBS
+        make V=1 -j$JOBS
 #       make check
         make install
         rm -rf "$sources/file-5.09"
@@ -1124,6 +1124,7 @@ case "$buildwhat" in
         time pass1_gcc_2
         time pass1_sanity_check
         time pass1_zlib
+        time pass1_file
         time pass1_ccache
         time pass1_ncurses
         #time pass1_busybox
@@ -1131,7 +1132,6 @@ case "$buildwhat" in
         time pass1_bzip2
         time pass1_coreutils
         time pass1_diffutils
-        time pass1_file
         time pass1_findutils
         time pass1_gawk
         time pass1_gettext
