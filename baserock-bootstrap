@@ -12,7 +12,12 @@ tools="$LFS/tools"
 buildwhat="$1"
 
 export LC_ALL=C
-export LFS_TGT=$(uname -m)-lfs-linux-gnu
+
+if (uname -m | grep arm) >/dev/null; then
+    export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
+else
+    export LFS_TGT=$(uname -m)-lfs-linux-gnu
+fi
 
 HOST_CAT=`which cat`
 HOST_CP=`which cp`
@@ -20,7 +25,7 @@ HOST_MKDIR=`which mkdir`
 HOST_CHMOD=`which chmod`
 
 export CCACHE_DIR="/var/tmp/ccache"
-export PATH="$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
+export PATH="$tools/lib/ccache:$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
 
 pass1_directories()
 {
@@ -43,6 +48,27 @@ pass1_directories()
     [ -e "$LFS/dev/random" ] || mknod -m 644 "$LFS/dev/random" c 1 8
     [ -e "$LFS/dev/urandom" ] || \
         mknod -m 644 "$LFS/dev/urandom" c 1 9
+}
+
+pass1_ccache()
+{
+    echo "Building ccache"
+    if [ ! -e "$tools/bin/ccache" ]
+    then
+        unpack ccache-3.1.7
+        cd "$sources/ccache-3.1.7"
+        ./configure --prefix="$tools"
+        make -j1
+        make install
+
+        mkdir "$tools/lib/ccache"
+        for name in cc c++ gcc gcc-4.6.1 g++ g++-4.6.1; do
+            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$name"
+            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$LFS_TGT-$name"
+        done
+
+        rm -rf "$sources/ccache-3.1.7"
+    fi
 }
 
 pass1_get_sources_with_morph()
@@ -374,31 +400,31 @@ EOF
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
-pass1_directories
+time pass1_directories
 
 case "$buildwhat" in
     pass1a)
-        pass1_get_sources_with_morph
+        time pass1_get_sources_with_morph
         ;;
     pass1b)
-        pass1_build_with_morph
+        time pass1_build_with_morph
         ;;
     pass2a)
-        pass2_get_morph
-        pass2_prepare_for_chroot
-        pass2_get_sources_with_morph_in_chroot
-        pass2a_cleanup_at_end
+        time pass2_get_morph
+        time pass2_prepare_for_chroot
+        time pass2_get_sources_with_morph_in_chroot
+        time pass2a_cleanup_at_end
         ;;
     pass2b)
-        pass2_build_with_morph_in_chroot
-        pass2b_cleanup_at_end
+        time pass2_build_with_morph_in_chroot
+        time pass2b_cleanup_at_end
         ;;
     pass3a)
-        pass3_remove_tools
-        pass3_get_sources_with_morph_in_chroot
+        time pass3_remove_tools
+        time pass3_get_sources_with_morph_in_chroot
         ;;
     pass3b)
-        pass3_build_with_morph_in_chroot
+        time pass3_build_with_morph_in_chroot
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1

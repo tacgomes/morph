@@ -411,9 +411,11 @@ class StratumBuilder(BlobBuilder): # pragma: no cover
 class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def builds(self):
-        return {}
+        filename = self.filename(self.blob.morph.name)
+        return { self.blob.morph.name: filename }
 
     def do_build(self):
+        logging.debug('SystemBuilder.do_build called')
         self.ex = morphlib.execute.Execute(self.tempdir.dirname, self.msg)
         
         image_name = self.tempdir.join('%s.img' % self.blob.morph.name)
@@ -432,7 +434,7 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             self._install_extlinux(mount_point)
             self._unmount(mount_point)
         except BaseException:
-            self._umount(mount_point)
+            self._unmount(mount_point)
             self._undo_device_mapping(image_name)
             raise
 
@@ -441,34 +443,47 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1024',
-                          'seek=' + (self.blob.morph.disk_size / 1024),
+            # FIXME: This could be done in pure python, no need to run dd
+            self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
+                          'seek=%d' % self.blob.morph.disk_size,
                           'count=0'])
 
     def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
-            self.ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*')
+            self.ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*\n')
 
     def _install_mbr(self, image_name):
         with self.build_watch('install-mbr'):
             for path in ['/usr/lib/extlinux/mbr.bin',
                          '/usr/share/syslinux/mbr.bin']:
                 if os.path.exists(path):
-                    os.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
-                                'conv=notrunc'])
+                    self.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
+                                  'conv=notrunc'])
                     break
 
     def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
-            out = self.ex.runv(['kpartx', '-av', image_name])
-            devices = [line.split()[2]
-                       for line in out.splitlines()
-                       if line.startswith('add map ')]
-            partition = '/dev/mapper/%s' % devices[0]
+            out = self.ex.runv(['sfdisk', '-d', image_name])
+            for line in out.splitlines():
+                words = line.split()
+                if (len(words) >= 4 and 
+                    words[2] == 'start=' and 
+                    words[3] != '0,'):
+                    n = int(words[3][:-1]) # skip trailing comma
+                    start = n * 512
+                    break
+            
+            self.ex.runv(['losetup', '-o', str(start), '-f', image_name])
+            
+            out = self.ex.runv(['losetup', '-j', image_name])
+            line = out.strip()
+            i = line.find(':')
+            return line[:i]
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):
-            self.ex.runv(['mkfs', '-t', 'ext4', '-q', partition, 4194304])
+            # FIXME: the hardcoded size is icky but the default broke
+            self.ex.runv(['mkfs', '-t', 'ext4', '-q', partition, '4194304'])
 
     def _mount(self, partition, mount_point):
         with self.build_watch('mount-filesystem'):
@@ -497,11 +512,11 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             conf = os.path.join(mount_point, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
             with open(conf, 'w') as f:
-                f.write('default linux')
-                f.write('timeout 1')
-                f.write('label linux')
-                f.write('kernel /boot/vmlinuz')
-                f.write('append root=/dev/sda1 init=/sbin/init quiet rw')
+                f.write('default linux\n')
+                f.write('timeout 1\n')
+                f.write('label linux\n')
+                f.write('kernel /boot/vmlinuz\n')
+                f.write('append root=/dev/sda1 init=/sbin/init quiet rw\n')
 
             self.ex.runv(['extlinux', '--install', mount_point])
             
@@ -517,7 +532,11 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _undo_device_mapping(self, image_name):
         with self.build_watch('undo-device-mapper'):
-            self.ex.runv(['kpartx', '-d', image_name])
+            out = self.ex.runv(['losetup', '-j', image_name])
+            for line in out.splitlines():
+                i = line.find(':')
+                device = line[:i]
+                self.ex.runv(['losetup', '-d', device])
 
     def _move_image_to_cache(self, image_name):
         with self.build_watch('cache-image'):
@@ -562,6 +581,7 @@ class Builder(object): # pragma: no cover
         '''Build a list of groups of morphologies. Items in a group
            can be built in parallel.'''
 
+        logging.debug('Builder.build called')
         self.indent_more()
 
         # first pass: create builders for all blobs
@@ -574,6 +594,7 @@ class Builder(object): # pragma: no cover
         # second pass: build group by group, item after item
         for group in build_order:
             for blob in group:
+                logging.debug('Building blob %s' % repr(blob))
                 self.msg('Building %s' % blob)
                 self.indent_more()
 
@@ -591,12 +612,15 @@ class Builder(object): # pragma: no cover
                 #    depbuilder.unstage()
 
                 builder = builders[blob]
+                logging.debug('builder = %s' % repr(builder))
 
                 # get a list of all the items we have to build for this blob
                 builds = builder.builds()
+                logging.debug('builds = %s' % repr(builds))
 
                 # if not all build items are in the cache, rebuild the blob
                 if not self.all_built(builds):
+                    logging.debug('calling builders build method')
                     builders[blob].build()
                 
                 # check again, fail if not all build items were actually built
@@ -703,7 +727,7 @@ class Builder(object): # pragma: no cover
                                       blob.morph.kind)
 
         dict_key = {
-            'name': blob.morph.name,
+            'filename': blob.morph.filename,
             'arch': morphlib.util.arch(),
             'ref': blob.morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),

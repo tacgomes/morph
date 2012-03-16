@@ -102,7 +102,17 @@ class Morphology(object):
 
     @property
     def disk_size(self):
-        return self._dict['disk-size']
+        size = self._dict['disk-size']
+        size = size.lower()
+        if size.endswith('g'):
+            size = int(size[:-1]) * 1024**3
+        elif size.endswith('m'): # pragma: no cover
+            size = int(size[:-1]) * 1024**2
+        elif size.endswith('k'): # pragma: no cover
+            size = int(size[:-1]) * 1024
+        else: # pragma: no cover
+            size = int(size)
+        return size
 
     @property
     def test_stories(self):
