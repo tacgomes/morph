@@ -75,7 +75,6 @@ pass1_get_sources_with_morph()
 {
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
-    export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
     while ! python ./morph --verbose update-gits \
         morphs rm/morph-pass1 bootstrap-pass1.morph \
         --cachedir=$LFS/baserock/cache \
@@ -93,7 +92,6 @@ pass1_build_with_morph()
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
     $HOST_MKDIR -p $LFS/tmp
-    export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
     python ./morph --verbose build \
         morphs rm/morph-pass1 bootstrap-pass1.morph \
         --no-git-update \
