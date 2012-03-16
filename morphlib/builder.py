@@ -494,7 +494,7 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
         with self.build_watch('unpack-strata'):
             for name, filename in self.stage_items:
                 self.msg('unpack %s from %s' % (name, filename))
-                self.ex.runv(['tar', '-C', mount_point, '-xf', filename])
+                self.ex.runv(['tar', '-C', mount_point, '-xhf', filename])
             ldconfig(self.ex, mount_point)
 
     def _create_fstab(self, mount_point):

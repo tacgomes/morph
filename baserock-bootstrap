@@ -62,7 +62,7 @@ unpack()
     if [ ! -e "$sources/$1" ]
     then
         echo "Unpacking" "$sources/$1"*.tar.*
-        time tar -C "$sources" -xf "$sources/$1"*.tar.*
+        time tar -C "$sources" -xhf "$sources/$1"*.tar.*
     fi
 }
 
@@ -949,7 +949,7 @@ pass2_build_devel_system_outside_chroot()
     for stratum in \
         "$LFS"/baserock/cache/*.stratum.{foundation,linux-stratum,devel}
     do
-        $HOST_SUDO tar -C "$mp" -xf "$stratum"
+        $HOST_SUDO tar -C "$mp" -xhf "$stratum"
     done
 
     cat <<EOF | $HOST_SUDO tee "$mp/etc/fstab"
