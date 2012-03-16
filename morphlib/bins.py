@@ -109,5 +109,5 @@ def unpack_binary(filename, dirname, ex):
     '''
 
     logging.debug('Unpacking %s into %s' % (filename, dirname))
-    ex.runv(['tar', '-C', dirname, '-xvf', filename])
+    ex.runv(['tar', '-C', dirname, '-xvhf', filename])
 

@@ -347,6 +347,7 @@ EOF
     $HOST_CHMOD +x "$do_chroot"
     "$do_chroot" /baserock/build.sh
 }
+
 pass3_build_with_morph_in_chroot()
 {
     echo "Building Baserock with morph"

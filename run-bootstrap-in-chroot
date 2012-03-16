@@ -42,7 +42,7 @@ run_pass()
 
     if "$snapshot" && has_pass "$passname"
     then
-        tar -C "$dir" -xf "$tarball"
+        tar -C "$dir" -xhf "$tarball"
         update_morph "$dir"
     else
         update_morph "$dir"
@@ -111,7 +111,7 @@ mkdir "$dir"
 chrootsnapshot="$snapshotdir/squeeze.tar.gz"
 if "$snapshot" && [ -e "$chrootsnapshot" ]
 then
-    tar -C "$dir" -xf "$chrootsnapshot"
+    tar -C "$dir" -xhf "$chrootsnapshot"
 else
     debootstrap \
     --include=build-essential,\

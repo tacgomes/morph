@@ -108,7 +108,7 @@ trap "umount $part; dummy_kpartx_delete $img" EXIT
 # Unpack all the strata that are to be installed.
 for stratum
 do
-    tar -C "$mp" -xf "$stratum"
+    tar -C "$mp" -xhf "$stratum"
 done
 
 # Configure fstab for the new system.
