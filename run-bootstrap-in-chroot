@@ -31,7 +31,13 @@ update_morph()
     cp baserock-bootstrap "$dir/." # update bootstrap script
     rm -rf "$dir/tree/baserock/gits/morph"
     mkdir -p "$dir/tree/baserock/gits/morph"
-    cp -r . "$dir/tree/baserock/gits/morph/."
+
+    # Copy everything except the target directory into the target directory.
+    # The point is to be able to keep the working area for a bootstrap inside
+    # the morph source directory. This is useful for Jenkins jobs.
+    local base=$(basename $(basename "$dir"))
+    find . -mindepth 1 -maxdepth 1 ! -name "$base" \
+        -exec cp -av '{}' "$dir/tree/baserock/gits/morph" ';'
 }
 
 run_pass()
