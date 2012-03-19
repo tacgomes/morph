@@ -179,9 +179,7 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 while ! python ./morph --verbose update-gits \
-    morphs master foundation.morph \
-    morphs master devel-bootstrap.morph \
-    morphs master linux-stratum.morph \
+    morphs master bootstrap-pass2.morph \
         --bootstrap \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
@@ -231,9 +229,7 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 python ./morph --verbose build \
-    morphs master foundation.morph \
-    morphs master devel-bootstrap.morph \
-    morphs master linux-stratum.morph \
+    morphs master bootstrap-pass2.morph \
         --bootstrap \
         --no-git-update \
         --cachedir=/baserock/cache \
