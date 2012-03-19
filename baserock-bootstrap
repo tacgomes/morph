@@ -7,7 +7,7 @@ set -u
 BASEDIR=$(dirname $(readlink -f $0))
 
 LFS="$(pwd)/tree"
-LFS="${LFS/\/\//\/}"
+LFS="${LFS/\/\///}"
 tools="$LFS/tools"
 
 buildwhat="$1"
