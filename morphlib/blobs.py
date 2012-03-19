@@ -43,8 +43,10 @@ class Blob(object):
             self.parents.remove(parent)
 
     def add_dependency(self, other):
-        self.dependencies.append(other)
-        other.dependents.append(self)
+        if not other in self.dependencies:
+            self.dependencies.append(other)
+        if not self in other.dependents:
+            other.dependents.append(self)
 
     def remove_dependency(self, other):
         self.dependencies.remove(other)

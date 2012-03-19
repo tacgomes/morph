@@ -183,12 +183,14 @@ class BuildDependencyGraph(object): # pragma: no cover
                 # chunks with no build-depends implicitly depend on all
                 # chunks listed earlier in the same stratum
                 for dependency in stratum_chunks:
-                    chunk.add_dependency(dependency)
+                    if not dependency is chunk:
+                        chunk.add_dependency(dependency)
             elif isinstance(build_depends, list):
                 for depname in build_depends:
                     if depname in name_to_chunk:
                         dependency = name_to_chunk[depname]
-                        chunk.add_dependency(dependency)
+                        if not dependency is chunk:
+                            chunk.add_dependency(dependency)
                     else:
                         raise Exception('%s: source %s references %s before '
                                         'it is defined' % 
