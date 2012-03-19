@@ -62,7 +62,8 @@ class CheckCopyrightYear(cliapp.Application):
         self.all_ok = self.all_ok and ok
 
     def get_git_commit_year(self, filename):
-        out = self.runcmd(['git', 'log', '-1', '--format=format:%cd', filename])
+        out = self.runcmd(['git', 'log', '-1', '--format=format:%cd',
+                           filename])
         words = out.split()
         return int(words[4])
 

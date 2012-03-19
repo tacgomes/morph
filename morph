@@ -55,7 +55,7 @@ class Morph(cliapp.Application):
                              metavar='DIR', 
                              default=defaults['cachedir'])
         self.settings.string(['prefix'],
-                             'set the install prefix of built chunks to PREFIX',
+                             'build chunks with prefix PREFIX',
                              metavar='PREFIX', default=defaults['prefix'])
         self.settings.string(['toolchain-target'],
                              'set the TOOLCHAIN_TARGET variable which is used '

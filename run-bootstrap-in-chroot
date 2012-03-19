@@ -138,7 +138,8 @@ deb http://code.liw.fi/debian squeeze main
 deb http://roadtrain.codethink.co.uk/debrock/ squeeze main
 EOF
     ./do-squeeze-chroot apt-get update
-    ./do-squeeze-chroot apt-get install --allow-unauthenticated tar python-cliapp
+    ./do-squeeze-chroot apt-get install --allow-unauthenticated \
+                                        tar python-cliapp
     
     if "$snapshot"
     then
