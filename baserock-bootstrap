@@ -77,7 +77,7 @@ pass1_get_sources_with_morph()
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
     while ! python ./morph --verbose update-gits \
-        morphs rm/morph-pass1 bootstrap-pass1.morph \
+        morphs master bootstrap-pass1.morph \
         --cachedir=$LFS/baserock/cache \
         --log=$LFS/baserock/morph.log \
         --dump-memory-profile=none \
@@ -94,7 +94,7 @@ pass1_build_with_morph()
     $HOST_MKDIR -p $LFS/baserock/cache
     $HOST_MKDIR -p $LFS/tmp
     python ./morph --verbose build \
-        morphs rm/morph-pass1 bootstrap-pass1.morph \
+        morphs master bootstrap-pass1.morph \
         --no-git-update \
         --no-distcc \
         --bootstrap \
