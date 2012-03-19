@@ -116,7 +116,7 @@ else
     debootstrap \
     --include=build-essential,\
 gawk,bison,flex,python,autoconf,autopoint,automake,gettext,libtool,\
-help2man,texinfo,sudo,ccache,gperf \
+help2man,texinfo,sudo,ccache,gperf,curl,libcurl4-openssl-dev \
 squeeze "$dir" "$DEBIAN_MIRROR"
 
     # create the directory for cached ccache object files
