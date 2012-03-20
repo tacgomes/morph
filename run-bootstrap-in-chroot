@@ -36,7 +36,7 @@ update_morph()
     # The point is to be able to keep the working area for a bootstrap inside
     # the morph source directory. This is useful for Jenkins jobs.
     local base=$(basename $(basename "$dir"))
-    find . -mindepth 1 -maxdepth 1 ! -name "$base" \
+    find . -mindepth 1 -maxdepth 1 ! -name "$base" ! -name '*.tar.gz' \
         -exec cp -av '{}' "$dir/tree/baserock/gits/morph" ';'
 }
 
