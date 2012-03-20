@@ -97,6 +97,7 @@ pass1_build_with_morph()
         morphs master bootstrap-pass1.morph \
         --no-git-update \
         --no-distcc \
+        --no-ccache \
         --bootstrap \
         --cachedir=$LFS/baserock/cache \
         --tempdir=$LFS/tmp \
