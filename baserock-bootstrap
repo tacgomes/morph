@@ -51,27 +51,6 @@ pass1_directories()
         mknod -m 644 "$LFS/dev/urandom" c 1 9
 }
 
-pass1_ccache()
-{
-    echo "Building ccache"
-    if [ ! -e "$tools/bin/ccache" ]
-    then
-        unpack ccache-3.1.7
-        cd "$sources/ccache-3.1.7"
-        ./configure --prefix="$tools"
-        make -j1
-        make install
-
-        mkdir "$tools/lib/ccache"
-        for name in cc c++ gcc gcc-4.6.1 g++ g++-4.6.1; do
-            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$name"
-            ln -s "$tools/bin/ccache" "$tools/lib/ccache/$LFS_TGT-$name"
-        done
-
-        rm -rf "$sources/ccache-3.1.7"
-    fi
-}
-
 pass1_get_sources_with_morph()
 {
     cd $LFS/baserock/gits/morph
