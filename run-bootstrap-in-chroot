@@ -115,35 +115,36 @@ rm -rf "$dir"
 mkdir "$dir"
 
 chrootsnapshot="$snapshotdir/squeeze.tar.gz"
-if "$snapshot" && [ -e "$chrootsnapshot" ]
-then
-    tar -C "$dir" -xhf "$chrootsnapshot"
-else
-    debootstrap \
-    --include=build-essential,\
-gawk,bison,flex,python,autoconf,autopoint,automake,gettext,libtool,\
-help2man,texinfo,sudo,ccache,gperf \
-squeeze "$dir" "$DEBIAN_MIRROR"
-
-    # create the directory for cached ccache object files
-    mkdir -p "$dir/var/tmp/ccache"
-
-    # We need a backport of tar 1.26. On ARM, older versions (possibly
-    # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
-    # We have a custom apt repository, so we'll add that to apt's sources.list
-    # and install tar manually.
-    # cliapp comes from code.liw.fi, so that needs to be added as well
-    cat <<EOF >> "$dir/etc/apt/sources.list"
+if ! "$snapshot" || ! has_pass pass1a; then
+    if "$snapshot" && [ -e "$chrootsnapshot" ]
+    then
+        tar -C "$dir" -xhf "$chrootsnapshot"
+    else
+        debootstrap --include=build-essential,gawk,bison,flex,python,autoconf \
+                    --include=autopoint,automake,gettext,libtool,help2man \
+                    --include=texinfo,sudo,ccache,gperf \
+                    squeeze "$dir" "$DEBIAN_MIRROR"
+    
+        # create the directory for cached ccache object files
+        mkdir -p "$dir/var/tmp/ccache"
+    
+        # We need a backport of tar 1.26. On ARM, older versions (possibly
+        # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
+        # We have a custom apt repository, so we'll add that to apt's
+        # sources.list and install tar manually.
+        # cliapp comes from code.liw.fi, so that needs to be added as well
+        cat <<EOF >> "$dir/etc/apt/sources.list"
 deb http://code.liw.fi/debian squeeze main
 deb http://roadtrain.codethink.co.uk/debrock/ squeeze main
 EOF
-    ./do-squeeze-chroot apt-get update
-    ./do-squeeze-chroot apt-get install --allow-unauthenticated \
-                                        tar python-cliapp
+        "./do-squeeze-chroot" apt-get update
+        "./do-squeeze-chroot" apt-get install --allow-unauthenticated \
+                                              tar python-cliapp
     
-    if "$snapshot"
-    then
-        tar -caf "$chrootsnapshot" -C "$dir" .
+        if "$snapshot"
+        then
+            tar -caf "$chrootsnapshot" -C "$dir" .
+        fi
     fi
 fi
 
