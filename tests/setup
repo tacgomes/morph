@@ -26,7 +26,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-set -e
+set -eu
 
 # The $DATADIR should be empty at the beginnig of each test.
 find "$DATADIR" -mindepth 1 -delete

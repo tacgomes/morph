@@ -17,7 +17,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
+set -eu
 
 tests/morph build-distributed morphs-repo master hello-stratum.morph
 tar -tf "$DATADIR/cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
