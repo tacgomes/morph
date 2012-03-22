@@ -44,6 +44,12 @@ class CheckCopyrightYear(cliapp.Application):
             return
 
         year = self.get_git_commit_year(filename)
+        if year is None:
+            # git does not have a commit date for the file, which might
+            # happen if the file isn't committed yet. This happens during
+            # development, and it's OK. It's not quite a lumberjack, but
+            # let's not get into gender stereotypes here.
+            return
 
         ok = False
         for start, end in self.get_copyright_years(m):
@@ -64,6 +70,8 @@ class CheckCopyrightYear(cliapp.Application):
     def get_git_commit_year(self, filename):
         out = self.runcmd(['git', 'log', '-1', '--format=format:%cd',
                            filename])
+        if not out:
+            return None
         words = out.split()
         return int(words[4])
 
