@@ -22,9 +22,6 @@
 
 set -e
 
-cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
-
 ( cd "$DATADIR/chunk-repo"
   git checkout --quiet farrokh
   cat >goodbye <<EOF
@@ -59,5 +56,5 @@ tests/morph build morphs-repo master hello-stratum.morph
 # unpack it and check the contents
 INSTDIR="$DATADIR"/unpack
 mkdir -p "$INSTDIR"
-tar -C "$INSTDIR" -xhf "$cache/"*hello-stratum*
+tar -C "$INSTDIR" -xhf "$DATADIR/cache/"*hello-stratum*
 test "$("$INSTDIR"/bin/hello)" = "hello, world"
