@@ -356,6 +356,9 @@ class Morph(cliapp.Application):
 
         tempdir.remove()
 
+    def cmd_init(self, args):
+        '''Initialize a mine.'''
+
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
         logging.debug(msg)
