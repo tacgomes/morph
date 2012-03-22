@@ -23,8 +23,8 @@ set -e
 # the root directory of the morph repository
 export PATH="`pwd`:$PATH"
 
-cache="$DATADIR/build-chunk-cache"
-log="$DATADIR/build-chunk-morph.log"
+cache="$DATADIR/cache"
+log="$DATADIR/morph.log"
 ./morph --no-default-configs \
     build-distributed chunk-repo farrokh hello.morph \
     --git-base-url="file://$DATADIR" \

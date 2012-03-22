@@ -18,11 +18,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #tempdirs make script diffing cry
-cache="$DATADIR/build-chunk-cache"
+cache="$DATADIR/cache"
 ./morph --no-default-configs build chunk-repo non-existent-branch hello.morph \
     --git-base-url="file://$DATADIR" \
     --cachedir="$cache" --keep-path --no-distcc \
-        2> "$DATADIR/build-chunk-cache.stderr"
+        2> "$DATADIR/stderr"
 err=$?
-cat "$DATADIR/build-chunk-cache.stderr" | sed "s%$DATADIR%%" 1>&2
+cat "$DATADIR/stderr" | sed "s%$DATADIR%%" 1>&2
 exit $err

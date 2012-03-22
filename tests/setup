@@ -28,6 +28,9 @@
 
 set -e
 
+# The $DATADIR should be empty at the beginnig of each test.
+find "$DATADIR" -mindepth 1 -delete
+
 # Create chunk repository.
 
 chunkrepo="$DATADIR/chunk-repo"

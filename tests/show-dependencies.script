@@ -20,8 +20,8 @@
 
 set -e
 
-cache="$DATADIR/show-dependencies-cache"
-log="$DATADIR/show-dependencies-morph.log"
+cache="$DATADIR/cache"
+log="$DATADIR/morph.log"
 
 ./morph show-dependencies                           \
     test-repo master xfce-core.morph                \

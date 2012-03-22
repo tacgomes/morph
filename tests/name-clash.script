@@ -22,8 +22,8 @@
 
 set -e
 
-cache="$DATADIR/build-chunk-cache"
-log="$DATADIR/build-chunk-morph.log"
+cache="$DATADIR/cache"
+log="$DATADIR/morph.log"
 
 ( cd "$DATADIR/chunk-repo"
   git checkout --quiet farrokh

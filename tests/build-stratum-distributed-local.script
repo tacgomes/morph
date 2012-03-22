@@ -21,8 +21,8 @@ set -e
 
 export PATH="`pwd`:$PATH"
 
-cache="$DATADIR/build-stratum-cache"
-log="$DATADIR/build-stratum-morph.log"
+cache="$DATADIR/cache"
+log="$DATADIR/morph.log"
 ./morph --no-default-configs \
     build-distributed morphs-repo master hello-stratum.morph \
     --git-base-url="file://$DATADIR" \
