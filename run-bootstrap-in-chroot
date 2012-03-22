@@ -120,10 +120,10 @@ if ! "$snapshot" || ! has_pass pass1a; then
     then
         tar -C "$dir" -xhf "$chrootsnapshot"
     else
-        debootstrap --include=build-essential,gawk,bison,flex,python,autoconf \
-                    --include=autopoint,automake,gettext,libtool,help2man \
-                    --include=texinfo,sudo,ccache,gperf \
-                    squeeze "$dir" "$DEBIAN_MIRROR"
+        EXTRAPACKAGES="build-essential,gawk,bison,flex,python,autoconf"
+        EXTRAPACKAGES="$EXTRAPACKAGES,autopoint,automake,gettext,libtool"
+        EXTRAPACKAGES="$EXTRAPACKAGES,help2man,texinfo,sudo,ccache,gperf"
+        debootstrap --include="$EXTRAPACKAGES" squeeze "$dir" "$DEBIAN_MIRROR"
 
         mkdir -p "$dir/etc"
         hostname > "$dir/etc/hostname"
