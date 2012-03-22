@@ -377,6 +377,19 @@ class Morph(cliapp.Application):
         os.mkdir(os.path.join(dirname, '.morph'))
         os.mkdir(os.path.join(dirname, '.morph', 'cache'))
 
+    def cmd_minedir(self, args):
+        '''Find morph mine directory from current working directory.'''
+        
+        dirname = os.getcwd()
+        while dirname != '/':
+            dot_morph = os.path.join(dirname, '.morph')
+            if os.path.isdir(dot_morph):
+                self.output.write('%s\n' % dirname)
+                return
+            dirname = os.path.dirname(dirname)
+            
+        raise cliapp.AppException("Can't find the mine directory")
+        
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
         logging.debug(msg)
