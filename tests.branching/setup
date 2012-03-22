@@ -17,11 +17,23 @@
 
 # Set up $DATADIR.
 #
+# - a morph.conf configuration file
 # - an empty morph mine directory
 # - a git repository called "morphs" for fake system, stratum morphologies
 # - a git repository calle "hello" for a dummy chunk
 
 set -eu
+
+
+# Create a morph configuration file
+cat <<EOF > "$DATADIR/morph.conf"
+[config]
+git-base-url = file://$DATADIR/
+cachedir = $DATADIR/mine/.morph/cache
+log = $DATADIR/morph.log
+keep-path = true
+no-distcc = true
+EOF
 
 
 # Create an empty directory to be used as a morph mine
