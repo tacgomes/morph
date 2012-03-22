@@ -390,6 +390,16 @@ class Morph(cliapp.Application):
             
         raise cliapp.AppException("Can't find the mine directory")
         
+    def cmd_branch(self, args):
+        '''Branch the whole system.'''
+        
+        if len(args) != 1:
+            raise cliapp.AppException('morph branch needs name of branch '
+                                        'as parameter')
+
+        branch = args[0]
+        os.makedirs(branch)
+        
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
         logging.debug(msg)
