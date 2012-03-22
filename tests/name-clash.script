@@ -20,10 +20,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
-
-cache="$DATADIR/build-chunk-cache"
-log="$DATADIR/build-chunk-morph.log"
+set -eu
 
 ( cd "$DATADIR/chunk-repo"
   git checkout --quiet farrokh
@@ -51,19 +48,13 @@ EOF
 )
 
 # build the dodgy chunk
-./morph --no-default-configs build chunk-repo farrokh goodbye.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build chunk-repo farrokh goodbye.morph
 
 # build a stratum 
-./morph --no-default-configs build morphs-repo master hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build morphs-repo master hello-stratum.morph
 
 # unpack it and check the contents
 INSTDIR="$DATADIR"/unpack
 mkdir -p "$INSTDIR"
-tar -C "$INSTDIR" -xhf "$cache/"*hello-stratum*
+tar -C "$INSTDIR" -xhf "$DATADIR/cache/"*hello-stratum*
 test "$("$INSTDIR"/bin/hello)" = "hello, world"

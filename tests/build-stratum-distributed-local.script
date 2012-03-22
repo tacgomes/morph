@@ -17,15 +17,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
+set -eu
 
-export PATH="`pwd`:$PATH"
-
-cache="$DATADIR/build-stratum-cache"
-log="$DATADIR/build-stratum-morph.log"
-./morph --no-default-configs \
-    build-distributed morphs-repo master hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
-tar -tf "$cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+tests/morph build-distributed morphs-repo master hello-stratum.morph
+tar -tf "$DATADIR/cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

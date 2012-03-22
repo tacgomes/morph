@@ -2,7 +2,7 @@
 #
 # Test building a chunk.
 #
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011, 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,16 +17,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
+set -eu
 
-cache="$DATADIR/build-chunk-cache"
-log="$DATADIR/build-chunk-morph.log"
-./morph --no-default-configs build chunk-repo farrokh hello.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build chunk-repo farrokh hello.morph
 
-for chunk in "$cache/"*.chunk.*
+for chunk in "$DATADIR/cache/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

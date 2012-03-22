@@ -17,21 +17,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
+set -eu
 
-# add working directory to PATH, assuming tests are performed in
-# the root directory of the morph repository
-export PATH="`pwd`:$PATH"
+tests/morph build-distributed chunk-repo farrokh hello.morph
 
-cache="$DATADIR/build-chunk-cache"
-log="$DATADIR/build-chunk-morph.log"
-./morph --no-default-configs \
-    build-distributed chunk-repo farrokh hello.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
-
-for chunk in "$cache/"*.chunk.*
+for chunk in "$DATADIR/cache/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

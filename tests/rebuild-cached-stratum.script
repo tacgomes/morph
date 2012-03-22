@@ -5,7 +5,7 @@
 # not get rebuilt in that case. Later on, the test will guard against
 # regressions.
 #
-# Copyright (C) 2011  Codethink Limited
+# Copyright (C) 2011, 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,10 +20,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -e
+set -eu
 
-cache="$DATADIR/rebuild-cached-stratum-cache"
-log="$DATADIR/rebuild-cached-stratum-morph.log"
+cache="$DATADIR/cache"
 
 # Make a branch in the chunk repo where we can make our own modifications.
 (cd "$DATADIR/chunk-repo" &&
@@ -38,11 +37,7 @@ log="$DATADIR/rebuild-cached-stratum-morph.log"
  git commit --quiet -m "rebuild-cached-stratum" -a)
 
 # Build the first time.
-./morph --no-default-configs \
-    build morphs-repo rebuild-cached-stratum hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "first build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
@@ -53,11 +48,7 @@ echo "first build:"
  git commit --quiet -am change)
 
 # Rebuild.
-./morph --no-default-configs \
-    build morphs-repo rebuild-cached-stratum hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "second build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
