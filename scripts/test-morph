@@ -14,8 +14,26 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Wrapper around morph for use by cmdtest tests.
+# Wrapper around morph for use by cmdtest tests. This does several things:
+#
+#   * simpler command lines for running morph, so that each test does not
+#     need to add --no-default-config and other options every time
+#   * replace temporary filenames ($DATADIR) in the output with a known
+#     string ("TMP"), so that test output is deterministic
 
 set -eu
 
-"$SRCDIR/morph" --no-default-config --config="$DATADIR/morph.conf" "$@"
+if "$SRCDIR/morph" --no-default-config --config="$DATADIR/morph.conf" "$@" \
+    > "$DATADIR/stdout" 2> "$DATADIR/stderr"
+then
+    exit=0
+else
+    exit=1
+fi
+
+sed -i "s,$DATADIR,TMP,g" "$DATADIR/stdout" "$DATADIR/stderr"
+cat "$DATADIR/stdout"
+cat "$DATADIR/stderr" 1>&2
+
+exit "$exit"
+
