@@ -22,4 +22,4 @@ set -eu
 
 export LC_ALL=C
 cd "$1"
-find -printf '%y %f\n' | sort
+find -printf '%y %p\n' | sort
