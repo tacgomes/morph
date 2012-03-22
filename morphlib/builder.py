@@ -433,10 +433,11 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             self._create_subvolume(factory_path)
             self._unpack_strata(factory_path)
             self._create_fstab(factory_path)
-            self._install_extlinux(factory_path)
+            boot_path = os.path.join(mount_point, 'boot')
+            self._install_boot_files(factory_path, boot_path)
+            self._install_extlinux(mount_point)
             self._create_subvolume_snapshot(
-                    factory_path,
-                    os.path.join(mount_point, 'factory-run'))
+                    mount_point, 'factory', 'factory-run')
             self._unmount(mount_point)
         except BaseException:
             self._unmount(mount_point)
@@ -518,27 +519,33 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
                 f.write('sysfs     /sys  sysfs defaults          0 0\n')
                 f.write('/dev/disk/by-label/baserock / btrfs errors=remount-ro 0 1\n')
 
-    def _install_extlinux(self, subvolume):
+    def _install_boot_files(self, subvolume, destination):
+        os.mkdir(destination)
+        self.ex.runv(['cp', os.path.join(subvolume, 'boot', 'vmlinuz'),
+                      os.path.join(destination, 'vmlinuz')])
+
+    def _install_extlinux(self, path):
         with self.build_watch('install-bootloader'):
-            conf = os.path.join(subvolume, 'extlinux.conf')
+            conf = os.path.join(path, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
             with open(conf, 'w') as f:
                 f.write('default linux\n')
                 f.write('timeout 1\n')
                 f.write('label linux\n')
-                f.write('kernel /factory-run/boot/vmlinuz\n')
+                f.write('kernel /boot/vmlinuz\n')
                 f.write('append root=/dev/disk/by-label/baserock rootflags=subvol=factory-run init=/sbin/init quiet rw\n')
 
-            self.ex.runv(['extlinux', '--install', subvolume])
+            self.ex.runv(['extlinux', '--install', '%s' % path])
             
             # Weird hack that makes extlinux work. 
             # FIXME: There is a bug somewhere.
             self.ex.runv(['sync'])
             time.sleep(2)
 
-    def _create_subvolume_snapshot(source, target):
+    def _create_subvolume_snapshot(self, path, source, target):
         with self.build_watch('create-subvolume-snapshot'):
-            self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target])
+            self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
+                         cwd=path)
 
     def _unmount(self, mount_point):
         if mount_point is not None:
