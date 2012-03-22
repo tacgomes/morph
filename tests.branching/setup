@@ -15,10 +15,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+# Set up $DATADIR.
+
 set -eu
 
-# Test that "morph init" fails when given the name of an existing,
-# non-empty directory.
-
-touch "$DATADIR/mine/foo"
-"$SRCDIR/scripts/test-morph" init "$DATADIR/mine"
+mkdir "$DATADIR/mine"

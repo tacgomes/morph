@@ -358,6 +358,24 @@ class Morph(cliapp.Application):
 
     def cmd_init(self, args):
         '''Initialize a mine.'''
+        
+        if not args:
+            args = ['.']
+        elif len(args) > 1:
+            raise cliapp.AppException('init must get at most one argument')
+
+        dirname = args[0]
+
+        if os.path.exists(dirname):
+            if os.listdir(dirname) != []:
+                raise cliapp.AppException('can only initialize empty '
+                                          'directory: %s' % dirname)
+        else:
+            raise cliapp.AppException('can only initialize an existing '
+                                        'empty directory: %s' % dirname)
+
+        os.mkdir(os.path.join(dirname, '.morph'))
+        os.mkdir(os.path.join(dirname, '.morph', 'cache'))
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

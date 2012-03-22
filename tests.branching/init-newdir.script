@@ -21,3 +21,4 @@ set -eu
 # directory that does not exist yet.
 
 "$SRCDIR/scripts/test-morph" init "$DATADIR/foo"
+
