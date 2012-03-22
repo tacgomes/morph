@@ -397,8 +397,27 @@ class Morph(cliapp.Application):
             raise cliapp.AppException('morph branch needs name of branch '
                                         'as parameter')
 
-        branch = args[0]
-        os.makedirs(branch)
+        new_branch = args[0]
+        repo = 'morphs'
+        commit = 'master'
+
+        # Create the system branch directory.
+        os.makedirs(new_branch)
+
+        # Get the 'morphs' repository into the cache.
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                                update=not self.settings['no-git-update'])
+        treeish = source_manager.get_treeish('morphs', commit)
+        
+        # Clone it from cache to system branch directory.
+        new_repo = os.path.join(new_branch, os.path.basename(repo))
+        morphlib.git.clone(new_repo, treeish.repo, self.msg)
+        
+        # Create a new branch in the local morphs repository.
+        self.runcmd(['git', 'checkout', '-b', new_branch, commit],
+                    cwd=new_repo)
         
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''

@@ -1,0 +1,15 @@
+File tree:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_morphs
+d ./.morph/cache/gits/file_morphs/.git
+d ./newbranch
+d ./newbranch/morphs
+d ./newbranch/morphs/.git
+f ./newbranch/morphs/hello-stratum.chunk
+f ./newbranch/morphs/hello-system.chunk
+Current branches:
+  master
+* newbranch
