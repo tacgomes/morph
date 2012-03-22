@@ -115,3 +115,14 @@ git add hello-system.morph
 
 git commit --quiet -m "add morphs"
 
+
+# Create a morph configuration file.
+cat <<EOF > "$DATADIR/morph.conf"
+[config]
+git-base-url = file://$DATADIR/
+cachedir = $DATADIR/cache
+log = $DATADIR/morph.log
+keep-path = true
+no-distcc = true
+EOF
+
