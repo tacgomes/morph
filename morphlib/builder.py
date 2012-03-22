@@ -429,9 +429,14 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             self._create_fs(partition)
             mount_point = self.tempdir.join('mnt')
             self._mount(partition, mount_point)
-            self._unpack_strata(mount_point)
-            self._create_fstab(mount_point)
-            self._install_extlinux(mount_point)
+            factory_path = os.path.join(mount_point, 'factory')
+            self._create_subvolume(factory_path)
+            self._unpack_strata(factory_path)
+            self._create_fstab(factory_path)
+            self._install_extlinux(factory_path)
+            self._create_subvolume_snapshot(
+                    factory_path,
+                    os.path.join(mount_point, 'factory-run'))
             self._unmount(mount_point)
         except BaseException:
             self._unmount(mount_point)
@@ -482,48 +487,58 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):
-            # FIXME: the hardcoded size is icky but the default broke
-            self.ex.runv(['mkfs', '-t', 'ext4', '-q', partition, '4194304'])
+            # FIXME: the hardcoded size of 4GB is icky but the default broke
+            # when we used mkfs -t ext4
+            self.ex.runv(['mkfs', '-t', 'btrfs', '-L', 'baserock',
+                          '-b', '4294967296', partition])
 
     def _mount(self, partition, mount_point):
         with self.build_watch('mount-filesystem'):
             os.mkdir(mount_point)
             self.ex.runv(['mount', partition, mount_point])
 
-    def _unpack_strata(self, mount_point):
+    def _create_subvolume(self, path):
+        with self.build_watch('create-factory-subvolume'):
+            self.ex.runv(['btrfs', 'subvolume', 'create', path])
+
+    def _unpack_strata(self, path):
         with self.build_watch('unpack-strata'):
             for name, filename in self.stage_items:
                 self.msg('unpack %s from %s' % (name, filename))
-                self.ex.runv(['tar', '-C', mount_point, '-xhf', filename])
-            ldconfig(self.ex, mount_point)
+                self.ex.runv(['tar', '-C', path, '-xhf', filename])
+            ldconfig(self.ex, path)
 
-    def _create_fstab(self, mount_point):
+    def _create_fstab(self, path):
         with self.build_watch('create-fstab'):
-            fstab = os.path.join(mount_point, 'etc', 'fstab')
+            fstab = os.path.join(path, 'etc', 'fstab')
             if not os.path.exists(os.path.dirname(fstab)):
                 os.makedirs(os.path.dirname(fstab))
             with open(fstab, 'w') as f:
                 f.write('proc      /proc proc  defaults          0 0\n')
                 f.write('sysfs     /sys  sysfs defaults          0 0\n')
-                f.write('/dev/sda1 /     ext4  errors=remount-ro 0 1\n')
+                f.write('/dev/disk/by-label/baserock / btrfs errors=remount-ro 0 1\n')
 
-    def _install_extlinux(self, mount_point):
+    def _install_extlinux(self, subvolume):
         with self.build_watch('install-bootloader'):
-            conf = os.path.join(mount_point, 'extlinux.conf')
+            conf = os.path.join(subvolume, 'extlinux.conf')
             logging.debug('configure extlinux %s' % conf)
             with open(conf, 'w') as f:
                 f.write('default linux\n')
                 f.write('timeout 1\n')
                 f.write('label linux\n')
-                f.write('kernel /boot/vmlinuz\n')
-                f.write('append root=/dev/sda1 init=/sbin/init quiet rw\n')
+                f.write('kernel /factory-run/boot/vmlinuz\n')
+                f.write('append root=/dev/disk/by-label/baserock rootflags=subvol=factory-run init=/sbin/init quiet rw\n')
 
-            self.ex.runv(['extlinux', '--install', mount_point])
+            self.ex.runv(['extlinux', '--install', subvolume])
             
             # Weird hack that makes extlinux work. 
             # FIXME: There is a bug somewhere.
             self.ex.runv(['sync'])
             time.sleep(2)
+
+    def _create_subvolume_snapshot(source, target):
+        with self.build_watch('create-subvolume-snapshot'):
+            self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target])
 
     def _unmount(self, mount_point):
         if mount_point is not None:
