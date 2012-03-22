@@ -19,13 +19,5 @@
 
 set -e
 
-export PATH="`pwd`:$PATH"
-
-cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
-./morph --no-default-configs \
-    build-distributed morphs-repo master hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
-tar -tf "$cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+tests/morph build-distributed morphs-repo master hello-stratum.morph
+tar -tf "$DATADIR/cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

@@ -38,11 +38,7 @@ log="$DATADIR/morph.log"
  git commit --quiet -m "rebuild-cached-stratum" -a)
 
 # Build the first time.
-./morph --no-default-configs \
-    build morphs-repo rebuild-cached-stratum hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "first build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
@@ -53,11 +49,7 @@ echo "first build:"
  git commit --quiet -am change)
 
 # Rebuild.
-./morph --no-default-configs \
-    build morphs-repo rebuild-cached-stratum hello-stratum.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "second build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)

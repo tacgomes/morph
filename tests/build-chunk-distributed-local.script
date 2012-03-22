@@ -19,19 +19,9 @@
 
 set -e
 
-# add working directory to PATH, assuming tests are performed in
-# the root directory of the morph repository
-export PATH="`pwd`:$PATH"
+tests/morph build-distributed chunk-repo farrokh hello.morph
 
-cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
-./morph --no-default-configs \
-    build-distributed chunk-repo farrokh hello.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
-
-for chunk in "$cache/"*.chunk.*
+for chunk in "$DATADIR/cache/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

@@ -19,14 +19,9 @@
 
 set -e
 
-cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
-./morph --no-default-configs build chunk-repo farrokh hello.morph \
-    --git-base-url="file://$DATADIR" \
-    --cachedir="$cache" --keep-path --no-distcc \
-    --log="$log" || cat "$log" 1>&2
+tests/morph build chunk-repo farrokh hello.morph
 
-for chunk in "$cache/"*.chunk.*
+for chunk in "$DATADIR/cache/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

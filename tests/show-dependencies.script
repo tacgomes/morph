@@ -20,14 +20,5 @@
 
 set -e
 
-cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
+tests/morph show-dependencies test-repo master xfce-core.morph
 
-./morph show-dependencies                           \
-    test-repo master xfce-core.morph                \
-    --no-default-configs                            \
-    --git-base-url="file://$DATADIR"                \
-    --cachedir="$cache"                             \
-    --keep-path                                     \
-    --no-distcc                                     \
-    --log="$log"
