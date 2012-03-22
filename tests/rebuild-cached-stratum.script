@@ -23,7 +23,6 @@
 set -e
 
 cache="$DATADIR/cache"
-log="$DATADIR/morph.log"
 
 # Make a branch in the chunk repo where we can make our own modifications.
 (cd "$DATADIR/chunk-repo" &&
