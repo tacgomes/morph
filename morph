@@ -391,8 +391,8 @@ class Morph(cliapp.Application):
 
             # make a diff
             ex.runv(['tbdiff-create', outpath,
-                     os.path.join(paths['source'], 'factory'),
-                     os.path.join(paths['target'], 'factory')])
+                     os.path.join(tempdir.join('mnt_source'), 'factory'),
+                     os.path.join(tempdir.join('mnt_target'), 'factory')])
         except Exception:
             raise
         finally:
