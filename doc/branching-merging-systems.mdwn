@@ -295,8 +295,9 @@ Usage:
 
     morph merge BRANCH
 
-This needs to be run inside a system branch directory, and `BRANCH`
-must be another system branch checked out in the morph mine.
+This needs to be run inside a system branch directory's `morphs`
+repository, and `BRANCH` must be another system branch checked out 
+in the morph mine.
 
 * In each git repository modified by the `BRANCH` system branch, 
   run `git merge --no-commit BRANCH`, then undo any changes to 
