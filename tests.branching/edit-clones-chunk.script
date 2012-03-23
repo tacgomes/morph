@@ -31,6 +31,14 @@ cd newbranch/morphs
 
 echo "Current branches, morphs:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/morphs" branch
+
+echo "Current origin, morphs:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/morphs" \
+    remote show origin | sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'
+
 echo "Current branches, hello:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/hello" branch
 
+echo "Current origin, hello:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/hello" \
+    remote show origin | sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'
