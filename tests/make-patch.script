@@ -83,4 +83,4 @@ UNPACKED="$DATADIR"/unpacked
 mkdir -p "$UNPACKED"
 tar -C "$UNPACKED" -xf "$DATADIR"/farrokh-stratum
 (cd "$UNPACKED" && tbdiff-deploy "$PATCH")
-"$UNPACKED"/hello
+"$UNPACKED"/bin/hello
