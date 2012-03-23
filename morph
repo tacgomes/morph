@@ -433,6 +433,23 @@ class Morph(cliapp.Application):
         self.runcmd(['git', 'checkout', '-b', new_branch, commit],
                     cwd=new_repo)
 
+    def cmd_checkout(self, args):
+        '''Check out an existing system branch.'''
+
+        if len(args) != 1:
+            raise cliapp.AppException('morph checkout needs name of '
+                                        'branch as parameter')
+
+        system_branch = args[0]
+        repo = 'morphs'
+
+        # Create the system branch directory.
+        os.makedirs(system_branch)
+
+        # Clone into system branch directory.
+        new_repo = os.path.join(system_branch, os.path.basename(repo))
+        self._clone_to_directory(new_repo, repo, system_branch)
+
     def _deduce_system_branch(self):
         out = self.runcmd(['git', 'branch'])
         for line in out.splitlines():
