@@ -363,9 +363,10 @@ class Morph(cliapp.Application):
         morph_loader = MorphologyLoader(self.settings)
         src_manager = morphlib.sourcemanager.SourceManager(self, update=False)
         factory = morphlib.builder.Factory(tempdir)
+        factory.create_staging()
         builder = morphlib.builder.Builder(tempdir, self, morph_loader,
                                            src_manager, factory)
-        cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
+        #cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         ex = morphlib.execute.Execute('.', self.msg)
 
         outpath = args[0]
@@ -373,10 +374,13 @@ class Morph(cliapp.Application):
         trip_iter = self._itertriplets(args)
         paths = {}
         for name in ('source', 'target'):
-            repo, ref, filename = trip_iter()
+            repo, ref, filename = trip_iter.next()
+            print repo, ref, filename
             treeish = src_manager.get_treeish(repo, ref)
-            morph = lorph_loader.load(treeish, filename)
-            paths[name] = cachedir.name(builder.get_cache_id(morph))
+            morph = morph_loader.load(treeish, filename)
+            blob = morphlib.blobs.Blob.create_blob(morph)
+            blob_builder = builder.create_blob_builder(blob)
+            paths[name] = blob_builder.filename(morph.name)
 
         try:
             for name in paths.iterkeys():
@@ -389,15 +393,15 @@ class Morph(cliapp.Application):
             ex.runv(['tbdiff-create', outpath,
                      os.path.join(paths['source'], 'factory'),
                      os.path.join(paths['target'], 'factory')])
-
-        except BaseException:
+        except Exception:
+            raise
+        finally:
             # cleanup
             for name in paths.iterkeys():
                 mount_point = tempdir.join('mnt_' + name)
                 morphlib.fsutils.unmount(ex, mount_point)
                 morphlib.fsutils.undo_device_mapping(ex, paths[name])
-            raise
-
+            factory.remove_staging()
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
