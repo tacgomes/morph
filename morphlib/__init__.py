@@ -25,6 +25,7 @@ import buildworker
 import builder
 import cachedir
 import execute
+import fsutils
 import git
 import morphology
 import morphologyloader
