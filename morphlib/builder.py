@@ -450,7 +450,8 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            morphlib.fsutils.create_image(self.ex, image_name, self.blob.morph.disk_size)
+            morphlib.fsutils.create_image(self.ex, image_name,
+                                          self.blob.morph.disk_size)
 
     def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
@@ -500,7 +501,8 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             f.write('timeout 1\n')
             f.write('label linux\n')
             f.write('kernel /boot/vmlinuz\n')
-            f.write('append root=/dev/sda1 rootflags=subvol=factory-run init=/sbin/init quiet rw\n')
+            f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
+                                           'init=/sbin/init quiet rw\n')
 
     def _create_subvolume_snapshot(self, path, source, target):
         with self.build_watch('create-subvolume-snapshot'):

@@ -361,9 +361,10 @@ class Morph(cliapp.Application):
         
         tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
         morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self, update=False)
+        src_manager = morphlib.sourcemanager.SourceManager(self, update=False)
         factory = morphlib.builder.Factory(tempdir)
-        builder = morphlib.builder.Builder(tempdir, self, morph_loader, source_manager, factory)
+        builder = morphlib.builder.Builder(tempdir, self, morph_loader,
+                                           src_manager, factory)
         cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
         ex = morphlib.execute.Execute('.', self.msg)
 
@@ -373,19 +374,20 @@ class Morph(cliapp.Application):
         paths = {}
         for name in ('source', 'target'):
             repo, ref, filename = trip_iter()
-            treeish = source_manager.get_treeish(repo, ref)
+            treeish = src_manager.get_treeish(repo, ref)
             morph = lorph_loader.load(treeish, filename)
             paths[name] = cachedir.name(builder.get_cache_id(morph))
 
         try:
             for name in paths.iterkeys():
                 # mount the system images
-                partition = morphlib.fsutils.setup_device_mapping(ex, paths[name])
+                part = morphlib.fsutils.setup_device_mapping(ex, paths[name])
                 mount_point = tempdir.join('mnt_' + name)
-                morphlib.fsutils.mount(ex, partition, mount_point)
+                morphlib.fsutils.mount(ex, part, mount_point)
 
             # make a diff
-            ex.runv(['tbdiff-create', outpath, paths['source'], paths['target']])
+            ex.runv(['tbdiff-create', outpath, paths['source'],
+                                               paths['target']])
 
         except BaseException:
             # cleanup
