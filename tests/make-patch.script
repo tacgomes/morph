@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# Test making a patch between two different system images
+#
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -eu
+
+tests/morph build morphs-repo master hello-system.morph
+
+# save the stratum as we will apply the patch on top of this later
+cp "$DATADIR/cache/"*stratum* "$DATADIR"/farrokh-stratum
+
+ 
+( # make an evil stratum
+	cd "$DATADIR/chunk-repo"
+	git checkout --quiet -b evil farrokh
+	sed -i -e 's/hello/goodbye/g' hello.c
+	git add hello.c
+	git commit --quiet -m "Make the program evil"
+
+	cd "$DATADIR/morphs-repo"
+	git checkout --quiet -b evil master
+	sed -i -e 's/farrokh/evil/g' hello-stratum.morph
+	git add hello-stratum.morph
+	git commit --quiet -m "Build evil systems"
+)
+
+tests/morph build morphs-repo evil hello-system.morph
+
+# make a patch to make the system evil
+PATCH="$DATADIR"/patchfile
+tests/morph make_patch "$PATCH" morphs-repo master hello-system.morph \
+                                morphs-repo evil hello-system.morph
+
+UNPACKED="$DATADIR"/unpacked
+mkdir -p "$UNPACKED"
+tar -C "$UNPACKED" -xf "$DATADIR"/farrokh-stratum
+(cd "$UNPACKED" && tbdiff-deploy "$PATCH")
+"$UNPACKED"/hello
