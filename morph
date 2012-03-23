@@ -487,8 +487,11 @@ class Morph(cliapp.Application):
         new_repo = os.path.join(mine_directory, system_branch, 
                                 os.path.basename(repo))
         self._clone_to_directory(new_repo, repo, ref)
-        self.runcmd(['git', 'checkout', '-b', system_branch, ref],
-                    cwd=new_repo)
+        
+        system_branch = self._deduce_system_branch()
+        if system_branch != ref:
+            self.runcmd(['git', 'checkout', '-b', system_branch, ref],
+                        cwd=new_repo)
 
     def cmd_merge(self, args):
         '''Merge specified repositories from another system branch.'''
