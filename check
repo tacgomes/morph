@@ -21,6 +21,7 @@ set -e
 
 python setup.py clean check
 cmdtest tests
+cmdtest tests.branching
 
 if [ -d .git ];
 then
