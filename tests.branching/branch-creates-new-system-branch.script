@@ -29,3 +29,7 @@ echo "File tree:"
 
 echo "Current branches:"
 "$SRCDIR/scripts/run-git-in" newbranch/morphs branch
+
+echo "Current origin:"
+"$SRCDIR/scripts/run-git-in" newbranch/morphs remote show origin |
+    sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'

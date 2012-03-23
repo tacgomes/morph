@@ -410,6 +410,9 @@ class Morph(cliapp.Application):
         
         # Clone it from cache to target directory.
         morphlib.git.clone(dirname, treeish.repo, self.msg)
+        
+        # Set the origin to point at the original repository.
+        morphlib.git.set_remote(dirname, 'origin', treeish.original_repo)
     
     def cmd_branch(self, args):
         '''Branch the whole system.'''

@@ -13,3 +13,14 @@ f ./newbranch/morphs/hello-system.chunk
 Current branches:
   master
 * newbranch
+Current origin:
+* remote origin
+  Fetch URL: file://TMP/morphs
+  Push  URL: file://TMP/morphs
+  HEAD branch: master
+  Remote branch:
+    master tracked
+  Local branch configured for 'git pull':
+    master merges with remote master
+  Local ref configured for 'git push':
+    master pushes to master (up to date)
