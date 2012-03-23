@@ -35,3 +35,5 @@ echo "Current branches, morphs:"
 echo "Current branches, hello:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/mine/master/hello" branch
 
+echo "Files in hello:"
+ls "$DATADIR/mine/master/hello"
