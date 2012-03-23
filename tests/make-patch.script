@@ -19,6 +19,39 @@
 
 set -eu
 
+( # make the dummy stratum contain a chunk for a fake kernel
+    mkdir -p "$DATADIR/dummykernel"
+    cd "$DATADIR/dummykernel"
+    git init --quiet
+    cat <<EOF >dummykernel.morph
+{
+    "name": "dummykernel",
+    "kind": "chunk",
+    "install-commands": [
+        "mkdir -p \"\$DESTDIR/boot\"",
+        "touch \"\$DESTDIR\"/extlinux.conf",
+        "touch \"\$DESTDIR\"/boot/vmlinuz",
+        "touch \"\$DESTDIR\"/boot/System.map"
+    ]
+}
+EOF
+	
+	
+    git add .
+    git commit --quiet -m "Make dummy boot files"
+
+    cd "$DATADIR/morphs-repo"
+    git checkout --quiet master
+    sed -i -e 's/^.*sources.*$/&\
+        {\
+            "name": "dummykernel",\
+            "ref": "master"\
+        },\
+/' hello-stratum.morph
+
+    git commit --quiet -m "add dummy kernel" hello-stratum.morph
+)
+
 tests/morph build morphs-repo master hello-system.morph
 
 # save the stratum as we will apply the patch on top of this later
@@ -43,7 +76,7 @@ tests/morph build morphs-repo evil hello-system.morph
 
 # make a patch to make the system evil
 PATCH="$DATADIR"/patchfile
-tests/morph make_patch "$PATCH" morphs-repo master hello-system.morph \
+tests/morph make-patch "$PATCH" morphs-repo master hello-system.morph \
                                 morphs-repo evil hello-system.morph
 
 UNPACKED="$DATADIR"/unpacked
