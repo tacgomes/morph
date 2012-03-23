@@ -716,21 +716,21 @@ class Builder(object): # pragma: no cover
                             (str(blob), type(blob)))
 
         builder = klass(blob, self.factory, self.app.settings, self.cachedir,
-                        self.get_cache_id(blob), self.tempdir,
+                        self.get_cache_id(blob.morph), self.tempdir,
                         self.app.clean_env())
         builder.real_msg = self.msg
         builder.dump_memory_profile = self.dump_memory_profile
         
         return builder
 
-    def get_cache_id(self, blob):
-        logging.debug('get_cache_id(%s)' % blob)
+    def get_cache_id(self, morph):
+        logging.debug('get_cache_id(%s)' % morph)
 
-        if blob.morph.kind == 'chunk':
+        if morph.kind == 'chunk':
             kids = []
-        elif blob.morph.kind == 'stratum':
+        elif morph.kind == 'stratum':
             kids = []
-            for source in blob.morph.sources:
+            for source in morph.sources:
                 repo = source['repo']
                 ref = source['ref']
                 treeish = self.source_manager.get_treeish(repo, ref)
@@ -738,26 +738,24 @@ class Builder(object): # pragma: no cover
                             if 'morph' in source
                             else source['name'])
                 filename = '%s.morph' % filename
-                morph = self.morph_loader.load(treeish, filename)
-                chunk = morphlib.blobs.Blob.create_blob(morph)
+                chunk = self.morph_loader.load(treeish, filename)
                 cache_id = self.get_cache_id(chunk)
                 kids.append(cache_id)
-        elif blob.morph.kind == 'system':
+        elif morph.kind == 'system':
             kids = []
-            for stratum_name in blob.morph.strata:
+            for stratum_name in morph.strata:
                 filename = '%s.morph' % stratum_name
-                morph = self.morph_loader.load(blob.morph.treeish, filename)
-                stratum = morphlib.blobs.Blob.create_blob(morph)
+                stratum = self.morph_loader.load(morph.treeish, filename)
                 cache_id = self.get_cache_id(stratum)
                 kids.append(cache_id)
         else:
             raise NotImplementedError('unknown morph kind %s' %
-                                      blob.morph.kind)
+                                      morph.kind)
 
         dict_key = {
-            'filename': blob.morph.filename,
+            'filename': morph.filename,
             'arch': morphlib.util.arch(),
-            'ref': blob.morph.treeish.sha1,
+            'ref': morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),
             'env': self.build_env,
         }
