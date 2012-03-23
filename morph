@@ -377,19 +377,40 @@ class Morph(cliapp.Application):
         os.mkdir(os.path.join(dirname, '.morph'))
         os.mkdir(os.path.join(dirname, '.morph', 'cache'))
 
-    def cmd_minedir(self, args):
-        '''Find morph mine directory from current working directory.'''
-        
+    def _deduce_mine_directory(self):
         dirname = os.getcwd()
         while dirname != '/':
             dot_morph = os.path.join(dirname, '.morph')
             if os.path.isdir(dot_morph):
-                self.output.write('%s\n' % dirname)
-                return
+                return dirname
             dirname = os.path.dirname(dirname)
-            
-        raise cliapp.AppException("Can't find the mine directory")
+        return None
+
+    def cmd_minedir(self, args):
+        '''Find morph mine directory from current working directory.'''
         
+        dirname = self._deduce_mine_directory()
+        if dirname is None:
+            raise cliapp.AppException("Can't find the mine directory")
+        self.output.write('%s\n' % dirname)
+    
+    def _clone_to_directory(self, dirname, repo, ref):
+        '''Clone a repository below a directory.
+        
+        As a side effect, clone it into the morph repository.
+        
+        '''
+
+        # Get the repository into the cache.
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                                update=not self.settings['no-git-update'])
+        treeish = source_manager.get_treeish(repo, ref)
+        
+        # Clone it from cache to target directory.
+        morphlib.git.clone(dirname, treeish.repo, self.msg)
+    
     def cmd_branch(self, args):
         '''Branch the whole system.'''
         
@@ -404,19 +425,49 @@ class Morph(cliapp.Application):
         # Create the system branch directory.
         os.makedirs(new_branch)
 
-        # Get the 'morphs' repository into the cache.
-        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
-        morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self,
-                                update=not self.settings['no-git-update'])
-        treeish = source_manager.get_treeish('morphs', commit)
-        
-        # Clone it from cache to system branch directory.
+        # Clone into system branch directory.
         new_repo = os.path.join(new_branch, os.path.basename(repo))
-        morphlib.git.clone(new_repo, treeish.repo, self.msg)
+        self._clone_to_directory(new_repo, repo, commit)
         
         # Create a new branch in the local morphs repository.
         self.runcmd(['git', 'checkout', '-b', new_branch, commit],
+                    cwd=new_repo)
+
+    def _deduce_system_branch(self):
+        out = self.runcmd(['git', 'branch'])
+        for line in out.splitlines():
+            if line.startswith('* '):
+                return line.strip()[2:]
+        return None
+    
+    def cmd_show_system_branch(self, args):
+        '''Print name of current system branch.
+        
+        This must be run in the system branch's ``morphs`` repository.
+        
+        '''
+        
+        system_branch = self._deduce_system_branch()
+        if system_branch is None:
+            raise cliapp.AppException("Can't determine system branch")
+        self.output.write('%s\n' % system_branch)
+    
+    def cmd_edit(self, args):
+        '''Edit a component in a system branch.'''
+        
+        if len(args) != 2:
+            raise cliapp.AppException('morph edit must get a repository name '
+                                        'and commit ref as argument')
+
+        repo = args[0]
+        ref = args[1]
+
+        mine_directory = self._deduce_mine_directory()
+        system_branch = self._deduce_system_branch()
+        new_repo = os.path.join(mine_directory, system_branch, 
+                                os.path.basename(repo))
+        self._clone_to_directory(new_repo, repo, ref)
+        self.runcmd(['git', 'checkout', '-b', system_branch, ref],
                     cwd=new_repo)
         
     def msg(self, msg):
@@ -445,7 +496,7 @@ class Morph(cliapp.Application):
         msg('# %s' % ' | '.join(commands))
 
         # run the command line
-        cliapp.Application.runcmd(self, argv, *args, **kwargs)
+        return cliapp.Application.runcmd(self, argv, *args, **kwargs)
 
     # This is in morph so that policy is easily visible, and not embedded
     # deep down in the call stack.
