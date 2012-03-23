@@ -356,6 +356,46 @@ class Morph(cliapp.Application):
 
         tempdir.remove()
 
+    def cmd_make_patch(self, args):
+        assert os.path.exists(self.settings['cachedir'])
+        
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self, update=False)
+        factory = morphlib.builder.Factory(tempdir)
+        builder = morphlib.builder.Builder(tempdir, self, morph_loader, source_manager, factory)
+        cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
+        ex = morphlib.execute.Execute('.', self.msg)
+
+        outpath = args[0]
+        args = args[1:]
+        trip_iter = self._itertriplets(args)
+        paths = {}
+        for name in ('source', 'target'):
+            repo, ref, filename = trip_iter()
+            treeish = source_manager.get_treeish(repo, ref)
+            morph = lorph_loader.load(treeish, filename)
+            paths[name] = cachedir.name(builder.get_cache_id(morph))
+
+        try:
+            for name in paths.iterkeys():
+                # mount the system images
+                partition = morphlib.fsutils.setup_device_mapping(ex, paths[name])
+                mount_point = tempdir.join('mnt_' + name)
+                morphlib.fsutils.mount(ex, partition, mount_point)
+
+            # make a diff
+            ex.runv(['tbdiff-create', outpath, paths['source'], paths['target']])
+
+        except BaseException:
+            # cleanup
+            for name in paths.iterkeys():
+                mount_point = tempdir.join('mnt_' + name)
+                morphlib.fsutils.unmount(ex, mount_point)
+                morphlib.fsutils.undo_device_mapping(ex, paths[name])
+            raise
+
+
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
         logging.debug(msg)
