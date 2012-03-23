@@ -386,8 +386,9 @@ class Morph(cliapp.Application):
                 morphlib.fsutils.mount(ex, part, mount_point)
 
             # make a diff
-            ex.runv(['tbdiff-create', outpath, paths['source'],
-                                               paths['target']])
+            ex.runv(['tbdiff-create', outpath,
+                     os.path.join(paths['source'], 'factory'),
+                     os.path.join(paths['target'], 'factory')])
 
         except BaseException:
             # cleanup
