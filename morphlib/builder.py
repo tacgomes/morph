@@ -463,7 +463,7 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
-            morphlib.fsutils.setup_device_mapping(self.ex, image_name)
+            return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):

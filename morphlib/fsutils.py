@@ -13,11 +13,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import os
+
 
 def create_image(ex, image_name, size):
     # FIXME a pure python implementation may be better
-    self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
-                      'seek=%d' % size, 'count=0'])
+    ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
+             'seek=%d' % size, 'count=0'])
 
 def partition_image(ex, image_name):
     # FIXME make this more flexible with partitioning options
@@ -27,8 +29,8 @@ def install_mbr(ex, image_name):
     for path in ['/usr/lib/extlinux/mbr.bin',
                  '/usr/share/syslinux/mbr.bin']:
         if os.path.exists(path):
-            self.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
-                          'conv=notrunc'])
+            ex.runv(['dd', 'if=' + path, 'of=' + image_name,
+                     'conv=notrunc'])
             break
 
 def setup_device_mapping(ex, image_name):
@@ -53,16 +55,16 @@ def create_fs(ex, partition):
     # FIXME: the hardcoded size of 4GB is icky but the default broke
     # when we used mkfs -t ext4
     ex.runv(['mkfs', '-t', 'btrfs', '-L', 'baserock',
-                  '-b', '4294967296', partition])
+             '-b', '4294967296', partition])
 
 def mount(ex, partition, mount_point):
     os.mkdir(mount_point)
-    self.ex.runv(['mount', partition, mount_point])
+    ex.runv(['mount', partition, mount_point])
 
 def unmount(ex, mount_point):
     ex.runv(['umount', mount_point])
 
-def undo_device_mapping(ex, image_name)
+def undo_device_mapping(ex, image_name):
     out = ex.runv(['losetup', '-j', image_name])
     for line in out.splitlines():
         i = line.find(':')
