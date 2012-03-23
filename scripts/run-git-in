@@ -22,4 +22,4 @@ set -eu
 
 cd "$1"
 shift
-exec git "$@"
+"$SRCDIR/scripts/cmd-filter" git "$@"

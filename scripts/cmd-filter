@@ -23,6 +23,18 @@
 
 set -eu
 
-"$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
-    --config="$DATADIR/morph.conf" "$@"
+if "$@" > "$DATADIR/stdout" 2> "$DATADIR/stderr"
+then
+    exit=0
+else
+    exit=1
+fi
+
+sed -i "s,$DATADIR,TMP,g" "$DATADIR/stdout" "$DATADIR/stderr"
+cat "$DATADIR/stdout"
+cat "$DATADIR/stderr" 1>&2
+
+rm -f "$DATADIR/stdout" "$DATADIR/stderr"
+
+exit "$exit"
 
