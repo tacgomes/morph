@@ -19,6 +19,11 @@
 
 set -eu
 
+fatalcat(){
+    cat "$1" 1>&2
+    return 1
+}
+
 PATH="$(pwd):$PATH"
 ./morph --no-default-config --config="$DATADIR/morph.conf" "$@" || \
-    cat "$DATADIR/morph.log" 1>&2
+    fatalcat "$DATADIR/morph.log"
