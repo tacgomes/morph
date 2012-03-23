@@ -450,54 +450,27 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            # FIXME: This could be done in pure python, no need to run dd
-            self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
-                          'seek=%d' % self.blob.morph.disk_size,
-                          'count=0'])
+            morphlib.fsutils.create_image(self.ex, image_name, self.blob.morph.disk_size)
 
     def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
-            self.ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*\n')
+            morphlib.fsutils.partition_image(self.ex, image_name)
 
     def _install_mbr(self, image_name):
         with self.build_watch('install-mbr'):
-            for path in ['/usr/lib/extlinux/mbr.bin',
-                         '/usr/share/syslinux/mbr.bin']:
-                if os.path.exists(path):
-                    self.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
-                                  'conv=notrunc'])
-                    break
+            morphlib.fsutils.install_mbr(self.ex, image_name)
 
     def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
-            out = self.ex.runv(['sfdisk', '-d', image_name])
-            for line in out.splitlines():
-                words = line.split()
-                if (len(words) >= 4 and 
-                    words[2] == 'start=' and 
-                    words[3] != '0,'):
-                    n = int(words[3][:-1]) # skip trailing comma
-                    start = n * 512
-                    break
-            
-            self.ex.runv(['losetup', '-o', str(start), '-f', image_name])
-            
-            out = self.ex.runv(['losetup', '-j', image_name])
-            line = out.strip()
-            i = line.find(':')
-            return line[:i]
+            morphlib.fsutils.setup_device_mapping(self.ex, image_name)
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):
-            # FIXME: the hardcoded size of 4GB is icky but the default broke
-            # when we used mkfs -t ext4
-            self.ex.runv(['mkfs', '-t', 'btrfs', '-L', 'baserock',
-                          '-b', '4294967296', partition])
+            morphlib.fsutils.create_fs(self.ex, partition)
 
     def _mount(self, partition, mount_point):
         with self.build_watch('mount-filesystem'):
-            os.mkdir(mount_point)
-            self.ex.runv(['mount', partition, mount_point])
+            morphlib.fsutils.mount(self.ex, partition, mount_point)
 
     def _create_subvolume(self, path):
         with self.build_watch('create-factory-subvolume'):
@@ -556,15 +529,11 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
     def _unmount(self, mount_point):
         if mount_point is not None:
             with self.build_watch('unmount-filesystem'):
-                self.ex.runv(['umount', mount_point])
+                morphlib.fsutils.unmount(self.ex, mount_point)
 
     def _undo_device_mapping(self, image_name):
         with self.build_watch('undo-device-mapper'):
-            out = self.ex.runv(['losetup', '-j', image_name])
-            for line in out.splitlines():
-                i = line.find(':')
-                device = line[:i]
-                self.ex.runv(['losetup', '-d', device])
+            morphlib.fsutils.undo_device_mapping(self.ex, image_name)
 
     def _move_image_to_cache(self, image_name):
         with self.build_watch('cache-image'):
