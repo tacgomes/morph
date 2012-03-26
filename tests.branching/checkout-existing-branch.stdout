@@ -1,0 +1,12 @@
+File tree:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_morphs
+d ./.morph/cache/gits/file_morphs/.git
+d ./master
+d ./master/morphs
+d ./master/morphs/.git
+Current branches:
+* master

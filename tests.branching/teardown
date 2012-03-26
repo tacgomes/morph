@@ -1,4 +1,5 @@
-# Copyright (C) 2011-2012  Codethink Limited
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,24 +15,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+# Clean up $DATADIR.
 
+set -eu
 
-import bins
-import blobs
-import buildcontroller
-import builddependencygraph
-import buildworker
-import builder
-import cachedir
-import execute
-import fsutils
-import git
-import morphology
-import morphologyloader
-import savefile
-import sourcemanager
-import stopwatch
-import tempdir
-import util
-
+find "$DATADIR" -mindepth 1 -delete

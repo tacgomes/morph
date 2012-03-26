@@ -1,0 +1,16 @@
+cmd_dir_delta baserock
+cmd_dir_enter baserock
+cmd_metadata_update hello-stratum.meta
+cmd_metadata_update hello.meta
+cmd_dir_leave
+cmd_dir_delta etc
+cmd_dir_enter etc
+cmd_metadata_update fstab
+cmd_dir_leave
+cmd_metadata_update extlinux.conf
+cmd_dir_enter boot
+cmd_dir_leave
+cmd_dir_delta bin
+cmd_dir_enter bin
+cmd_file_delta hello
+cmd_dir_leave

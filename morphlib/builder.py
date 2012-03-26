@@ -450,54 +450,28 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
 
     def _create_image(self, image_name):
         with self.build_watch('create-image'):
-            # FIXME: This could be done in pure python, no need to run dd
-            self.ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
-                          'seek=%d' % self.blob.morph.disk_size,
-                          'count=0'])
+            morphlib.fsutils.create_image(self.ex, image_name,
+                                          self.blob.morph.disk_size)
 
     def _partition_image(self, image_name):
         with self.build_watch('partition-image'):
-            self.ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*\n')
+            morphlib.fsutils.partition_image(self.ex, image_name)
 
     def _install_mbr(self, image_name):
         with self.build_watch('install-mbr'):
-            for path in ['/usr/lib/extlinux/mbr.bin',
-                         '/usr/share/syslinux/mbr.bin']:
-                if os.path.exists(path):
-                    self.ex.runv(['dd', 'if=' + path, 'of=' + image_name,
-                                  'conv=notrunc'])
-                    break
+            morphlib.fsutils.install_mbr(self.ex, image_name)
 
     def _setup_device_mapping(self, image_name):
         with self.build_watch('setup-device-mapper'):
-            out = self.ex.runv(['sfdisk', '-d', image_name])
-            for line in out.splitlines():
-                words = line.split()
-                if (len(words) >= 4 and 
-                    words[2] == 'start=' and 
-                    words[3] != '0,'):
-                    n = int(words[3][:-1]) # skip trailing comma
-                    start = n * 512
-                    break
-            
-            self.ex.runv(['losetup', '-o', str(start), '-f', image_name])
-            
-            out = self.ex.runv(['losetup', '-j', image_name])
-            line = out.strip()
-            i = line.find(':')
-            return line[:i]
+            return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
 
     def _create_fs(self, partition):
         with self.build_watch('create-filesystem'):
-            # FIXME: the hardcoded size of 4GB is icky but the default broke
-            # when we used mkfs -t ext4
-            self.ex.runv(['mkfs', '-t', 'btrfs', '-L', 'baserock',
-                          '-b', '4294967296', partition])
+            morphlib.fsutils.create_fs(self.ex, partition)
 
     def _mount(self, partition, mount_point):
         with self.build_watch('mount-filesystem'):
-            os.mkdir(mount_point)
-            self.ex.runv(['mount', partition, mount_point])
+            morphlib.fsutils.mount(self.ex, partition, mount_point)
 
     def _create_subvolume(self, path):
         with self.build_watch('create-factory-subvolume'):
@@ -527,7 +501,8 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
             f.write('timeout 1\n')
             f.write('label linux\n')
             f.write('kernel /boot/vmlinuz\n')
-            f.write('append root=/dev/sda1 rootflags=subvol=factory-run init=/sbin/init quiet rw\n')
+            f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
+                                           'init=/sbin/init quiet rw\n')
 
     def _create_subvolume_snapshot(self, path, source, target):
         with self.build_watch('create-subvolume-snapshot'):
@@ -556,15 +531,11 @@ class SystemBuilder(BlobBuilder): # pragma: no cover
     def _unmount(self, mount_point):
         if mount_point is not None:
             with self.build_watch('unmount-filesystem'):
-                self.ex.runv(['umount', mount_point])
+                morphlib.fsutils.unmount(self.ex, mount_point)
 
     def _undo_device_mapping(self, image_name):
         with self.build_watch('undo-device-mapper'):
-            out = self.ex.runv(['losetup', '-j', image_name])
-            for line in out.splitlines():
-                i = line.find(':')
-                device = line[:i]
-                self.ex.runv(['losetup', '-d', device])
+            morphlib.fsutils.undo_device_mapping(self.ex, image_name)
 
     def _move_image_to_cache(self, image_name):
         with self.build_watch('cache-image'):
@@ -716,21 +687,21 @@ class Builder(object): # pragma: no cover
                             (str(blob), type(blob)))
 
         builder = klass(blob, self.factory, self.app.settings, self.cachedir,
-                        self.get_cache_id(blob), self.tempdir,
+                        self.get_cache_id(blob.morph), self.tempdir,
                         self.app.clean_env())
         builder.real_msg = self.msg
         builder.dump_memory_profile = self.dump_memory_profile
         
         return builder
 
-    def get_cache_id(self, blob):
-        logging.debug('get_cache_id(%s)' % blob)
+    def get_cache_id(self, morph):
+        logging.debug('get_cache_id(%s)' % morph)
 
-        if blob.morph.kind == 'chunk':
+        if morph.kind == 'chunk':
             kids = []
-        elif blob.morph.kind == 'stratum':
+        elif morph.kind == 'stratum':
             kids = []
-            for source in blob.morph.sources:
+            for source in morph.sources:
                 repo = source['repo']
                 ref = source['ref']
                 treeish = self.source_manager.get_treeish(repo, ref)
@@ -738,26 +709,24 @@ class Builder(object): # pragma: no cover
                             if 'morph' in source
                             else source['name'])
                 filename = '%s.morph' % filename
-                morph = self.morph_loader.load(treeish, filename)
-                chunk = morphlib.blobs.Blob.create_blob(morph)
+                chunk = self.morph_loader.load(treeish, filename)
                 cache_id = self.get_cache_id(chunk)
                 kids.append(cache_id)
-        elif blob.morph.kind == 'system':
+        elif morph.kind == 'system':
             kids = []
-            for stratum_name in blob.morph.strata:
+            for stratum_name in morph.strata:
                 filename = '%s.morph' % stratum_name
-                morph = self.morph_loader.load(blob.morph.treeish, filename)
-                stratum = morphlib.blobs.Blob.create_blob(morph)
+                stratum = self.morph_loader.load(morph.treeish, filename)
                 cache_id = self.get_cache_id(stratum)
                 kids.append(cache_id)
         else:
             raise NotImplementedError('unknown morph kind %s' %
-                                      blob.morph.kind)
+                                      morph.kind)
 
         dict_key = {
-            'filename': blob.morph.filename,
+            'filename': morph.filename,
             'arch': morphlib.util.arch(),
-            'ref': blob.morph.treeish.sha1,
+            'ref': morph.treeish.sha1,
             'kids': ''.join(self.cachedir.key(k) for k in kids),
             'env': self.build_env,
         }

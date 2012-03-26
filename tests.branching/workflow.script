@@ -1,4 +1,5 @@
-# Copyright (C) 2011-2012  Codethink Limited
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,24 +15,25 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+# Do a complete workflow test with Morph branching and merging.
 
 
-import bins
-import blobs
-import buildcontroller
-import builddependencygraph
-import buildworker
-import builder
-import cachedir
-import execute
-import fsutils
-import git
-import morphology
-import morphologyloader
-import savefile
-import sourcemanager
-import stopwatch
-import tempdir
-import util
+set -eu
+
+
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch me/readme-fix
+cd me/readme-fix/morphs
+"$SRCDIR/scripts/test-morph" edit hello master
+cd ../hello
+echo > README yoyoyo
+git add README
+git commit -m "Fix README, yo!" --quiet
+
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" checkout master
+cd master/morphs
+"$SRCDIR/scripts/test-morph" edit hello master
+"$SRCDIR/scripts/test-morph" merge me/readme-fix hello
 
