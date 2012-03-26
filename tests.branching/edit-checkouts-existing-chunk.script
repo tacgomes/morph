@@ -23,17 +23,17 @@ set -eu
 # Checkout the master system branch.
 cd "$DATADIR/mine"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" checkout master
+"$SRCDIR/scripts/test-morph" checkout alfred
 
-# Edit the hello chunk in master.
-cd master/morphs
-"$SRCDIR/scripts/test-morph" edit hello master
+# Edit the hello chunk in alfred.
+cd alfred/morphs
+"$SRCDIR/scripts/test-morph" edit hello alfred
 
 echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/master/morphs" branch
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/morphs" branch
 
 echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/master/hello" branch
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/hello" branch
 
 echo "Files in hello:"
-ls "$DATADIR/mine/master/hello"
+ls "$DATADIR/mine/alfred/hello"

@@ -72,6 +72,11 @@ scripts/run-git-in "$DATADIR/morphs" add .
 scripts/run-git-in "$DATADIR/morphs" commit -m initial
 
 
+# Add an extra branch to the morphs repo.
+scripts/run-git-in "$DATADIR/morphs" checkout -b alfred
+scripts/run-git-in "$DATADIR/morphs" checkout master
+
+
 # Create a dummy chunk repository
 mkdir "$DATADIR/hello"
 
@@ -86,4 +91,9 @@ EOF
 scripts/run-git-in "$DATADIR/hello" init
 scripts/run-git-in "$DATADIR/hello" add .
 scripts/run-git-in "$DATADIR/hello" commit -m initial
+
+
+# Add an extra branch to the hello repo.
+scripts/run-git-in "$DATADIR/hello" checkout -b alfred
+scripts/run-git-in "$DATADIR/hello" checkout master
 

@@ -5,8 +5,11 @@ Current origin, morphs:
 * remote origin
   Fetch URL: file://TMP/morphs
   Push  URL: file://TMP/morphs
-  HEAD branch: master
-  Remote branch:
+  HEAD branch (remote HEAD is ambiguous, may be one of the following):
+    alfred
+    master
+  Remote branches:
+    alfred tracked
     master tracked
   Local branch configured for 'git pull':
     master merges with remote master
@@ -19,8 +22,11 @@ Current origin, hello:
 * remote origin
   Fetch URL: file://TMP/hello
   Push  URL: file://TMP/hello
-  HEAD branch: master
-  Remote branch:
+  HEAD branch (remote HEAD is ambiguous, may be one of the following):
+    alfred
+    master
+  Remote branches:
+    alfred tracked
     master tracked
   Local branch configured for 'git pull':
     master merges with remote master
