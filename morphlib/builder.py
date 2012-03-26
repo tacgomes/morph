@@ -562,7 +562,7 @@ class Builder(object): # pragma: no cover
         self.indent = 0
         # create build environment string in advance
         env_names = ("USER", "USERNAME", "LOGNAME",
-                     "TOOLCHAIN_TARGET", "PREFIX", "BOOTSTRAP")
+                     "TOOLCHAIN_TARGET", "PREFIX", "BOOTSTRAP", "CFLAGS")
         env = app.clean_env()
         self.build_env = ''.join(k + env[k] for k in env_names)
 

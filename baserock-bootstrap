@@ -16,8 +16,10 @@ export LC_ALL=C
 
 if (uname -m | grep arm) >/dev/null; then
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
+    export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard"
 else
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
+    export TARGET_CFLAGS=
 fi
 
 HOST_CAT=`which cat`
@@ -84,7 +86,8 @@ pass1_build_with_morph()
         --dump-memory-profile=none \
         --keep-path \
         --prefix="$tools" \
-        --toolchain-target="$LFS_TGT"
+        --toolchain-target="$LFS_TGT" \
+        --target-cflags="$TARGET_CFLAGS"
 }
 
 pass2_get_morph()
@@ -216,7 +219,8 @@ python ./morph --verbose build \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --bundle-server="$GIT_BUNDLES"
+        --bundle-server="$GIT_BUNDLES" \
+        --target-cflags="$TARGET_CFLAGS"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
@@ -346,7 +350,8 @@ python ./morph --verbose build \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --bundle-server="$GIT_BUNDLES"
+        --bundle-server="$GIT_BUNDLES" \
+        --target-cflags="$TARGET_CFLAGS"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build_pass3.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"

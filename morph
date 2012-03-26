@@ -63,6 +63,11 @@ class Morph(cliapp.Application):
                              'to build tools for',
                              metavar='TOOLCHAIN_TARGET',
                              default=defaults['toolchain-target'])
+        self.settings.string(['target-cflags'],
+                             'inject additional CFLAGS into the environment '
+                             'that is used to build chunks',
+                             metavar='CFLAGS',
+                             default='')
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                                 '(this is separate from just setting $TMPDIR '
@@ -477,6 +482,7 @@ class Morph(cliapp.Application):
             env['PATH'] = '/sbin:/usr/sbin:/bin:/usr/bin'
 
         env['TOOLCHAIN_TARGET'] = self.settings['toolchain-target']
+        env['CFLAGS'] = self.settings['target-cflags']
         env['PREFIX'] = self.settings['prefix']
         env['BOOTSTRAP'] = 'true' if self.settings['bootstrap'] else 'false'
         if tools is not None:
