@@ -412,6 +412,9 @@ class Morph(cliapp.Application):
         
         # Set the origin to point at the original repository.
         morphlib.git.set_remote(dirname, 'origin', treeish.original_repo)
+        
+        # Update remotes.
+        self.runcmd(['git', 'remote', 'update'], cwd=dirname)
     
     def cmd_branch(self, args):
         '''Branch the whole system.'''
@@ -453,11 +456,18 @@ class Morph(cliapp.Application):
         self._clone_to_directory(new_repo, repo, system_branch)
 
     def _deduce_system_branch(self):
-        out = self.runcmd(['git', 'branch'])
-        for line in out.splitlines():
-            if line.startswith('* '):
-                return line.strip()[2:]
-        return None
+        minedir = self._deduce_mine_directory()
+        if minedir is None:
+            return None
+
+        if not minedir.endswith('/'):
+            minedir += '/'
+        
+        cwd = os.getcwd()
+        if not cwd.startswith(minedir):
+            return None
+            
+        return os.path.dirname(cwd[len(minedir):])
     
     def cmd_show_system_branch(self, args):
         '''Print name of current system branch.
