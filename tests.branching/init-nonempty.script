@@ -1,8 +1,4 @@
-#!/bin/bash
-#
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
-#
+#!/bin/sh
 # Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +14,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+# Test that "morph init" fails when given the name of an existing,
+# non-empty directory.
+
+touch "$DATADIR/mine/foo"
+"$SRCDIR/scripts/test-morph" init "$DATADIR/mine"

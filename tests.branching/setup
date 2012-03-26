@@ -1,0 +1,99 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# Set up $DATADIR.
+#
+# - a morph.conf configuration file
+# - an empty morph mine directory
+# - a git repository called "morphs" for fake system, stratum morphologies
+# - a git repository calle "hello" for a dummy chunk
+
+set -eu
+
+
+# Create a morph configuration file
+cat <<EOF > "$DATADIR/morph.conf"
+[config]
+git-base-url = file://$DATADIR/
+cachedir = $DATADIR/mine/.morph/cache
+log = $DATADIR/morph.log
+keep-path = true
+no-distcc = true
+EOF
+
+
+# Create an empty directory to be used as a morph mine
+mkdir "$DATADIR/mine"
+
+
+# Create a fake morphs repository
+mkdir "$DATADIR/morphs"
+
+cat <<EOF > "$DATADIR/morphs/hello-system.chunk"
+{
+    "name": "hello-system",
+    "kind": "system",
+    "disk-size": "1G",
+    "strata": [
+        "hello-stratum"
+    ]
+}
+EOF
+
+cat <<EOF > "$DATADIR/morphs/hello-stratum.chunk"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "sources": [
+        {
+            "name": "hello",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+
+scripts/run-git-in "$DATADIR/morphs" init
+scripts/run-git-in "$DATADIR/morphs" add .
+scripts/run-git-in "$DATADIR/morphs" commit -m initial
+
+
+# Add an extra branch to the morphs repo.
+scripts/run-git-in "$DATADIR/morphs" checkout -b alfred
+scripts/run-git-in "$DATADIR/morphs" checkout master
+
+
+# Create a dummy chunk repository
+mkdir "$DATADIR/hello"
+
+cat <<EOF > "$DATADIR/hello/hello.chunk"
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-system": "dummy"
+}
+EOF
+
+scripts/run-git-in "$DATADIR/hello" init
+scripts/run-git-in "$DATADIR/hello" add .
+scripts/run-git-in "$DATADIR/hello" commit -m initial
+
+
+# Add an extra branch to the hello repo.
+scripts/run-git-in "$DATADIR/hello" checkout -b alfred
+scripts/run-git-in "$DATADIR/hello" checkout master
+

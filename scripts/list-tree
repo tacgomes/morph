@@ -1,8 +1,4 @@
-#!/bin/bash
-#
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
-#
+#!/bin/sh
 # Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +14,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# List contents of a directory tree in a reproducible manner: only include
+# details that we care about, and that won't be changing between test runs
+# or test environments.
+
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+export LC_ALL=C
+cd "$1"
+find -printf '%y %p\n' | sort

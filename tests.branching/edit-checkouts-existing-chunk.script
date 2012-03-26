@@ -1,8 +1,4 @@
-#!/bin/bash
-#
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
-#
+#!/bin/sh
 # Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +14,26 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
+# Verify that "morph edit" clones a chunk repository into a system branch.
+
+
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+# Checkout the master system branch.
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" checkout alfred
+
+# Edit the hello chunk in alfred.
+cd alfred/morphs
+"$SRCDIR/scripts/test-morph" edit hello alfred
+
+echo "Current branches, morphs:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/morphs" branch
+
+echo "Current branches, hello:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/hello" branch
+
+echo "Files in hello:"
+ls "$DATADIR/mine/alfred/hello"

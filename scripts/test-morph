@@ -1,8 +1,4 @@
-#!/bin/bash
-#
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
-#
+#!/bin/sh
 # Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +14,15 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# Wrapper around morph for use by cmdtest tests. This does several things:
+#
+#   * simpler command lines for running morph, so that each test does not
+#     need to add --no-default-config and other options every time
+#   * replace temporary filenames ($DATADIR) in the output with a known
+#     string ("TMP"), so that test output is deterministic
+
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+"$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
+    --config="$DATADIR/morph.conf" "$@"
+
