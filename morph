@@ -375,7 +375,6 @@ class Morph(cliapp.Application):
                                         'empty directory: %s' % dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
-        os.mkdir(os.path.join(dirname, '.morph', 'cache'))
 
     def _deduce_mine_directory(self):
         dirname = os.getcwd()
