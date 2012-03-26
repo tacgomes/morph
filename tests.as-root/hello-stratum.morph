@@ -1,0 +1,10 @@
+{
+    "name": "hello",
+    "kind": "stratum",
+    "sources": {
+        "hello": {
+            "repo": "hello",
+            "ref": "master"
+        }
+    }
+}
