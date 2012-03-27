@@ -50,7 +50,8 @@ unless the
 .B no-cache
 setting is enabled.
 .TP
-.BR DISTCC_HOSTS ", " TMPDIR ", " LD_PRELOAD ", " LD_LIBRARY_PATH ", " FAKEROOTKEY ", " FAKED_MODE ", " FAKEROOT_FD_BASE
+.BR DISTCC_HOSTS ", " TMPDIR ", " LD_PRELOAD ", " LD_LIBRARY_PATH ", " \
+FAKEROOTKEY ", " FAKED_MODE ", " FAKEROOT_FD_BASE
 .B morph
 keeps these environment variable, if set.
 .TP
