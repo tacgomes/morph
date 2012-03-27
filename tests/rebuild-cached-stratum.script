@@ -37,7 +37,8 @@ cache="$DATADIR/cache"
  git commit --quiet -m "rebuild-cached-stratum" -a)
 
 # Build the first time.
-tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
+"$SRCDIR/scripts/test-morph" \
+    build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "first build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
@@ -48,7 +49,8 @@ echo "first build:"
  git commit --quiet -am change)
 
 # Rebuild.
-tests/morph build morphs-repo rebuild-cached-stratum hello-stratum.morph
+"$SRCDIR/scripts/test-morph" \
+    build morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "second build:"
 (cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)

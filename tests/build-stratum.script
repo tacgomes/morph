@@ -19,5 +19,5 @@
 
 set -eu
 
-tests/morph build morphs-repo master hello-stratum.morph
+"$SRCDIR/scripts/test-morph" build morphs-repo master hello-stratum.morph
 tar -tf "$DATADIR/cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

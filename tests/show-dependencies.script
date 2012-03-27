@@ -20,5 +20,6 @@
 
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
+"$SRCDIR/scripts/test-morph" \
+    show-dependencies test-repo master xfce-core.morph | \
     sed "s,$DATADIR,TMP,g"

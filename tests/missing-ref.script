@@ -17,10 +17,5 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#tempdirs make script diffing cry
-cache="$DATADIR/cache"
-./morph --no-default-configs --config="$DATADIR/morph.conf" \
-    build chunk-repo non-existent-branch hello.morph 2> "$DATADIR/stderr"
-err=$?
-cat "$DATADIR/stderr" | sed "s%$DATADIR%%" 1>&2
-exit $err
+"$SRCDIR/scripts/test-morph" build chunk-repo non-existent-branch hello.morph
+

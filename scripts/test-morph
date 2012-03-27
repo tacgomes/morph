@@ -23,6 +23,10 @@
 
 set -eu
 
+# Set PATH to include the source directory. This is necessary for
+# distributed builds, which invoke morph as a sub-process.
+export PATH="$SRCDIR:$PATH"
+
 "$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
     --config="$DATADIR/morph.conf" "$@"
 
