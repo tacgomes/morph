@@ -1,6 +1,8 @@
 Branching and merging at the system level in Baserock
 =====================================================
 
+NOTE: This is a spec. The code does not yet match it.
+
 As I write this, Baserock consists of just under 70 upstream projects,
 each of which we keep in their own git repository. We need a way to
 manage changes to them in a sensible manner, particularly when things
