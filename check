@@ -35,6 +35,7 @@ then
     echo 'Checking source code for silliness'
     git ls-files |
     grep -v '\.gz$' |
+    grep -Ev 'tests[^/]*/.*\.std(out|err)' |
     while read x
     do
         if tr -cd '\t' < "$x" | grep . > /dev/null
