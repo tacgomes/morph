@@ -1,0 +1,48 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# Check that "morph merge" merges explicitly named repositories.
+
+
+set -eu
+
+
+# Create system branch.
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch newbranch
+
+# Make a change to a chunk.
+cd newbranch/morphs
+"$SRCDIR/scripts/test-morph" edit hello master
+cd ../hello
+touch newfile.txt
+git add newfile.txt
+git commit -m foo --quiet
+
+# Merge changes to a new system branch.
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" branch otherbranch
+cd otherbranch/morphs
+"$SRCDIR/scripts/test-morph" edit hello master
+"$SRCDIR/scripts/test-morph" merge newbranch hello
+
+# Check results.
+cd ../hello
+git status --short # make sure all changes are committed
+ls newfile.txt # make sure the new file is there
+

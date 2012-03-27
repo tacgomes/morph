@@ -408,6 +408,172 @@ class Morph(cliapp.Application):
                 morphlib.fsutils.undo_device_mapping(ex, paths[name])
             factory.remove_staging()
 
+    def cmd_init(self, args):
+        '''Initialize a mine.'''
+        
+        if not args:
+            args = ['.']
+        elif len(args) > 1:
+            raise cliapp.AppException('init must get at most one argument')
+
+        dirname = args[0]
+
+        if os.path.exists(dirname):
+            if os.listdir(dirname) != []:
+                raise cliapp.AppException('can only initialize empty '
+                                          'directory: %s' % dirname)
+        else:
+            raise cliapp.AppException('can only initialize an existing '
+                                        'empty directory: %s' % dirname)
+
+        os.mkdir(os.path.join(dirname, '.morph'))
+
+    def _deduce_mine_directory(self):
+        dirname = os.getcwd()
+        while dirname != '/':
+            dot_morph = os.path.join(dirname, '.morph')
+            if os.path.isdir(dot_morph):
+                return dirname
+            dirname = os.path.dirname(dirname)
+        return None
+
+    def cmd_minedir(self, args):
+        '''Find morph mine directory from current working directory.'''
+        
+        dirname = self._deduce_mine_directory()
+        if dirname is None:
+            raise cliapp.AppException("Can't find the mine directory")
+        self.output.write('%s\n' % dirname)
+    
+    def _clone_to_directory(self, dirname, repo, ref):
+        '''Clone a repository below a directory.
+        
+        As a side effect, clone it into the morph repository.
+        
+        '''
+
+        # Get the repository into the cache.
+        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                                update=not self.settings['no-git-update'])
+        treeish = source_manager.get_treeish(repo, ref)
+        
+        # Clone it from cache to target directory.
+        morphlib.git.clone(dirname, treeish.repo, self.msg)
+        
+        # Set the origin to point at the original repository.
+        morphlib.git.set_remote(dirname, 'origin', treeish.original_repo)
+        
+        # Update remotes.
+        self.runcmd(['git', 'remote', 'update'], cwd=dirname)
+    
+    def cmd_branch(self, args):
+        '''Branch the whole system.'''
+        
+        if len(args) != 1:
+            raise cliapp.AppException('morph branch needs name of branch '
+                                        'as parameter')
+
+        new_branch = args[0]
+        repo = 'morphs'
+        commit = 'master'
+
+        # Create the system branch directory.
+        os.makedirs(new_branch)
+
+        # Clone into system branch directory.
+        new_repo = os.path.join(new_branch, os.path.basename(repo))
+        self._clone_to_directory(new_repo, repo, commit)
+        
+        # Create a new branch in the local morphs repository.
+        self.runcmd(['git', 'checkout', '-b', new_branch, commit],
+                    cwd=new_repo)
+
+    def cmd_checkout(self, args):
+        '''Check out an existing system branch.'''
+
+        if len(args) != 1:
+            raise cliapp.AppException('morph checkout needs name of '
+                                        'branch as parameter')
+
+        system_branch = args[0]
+        repo = 'morphs'
+
+        # Create the system branch directory.
+        os.makedirs(system_branch)
+
+        # Clone into system branch directory.
+        new_repo = os.path.join(system_branch, os.path.basename(repo))
+        self._clone_to_directory(new_repo, repo, system_branch)
+
+    def _deduce_system_branch(self):
+        minedir = self._deduce_mine_directory()
+        if minedir is None:
+            return None
+
+        if not minedir.endswith('/'):
+            minedir += '/'
+        
+        cwd = os.getcwd()
+        if not cwd.startswith(minedir):
+            return None
+            
+        return os.path.dirname(cwd[len(minedir):])
+    
+    def cmd_show_system_branch(self, args):
+        '''Print name of current system branch.
+        
+        This must be run in the system branch's ``morphs`` repository.
+        
+        '''
+        
+        system_branch = self._deduce_system_branch()
+        if system_branch is None:
+            raise cliapp.AppException("Can't determine system branch")
+        self.output.write('%s\n' % system_branch)
+    
+    def cmd_edit(self, args):
+        '''Edit a component in a system branch.'''
+        
+        if len(args) != 2:
+            raise cliapp.AppException('morph edit must get a repository name '
+                                        'and commit ref as argument')
+
+        repo = args[0]
+        ref = args[1]
+
+        mine_directory = self._deduce_mine_directory()
+        system_branch = self._deduce_system_branch()
+        new_repo = os.path.join(mine_directory, system_branch, 
+                                os.path.basename(repo))
+        self._clone_to_directory(new_repo, repo, ref)
+        
+        system_branch = self._deduce_system_branch()
+        if system_branch == ref:
+            self.runcmd(['git', 'checkout', system_branch],
+                        cwd=new_repo)
+        else:
+            self.runcmd(['git', 'checkout', '-b', system_branch, ref],
+                        cwd=new_repo)
+
+    def cmd_merge(self, args):
+        '''Merge specified repositories from another system branch.'''
+        
+        if len(args) == 0:
+            raise cliapp.AppException('morph merge must get a branch name '
+                                        'and some repo names as arguments')
+
+        other_branch = args[0]
+        mine = self._deduce_mine_directory()
+        this_branch = self._deduce_system_branch()
+        
+        for repo in args[1:]:
+            basename = os.path.basename(repo)
+            pull_from = os.path.join(mine, other_branch, basename)
+            repo_dir = os.path.join(mine, this_branch, basename)
+            self.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
+
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
         logging.debug(msg)
@@ -434,7 +600,7 @@ class Morph(cliapp.Application):
         msg('# %s' % ' | '.join(commands))
 
         # run the command line
-        cliapp.Application.runcmd(self, argv, *args, **kwargs)
+        return cliapp.Application.runcmd(self, argv, *args, **kwargs)
 
     # This is in morph so that policy is easily visible, and not embedded
     # deep down in the call stack.

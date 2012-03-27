@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 #
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
+# Run morph in a way suitable for tests.
 #
 # Copyright (C) 2012  Codethink Limited
 # 
@@ -20,5 +19,11 @@
 
 set -eu
 
-tests/morph show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+fatalcat(){
+    cat "$1" 1>&2
+    return 1
+}
+
+PATH="$(pwd):$PATH"
+./morph --no-default-config --config="$DATADIR/morph.conf" "$@" || \
+    fatalcat "$DATADIR/morph.log"

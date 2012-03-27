@@ -164,6 +164,7 @@ class SourceManager(object):
         repo_urls = [urlparse.urljoin(fixup_url(x), repo)
                      for x in self.settings['git-base-url']]
 
+        orig_url = None
         cached_repo = None
         errors = []
 
@@ -172,6 +173,7 @@ class SourceManager(object):
             quoted_url = quote_url(repo_url)
             cached_repo_dirname = os.path.join(self.cache_dir, quoted_url)
             if os.path.exists(cached_repo_dirname):
+                orig_url = repo_url
                 cached_repo = cached_repo_dirname
                 break
 
@@ -183,6 +185,7 @@ class SourceManager(object):
                 cached_repo, error = self._cache_repo_from_bundle(server,
                                                                   repo_url)
                 if cached_repo:
+                    orig_url = repo_url
                     break
                 else:
                     errors.append(error)
@@ -193,6 +196,7 @@ class SourceManager(object):
             for repo_url in repo_urls:
                 cached_repo, error = self._cache_repo_from_url(repo_url)
                 if cached_repo:
+                    orig_url = repo_url
                     break
                 else:
                     errors.append(error)
@@ -227,7 +231,7 @@ class SourceManager(object):
 
         # we should have a cached version of the repo now, return a treeish
         # for the repo and ref tuple
-        treeish = morphlib.git.Treeish(cached_repo, repo, ref, self.msg)
+        treeish = morphlib.git.Treeish(cached_repo, orig_url, ref, self.msg)
         self.indent_less()
         return treeish
 

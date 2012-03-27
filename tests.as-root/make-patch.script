@@ -35,8 +35,8 @@ set -eu
     ]
 }
 EOF
-	
-	
+        
+        
     git add .
     git commit --quiet -m "Make dummy boot files"
 
@@ -59,17 +59,17 @@ cp "$DATADIR/cache/"*stratum* "$DATADIR"/farrokh-stratum
 
  
 ( # make an evil stratum
-	cd "$DATADIR/chunk-repo"
-	git checkout --quiet -b evil farrokh
-	sed -i -e 's/hello/goodbye/g' hello.c
-	git add hello.c
-	git commit --quiet -m "Make the program evil"
+        cd "$DATADIR/chunk-repo"
+        git checkout --quiet -b evil farrokh
+        sed -i -e 's/hello/goodbye/g' hello.c
+        git add hello.c
+        git commit --quiet -m "Make the program evil"
 
-	cd "$DATADIR/morphs-repo"
-	git checkout --quiet -b evil master
-	sed -i -e 's/farrokh/evil/g' hello-stratum.morph
-	git add hello-stratum.morph
-	git commit --quiet -m "Build evil systems"
+        cd "$DATADIR/morphs-repo"
+        git checkout --quiet -b evil master
+        sed -i -e 's/farrokh/evil/g' hello-stratum.morph
+        git add hello-stratum.morph
+        git commit --quiet -m "Build evil systems"
 )
 
 tests/morph build morphs-repo evil hello-system.morph

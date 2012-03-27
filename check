@@ -21,6 +21,11 @@ set -e
 
 python setup.py clean check
 cmdtest tests
+cmdtest tests.branching
+if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null
+then
+    cmdtest tests.as-root
+fi
 
 if [ -d .git ];
 then
