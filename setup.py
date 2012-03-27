@@ -20,6 +20,7 @@
 
 from distutils.core import setup
 from distutils.cmd import Command
+from distutils.command.build import build
 from distutils.command.clean import clean
 import glob
 import os
@@ -27,6 +28,18 @@ import shutil
 import subprocess
 
 import morphlib
+
+
+class GenerateManpage(build):
+
+    def run(self):
+        build.run(self)
+        print 'building manpages'
+        for x in ['morph']:
+            with open('%s.1' % x, 'w') as f:
+                subprocess.check_call(['python', x,
+                                       '--generate-manpage=%s.1.in' % x,
+                                       '--output=%s.1' % x], stdout=f)
 
 
 class Clean(clean):
@@ -95,6 +108,7 @@ FIXME
       packages=['morphlib'],
       data_files=[('share/man/man1', glob.glob('*.[1-8]'))],
       cmdclass={
+        'build': GenerateManpage,
         'check': Check,
         'clean': Clean,
       },
