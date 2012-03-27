@@ -203,12 +203,6 @@ class BlobBuilder(object): # pragma: no cover
             json.dump(meta, f, indent=4)
             f.write('\n')
 
-    def write_cache_metadata(self, meta):
-        self.msg('Writing metadata to the cache')
-        with self.cachedir.open(self.cache_key, suffix='.meta') as f:
-            json.dump(meta, f, indent=4)
-            f.write('\n')
-
     def save_build_times(self):
         meta = {
             'build-times': {}
@@ -219,7 +213,11 @@ class BlobBuilder(object): # pragma: no cover
                 'stop': '%s' % self.build_watch.stop_time(stage),
                 'delta': '%.4f' % self.build_watch.start_stop_seconds(stage)
             }
-        self.write_cache_metadata(meta)
+
+        self.msg('Writing metadata to the cache')
+        with self.cachedir.open(self.cache_key, suffix='.meta') as f:
+            json.dump(meta, f, indent=4)
+            f.write('\n')
 
     def prepare_logfile(self):
         self.logfile = self.cachedir.open(self.cache_key, suffix='.log', 
