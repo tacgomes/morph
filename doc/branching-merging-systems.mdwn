@@ -183,7 +183,7 @@ Usage:
 DIR defaults to the current working directory. If DIR is given,
 but does not exist, it is created.
 
-* Create `DIR/.morph` and the subdirectory `cache` inside it.
+* Create `DIR/.morph`.
 
 
 Implementation: `morph branch`
