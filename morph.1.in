@@ -1,0 +1,98 @@
+.\" Copyright (C) 2012  Codethink Limited
+.\" 
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; version 2 of the License.
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
+.\" You should have received a copy of the GNU General Public License along
+.\" with this program; if not, write to the Free Software Foundation, Inc.,
+.\" 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+.\"
+.TH MORPH 1
+.SH NAME
+morph \- Baserock development workflow tool
+.SH SYNOPSIS
+.SH DESCRIPTION
+Baserock is an embedded Linux system.
+.B morph
+is its workflow tool.
+It manages building binaries,
+and branching and merging of the entire system.
+See the Baserock home page for more information.
+.SH OPTIONS
+.SH ENVIRONMENT
+.B morph
+cleans out the environment when it runs builds,
+so that builds are not affected by random enviroment variables set by the user.
+However, a few environment variables do affect either
+.B morph
+itself, or the builds it runs.
+.PP
+.TP
+.B PATH
+.B morph
+keeps the user's 
+.B PATH
+if the
+.B \-\-keep\-path
+option is used.
+Additionally,
+.B morph
+will prepend the location of the 
+.BR ccache (1)
+binaries to the path,
+unless the
+.B no-cache
+setting is enabled.
+.TP
+.BR DISTCC_HOSTS ", " TMPDIR ", " LD_PRELOAD ", " LD_LIBRARY_PATH ", " FAKEROOTKEY ", " FAKED_MODE ", " FAKEROOT_FD_BASE
+.B morph
+keeps these environment variable, if set.
+.TP
+.B TOOLCHAIN_TARGET
+.B morph
+sets this to the value of the
+.B toolchain\-target
+setting from its configuration.
+.TP
+.B CFLAGS
+.B morph
+sets this to the value of the
+.B target\-cflags
+setting from its configuration.
+.TP
+.B PREFIX
+.B morph
+sets this to the value of the
+.B prefix
+setting from its configuration.
+.TP
+.B BOOTSTRAP
+.B morph
+sets this to 
+.B true
+if the
+.B bootstrap
+setting from its configuration is enabled.
+Otherwise,
+.B morph
+sets the environment variable to
+.BR false .
+.PP
+The
+.BR cliapp (5)
+manual page has some more variables that affect
+.B morph
+itself.
+.SH BUGS
+This manual page is badly incomplete,
+but at least it should include all options correctly.
+.SH "SEE ALSO"
+.BR cliapp (5).
+.PP
+http://wiki.baserock.org/
