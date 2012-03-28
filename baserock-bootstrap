@@ -16,7 +16,7 @@ export LC_ALL=C
 
 if (uname -m | grep arm) >/dev/null; then
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
-    export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2"
+    export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2 --without-fp"
 else
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
     export TARGET_CFLAGS="-O2"
