@@ -37,7 +37,6 @@ def install_mbr(ex, image_name):
 def setup_device_mapping(ex, image_name):
     findstart = re.compile(r"start=\s+(\d+),")
     out = ex.runv(['sfdisk', '-d', image_name])
-    print(out)
     for line in out.splitlines():
         match = findstart.search(line)
         if match is None:
