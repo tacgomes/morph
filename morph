@@ -380,7 +380,6 @@ class Morph(cliapp.Application):
         paths = {}
         for name in ('source', 'target'):
             repo, ref, filename = trip_iter.next()
-            print repo, ref, filename
             treeish = src_manager.get_treeish(repo, ref)
             morph = morph_loader.load(treeish, filename)
             blob = morphlib.blobs.Blob.create_blob(morph)
@@ -404,8 +403,14 @@ class Morph(cliapp.Application):
             # cleanup
             for name in paths.iterkeys():
                 mount_point = tempdir.join('mnt_' + name)
-                morphlib.fsutils.unmount(ex, mount_point)
-                morphlib.fsutils.undo_device_mapping(ex, paths[name])
+                try:
+                    morphlib.fsutils.unmount(ex, mount_point)
+                except:
+                    pass
+                try:
+                    morphlib.fsutils.undo_device_mapping(ex, paths[name])
+                except:
+                    pass
             factory.remove_staging()
 
     def cmd_init(self, args):
