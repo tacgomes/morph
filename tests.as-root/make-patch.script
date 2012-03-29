@@ -82,5 +82,5 @@ tests.as-root/morph make-patch "$PATCH" morphs-repo master hello-system.morph \
 UNPACKED="$DATADIR"/unpacked
 mkdir -p "$UNPACKED"
 tar -C "$UNPACKED" -xf "$DATADIR"/farrokh-stratum
-(cd "$UNPACKED" && tbdiff-deploy "$PATCH")
+(cd "$UNPACKED" && tbdiff-deploy "$PATCH") 2>/dev/null
 "$UNPACKED"/bin/hello
