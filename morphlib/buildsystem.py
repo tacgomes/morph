@@ -31,10 +31,16 @@ class BuildSystem(object):
     
     '''
     
+    def __init__(self):
+        self.configure_commands = []
+        self.build_commands = []
+        self.test_commands = []
+        self.install_commands = []
+    
     def used_by_project(self, srcdir):
         '''Does project at ``srcdir`` use this build system?'''
         raise NotImplementedError() # pragma: no cover
-    
+        
 
 class ManualBuildSystem(BuildSystem):
 
