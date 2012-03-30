@@ -121,10 +121,10 @@ class DetectBuildSystemTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def test_autodetects_manual(self):
+    def test_does_not_autodetect_manual(self):
         create_manual_project(self.tempdir)
         bs = morphlib.buildsystem.detect_build_system(self.tempdir)
-        self.assertEqual(type(bs), morphlib.buildsystem.ManualBuildSystem)
+        self.assertEqual(bs, None)
 
     def test_autodetects_autotools(self):
         create_autotools_project(self.tempdir)

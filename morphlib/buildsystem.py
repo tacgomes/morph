@@ -129,16 +129,14 @@ build_systems = [
 def detect_build_system(srcdir):
     '''Automatically detect the build system, if possible.
     
-    If the build system cannot be detected automatically, then the manual
-    build system is used instead.
+    If the build system cannot be detected automatically, return None.
     
     '''
     
     for bs in build_systems:
         if bs.used_by_project(srcdir):
             return bs
-    return ManualBuildSystem()
-
+    return None
 
 
 def lookup_build_system(name):
