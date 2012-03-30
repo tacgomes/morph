@@ -45,6 +45,8 @@ class BuildSystem(object):
 class ManualBuildSystem(BuildSystem):
 
     '''A manual build system where the morphology must specify all commands.'''
+
+    name = 'manual'
     
     def used_by_project(self, srcdir):
         return False
@@ -53,6 +55,8 @@ class ManualBuildSystem(BuildSystem):
 class AutotoolsBuildSystem(BuildSystem):
 
     '''The automake/autoconf/libtool holy trinity.'''
+
+    name = 'autotools'
     
     def used_by_project(self, srcdir):
         indicators = [
@@ -66,6 +70,12 @@ class AutotoolsBuildSystem(BuildSystem):
                    for x in indicators)
 
 
+build_systems = [
+    ManualBuildSystem(),
+    AutotoolsBuildSystem(),
+]
+    
+
 def detect_build_system(srcdir):
     '''Automatically detect the build system, if possible.
     
@@ -74,12 +84,22 @@ def detect_build_system(srcdir):
     
     '''
     
-    build_systems = [
-        AutotoolsBuildSystem(),
-    ]
-    
     for bs in build_systems:
         if bs.used_by_project(srcdir):
             return bs
     return ManualBuildSystem()
+
+
+
+def lookup_build_system(name):
+    '''Return build system that corresponds to the name.
+    
+    If the name does not match any build system, raise ``KeyError``.
+    
+    '''
+    
+    for bs in build_systems:
+        if bs.name == name:
+            return bs
+    raise KeyError(name)
 

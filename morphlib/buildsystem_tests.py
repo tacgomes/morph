@@ -90,3 +90,16 @@ class DetectBuildSystemTests(unittest.TestCase):
         bs = morphlib.buildsystem.detect_build_system(self.tempdir)
         self.assertEqual(type(bs), morphlib.buildsystem.AutotoolsBuildSystem)
 
+
+class LookupBuildSystemTests(unittest.TestCase):
+
+    def lookup(self, name):
+        return morphlib.buildsystem.lookup_build_system(name)
+
+    def test_raises_keyerror_for_unknown_name(self):
+        self.assertRaises(KeyError, self.lookup, 'unkonwn')
+
+    def test_looks_up_manual(self):
+        self.assertEqual(type(self.lookup('manual')),
+                         morphlib.buildsystem.ManualBuildSystem)
+
