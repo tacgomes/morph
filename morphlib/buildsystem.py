@@ -14,6 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import os
+
+
 class BuildSystem(object):
 
     '''An abstraction of an upstream build system.
@@ -40,7 +43,37 @@ class ManualBuildSystem(BuildSystem):
     def used_by_project(self, srcdir):
         return False
 
+
 class AutotoolsBuildSystem(BuildSystem):
 
     '''The automake/autoconf/libtool holy trinity.'''
+    
+    def used_by_project(self, srcdir):
+        indicators = [
+            'autogen.sh',
+            'configure.ac',
+            'configure.in',
+            'configure.in.in',
+        ]
+        
+        return any(os.path.exists(os.path.join(srcdir, x))
+                   for x in indicators)
+
+
+def detect_build_system(srcdir):
+    '''Automatically detect the build system, if possible.
+    
+    If the build system cannot be detected automatically, then the manual
+    build system is used instead.
+    
+    '''
+    
+    build_systems = [
+        AutotoolsBuildSystem(),
+    ]
+    
+    for bs in build_systems:
+        if bs.used_by_project(srcdir):
+            return bs
+    return ManualBuildSystem()
 
