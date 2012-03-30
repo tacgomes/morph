@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import os
+import re
 
 
 def create_image(ex, image_name, size):
@@ -34,14 +35,14 @@ def install_mbr(ex, image_name):
             break
 
 def setup_device_mapping(ex, image_name):
+    findstart = re.compile(r"start=\s+(\d+),")
     out = ex.runv(['sfdisk', '-d', image_name])
     for line in out.splitlines():
-        words = line.split()
-        if (len(words) >= 4 and 
-            words[2] == 'start=' and 
-            words[3] != '0,'):
-            n = int(words[3][:-1]) # skip trailing comma
-            start = n * 512
+        match = findstart.search(line)
+        if match is None:
+            continue
+        start = int(match.group(1)) * 512
+        if start != 0:
             break
     
     ex.runv(['losetup', '-o', str(start), '-f', image_name])

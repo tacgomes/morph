@@ -52,7 +52,7 @@ EOF
     git commit --quiet -m "add dummy kernel" hello-stratum.morph
 )
 
-tests/morph build morphs-repo master hello-system.morph
+tests.as-root/morph build morphs-repo master hello-system.morph
 
 # save the stratum as we will apply the patch on top of this later
 cp "$DATADIR/cache/"*stratum* "$DATADIR"/farrokh-stratum
@@ -72,15 +72,15 @@ cp "$DATADIR/cache/"*stratum* "$DATADIR"/farrokh-stratum
         git commit --quiet -m "Build evil systems"
 )
 
-tests/morph build morphs-repo evil hello-system.morph
+tests.as-root/morph build morphs-repo evil hello-system.morph
 
 # make a patch to make the system evil
 PATCH="$DATADIR"/patchfile
-tests/morph make-patch "$PATCH" morphs-repo master hello-system.morph \
+tests.as-root/morph make-patch "$PATCH" morphs-repo master hello-system.morph \
                                 morphs-repo evil hello-system.morph
 
 UNPACKED="$DATADIR"/unpacked
 mkdir -p "$UNPACKED"
 tar -C "$UNPACKED" -xf "$DATADIR"/farrokh-stratum
-(cd "$UNPACKED" && tbdiff-deploy "$PATCH")
+(cd "$UNPACKED" && tbdiff-deploy "$PATCH") 2>/dev/null
 "$UNPACKED"/bin/hello
