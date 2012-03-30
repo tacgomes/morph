@@ -121,3 +121,11 @@ class LookupBuildSystemTests(unittest.TestCase):
         self.assertEqual(type(self.lookup('manual')),
                          morphlib.buildsystem.ManualBuildSystem)
 
+    def test_looks_up_autotools(self):
+        self.assertEqual(type(self.lookup('autotools')),
+                         morphlib.buildsystem.AutotoolsBuildSystem)
+
+    def test_looks_up_dummy(self):
+        self.assertEqual(type(self.lookup('dummy')),
+                         morphlib.buildsystem.DummyBuildSystem)
+
