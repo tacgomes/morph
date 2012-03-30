@@ -51,6 +51,11 @@ class BuildSystemTests(unittest.TestCase):
 
     def test_has_install_commands(self):
         self.assertEqual(self.bs['install-commands'], [])
+        
+    def test_returns_morphology_text(self):
+        self.bs.name = 'fake'
+        text = self.bs.get_morphology_text('foobar')
+        self.assertTrue(type(text) in (str, unicode))
 
 
 class ManualBuildSystemTests(unittest.TestCase):

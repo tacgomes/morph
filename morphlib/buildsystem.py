@@ -40,6 +40,20 @@ class BuildSystem(object):
     def __getitem__(self, key):
         key = '_'.join(key.split('-'))
         return getattr(self, key)
+        
+    def get_morphology_text(self, name):
+        '''Return the text of an autodetected chunk morphology.'''
+        
+        return '''
+            {
+                "name": "%(name)s",
+                "kind": "chunk",
+                "build-system": "%(bs)s"
+            }
+        ''' % {
+            'name': name,
+            'bs': self.name,
+        }
     
     def used_by_project(self, srcdir):
         '''Does project at ``srcdir`` use this build system?'''
