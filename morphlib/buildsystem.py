@@ -36,6 +36,10 @@ class BuildSystem(object):
         self.build_commands = []
         self.test_commands = []
         self.install_commands = []
+        
+    def __getitem__(self, key):
+        key = '_'.join(key.split('-'))
+        return getattr(self, key)
     
     def used_by_project(self, srcdir):
         '''Does project at ``srcdir`` use this build system?'''

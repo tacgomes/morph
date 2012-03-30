@@ -33,9 +33,27 @@ def create_manual_project(srcdir):
 
 def create_autotools_project(srcdir):
     touch(os.path.join(srcdir, 'configure.in'))
+    
+    
+class BuildSystemTests(unittest.TestCase):
+
+    def setUp(self):
+        self.bs = morphlib.buildsystem.BuildSystem()
+
+    def test_has_configure_commands(self):
+        self.assertEqual(self.bs['configure-commands'], [])
+
+    def test_has_build_commands(self):
+        self.assertEqual(self.bs['build-commands'], [])
+
+    def test_has_test_commands(self):
+        self.assertEqual(self.bs['test-commands'], [])
+
+    def test_has_install_commands(self):
+        self.assertEqual(self.bs['install-commands'], [])
 
 
-class ManualBuildSystem(unittest.TestCase):
+class ManualBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
         self.bs = morphlib.buildsystem.ManualBuildSystem()
@@ -53,7 +71,7 @@ class ManualBuildSystem(unittest.TestCase):
         self.assertFalse(self.bs.used_by_project(self.tempdir))
 
 
-class DummyBuildSystem(unittest.TestCase):
+class DummyBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
         self.bs = morphlib.buildsystem.DummyBuildSystem()
@@ -71,7 +89,7 @@ class DummyBuildSystem(unittest.TestCase):
         self.assertFalse(self.bs.used_by_project(self.tempdir))
 
 
-class AutotoolsBuildSystem(unittest.TestCase):
+class AutotoolsBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
         self.bs = morphlib.buildsystem.ManualBuildSystem()
