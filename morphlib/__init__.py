@@ -21,6 +21,7 @@ import bins
 import blobs
 import buildcontroller
 import builddependencygraph
+import buildsystem
 import buildworker
 import builder
 import cachedir
