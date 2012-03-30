@@ -52,6 +52,22 @@ class ManualBuildSystem(BuildSystem):
         return False
 
 
+class DummyBuildSystem(BuildSystem):
+
+    '''A dummy build system, useful for debugging morphologies.'''
+
+    name = 'dummy'
+    
+    def __init__(self):
+        self.configure_commands = ['echo dummy configure']
+        self.build_commands = ['echo dummy build']
+        self.test_commands = ['echo dummy test']
+        self.install_commands = ['echo dummy install']
+
+    def used_by_project(self, srcdir):
+        return False
+
+
 class AutotoolsBuildSystem(BuildSystem):
 
     '''The automake/autoconf/libtool holy trinity.'''

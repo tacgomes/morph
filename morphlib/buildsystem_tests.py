@@ -53,6 +53,24 @@ class ManualBuildSystem(unittest.TestCase):
         self.assertFalse(self.bs.used_by_project(self.tempdir))
 
 
+class DummyBuildSystem(unittest.TestCase):
+
+    def setUp(self):
+        self.bs = morphlib.buildsystem.DummyBuildSystem()
+        self.tempdir = tempfile.mkdtemp()
+        
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+        
+    def test_does_not_autodetect_empty(self):
+        create_manual_project(self.tempdir)
+        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        
+    def test_does_not_autodetect_autotools(self):
+        create_autotools_project(self.tempdir)
+        self.assertFalse(self.bs.used_by_project(self.tempdir))
+
+
 class AutotoolsBuildSystem(unittest.TestCase):
 
     def setUp(self):
