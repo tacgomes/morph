@@ -229,38 +229,6 @@ class BlobBuilder(object): # pragma: no cover
 
 class ChunkBuilder(BlobBuilder): # pragma: no cover
 
-    build_system = {
-        'dummy': {
-            'configure-commands': [
-                'echo dummy configure',
-            ],
-            'build-commands': [
-                'echo dummy build',
-            ],
-            'test-commands': [
-                'echo dummy test',
-            ],
-            'install-commands': [
-                'echo dummy install',
-            ],
-        },
-        'autotools': {
-            'configure-commands': [
-                'if [ -e autogen.sh ]; then ./autogen.sh; ' +
-                'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
-                './configure --prefix="$PREFIX"',
-            ],
-            'build-commands': [
-                'make',
-            ],
-            'test-commands': [
-            ],
-            'install-commands': [
-                'make DESTDIR="$DESTDIR" install',
-            ],
-        },
-    }
-
     def builds(self):
         ret = {}
         for chunk_name in self.blob.chunks:
@@ -312,15 +280,13 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
 
         bs_name = self.blob.morph.build_system
         if bs_name:
-            bs = self.build_system[bs_name]
+            bs = morphlib.buildsystem.lookup_build_system(bs_name)
         else:
             bs = {}
 
         def run_them(runner, what):
-            key = '%s-commands' % what
             attr = '%s_commands' % what
-            cmds = bs.get(key, [])
-            cmds = getattr(self.blob.morph, attr, []) or cmds
+            cmds = getattr(self.blob.morph, attr, []) or bs[attr]
             runner(what, cmds)
 
         run_them(self.run_sequentially, 'configure')
