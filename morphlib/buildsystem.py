@@ -104,6 +104,7 @@ class AutotoolsBuildSystem(BuildSystem):
 build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
+    DummyBuildSystem(),
 ]
     
 
@@ -132,5 +133,5 @@ def lookup_build_system(name):
     for bs in build_systems:
         if bs.name == name:
             return bs
-    raise KeyError(name)
+    raise KeyError('Unknown build system: %s' % name)
 
