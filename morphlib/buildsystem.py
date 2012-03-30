@@ -74,6 +74,21 @@ class AutotoolsBuildSystem(BuildSystem):
 
     name = 'autotools'
     
+    def __init__(self):
+        self.configure_commands = [
+            'if [ -e autogen.sh ]; then ./autogen.sh; ' +
+            'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
+            './configure --prefix="$PREFIX"',
+        ]
+        self.build_commands = [
+            'make',
+        ]
+        self.test_commands = [
+        ]
+        self.install_commands = [
+            'make DESTDIR="$DESTDIR" install',
+        ]
+
     def used_by_project(self, srcdir):
         indicators = [
             'autogen.sh',
