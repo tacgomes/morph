@@ -55,8 +55,13 @@ class BuildSystem(object):
             'bs': self.name,
         }
     
-    def used_by_project(self, srcdir):
-        '''Does project at ``srcdir`` use this build system?'''
+    def used_by_project(self, exists):
+        '''Does a project use this build system?
+        
+        ``exists`` is a function that returns a boolean telling if a
+        filename, relative to the project source directory, exists or not.
+        
+        '''
         raise NotImplementedError() # pragma: no cover
         
 
@@ -66,7 +71,7 @@ class ManualBuildSystem(BuildSystem):
 
     name = 'manual'
     
-    def used_by_project(self, srcdir):
+    def used_by_project(self, exists):
         return False
 
 
@@ -82,7 +87,7 @@ class DummyBuildSystem(BuildSystem):
         self.test_commands = ['echo dummy test']
         self.install_commands = ['echo dummy install']
 
-    def used_by_project(self, srcdir):
+    def used_by_project(self, exists):
         return False
 
 
@@ -107,7 +112,7 @@ class AutotoolsBuildSystem(BuildSystem):
             'make DESTDIR="$DESTDIR" install',
         ]
 
-    def used_by_project(self, srcdir):
+    def used_by_project(self, exists):
         indicators = [
             'autogen.sh',
             'configure.ac',
@@ -115,8 +120,7 @@ class AutotoolsBuildSystem(BuildSystem):
             'configure.in.in',
         ]
         
-        return any(os.path.exists(os.path.join(srcdir, x))
-                   for x in indicators)
+        return any(exists(x) for x in indicators)
 
 
 build_systems = [
@@ -126,15 +130,16 @@ build_systems = [
 ]
     
 
-def detect_build_system(srcdir):
+def detect_build_system(exists):
     '''Automatically detect the build system, if possible.
     
     If the build system cannot be detected automatically, return None.
+    For ``exists`` see the ``BuildSystem.exists`` method.
     
     '''
     
     for bs in build_systems:
-        if bs.used_by_project(srcdir):
+        if bs.used_by_project(exists):
             return bs
     return None
 

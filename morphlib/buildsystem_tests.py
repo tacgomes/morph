@@ -67,13 +67,16 @@ class ManualBuildSystemTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
         
+    def exists(self, filename):
+        return os.path.exists(os.path.join(self.tempdir, filename))
+        
     def test_does_not_autodetect_empty(self):
         create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
         
     def test_does_not_autodetect_autotools(self):
         create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
 
 
 class DummyBuildSystemTests(unittest.TestCase):
@@ -85,13 +88,16 @@ class DummyBuildSystemTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
         
+    def exists(self, filename):
+        return os.path.exists(os.path.join(self.tempdir, filename))
+        
     def test_does_not_autodetect_empty(self):
         create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
         
     def test_does_not_autodetect_autotools(self):
         create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
 
 
 class AutotoolsBuildSystemTests(unittest.TestCase):
@@ -103,13 +109,16 @@ class AutotoolsBuildSystemTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
         
+    def exists(self, filename):
+        return os.path.exists(os.path.join(self.tempdir, filename))
+        
     def test_does_not_autodetect_empty(self):
         create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
         
     def test_autodetects_autotools(self):
         create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.tempdir))
+        self.assertFalse(self.bs.used_by_project(self.exists))
 
 
 class DetectBuildSystemTests(unittest.TestCase):
@@ -120,15 +129,18 @@ class DetectBuildSystemTests(unittest.TestCase):
         
     def tearDown(self):
         shutil.rmtree(self.tempdir)
+        
+    def exists(self, filename):
+        return os.path.exists(os.path.join(self.tempdir, filename))
 
     def test_does_not_autodetect_manual(self):
         create_manual_project(self.tempdir)
-        bs = morphlib.buildsystem.detect_build_system(self.tempdir)
+        bs = morphlib.buildsystem.detect_build_system(self.exists)
         self.assertEqual(bs, None)
 
     def test_autodetects_autotools(self):
         create_autotools_project(self.tempdir)
-        bs = morphlib.buildsystem.detect_build_system(self.tempdir)
+        bs = morphlib.buildsystem.detect_build_system(self.exists)
         self.assertEqual(type(bs), morphlib.buildsystem.AutotoolsBuildSystem)
 
 
