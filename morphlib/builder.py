@@ -673,7 +673,8 @@ class Builder(object): # pragma: no cover
                             if 'morph' in source
                             else source['name'])
                 filename = '%s.morph' % filename
-                chunk = self.morph_loader.load(treeish, filename)
+                chunk = self.morph_loader.load(treeish, filename, 
+                                               chunk_name=source['name'])
                 cache_id = self.get_cache_id(chunk)
                 kids.append(cache_id)
         elif morph.kind == 'system':
