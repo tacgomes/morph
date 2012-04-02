@@ -34,7 +34,7 @@ class MorphologyLoader(object):
         else:
             try:
                 morph = self._get_morph_from_git(treeish, filename)
-            except morphlib.excecute.CommandFailure: # pragma: no cover
+            except morphlib.execute.CommandFailure: # pragma: no cover
                 morph = None
             if morph is None and chunk_name is not None: # pragma: no cover
                 morph = self._autodetect_morph(treeish, filename, chunk_name)
