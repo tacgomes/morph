@@ -17,6 +17,7 @@
 
 
 import cliapp
+import json
 import logging
 import os
 
@@ -578,6 +579,33 @@ class Morph(cliapp.Application):
             pull_from = os.path.join(mine, other_branch, basename)
             repo_dir = os.path.join(mine, this_branch, basename)
             self.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
+
+    def cmd_petrify(self, args):
+        '''Make refs to chunks be absolute SHA-1s.'''
+        
+        morph_loader = MorphologyLoader(self.settings)
+        source_manager = morphlib.sourcemanager.SourceManager(self,
+                            update=not self.settings['no-git-update'])
+
+        for filename in args:
+            with open(filename) as f:
+                morph = json.load(f)
+            
+            if morph['kind'] != 'stratum':
+                self.msg('Not a stratum: %s' % filename)
+                continue
+
+            self.msg('Petrifying %s' % filename)
+
+            for source in morph['sources']:
+                repo = source.get('repo', source['name'])
+                ref = source['ref']
+                self.msg('.. looking up sha1 for %s %s' % (repo, ref))
+                treeish = source_manager.get_treeish(repo, ref)
+                source['ref'] = treeish.sha1
+            
+            with open(filename, 'w') as f:
+                json.dump(morph, f, indent=2)
 
     def msg(self, msg):
         '''Show a message to the user about what is going on.'''
