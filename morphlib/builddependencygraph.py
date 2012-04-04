@@ -39,10 +39,10 @@ class BuildDependencyGraph(object): # pragma: no cover
         self.root_filename = filename
         self.blobs = set()
 
-    def create_blob(self, treeish, filename):
+    def create_blob(self, treeish, filename, chunk_name=None):
         '''Creates a blob from a morphology.'''
 
-        morph = self.morph_loader.load(treeish, filename)
+        morph = self.morph_loader.load(treeish, filename, chunk_name)
 
         if morph.kind == 'stratum':
             return morphlib.blobs.Stratum(morph)
@@ -51,7 +51,7 @@ class BuildDependencyGraph(object): # pragma: no cover
         else:
             return morphlib.blobs.System(morph)
 
-    def get_blob(self, treeish, filename):
+    def get_blob(self, treeish, filename, chunk_name=None):
         '''Takes a repo, ref, filename and looks up the blob for them.
 
         Loads the corresponding morphology and chunk/stratum/system object
@@ -62,7 +62,7 @@ class BuildDependencyGraph(object): # pragma: no cover
         key = (treeish, filename)
         blob = self.cached_blobs.get(key, None)
         if not blob:
-            blob = self.create_blob(treeish, filename)
+            blob = self.create_blob(treeish, filename, chunk_name)
             self.cached_blobs[key] = blob
         return blob
 
@@ -166,7 +166,7 @@ class BuildDependencyGraph(object): # pragma: no cover
 
             # load the chunk on demand
             treeish = self.source_manager.get_treeish(repo, ref)
-            chunk = self.get_blob(treeish, filename)
+            chunk = self.get_blob(treeish, filename, source['name'])
             chunk.add_parent(stratum)
 
             # store (name -> chunk) association to avoid loading the chunk 

@@ -279,10 +279,7 @@ class ChunkBuilder(BlobBuilder): # pragma: no cover
         '''
 
         bs_name = self.blob.morph.build_system
-        if bs_name:
-            bs = morphlib.buildsystem.lookup_build_system(bs_name)
-        else:
-            bs = {}
+        bs = morphlib.buildsystem.lookup_build_system(bs_name)
 
         def run_them(runner, what):
             attr = '%s_commands' % what

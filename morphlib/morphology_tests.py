@@ -105,7 +105,7 @@ class MorphologyTests(unittest.TestCase):
                             u'hello-dev': [u'usr/include/*', u'usr/lib/*'],
                          })
 
-    def test_build_system_defaults_to_None(self):
+    def test_build_system_defaults_to_manual(self):
         morph = morphlib.morphology.Morphology(
                           FakeTreeish(),
                           MockFile('''
@@ -113,7 +113,7 @@ class MorphologyTests(unittest.TestCase):
                                 "name": "hello",
                                 "kind": "chunk"
                             }'''))
-        self.assertEqual(morph.build_system, None)
+        self.assertEqual(morph.build_system, 'manual')
 
     def test_max_jobs_defaults_to_None(self):
         morph = morphlib.morphology.Morphology(

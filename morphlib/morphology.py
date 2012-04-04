@@ -68,7 +68,7 @@ class Morphology(object):
 
     @property
     def build_system(self):
-        return self._dict.get('build-system', None)
+        return self._dict.get('build-system', 'manual')
 
     @property
     def max_jobs(self):
