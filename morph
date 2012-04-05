@@ -694,6 +694,11 @@ class Morph(cliapp.Application):
 # FIXME: This needs to be made working, but it doesn't really, right now:
 # the tempdir is not available inside the staging chroot.
 #            env['CCACHE_BASEDIR'] = self.tempdir.dirname
+            env['CCACHE_EXTRAFILES'] = ':'.join(
+                f for f in ('/baserock/binutils.meta',
+                            '/baserock/eglibc.meta',
+                            '/baserock/gcc.meta') if os.path.exists(f)
+            )
             if not self.settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
             
