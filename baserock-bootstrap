@@ -211,6 +211,7 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
+export LD_LIBRARY_PATH="/usr/lib:/lib:/lib64:/tools/lib:/tools/lib64"
 python ./morph --verbose build \
     morphs master bootstrap-pass2.morph \
         --bootstrap \
