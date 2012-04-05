@@ -37,6 +37,8 @@ defaults = {
     'max-jobs': morphlib.util.make_concurrency(),
     'prefix': '/usr',
     'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
+    'ccache-remotedir': '',
+    'ccache-remotenlevels': 2,
 }
 
 
@@ -79,6 +81,16 @@ class Morph(cliapp.Application):
                              metavar='DIR', 
                              default=os.environ.get('TMPDIR'))
         self.settings.boolean(['no-ccache'], 'do not use ccache')
+        self.settings.string(['ccache-remotedir'],
+                             'allow ccache to download objects from REMOTEDIR '
+                               'if they are not cached locally',
+                             metavar='REMOTEDIR',
+                             default=defaults['ccache-remotedir'])
+        self.settings.integer(['ccache-remotenlevels'],
+                              'assume ccache directory objects are split into '
+                                'NLEVELS levels of subdirectories',
+                              metavar='NLEVELS',
+                              default=defaults['ccache-remotenlevels'])
         self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.integer(['max-jobs'], 
                               'run at most N parallel jobs with make (default '
@@ -699,6 +711,9 @@ class Morph(cliapp.Application):
                             '/baserock/eglibc.meta',
                             '/baserock/gcc.meta') if os.path.exists(f)
             )
+            if self.settings['ccache-remotedir'] != '':
+                env['CCACHE_REMOTEDIR'] = self.settings['ccache-remotedir']
+            env['CCACHE_REMOTENLEVELS'] = self.settings['ccache-remotenlevels']
             if not self.settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
             
