@@ -138,7 +138,9 @@ class Factory(object):
         for dirname, subdirs, basenames in os.walk(root, topdown=False):
             for basename in basenames:
                 pathname = os.path.join(dirname, basename)
-                os.utime(pathname, (now, now))
+                # we need the following check to ignore broken symlinks
+                if os.path.exists(pathname):
+                    os.utime(pathname, (now, now))
             os.utime(dirname, (now, now))
 
 
