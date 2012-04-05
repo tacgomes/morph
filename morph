@@ -713,7 +713,8 @@ class Morph(cliapp.Application):
             )
             if self.settings['ccache-remotedir'] != '':
                 env['CCACHE_REMOTEDIR'] = self.settings['ccache-remotedir']
-            env['CCACHE_REMOTENLEVELS'] = self.settings['ccache-remotenlevels']
+            env['CCACHE_REMOTENLEVELS'] = \
+                                    str(self.settings['ccache-remotenlevels'])
             if not self.settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
             
