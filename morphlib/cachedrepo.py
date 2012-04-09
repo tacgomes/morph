@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import binascii
 import cliapp
 import logging
 import os
@@ -74,7 +73,6 @@ class CachedRepo(object):
             refs = self._show_ref(ref).split('\n')
             # split each ref line into an array, drop non-origin branches
             refs = [x.split() for x in refs if 'origin' in x]
-            binascii.unhexlify(refs[0][0])
             return refs[0][0]
         except morphlib.execute.CommandFailure:
             pass
@@ -82,7 +80,6 @@ class CachedRepo(object):
         if not self.is_valid_sha1(ref):
             raise InvalidReferenceError(self, ref)
         try:
-            binascii.unhexlify(ref)
             return self._rev_list(ref)
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
