@@ -66,11 +66,17 @@ class LocalRepoCache(object):
     is prepended. The base urls are given to the class when it is
     created.
     
+    Instead of cloning via a normal 'git clone' directly from the
+    git server, we first try to download a bundle from a url, and
+    if that works, we clone from the bundle.
+    
     '''
     
-    def __init__(self, cachedir, baseurls):
+    def __init__(self, cachedir, baseurls, bundle_base_url):
+        assert bundle_base_url.endswith('/')
         self._cachedir = cachedir
         self._baseurls = baseurls
+        self._bundle_base_url = bundle_base_url
         self._ex = morphlib.execute.Execute(cachedir, logging.debug)
 
     def _exists(self, filename): # pragma: no cover
@@ -93,9 +99,34 @@ class LocalRepoCache(object):
         
         self._ex.runv(['git'] + args)
 
+    def _fetch(self, url, filename): # pragma: no cover
+        '''Fetch contents of url into a file.
+        
+        This method is meant to be overridden by unit tests.
+        
+        '''
+        
+        source_handle = urllib2.urlopen(url)
+        target_handle = open(filename, 'wb')
+
+        data = source_handle.read(4096)
+        while data:
+            target_handle.write(data)
+            data = source_handle.read(4096)
+
+        source_handle.close()
+        target_handle.close()
+
     def _escape(self, url):
         '''Escape a URL so it can be used as a basename in a file.'''
-        return urllib.quote(url, safe='')
+        
+        # FIXME: The following is a nicer way than what source manager does.
+        # However, for compatibility, we need to use the same as the source
+        # manager uses, since that's what the bundle server (set up by
+        # Lorry) uses.
+        # return urllib.quote(url, safe='')
+        
+        return morphlib.sourcemanager.quote_url(url)
 
     def _cache_name(self, url):
         basename = self._escape(url)
@@ -115,6 +146,16 @@ class LocalRepoCache(object):
                 return True
         return False
 
+    def _clone_with_bundle(self, repourl, path):
+        escaped = self._escape(repourl)
+        bundle_url = urlparse.urljoin(self._bundle_base_url, escaped)
+        bundle_path = path + '.bundle'
+        if self._fetch(bundle_url, bundle_path):
+            self._git(['clone', bundle_path, path])
+            return True
+        else:
+            return False
+
     def cache_repo(self, reponame):
         '''Clone the given repo into the cache.
         
@@ -125,6 +166,10 @@ class LocalRepoCache(object):
         for repourl, path in self._base_iterate(reponame):
             if self._exists(path):
                 break
+
+            if self._clone_with_bundle(repourl, path):
+                break
+
             try:
                 self._git(['clone', reponame, path])
             except morphlib.execute.CommandFailure:
