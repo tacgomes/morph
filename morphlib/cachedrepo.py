@@ -77,26 +77,29 @@ class CachedRepo(object):
             binascii.unhexlify(refs[0][0])
             return refs[0][0]
         except morphlib.execute.CommandFailure:
-            if not self.is_valid_sha1(ref):
-                raise InvalidReferenceError(self, ref)
-            try:
-                binascii.unhexlify(ref)
-                return self._rev_list(ref)
-            except morphlib.execute.CommandFailure:
-                raise InvalidReferenceError(self, ref)
+            pass
+
+        if not self.is_valid_sha1(ref):
+            raise InvalidReferenceError(self, ref)
+        try:
+            binascii.unhexlify(ref)
+            return self._rev_list(ref)
+        except morphlib.execute.CommandFailure:
+            raise InvalidReferenceError(self, ref)
 
     def cat(self, ref, filename):
         if not self.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref)
-            try:
-                return self._cat_file(sha1, filename)
-            except morphlib.execute.CommandFailure:
-                raise IOError('File %s does not exist in ref %s of repo %s' %
-                              (filename, ref, self))
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
+
+        try:
+            return self._cat_file(sha1, filename)
+        except morphlib.execute.CommandFailure:
+            raise IOError('File %s does not exist in ref %s of repo %s' %
+                          (filename, ref, self))
 
     def checkout(self, ref, target_dir):
         if not self.is_valid_sha1(ref):
@@ -109,13 +112,14 @@ class CachedRepo(object):
 
         try:
             sha1 = self._rev_list(ref)
-            try:
-                self._copy_repository(self.path, target_dir)
-                self._checkout_ref(sha1, target_dir)
-            except morphlib.execute.CommandFailure:
-                raise CheckoutError(self, ref, target_dir)
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
+        
+        try:
+            self._copy_repository(self.path, target_dir)
+            self._checkout_ref(sha1, target_dir)
+        except morphlib.execute.CommandFailure:
+            raise CheckoutError(self, ref, target_dir)
 
     def update(self):
         try:
