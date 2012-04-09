@@ -28,6 +28,7 @@ import cachedir
 import execute
 import fsutils
 import git
+import localrepocache
 import morphology
 import morphologyloader
 import savefile
