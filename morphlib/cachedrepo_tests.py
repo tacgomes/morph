@@ -106,8 +106,8 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(sha1, '8b780e2e6f102fcf400ff973396566d36d730501')
 
     def test_fail_resolving_invalid_named_ref(self):
-        with self.assertRaises(cachedrepo.InvalidReferenceError):
-            self.repo.resolve_ref('foo/bar')
+        self.assertRaises(cachedrepo.InvalidReferenceError,
+                          self.repo.resolve_ref, 'foo/bar')
 
     def test_resolve_sha1_ref(self):
         sha1 = self.repo.resolve_ref(
@@ -115,8 +115,9 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
     def test_fail_resolving_an_invalid_sha1_ref(self):
-        with self.assertRaises(cachedrepo.InvalidReferenceError):
-            self.repo.resolve_ref('079bbfd447c8534e464ce5d40b80114c2022ebf4')
+        self.assertRaises(cachedrepo.InvalidReferenceError,
+                          self.repo.resolve_ref,
+                          '079bbfd447c8534e464ce5d40b80114c2022ebf4')
 
     def test_cat_existing_file_in_existing_ref(self):
         data = self.repo.cat('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
@@ -124,38 +125,39 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(data, 'contents of foo.morph')
 
     def test_fail_cat_file_in_invalid_ref(self):
-        with self.assertRaises(cachedrepo.InvalidReferenceError):
-            self.repo.cat('079bbfd447c8534e464ce5d40b80114c2022ebf4',
+        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.cat,
+                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
                           'doesnt-matter-whether-this-file-exists')
 
     def test_fail_cat_non_existent_file_in_existing_ref(self):
-        with self.assertRaises(IOError):
-            self.repo.cat('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+        self.assertRaises(IOError, self.repo.cat,
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           'file-that-does-not-exist')
 
     def test_fail_cat_non_existent_file_in_invalid_ref(self):
-        with self.assertRaises(cachedrepo.InvalidReferenceError):
-            self.repo.cat('079bbfd447c8534e464ce5d40b80114c2022ebf4',
+        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.cat,
+                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
                           'file-that-does-not-exist')
 
     def test_fail_because_cat_in_named_ref_is_not_allowed(self):
-        with self.assertRaises(cachedrepo.UnresolvedNamedReferenceError):
-            self.repo.cat('master', 'doesnt-matter-wether-this-file-exists')
+        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
+                          self.repo.cat, 'master', 'doesnt-matter')
 
     def test_fail_checkout_into_existing_directory(self):
-        with self.assertRaises(cachedrepo.CheckoutDirectoryExistsError):
-            self.repo.checkout('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
-                               self.tempdir.dirname)
+        self.assertRaises(cachedrepo.CheckoutDirectoryExistsError,
+                          self.repo.checkout,
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+                          self.tempdir.dirname)
 
     def test_fail_checkout_from_named_ref_which_is_not_allowed(self):
-        with self.assertRaises(cachedrepo.UnresolvedNamedReferenceError):
-            self.repo.checkout('master',
-                               self.tempdir.join('checkout-from-named-ref'))
+        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
+                          self.repo.checkout, 'master',
+                          self.tempdir.join('checkout-from-named-ref'))
 
     def test_fail_checkout_from_invalid_ref(self):
-        with self.assertRaises(cachedrepo.InvalidReferenceError):
-            self.repo.checkout('079bbfd447c8534e464ce5d40b80114c2022ebf4',
-                               self.tempdir.join('checkout-from-invalid-ref'))
+        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.checkout,
+                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
+                          self.tempdir.join('checkout-from-invalid-ref'))
 
     def test_checkout_from_existing_ref_into_new_directory(self):
         unpack_dir = self.tempdir.join('unpack-dir')
@@ -167,9 +169,9 @@ class CachedRepoTests(unittest.TestCase):
         self.assertTrue(os.path.exists(morph_filename))
 
     def test_fail_checkout_due_to_copy_or_checkout_problem(self):
-        with self.assertRaises(cachedrepo.CheckoutError):
-            self.repo.checkout('a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-                               self.tempdir.join('failed-checkout'))
+        self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
+                          'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+                          self.tempdir.join('failed-checkout'))
 
     def test_successful_update(self):
         self.repo._update = self.update_successfully
@@ -177,5 +179,4 @@ class CachedRepoTests(unittest.TestCase):
 
     def test_failing_update(self):
         self.repo._update = self.update_with_failure
-        with self.assertRaises(cachedrepo.UpdateError):
-            self.repo.update()
+        self.assertRaises(cachedrepo.UpdateError, self.repo.update)
