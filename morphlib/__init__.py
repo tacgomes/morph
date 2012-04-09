@@ -25,6 +25,7 @@ import buildsystem
 import buildworker
 import builder
 import cachedir
+import cachedrepo
 import execute
 import fsutils
 import git
