@@ -17,6 +17,7 @@
 
 
 import cliapp
+import collections
 import json
 import logging
 import os
@@ -221,15 +222,29 @@ class Morph(cliapp.Application):
         
         '''
 
-        morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self)
+        cachedir = self.settings['cachedir']
+        baseurls = self.settings['git-base-url']
+        cache = LocalRepoCache(cachedir, baseurls)
 
-        for repo, ref, filename in self._itertriplets(args):
-            # resolve the dependency graph, which will implicitly
-            # clone all repositories needed to build the blob
-            graph = BuildDependencyGraph(source_manager, morph_loader,
-                                         repo, ref, filename)
-            graph.resolve()
+        # Reverse so we process things in the order given by the user.
+        queue = collections.deque(self._itertriplets(args))
+
+        while queue:
+            repo, ref, filename = queue.popleft()
+            cache.cache_repo(repo)
+            repo = cache.get_repo(repo)
+            repo.update()
+            absref = repo.resolve_ref(ref)
+            text = repo.cat(absref, filename)
+            morphology = morphlib.morph2.Morphology(text)
+            if morphology['kind'] == 'system':
+                for stratum in morphology['strata']:
+                    queue.append((repo, ref, '%s.morph' % stratum))
+            elif morphology['kind'] == 'stratum':
+                for stratum in morphology['build-depends']:
+                    queue.append((repo, ref, '%s.morph' % stratum))
+                for x in morphology['sources']:
+                    queue.append((x.repo, x.ref, x.morph))
 
     def cmd_build_single(self, args):
         '''Build a binary from a morphology but do not build its dependencies.
