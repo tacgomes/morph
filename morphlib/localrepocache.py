@@ -117,6 +117,15 @@ class LocalRepoCache(object):
         source_handle.close()
         target_handle.close()
 
+    def _remove(self, filename): # pragma: no cover
+        '''Remove given file.
+        
+        This method is meant to be overridden by unit tests.
+        
+        '''
+        
+        os.remove(filename)
+
     def _escape(self, url):
         '''Escape a URL so it can be used as a basename in a file.'''
         
@@ -152,6 +161,7 @@ class LocalRepoCache(object):
         bundle_path = path + '.bundle'
         if self._fetch(bundle_url, bundle_path):
             self._git(['clone', bundle_path, path])
+            self._remove(bundle_path)
             return True
         else:
             return False

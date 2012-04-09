@@ -33,12 +33,14 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.cache = set()
         self.remotes = []
         self.fetched = []
+        self.removed = []
         self.lrc = morphlib.localrepocache.LocalRepoCache(self.cachedir,
                                                           baseurls,
                                                           bundle_base_url)
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
         self.lrc._fetch = self.not_found
+        self.lrc._remove = self.fake_remove
         
     def fake_git(self, args):
         if args[0] == 'clone':
@@ -54,6 +56,9 @@ class LocalRepoCacheTests(unittest.TestCase):
         
     def fake_exists(self, filename):
         return filename in self.cache
+
+    def fake_remove(self, filename):
+        self.removed.append(filename)
 
     def not_found(self, url, path):
         return False
@@ -98,6 +103,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc.cache_repo(self.repourl)
         self.assertEqual(self.fetched, [self.bundle_url])
         self.assertEqual(self.remotes, [self.cache_path + '.bundle'])
+        self.assertEqual(self.removed, [self.cache_path + '.bundle'])
 
     def test_gets_cached_relative_repo(self):
         self.lrc.cache_repo(self.reponame)
