@@ -33,14 +33,6 @@ urlparse.uses_fragment.extend(gitscheme)
 
 
 
-class CachedRepoPlaceholder(object):
-
-    '''A placeholder until the real CachedRepo exists.'''
-    
-    def __init__(self, url, dirname):
-        pass
-
-
 class NoRemote(Exception):
 
     def __init__(self, reponame):
@@ -194,6 +186,6 @@ class LocalRepoCache(object):
 
         for repourl, path in self._base_iterate(reponame):
             if self._exists(path):
-                return CachedRepoPlaceholder(repourl, path)
+                return morphlib.cachedrepo.CachedRepo(repourl, path)
         raise Exception('Repository %s is not cached yet' % reponame)
 
