@@ -61,7 +61,7 @@ class ExtractBuildTimes(cliapp.Application):
         items = sorted(items, key=lambda x: x[1], reverse=True)
 
         for name, time in items:
-            print '%30s: %3.1f mins' % (name, time)
+            print '%30s: %5.1f mins' % (name, time)
 
 
 if __name__ == '__main__':
