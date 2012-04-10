@@ -176,7 +176,7 @@ class LocalRepoCache(object):
     def cache_repo(self, reponame):
         '''Clone the given repo into the cache.
         
-        If the repo is already clone, do nothing.
+        If the repo is already cloned, do nothing.
         
         '''
         
@@ -185,12 +185,14 @@ class LocalRepoCache(object):
 
         for repourl, path in self._base_iterate(reponame):
             if self._exists(path):
-                break
+                return
 
-            if (self._bundle_base_url and 
-                self._clone_with_bundle(repourl, path)):
-                break
+        if self._bundle_base_url:
+            for repourl, path in self._base_iterate(reponame):
+                if self._clone_with_bundle(repourl, path):
+                    return
 
+        for repourl, path in self._base_iterate(reponame):
             try:
                 self._git(['clone', repourl, path])
             except morphlib.execute.CommandFailure:
