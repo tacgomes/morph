@@ -15,6 +15,7 @@
 
 
 import unittest
+import urllib2
 
 import morphlib
 
@@ -65,7 +66,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.removed.append(filename)
 
     def not_found(self, url, path):
-        return False
+        raise urllib2.URLError('Not found')
 
     def fake_fetch(self, url, path):
         self.fetched.append(url)
@@ -135,6 +136,6 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertFalse('/' in escaped)
 
     def test_noremote_error_message_contains_repo_name(self):
-        e = morphlib.localrepocache.NoRemote(self.repourl)
+        e = morphlib.localrepocache.NoRemote(self.repourl, [])
         self.assertTrue(self.repourl in str(e))
 

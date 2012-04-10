@@ -35,11 +35,13 @@ urlparse.uses_fragment.extend(gitscheme)
 
 class NoRemote(Exception):
 
-    def __init__(self, reponame):
+    def __init__(self, reponame, errors):
         self.reponame = reponame
+        self.errors = errors
     
     def __str__(self):
-        return 'Cannot find remote git repository: %s' % self.reponame
+        return '\n\t'.join(['Cannot find remote git repository: %s' %
+                            self.reponame] + self.errors)
 
 
 class LocalRepoCache(object):
@@ -99,19 +101,16 @@ class LocalRepoCache(object):
         
         '''
         
-        try:
-            source_handle = urllib2.urlopen(url)
-            target_handle = open(filename, 'wb')
+        source_handle = urllib2.urlopen(url)
+        target_handle = open(filename, 'wb')
 
+        data = source_handle.read(4096)
+        while data:
+            target_handle.write(data)
             data = source_handle.read(4096)
-            while data:
-                target_handle.write(data)
-                data = source_handle.read(4096)
 
-            source_handle.close()
-            target_handle.close()
-        except urllib2.URLError:
-            return False
+        source_handle.close()
+        target_handle.close()
 
     def _mkdir(self, dirname): # pragma: no cover
         '''Create a directory.
@@ -130,6 +129,15 @@ class LocalRepoCache(object):
         '''
         
         os.remove(filename)
+
+    def _rmtree(self, dirname): # pragma: no cover
+        '''Remove given directory tree.
+
+        This method is meant to be overridden by unit tests.
+
+        '''
+        
+        shutil.rmtree(dirname)
 
     def _escape(self, url):
         '''Escape a URL so it can be used as a basename in a file.'''
@@ -166,12 +174,21 @@ class LocalRepoCache(object):
         escaped = self._escape(repourl)
         bundle_url = urlparse.urljoin(self._bundle_base_url, escaped)
         bundle_path = path + '.bundle'
-        success = self._fetch(bundle_url, bundle_path)
-        if success:
+        try:
+            self._fetch(bundle_url, bundle_path)
+        except urllib2.URLError, e:
+            return False, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
+        try:
             self._git(['clone', bundle_path, path])
-        if self._exists(bundle_path):
-            self._remove(bundle_path)
-        return success
+        except morphlib.execute.CommandFailure, e: # pragma: no cover
+            if self._exists(path):
+                shutil.rmtree(path)
+            return False, 'Unable to extract bundle %s: %s' % (bundle_path, e)
+        finally:
+            if self._exists(bundle_path):
+                self._remove(bundle_path)
+
+        return True, None
 
     def cache_repo(self, reponame):
         '''Clone the given repo into the cache.
@@ -179,7 +196,7 @@ class LocalRepoCache(object):
         If the repo is already cloned, do nothing.
         
         '''
-        
+        errors = []
         if not self._exists(self._cachedir):
             self._mkdir(self._cachedir)
 
@@ -189,18 +206,22 @@ class LocalRepoCache(object):
 
         if self._bundle_base_url:
             for repourl, path in self._base_iterate(reponame):
-                if self._clone_with_bundle(repourl, path):
+                ok, error = self._clone_with_bundle(repourl, path)
+                if ok:
                     return
+                else:
+                   errors.append(error)
 
         for repourl, path in self._base_iterate(reponame):
             try:
                 self._git(['clone', repourl, path])
-            except morphlib.execute.CommandFailure:
-                pass
+            except morphlib.execute.CommandFailure, e:
+                errors.append('Unable to clone from %s to %s: %s' %
+                                                 (repourl, path, e))
             else:
                 break
         else:
-            raise NoRemote(reponame)
+            raise NoRemote(reponame, errors)
 
     def get_repo(self, reponame):
         '''Return an object representing a cached repository.'''
