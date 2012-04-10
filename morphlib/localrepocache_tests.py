@@ -65,6 +65,7 @@ class LocalRepoCacheTests(unittest.TestCase):
 
     def fake_fetch(self, url, path):
         self.fetched.append(url)
+        self.cache.add(path)
         return True
 
     def test_has_not_got_relative_repo_initially(self):
