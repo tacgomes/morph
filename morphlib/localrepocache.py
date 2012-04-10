@@ -172,7 +172,7 @@ class LocalRepoCache(object):
 
     def _clone_with_bundle(self, repourl, path):
         escaped = self._escape(repourl)
-        bundle_url = urlparse.urljoin(self._bundle_base_url, escaped)
+        bundle_url = urlparse.urljoin(self._bundle_base_url, escaped) + '.bndl'
         bundle_path = path + '.bundle'
         try:
             self._fetch(bundle_url, bundle_path)
