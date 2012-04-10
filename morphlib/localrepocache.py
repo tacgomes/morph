@@ -68,7 +68,7 @@ class LocalRepoCache(object):
         self._cachedir = cachedir
         self._baseurls = baseurls
         if bundle_base_url and not bundle_base_url.endswith('/'):
-            bundle_base_url += '/'
+            bundle_base_url += '/' # pragma: no cover
         self._bundle_base_url = bundle_base_url
         self._ex = morphlib.execute.Execute(cachedir, logging.debug)
 
@@ -141,7 +141,7 @@ class LocalRepoCache(object):
     def _base_iterate(self, reponame):
         for baseurl in self._baseurls:
             if not baseurl.endswith('/'):
-                baseurl += '/'
+                baseurl += '/' # pragma: no cover
             repourl = urlparse.urljoin(baseurl, reponame)
             path = self._cache_name(repourl)
             yield repourl, path
@@ -154,15 +154,13 @@ class LocalRepoCache(object):
         return False
 
     def _clone_with_bundle(self, repourl, path):
-        if not self._bundle_base_url:
-            return False
         escaped = self._escape(repourl)
         bundle_url = urlparse.urljoin(self._bundle_base_url, escaped)
         bundle_path = path + '.bundle'
         success = self._fetch(bundle_url, bundle_path)
         if success:
             self._git(['clone', bundle_path, path])
-        if os.path.exists(bundle_path):
+        if self._exists(bundle_path):
             self._remove(bundle_path)
         return success
 
@@ -177,7 +175,8 @@ class LocalRepoCache(object):
             if self._exists(path):
                 break
 
-            if self._clone_with_bundle(repourl, path):
+            if (self._bundle_base_url and 
+                self._clone_with_bundle(repourl, path)):
                 break
 
             try:
