@@ -223,6 +223,8 @@ class Morph(cliapp.Application):
         
         '''
 
+        if not os.path.exists(self.settings['cachedir']):
+            os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
         baseurls = self.settings['git-base-url']
         bundle_base_url = self.settings['bundle-server']
