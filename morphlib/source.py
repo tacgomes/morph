@@ -56,3 +56,5 @@ class Source(object):
         '''Do we depend on ``source``?'''
         return source in self.dependencies
 
+    def __str__(self): # pragma: no cover
+        return '%s|%s|%s' % (self.repo, self.sha1, self.filename)
