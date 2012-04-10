@@ -34,6 +34,7 @@ import morph2
 import morphology
 import morphologyloader
 import savefile
+import source
 import sourcemanager
 import stopwatch
 import tempdir
