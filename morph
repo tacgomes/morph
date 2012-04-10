@@ -234,7 +234,7 @@ class Morph(cliapp.Application):
 
         while queue:
             reponame, ref, filename = queue.popleft()
-            self.msg('updating %s:%s:%s' % (reponame, ref, filename))
+            self.msg('Updating %s|%s|%s' % (reponame, ref, filename))
             cache.cache_repo(reponame)
             repo = cache.get_repo(reponame)
             repo.update()
