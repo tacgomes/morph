@@ -40,6 +40,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
         self.lrc._fetch = self.not_found
+        self.lrc._mkdir = self.fake_mkdir
         self.lrc._remove = self.fake_remove
         
     def fake_git(self, args):
@@ -56,6 +57,9 @@ class LocalRepoCacheTests(unittest.TestCase):
         
     def fake_exists(self, filename):
         return filename in self.cache
+
+    def fake_mkdir(self, dirname):
+        self.cache.add(dirname)
 
     def fake_remove(self, filename):
         self.removed.append(filename)
@@ -83,6 +87,13 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc.cache_repo(self.repourl)
         self.assertTrue(self.lrc.has_repo(self.reponame))
         self.assertTrue(self.lrc.has_repo(self.repourl))
+
+    def test_cachedir_does_not_exist_initially(self):
+        self.assertFalse(self.cachedir in self.cache)
+
+    def test_creates_cachedir_if_missing(self):
+        self.lrc.cache_repo(self.repourl)
+        self.assertTrue(self.cachedir in self.cache)
 
     def test_happily_caches_same_repo_twice(self):
         self.lrc.cache_repo(self.repourl)

@@ -113,6 +113,15 @@ class LocalRepoCache(object):
         except urllib2.URLError:
             return False
 
+    def _mkdir(self, dirname): # pragma: no cover
+        '''Create a directory.
+        
+        This method is meant to be overridden by unit tests.
+        
+        '''
+        
+        os.mkdir(dirname)
+
     def _remove(self, filename): # pragma: no cover
         '''Remove given file.
         
@@ -171,6 +180,9 @@ class LocalRepoCache(object):
         
         '''
         
+        if not self._exists(self._cachedir):
+            self._mkdir(self._cachedir)
+
         for repourl, path in self._base_iterate(reponame):
             if self._exists(path):
                 break
