@@ -59,9 +59,16 @@ class ExtractBuildTimes(cliapp.Application):
                 items.append((chunk_name(chunk), minutes))
 
         items = sorted(items, key=lambda x: x[1], reverse=True)
-
+        print '%s' % (43 * '-')
+        print 'Build times of cached chunks in'
+        print '%s' % cachedir
+        print '%s' % (43 * '-')
+        sum = 0.0
         for name, time in items:
-            print '%30s: %5.1f mins' % (name, time)
+            print '%30s: %6.1f mins' % (name, time)
+            sum += time
+        print '%s' % (43 * '-')
+        print '%30s: %6.1f mins' % ('total', sum)
 
 
 if __name__ == '__main__':
