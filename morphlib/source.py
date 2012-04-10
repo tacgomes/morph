@@ -26,6 +26,7 @@ class Source(object):
     * ``repo`` -- the git repository which contains the source
     * ``sha1`` -- the absolute git commit id for the revision we use
     * ``morphology`` -- the in-memory representation of the morphology we use
+    * ``filename`` -- basename of the morphology filename
     * ``dependencies`` -- list of Sources for build dependencies for us
     * ``dependents`` -- list of Source for whom we are a build dependency
     
@@ -34,11 +35,12 @@ class Source(object):
     
     '''
     
-    def __init__(self, repo, sha1, morphology):
+    def __init__(self, repo, sha1, morphology, filename):
         assert type(morphology) == morphlib.morph2.Morphology
         self.repo = repo
         self.sha1 = sha1
         self.morphology = morphology
+        self.filename = filename
         self.dependencies = []
         self.dependents = []
 

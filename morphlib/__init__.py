@@ -36,6 +36,7 @@ import morphologyloader
 import savefile
 import source
 import sourcemanager
+import sourcepool
 import stopwatch
 import tempdir
 import util
