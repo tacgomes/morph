@@ -106,7 +106,7 @@ class CachedRepo(object):
         if not self.is_valid_sha1(ref):
             raise InvalidReferenceError(self, ref)
         try:
-            return self._rev_list(ref)
+            return self._rev_list(ref).strip()
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
 
@@ -123,7 +123,7 @@ class CachedRepo(object):
         if not self.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
-            sha1 = self._rev_list(ref)
+            sha1 = self._rev_list(ref).strip()
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
 
@@ -154,7 +154,7 @@ class CachedRepo(object):
         os.mkdir(target_dir)
 
         try:
-            sha1 = self._rev_list(ref)
+            sha1 = self._rev_list(ref).strip()
         except morphlib.execute.CommandFailure:
             raise InvalidReferenceError(self, ref)
         

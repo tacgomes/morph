@@ -30,6 +30,7 @@ import execute
 import fsutils
 import git
 import localrepocache
+import morph2
 import morphology
 import morphologyloader
 import savefile

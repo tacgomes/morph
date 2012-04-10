@@ -53,7 +53,8 @@ class Morph(cliapp.Application):
                              default=defaults['git-base-url'])
         self.settings.string(['bundle-server'],
                              'base URL to download bundles',
-                             metavar='URL')
+                             metavar='URL',
+                             default=None)
         self.settings.string(['cachedir'], 
                              'put build results in DIR',
                              metavar='DIR', 
@@ -222,29 +223,33 @@ class Morph(cliapp.Application):
         
         '''
 
-        cachedir = self.settings['cachedir']
+        cachedir = os.path.join(self.settings['cachedir'], 'gits')
         baseurls = self.settings['git-base-url']
-        cache = LocalRepoCache(cachedir, baseurls)
+        bundle_base_url = self.settings['bundle-server']
+        cache = morphlib.localrepocache.LocalRepoCache(
+                cachedir, baseurls, bundle_base_url)
 
         # Reverse so we process things in the order given by the user.
         queue = collections.deque(self._itertriplets(args))
 
         while queue:
-            repo, ref, filename = queue.popleft()
-            cache.cache_repo(repo)
-            repo = cache.get_repo(repo)
+            reponame, ref, filename = queue.popleft()
+            self.msg('updating %s:%s:%s' % (reponame, ref, filename))
+            cache.cache_repo(reponame)
+            repo = cache.get_repo(reponame)
             repo.update()
             absref = repo.resolve_ref(ref)
             text = repo.cat(absref, filename)
             morphology = morphlib.morph2.Morphology(text)
             if morphology['kind'] == 'system':
                 for stratum in morphology['strata']:
-                    queue.append((repo, ref, '%s.morph' % stratum))
+                    queue.append((reponame, ref, '%s.morph' % stratum))
             elif morphology['kind'] == 'stratum':
                 for stratum in morphology['build-depends']:
-                    queue.append((repo, ref, '%s.morph' % stratum))
+                    queue.append((reponame, ref, '%s.morph' % stratum))
                 for x in morphology['sources']:
-                    queue.append((x.repo, x.ref, x.morph))
+                    queue.append((x['repo'], x['ref'],
+                                  '%s.morph' % x['morph']))
 
     def cmd_build_single(self, args):
         '''Build a binary from a morphology but do not build its dependencies.

@@ -34,7 +34,7 @@ class Morphology(object):
         ('sources', []),
         ('max-jobs', None),
         ('description', ''),
-        ('build-depends', None),
+        ('build-depends', []),
         ('build-system', 'manual'),
     ]
     

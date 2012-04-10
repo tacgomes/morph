@@ -16,7 +16,7 @@
 
 import logging
 import os
-import urllib
+import urllib2
 import urlparse
 
 import morphlib
@@ -64,10 +64,11 @@ class LocalRepoCache(object):
     
     '''
     
-    def __init__(self, cachedir, baseurls, bundle_base_url):
-        assert bundle_base_url.endswith('/')
+    def __init__(self, cachedir, baseurls, bundle_base_url=None):
         self._cachedir = cachedir
         self._baseurls = baseurls
+        if bundle_base_url and not bundle_base_url.endswith('/'):
+            bundle_base_url += '/'
         self._bundle_base_url = bundle_base_url
         self._ex = morphlib.execute.Execute(cachedir, logging.debug)
 
@@ -98,16 +99,19 @@ class LocalRepoCache(object):
         
         '''
         
-        source_handle = urllib2.urlopen(url)
-        target_handle = open(filename, 'wb')
+        try:
+            source_handle = urllib2.urlopen(url)
+            target_handle = open(filename, 'wb')
 
-        data = source_handle.read(4096)
-        while data:
-            target_handle.write(data)
             data = source_handle.read(4096)
+            while data:
+                target_handle.write(data)
+                data = source_handle.read(4096)
 
-        source_handle.close()
-        target_handle.close()
+            source_handle.close()
+            target_handle.close()
+        except urllib2.URLError:
+            return False
 
     def _remove(self, filename): # pragma: no cover
         '''Remove given file.
@@ -136,6 +140,8 @@ class LocalRepoCache(object):
     
     def _base_iterate(self, reponame):
         for baseurl in self._baseurls:
+            if not baseurl.endswith('/'):
+                baseurl += '/'
             repourl = urlparse.urljoin(baseurl, reponame)
             path = self._cache_name(repourl)
             yield repourl, path
@@ -148,15 +154,17 @@ class LocalRepoCache(object):
         return False
 
     def _clone_with_bundle(self, repourl, path):
+        if not self._bundle_base_url:
+            return False
         escaped = self._escape(repourl)
         bundle_url = urlparse.urljoin(self._bundle_base_url, escaped)
         bundle_path = path + '.bundle'
-        if self._fetch(bundle_url, bundle_path):
+        success = self._fetch(bundle_url, bundle_path)
+        if success:
             self._git(['clone', bundle_path, path])
+        if os.path.exists(bundle_path):
             self._remove(bundle_path)
-            return True
-        else:
-            return False
+        return success
 
     def cache_repo(self, reponame):
         '''Clone the given repo into the cache.
@@ -173,7 +181,7 @@ class LocalRepoCache(object):
                 break
 
             try:
-                self._git(['clone', reponame, path])
+                self._git(['clone', repourl, path])
             except morphlib.execute.CommandFailure:
                 pass
             else:
