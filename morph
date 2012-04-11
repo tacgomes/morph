@@ -247,8 +247,9 @@ class Morph(cliapp.Application):
                 for stratum in morphology['strata']:
                     queue.append((reponame, ref, '%s.morph' % stratum))
             elif morphology['kind'] == 'stratum':
-                for stratum in morphology['build-depends']:
-                    queue.append((reponame, ref, '%s.morph' % stratum))
+                if morphology['build-depends']:
+                    for stratum in morphology['build-depends']:
+                        queue.append((reponame, ref, '%s.morph' % stratum))
                 for x in morphology['sources']:
                     queue.append((x['repo'], x['ref'],
                                   '%s.morph' % x['morph']))
