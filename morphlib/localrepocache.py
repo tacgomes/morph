@@ -18,6 +18,7 @@ import logging
 import os
 import urllib2
 import urlparse
+import shutil
 
 import morphlib
 
@@ -84,7 +85,7 @@ class LocalRepoCache(object):
         
         return os.path.exists(filename)
     
-    def _git(self, args): # pragma: no cover
+    def _git(self, args, cwd=None): # pragma: no cover
         '''Execute git command.
         
         This is a method of its own so that unit tests can easily override
@@ -92,7 +93,7 @@ class LocalRepoCache(object):
         
         '''
         
-        self._ex.runv(['git'] + args)
+        self._ex.runv(['git'] + args, cwd=cwd)
 
     def _fetch(self, url, filename): # pragma: no cover
         '''Fetch contents of url into a file.
@@ -174,13 +175,15 @@ class LocalRepoCache(object):
         escaped = self._escape(repourl)
         bundle_url = urlparse.urljoin(self._bundle_base_url, escaped) + '.bndl'
         bundle_path = path + '.bundle'
+
         try:
             self._fetch(bundle_url, bundle_path)
         except urllib2.URLError, e:
             return False, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
+
         try:
             self._git(['clone', bundle_path, path])
-            self._git(['remote', 'set-url', 'origin', repourl])
+            self._git(['remote', 'set-url', 'origin', repourl], cwd=path)
         except morphlib.execute.CommandFailure, e: # pragma: no cover
             if self._exists(path):
                 shutil.rmtree(path)
