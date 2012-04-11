@@ -28,7 +28,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.reponame = 'reponame'
         self.repourl = 'git://example.com/reponame'
         escaped_url = 'git___example_com_reponame'
-        self.bundle_url = '%s%s' % (bundle_base_url, escaped_url)
+        self.bundle_url = '%s%s.bndl' % (bundle_base_url, escaped_url)
         self.cachedir = '/cache/dir'
         self.cache_path = '%s/%s' % (self.cachedir, escaped_url)
         self.cache = set()
