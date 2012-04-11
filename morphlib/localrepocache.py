@@ -44,6 +44,12 @@ class NoRemote(Exception):
         return '\n\t'.join(['Cannot find remote git repository: %s' %
                             self.reponame] + self.errors)
 
+class NotCached(Exception):
+    def __init__(self, reponame):
+        self.reponame = reponame
+
+    def __str__(self): # pragma: no cover
+        return 'Repository %s is not cached yet' % self.reponame
 
 class LocalRepoCache(object):
 
@@ -204,15 +210,16 @@ class LocalRepoCache(object):
         if not self._exists(self._cachedir):
             self._mkdir(self._cachedir)
 
-        for repourl, path in self._base_iterate(reponame):
-            if self._exists(path):
-                return
+        try:
+            return self.get_repo(reponame)
+        except NotCached, e:
+            pass
 
         if self._bundle_base_url:
             for repourl, path in self._base_iterate(reponame):
                 ok, error = self._clone_with_bundle(repourl, path)
                 if ok:
-                    return
+                    return self.get_repo(reponame)
                 else:
                    errors.append(error)
 
@@ -227,11 +234,13 @@ class LocalRepoCache(object):
         else:
             raise NoRemote(reponame, errors)
 
+        return self.get_repo(reponame)
+
     def get_repo(self, reponame):
         '''Return an object representing a cached repository.'''
 
         for repourl, path in self._base_iterate(reponame):
             if self._exists(path):
                 return morphlib.cachedrepo.CachedRepo(repourl, path)
-        raise Exception('Repository %s is not cached yet' % reponame)
+        raise NotCached(reponame)
 
