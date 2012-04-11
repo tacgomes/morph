@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,33 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-'''Baserock library.'''
+class Artifact(object):
 
-
-import artifact
-import bins
-import blobs
-import buildcontroller
-import builddependencygraph
-import buildgraph
-import buildsystem
-import buildworker
-import builder
-import cachedir
-import cachedrepo
-import execute
-import fsutils
-import git
-import localartifactcache
-import localrepocache
-import morph2
-import morphology
-import morphologyloader
-import savefile
-import source
-import sourcemanager
-import sourcepool
-import stopwatch
-import tempdir
-import util
-
+    def __init__(self, source, name, cache_key):
+        self.source = source
+        self.name = name
+        self.cache_key = cache_key
