@@ -37,7 +37,7 @@ update_morph()
     # the morph source directory. This is useful for Jenkins jobs.
     local base=$(basename $(basename "$dir"))
     find . -mindepth 1 -maxdepth 1 ! -name "$base" ! -name '*.tar.gz' \
-        -exec cp -av '{}' "$dir/tree/baserock/gits/morph" ';'
+        -exec cp -a '{}' "$dir/tree/baserock/gits/morph" ';'
 }
 
 run_pass()
