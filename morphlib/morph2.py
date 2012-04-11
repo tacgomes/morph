@@ -32,9 +32,10 @@ class Morphology(object):
         ('test-commands', []),
         ('install-commands', []),
         ('sources', []),
+        ('strata', []),
         ('max-jobs', None),
         ('description', ''),
-        ('build-depends', []),
+        ('build-depends', None),
         ('build-system', 'manual'),
     ]
     

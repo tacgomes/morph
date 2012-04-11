@@ -23,6 +23,7 @@ class DummySource(object):
 
     def __init__(self):
         self.repo = 'dummy.repo'
+        self.original_ref = 'original/ref'
         self.sha1 = 'dummy.sha1'
         self.filename = 'dummy.morph'
         self.morphology = {}
@@ -46,13 +47,13 @@ class SourcePoolTests(unittest.TestCase):
 
     def test_looks_up_source(self):
         self.pool.add(self.source)
-        result = self.pool.lookup(self.source.repo, self.source.sha1,
+        result = self.pool.lookup(self.source.repo, self.source.original_ref,
                                   self.source.filename)
         self.assertEqual(result, self.source)
 
     def test_lookup_raises_keyerror_if_not_found(self):
         self.assertRaises(KeyError, self.pool.lookup, self.source.repo,
-                          self.source.sha1, self.source.filename)
+                          self.source.original_ref, self.source.filename)
 
     def test_iterates_in_add_order(self):
         sources = []

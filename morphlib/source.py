@@ -24,6 +24,7 @@ class Source(object):
     Has the following properties:
     
     * ``repo`` -- the git repository which contains the source
+    * ``original_ref`` -- the git ref provided by the user or a morphology
     * ``sha1`` -- the absolute git commit id for the revision we use
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
@@ -35,9 +36,10 @@ class Source(object):
     
     '''
     
-    def __init__(self, repo, sha1, morphology, filename):
+    def __init__(self, repo, original_ref, sha1, morphology, filename):
         assert type(morphology) == morphlib.morph2.Morphology
         self.repo = repo
+        self.original_ref = original_ref
         self.sha1 = sha1
         self.morphology = morphology
         self.filename = filename

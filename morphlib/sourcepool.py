@@ -22,23 +22,23 @@ class SourcePool(object):
         self._sources = {}
         self._order = []
 
-    def _key(self, repo, sha1, filename):
-        return (repo, sha1, filename)
+    def _key(self, repo, original_ref, filename):
+        return (repo, original_ref, filename)
 
     def add(self, source):
         '''Add a source to the pool.'''
-        key = self._key(source.repo, source.sha1, source.filename)
+        key = self._key(source.repo, source.original_ref, source.filename)
         self._sources[key] = source
         self._order.append(source)
 
-    def lookup(self, repo, sha1, filename):
+    def lookup(self, repo, original_ref, filename):
         '''Find a source in the pool.
         
         Raise KeyError if it is not found.
         
         '''
         
-        key = self._key(repo, sha1, filename)
+        key = self._key(repo, original_ref, filename)
         return self._sources[key]
 
     def __iter__(self):
