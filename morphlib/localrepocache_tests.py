@@ -44,7 +44,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc._mkdir = self.fake_mkdir
         self.lrc._remove = self.fake_remove
         
-    def fake_git(self, args):
+    def fake_git(self, args, cwd=None):
         if args[0] == 'clone':
             self.assertEqual(len(args), 3)
             remote = args[1]
