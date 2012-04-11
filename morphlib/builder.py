@@ -115,6 +115,7 @@ class Factory(object):
                 os.mkdir(destdir)
             morphlib.git.copy_repository(treeish, destdir, msg)
             morphlib.git.checkout_ref(destdir, treeish.ref, msg)
+            morphlib.git.reset_workdir(destdir, msg)
             return [(sub.treeish, os.path.join(destdir, sub.path))
                     for sub in treeish.submodules]
 

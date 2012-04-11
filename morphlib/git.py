@@ -252,6 +252,13 @@ def checkout_ref(gitdir, ref, msg=logging.debug):
     ex = morphlib.execute.Execute(gitdir, msg=msg)
     ex.runv(['git', 'checkout', ref])
 
+def reset_workdir(gitdir, msg=logging.debug):
+    '''Removes any differences between the current commit '''
+    '''and the status of the working directory'''
+    ex = morphlib.execute.Execute(gitdir, msg=msg)
+    ex.runv(['git', 'clean', '-fxd'])
+    ex.runv(['git', 'reset', '--hard', 'HEAD'])
+
 def set_submodule_url(gitdir, name, url, msg=logging.debug):
     '''Changes the URL of a submodule to point to a specific location.'''
     ex = morphlib.execute.Execute(gitdir, msg=msg)
