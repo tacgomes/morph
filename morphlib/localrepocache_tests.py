@@ -32,7 +32,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.cachedir = '/cache/dir'
         self.cache_path = '%s/%s' % (self.cachedir, escaped_url)
         self.cache = set()
-        self.remotes = []
+        self.remotes = {}
         self.fetched = []
         self.removed = []
         self.lrc = morphlib.localrepocache.LocalRepoCache(self.cachedir,
@@ -51,8 +51,12 @@ class LocalRepoCacheTests(unittest.TestCase):
             local = args[2]
             if local in self.cache:
                 raise Exception('cloning twice to %s' % local)
-            self.remotes.append(remote)
+            self.remotes['origin'] = {'url': remote, 'updates': 0}
             self.cache.add(local)
+        elif args[0:2] == ['remote', 'set-url']:
+            remote = args[2]
+            url = args[3]
+            self.remotes[remote]['url'] = url
         else:
             raise NotImplementedError()
         
@@ -115,8 +119,8 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc._fetch = self.fake_fetch
         self.lrc.cache_repo(self.repourl)
         self.assertEqual(self.fetched, [self.bundle_url])
-        self.assertEqual(self.remotes, [self.cache_path + '.bundle'])
         self.assertEqual(self.removed, [self.cache_path + '.bundle'])
+        self.assertEqual(self.remotes['origin']['url'], self.repourl)
 
     def test_gets_cached_relative_repo(self):
         self.lrc.cache_repo(self.reponame)
