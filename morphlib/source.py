@@ -57,4 +57,4 @@ class Source(object):
         return source in self.dependencies
 
     def __str__(self): # pragma: no cover
-        return '%s|%s|%s' % (self.repo, self.sha1, self.filename)
+        return '%s|%s|%s' % (self.repo, self.original_ref, self.filename)
