@@ -18,6 +18,7 @@
 
 
 import artifact
+import artifactresolver
 import bins
 import blobs
 import buildcontroller

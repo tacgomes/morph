@@ -20,3 +20,8 @@ class Artifact(object):
         self.source = source
         self.name = name
         self.cache_key = cache_key
+
+    def __str__(self): # pragma: no cover
+        return '%s.%s.%s' % (self.cache_key,
+                             self.source.morphology['kind'],
+                             self.name)
