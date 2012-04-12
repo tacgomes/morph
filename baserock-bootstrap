@@ -90,6 +90,13 @@ pass1_build_with_morph()
         --target-cflags="$TARGET_CFLAGS"
 }
 
+pass1_dump_build_times()
+{
+    echo "Dumping pass 1 build times"
+    cd $LFS/baserock/gits/morph
+    python ./dump-build-times $LFS/baserock/cache
+}
+
 pass2_get_morph()
 {
     echo "Get morph"
@@ -249,6 +256,43 @@ EOF
     "$do_chroot" /baserock/build.sh
 }
 
+pass2_dump_build_times()
+{
+    echo "Dumping pass 2 build times"
+    cat <<EOF > "$LFS/baserock/dump-pass2-build-times.sh"
+#!/tools/bin/bash
+set -e
+set -x
+
+cd /baserock/gits/morph
+python ./dump-build-times /baserock/cache
+EOF
+    $HOST_CHMOD +x "$LFS/baserock/dump-pass2-build-times.sh"
+    local do_chroot="$BASEDIR/do-chroot.bash"
+    $HOST_CAT <<EOF >"$do_chroot"
+#!/bin/bash
+trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+set -e
+set -x
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    mount -t sysfs sysfs "$LFS/sys"
+fi
+$HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+/usr/sbin/chroot "$LFS" \\
+    /tools/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin" \\
+    BOOTSTRAP_TOOLS="$LFS/tools" \\
+    "\${@-\$SHELL}"
+EOF
+    $HOST_CHMOD +x "$do_chroot"
+    "$do_chroot" /baserock/dump-pass2-build-times.sh
+}
+
 pass2a_cleanup_at_end()
 {
     echo "Remove unnecessary stuff at the end of pass2a"
@@ -379,6 +423,43 @@ EOF
     "$do_chroot" /baserock/build_pass3.sh
 }
 
+pass3_dump_build_times()
+{
+    echo "Dumping pass 3 build times"
+
+    cat <<EOF > "$LFS/baserock/dump-pass3-build-times.sh"
+#!/bin/bash
+set -e
+set -x
+
+export PATH="/usr/bin:/bin"
+cd /baserock/gits/morph
+python ./dump-build-times /baserock/cache
+EOF
+    $HOST_CHMOD +x "$LFS/baserock/dump-pass3-build-times.sh"
+    local do_chroot="$BASEDIR/do-chroot.bash"
+    $HOST_CAT >"$do_chroot" <<EOF
+#!/bin/bash
+trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+set -e
+set -x
+if ! mount | grep "$LFS/proc" >/dev/null
+then
+    mount -t proc proc "$LFS/proc"
+fi
+if ! mount | grep "$LFS/sys" >/dev/null
+then
+    mount -t sysfs sysfs "$LFS/sys"
+fi
+$HOST_CP -f /etc/resolv.conf "$LFS/etc/resolv.conf"
+/usr/sbin/chroot "$LFS" \\
+    /usr/bin/env -i HOME=/baserock TERM=\$TERM \\
+    PATH="/bin:/usr/bin:/sbin:/usr/sbin" \\
+    "\${@-\$SHELL}"
+EOF
+    $HOST_CHMOD +x "$do_chroot"
+    "$do_chroot" /baserock/dump-pass3-build-times.sh
+}
 echo "Bootstrapping Baserock development environment"
 echo "LFS_TGT=$LFS_TGT"
 
@@ -390,6 +471,7 @@ case "$buildwhat" in
         ;;
     pass1b)
         time pass1_build_with_morph
+        time pass1_dump_build_times
         ;;
     pass2a)
         time pass2_get_morph
@@ -399,6 +481,7 @@ case "$buildwhat" in
         ;;
     pass2b)
         time pass2_build_with_morph_in_chroot
+        time pass2_dump_build_times
         time pass2b_cleanup_at_end
         ;;
     pass3a)
@@ -407,6 +490,7 @@ case "$buildwhat" in
         ;;
     pass3b)
         time pass3_build_with_morph_in_chroot
+        time pass3_dump_build_times
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1
