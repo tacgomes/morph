@@ -28,6 +28,7 @@ import buildworker
 import builder
 import cachedir
 import cachedrepo
+import cachekeycomputer
 import dependencyresolver
 import execute
 import fsutils
