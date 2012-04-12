@@ -37,7 +37,7 @@ class Source(object):
     '''
     
     def __init__(self, repo, original_ref, sha1, morphology, filename):
-        assert type(morphology) == morphlib.morph2.Morphology
+        assert isinstance(morphology, morphlib.morph2.Morphology)
         self.repo = repo
         self.original_ref = original_ref
         self.sha1 = sha1
