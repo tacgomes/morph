@@ -30,15 +30,6 @@ class DummyBuildEnvironment:
 class CacheKeyComputerTests(unittest.TestCase):
 
     def setUp(self):
-        self.build_env = DummyBuildEnvironment({
-                "USER": "foouser",
-                "USERNAME": "foouser",
-                "LOGNAME": "foouser",
-                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-                "PREFIX": "/baserock",
-                "BOOTSTRAP": "false",
-                "CFLAGS": "-O4"})
-        self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
         pool = morphlib.sourcepool.SourcePool()
         self.sources = {}
         for name, text in {
@@ -62,12 +53,16 @@ class CacheKeyComputerTests(unittest.TestCase):
                                    morphlib.morph2.Morphology(text), name)
             pool.add(source)
             self.sources[name] = source
-
         morphlib.buildgraph.BuildGraph().compute_build_order(pool)
-
-    def _valid_sha256(self, s):
-        validchars = '0123456789abcdef'
-        return len(s) == 64 and all(c in validchars for c in s)
+        self.build_env = DummyBuildEnvironment({
+                "USER": "foouser",
+                "USERNAME": "foouser",
+                "LOGNAME": "foouser",
+                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
+                "PREFIX": "/baserock",
+                "BOOTSTRAP": "false",
+                "CFLAGS": "-O4"})
+        self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
 
     def test_get_cache_key_hashes_all_types(self):
         runcount = {'thing': 0, 'dict': 0, 'list': 0, 'tuple': 0}
@@ -86,12 +81,25 @@ class CacheKeyComputerTests(unittest.TestCase):
         self.assertNotEqual(runcount['list'], 0)
         self.assertNotEqual(runcount['tuple'], 0)
 
+    def _valid_sha256(self, s):
+        validchars = '0123456789abcdef'
+        return len(s) == 64 and all(c in validchars for c in s)
+
     def test_get_cache_key_returns_sha256(self):
         self.assertTrue(self._valid_sha256(
                         self.ckc.get_cache_key(self.sources['stratum.morph'])))
 
     def test_different_env_gives_different_key(self):
         oldsha = self.ckc.get_cache_key(self.sources['stratum.morph'])
-        self.ckc._env['CFLAGS'] = "-Os"
+        build_env = DummyBuildEnvironment({
+                "USER": "foouser",
+                "USERNAME": "foouser",
+                "LOGNAME": "foouser",
+                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
+                "PREFIX": "/baserock",
+                "BOOTSTRAP": "false",
+                "CFLAGS": "-Os"})
+        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+
         self.assertNotEqual(oldsha,
-                            self.ckc.get_cache_key(self.sources['stratum.morph']))
+                            ckc.get_cache_key(self.sources['stratum.morph']))
