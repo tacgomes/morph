@@ -20,9 +20,9 @@ import morphlib
 
 class CacheKeyComputer():
 
-    def __init__(self, env):
+    def __init__(self, build_env):
         self._arch = morphlib.util.arch()
-        self._env = self._filterenv(env)
+        self._env = self._filterenv(build_env.env)
         self._calculated = {}
 
     def _filterenv(self, env):

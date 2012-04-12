@@ -15,22 +15,30 @@
 
 
 import unittest
-import json
 
 import morphlib
 
+class DummyBuildEnvironment:
+    '''Fake build environment class that doesn't need
+       settings to pick the environment, it just gets passed
+       a dict representing it
+    '''
+    def __init__(self, env, arch=None):
+        self.arch = morphlib.util.arch() if arch == None else arch
+        self.env = env
 
 class CacheKeyComputerTests(unittest.TestCase):
 
     def setUp(self):
-        self.env = {"USER": "foouser",
-                    "USERNAME": "foouser",
-                    "LOGNAME": "foouser",
-                    "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-                    "PREFIX": "/baserock",
-                    "BOOTSTRAP": "false",
-                    "CFLAGS": "-O4"}
-        self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.env)
+        self.build_env = DummyBuildEnvironment({
+                "USER": "foouser",
+                "USERNAME": "foouser",
+                "LOGNAME": "foouser",
+                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
+                "PREFIX": "/baserock",
+                "BOOTSTRAP": "false",
+                "CFLAGS": "-O4"})
+        self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
         pool = morphlib.sourcepool.SourcePool()
         self.sources = {}
         for name, text in {
@@ -81,12 +89,6 @@ class CacheKeyComputerTests(unittest.TestCase):
     def test_get_cache_key_returns_sha256(self):
         self.assertTrue(self._valid_sha256(
                         self.ckc.get_cache_key(self.sources['stratum.morph'])))
-
-    def test_get_cache_id_returns_dict(self):
-        print json.dumps(self.ckc.get_cache_id(
-                           self.sources['stratum.morph']),
-                         indent=2)
-        self.assertEqual('', )
 
     def test_different_env_gives_different_key(self):
         oldsha = self.ckc.get_cache_key(self.sources['stratum.morph'])
