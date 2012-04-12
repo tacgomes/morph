@@ -98,14 +98,14 @@ class Treeish(object):
 
 class NoModulesFileError(cliapp.AppException):
 
-    def __init__(self, treeish):
-        Exception.__init__(self, '%s has no .gitmodules file.' % treeish)
+    def __init__(self, repo, ref):
+        Exception.__init__(self, 
+                           '%s:%s has no .gitmodules file.' % (repo, ref))
 
 
 class Submodule(object):
 
-    def __init__(self, parent_treeish, name, url, path):
-        self.parent_treeish = parent_treeish
+    def __init__(self, name, url, path):
         self.name = name
         self.url = url
         self.path = path
@@ -113,31 +113,32 @@ class Submodule(object):
 
 class ModulesFileParseError(cliapp.AppException):
 
-    def __init__(self, treeish, message):
-        Exception.__init__(self, 'Failed to parse %s:.gitmodules: %s' %
-                           (treeish, message))
+    def __init__(self, repo, ref, message):
+        Exception.__init__(self, 'Failed to parse %s:%s:.gitmodules: %s' %
+                           (repo, ref, message))
 
 
 class InvalidSectionError(cliapp.AppException):
 
-    def __init__(self, treeish, section):
+    def __init__(self, repo, ref, section):
         Exception.__init__(self,
-                           '%s:.gitmodules: Found a misformatted section '
-                           'title: [%s]' % (treeish, section))
+                           '%s:%s:.gitmodules: Found a misformatted section '
+                           'title: [%s]' % (repo, ref, section))
 
 
 class MissingSubmoduleCommitError(cliapp.AppException):
 
-    def __init__(self, treeish, submodule):
+    def __init__(self, repo, ref, submodule):
         Exception.__init__(self,
-                           '%s:.gitmodules: No commit object found for '
-                           'submodule "%s"' % (treeish, submodule))
+                           '%s:%s:.gitmodules: No commit object found for '
+                           'submodule "%s"' % (repo, ref, submodule))
 
 
 class Submodules(object):
 
     def __init__(self, treeish, msg=logging.debug):
-        self.treeish = treeish
+        self.repo = treeish.repo
+        self.ref = treeish.ref
         self.msg = msg
         self.submodules = []
 
@@ -153,17 +154,17 @@ class Submodules(object):
     def _read_gitmodules_file(self):
         try:
             # try to read the .gitmodules file from the repo/ref
-            ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
+            ex = morphlib.execute.Execute(self.repo, self.msg)
             content = ex.runv(['git', 'cat-file', 'blob', '%s:.gitmodules' %
-                               self.treeish.ref])
+                               self.ref])
 
             # drop indentation in sections, as RawConfigParser cannot handle it
             return '\n'.join([line.strip() for line in content.splitlines()])
         except morphlib.execute.CommandFailure:
-            raise NoModulesFileError(self.treeish)
+            raise NoModulesFileError(self.repo, self.ref)
 
     def _validate_and_read_entries(self, parser):
-        ex = morphlib.execute.Execute(self.treeish.repo, self.msg)
+        ex = morphlib.execute.Execute(self.repo, self.msg)
         for section in parser.sections():
             # validate section name against the 'section "foo"' pattern
             section_pattern = r'submodule "(.*)"'
@@ -174,11 +175,11 @@ class Submodules(object):
                 path = parser.get(section, 'path')
 
                 # create a submodule object
-                submodule = Submodule(self.treeish, name, url, path)
+                submodule = Submodule(name, url, path)
                 try:
                     # list objects in the parent repo tree to find the commit
                     # object that corresponds to the submodule
-                    commit = ex.runv(['git', 'ls-tree', self.treeish.ref,
+                    commit = ex.runv(['git', 'ls-tree', self.ref,
                                       submodule.name])
 
                     # read the commit hash from the output
@@ -188,7 +189,8 @@ class Submodules(object):
 
                         # fail if the commit hash is invalid
                         if len(submodule.commit) != 40:
-                            raise MissingSubmoduleCommitError(self.treeish,
+                            raise MissingSubmoduleCommitError(self.repo,
+                                                              self.ref,
                                                               submodule.name)
 
                         # add a submodule object to the list
@@ -196,12 +198,12 @@ class Submodules(object):
                     else:
                         self.msg('Skipping submodule "%s" as %s has '
                                  'a non-commit object for it' %
-                                 (submodule.name, self.treeish))
+                                 (submodule.name, self.repo, self.ref))
                 except morphlib.execute.CommandFailure:
-                    raise MissingSubmoduleCommitError(self.treeish,
+                    raise MissingSubmoduleCommitError(self.repo, self.ref,
                                                       submodule.name)
             else:
-                raise InvalidSectionError(self.treeish, section)
+                raise InvalidSectionError(self.repo, self.ref, section)
 
     def __iter__(self):
         for submodule in self.submodules:
