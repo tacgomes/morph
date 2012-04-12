@@ -28,6 +28,7 @@ import buildorder
 import buildsystem
 import buildworker
 import builder
+import builder2
 import cachedir
 import cachedrepo
 import cachekeycomputer
