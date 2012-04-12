@@ -539,6 +539,66 @@ class DependencyResolverTests(unittest.TestCase):
         self.assertRaises(morphlib.dependencyresolver.MutualDependencyError,
                           self.resolver.resolve_dependencies, pool)
 
+    def test_graceful_handling_of_self_dependencies_of_chunks(self):
+        pool = morphlib.sourcepool.SourcePool()
+
+        morph = morphlib.morph2.Morphology(
+                '''
+                {
+                    "name": "stratum1",
+                    "kind": "stratum",
+                    "sources": [
+                        {
+                            "name": "chunk-runtime",
+                            "repo": "repo",
+                            "morph": "chunk",
+                            "ref": "original/ref"
+                        },
+                        {
+                            "name": "chunk-devel",
+                            "repo": "repo",
+                            "morph": "chunk",
+                            "ref": "original/ref"
+                        },
+                        {
+                            "name": "chunk-doc",
+                            "repo": "repo",
+                            "morph": "chunk",
+                            "ref": "original/ref",
+                            "build-depends": [
+                                "chunk-runtime"
+                            ]
+                        }
+                    ]
+                }
+                ''')
+        stratum = morphlib.source.Source(
+                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+        pool.add(stratum)
+
+        morph = morphlib.morph2.Morphology(
+                '''
+                {
+                    "name": "chunk",
+                    "kind": "chunk",
+                    "artifacts": {
+                        "chunk-runtime": [ "usr/lib" ],
+                        "chunk-devel": [ "usr/include" ],
+                        "chunk-doc": [ "usr/share/doc" ]
+                    }
+                }
+                ''')
+        chunk = morphlib.source.Source(
+                'repo', 'original/ref', 'sha1', morph, 'chunk.morph')
+        pool.add(chunk)
+
+        self.resolver.resolve_dependencies(pool)
+
+        self.assertEqual(chunk.dependencies, [])
+        self.assertEqual(chunk.dependents, [stratum])
+        self.assertEqual(stratum.dependencies, [chunk])
+        self.assertEqual(stratum.dependents, [])
+
     def test_detection_of_mutual_dependency_between_consecutive_chunks(self):
         pool = morphlib.sourcepool.SourcePool()
 

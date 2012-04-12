@@ -109,12 +109,16 @@ class DependencyResolver(object):
 
             if build_depends is None:
                 for earlier_chunk in processed_chunks:
+                    if earlier_chunk is chunk:
+                        continue
                     if earlier_chunk.depends_on(chunk):
                         raise MutualDependencyError(chunk, earlier_chunk)
                     chunk.add_dependency(earlier_chunk)
             elif isinstance(build_depends, list):
                 for name in build_depends:
                     other_chunk = name_to_processed_chunk.get(name, None)
+                    if other_chunk is chunk:
+                        continue
                     if other_chunk:
                         chunk.add_dependency(other_chunk)
                     else:
