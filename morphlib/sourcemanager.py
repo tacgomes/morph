@@ -239,7 +239,9 @@ class SourceManager(object):
         self.indent_more()
 
         # resolve submodules
-        treeish.submodules = morphlib.git.Submodules(treeish, self.msg)
+        treeish.submodules = morphlib.git.Submodules(treeish.repo,
+                                                     treeish.ref, 
+                                                     self.msg)
         try:
             # load submodules from .gitmodules
             treeish.submodules.load()

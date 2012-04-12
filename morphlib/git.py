@@ -136,9 +136,9 @@ class MissingSubmoduleCommitError(cliapp.AppException):
 
 class Submodules(object):
 
-    def __init__(self, treeish, msg=logging.debug):
-        self.repo = treeish.repo
-        self.ref = treeish.ref
+    def __init__(self, repo, ref, msg=logging.debug):
+        self.repo = repo
+        self.ref = ref
         self.msg = msg
         self.submodules = []
 
