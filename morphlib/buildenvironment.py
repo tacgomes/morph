@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -34,11 +34,11 @@ class BuildEnvironment():
 
     def _clean_env(self, settings):
         '''Create a fresh set of environment variables for a clean build.
-        
+
         Return a dict with the new environment.
-        
+
         '''
-        
+
         path = self._osenv['PATH']
 
         # copy a set of white-listed variables from the original env
@@ -55,7 +55,7 @@ class BuildEnvironment():
             copied_vars[name] = self._osenv.get(name, None)
 
         env = {}
-        
+
         # apply the copied variables to the clean env
         for name in copied_vars:
             if copied_vars[name] is not None:
@@ -93,5 +93,5 @@ class BuildEnvironment():
             env['CCACHE_REMOTENLEVELS'] = str(settings['ccache-remotenlevels'])
             if not settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
-            
+
         return env
