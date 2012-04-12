@@ -242,10 +242,10 @@ def update_remote(gitdir, name, msg=logging.debug):
     ex = morphlib.execute.Execute(gitdir, msg=msg)
     return ex.runv(['git', 'remote', 'update', name])
 
-def copy_repository(treeish, destdir, msg=logging.debug):
+def copy_repository(repo, destdir, msg=logging.debug):
     '''Copies a cached repository into a directory using cp.'''
     ex = morphlib.execute.Execute('.', msg=msg)
-    return ex.runv(['cp', '-a', os.path.join(treeish.repo, '.git'), destdir])
+    return ex.runv(['cp', '-a', os.path.join(repo, '.git'), destdir])
 
 def checkout_ref(gitdir, ref, msg=logging.debug):
     '''Checks out a specific ref/SHA1 in a git working tree.'''

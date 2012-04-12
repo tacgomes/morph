@@ -113,7 +113,7 @@ class Factory(object):
             logging.debug('Extracting %s into %s' % (treeish.repo, destdir))
             if not os.path.exists(destdir):
                 os.mkdir(destdir)
-            morphlib.git.copy_repository(treeish, destdir, msg)
+            morphlib.git.copy_repository(treeish.repo, destdir, msg)
             morphlib.git.checkout_ref(destdir, treeish.ref, msg)
             morphlib.git.reset_workdir(destdir, msg)
             return [(sub.treeish, os.path.join(destdir, sub.path))
