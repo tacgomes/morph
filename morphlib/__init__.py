@@ -25,6 +25,7 @@ import buildcontroller
 import builddependencygraph
 import buildgraph
 import buildenvironment
+import buildorder
 import buildsystem
 import buildworker
 import builder
