@@ -21,8 +21,7 @@ import morphlib
 class CacheKeyComputer():
 
     def __init__(self, build_env):
-        self._arch = morphlib.util.arch()
-        self._env = self._filterenv(build_env.env)
+        self._build_env = build_env
         self._calculated = {}
 
     def _filterenv(self, env):
@@ -70,8 +69,8 @@ class CacheKeyComputer():
 
     def _calculate(self, source):
         return {
-            'arch': self._arch,
-            'env': self._env,
+            'arch': self._build_env.arch,
+            'env': self._filterenv(self._build_env.env),
             'ref': source.sha1,
             'filename': source.filename,
             'kids': [self.get_cache_id(dependency)
