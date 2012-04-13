@@ -196,7 +196,7 @@ class Submodules(object):
                         # add a submodule object to the list
                         self.submodules.append(submodule)
                     else:
-                        self.msg('Skipping submodule "%s" as %s has '
+                        self.msg('Skipping submodule "%s" as %s:%s has '
                                  'a non-commit object for it' %
                                  (submodule.name, self.repo, self.ref))
                 except morphlib.execute.CommandFailure:
