@@ -20,8 +20,21 @@ class Artifact(object):
         self.source = source
         self.name = name
         self.cache_key = cache_key
+        self.dependencies = []
+        self.dependents = []
+
+    def add_dependency(self, artifact):
+        '''Add ``artifact`` to the dependency list.'''
+        if artifact not in self.dependencies:
+            self.dependencies.append(artifact)
+            artifact.dependents.append(self)
+
+    def depends_on(self, artifact):
+        '''Do we depend on ``artifact``?'''
+        return artifact in self.dependencies
 
     def __str__(self): # pragma: no cover
         return '%s.%s.%s' % (self.cache_key,
                              self.source.morphology['kind'],
                              self.name)
+
