@@ -48,8 +48,10 @@ class Artifact(object):
         '''Do we depend on ``artifact``?'''
         return artifact in self.dependencies
 
-    def __str__(self): # pragma: no cover
+    def basename(self): # pragma: no cover
         return '%s.%s.%s' % (self.cache_key,
                              self.source.morphology['kind'],
                              self.name)
 
+    def __str__(self): # pragma: no cover
+        return '%s|%s' % (self.source, self.name)
