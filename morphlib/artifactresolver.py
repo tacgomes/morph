@@ -27,13 +27,6 @@ class MutualDependencyError(cliapp.AppException):
                 self, 'Cyclic dependency between %s and %s detected' % (a, b))
 
 
-class CyclicDependencyChainError(cliapp.AppException):
-
-    def __init__(self):
-        cliapp.AppException.__init__(
-                self, 'Cyclic dependency chain detected')
-
-
 class DependencyOrderError(cliapp.AppException):
 
     def __init__(self, stratum, chunk, dependency_name):
@@ -89,7 +82,8 @@ class ArtifactResolver(object):
         self._added_artifacts = set()
 
         artifacts = self._resolve_artifacts_recursively()
-        self._detect_cyclic_dependencies(artifacts)
+        # TODO perform cycle detection, e.g. based on:
+        # http://stackoverflow.com/questions/546655/finding-all-cycles-in-graph
         return artifacts
 
     def _resolve_artifacts_recursively(self):
@@ -258,36 +252,7 @@ class ArtifactResolver(object):
         return artifacts
 
     def _chunk_artifact_names(self, source):
-        if 'artifacts' in source.morphology:
-            return sorted(source.morphology['artifacts'].keys())
+        if 'chunks' in source.morphology:
+            return sorted(source.morphology['chunks'].keys())
         else:
             return [source.morphology['name']]
-
-    def _detect_cyclic_dependencies(self, artifacts):
-        # FIXME This is not well tested and might be incorrect. Better
-        # something based on
-        # http://stackoverflow.com/questions/546655/finding-all-cycles-in-graph
-
-        visited = set()
-        explored = set()
-        parent = {}
-
-        roots = []
-        for artifact in artifacts:
-            if len(artifact.dependents) == 0:
-                roots.append(artifact)
-                parent[artifact] = None
-
-        stack = collections.deque(roots)
-        while stack:
-            artifact = stack.popleft()
-            visited.add(artifact)
-
-            for dependency in artifact.dependencies:
-                if not (artifact, dependency) in explored:
-                    explored.add((artifact, dependency))
-                    parent[dependency] = artifact
-                    if not dependency in visited:
-                        stack.appendleft(dependency)
-                    else:
-                        raise CyclicDependencyChainError()

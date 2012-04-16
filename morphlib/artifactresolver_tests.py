@@ -41,7 +41,7 @@ class FakeChunkMorphology(morphlib.morph2.Morphology):
                     {
                         "name": "%s",
                         "kind": "chunk",
-                        "artifacts": %s
+                        "chunks": %s
                     }
                     ''' % (name, json.dumps(artifacts)))
         else:
@@ -698,71 +698,6 @@ class ArtifactResolverTests(unittest.TestCase):
         self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0]])
-
-    def test_detection_of_cyclic_chunk_dependency_chain(self):
-        pool = morphlib.sourcepool.SourcePool()
-
-        morph = morphlib.morph2.Morphology(
-                '''
-                {
-                    "name": "stratum1",
-                    "kind": "stratum",
-                    "sources": [
-                        {
-                            "name": "chunk1",
-                            "repo": "repo",
-                            "ref": "original/ref"
-                        },
-                        {
-                            "name": "chunk2",
-                            "repo": "repo",
-                            "ref": "original/ref",
-                            "build-depends": [
-                                "chunk1"
-                            ]
-                        },
-                        {
-                            "name": "chunk3",
-                            "repo": "repo",
-                            "ref": "original/ref",
-                            "build-depends": [
-                                "chunk2"
-                            ]
-                        }
-                    ]
-                }
-                ''')
-        stratum1 = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum1.morph')
-        pool.add(stratum1)
-
-        morph = FakeStratumMorphology(
-                'stratum2', [
-                    ('chunk3', 'chunk3', 'repo', 'original/ref'),
-                    ('chunk1', 'chunk1', 'repo', 'original/ref')
-                ], ['stratum1'])
-        stratum2 = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum2.morph')
-        pool.add(stratum2)
-
-        morph = FakeChunkMorphology('chunk1')
-        chunk1 = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk1.morph')
-        pool.add(chunk1)
-
-        morph = FakeChunkMorphology('chunk2')
-        chunk2 = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk2.morph')
-        pool.add(chunk2)
-
-        morph = FakeChunkMorphology('chunk3')
-        chunk3 = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk3.morph')
-        pool.add(chunk3)
-
-        self.assertRaises(
-                morphlib.artifactresolver.CyclicDependencyChainError,
-                self.resolver.resolve_artifacts, pool)
 
     def test_detection_of_chunk_dependencies_in_invalid_order(self):
         pool = morphlib.sourcepool.SourcePool()

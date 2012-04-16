@@ -122,7 +122,7 @@ class BuildOrderTests(unittest.TestCase):
         self.assertEqual(order.groups[0], [artifact1, artifact2])
         self.assertEqual(order.groups[1], [artifact3])
 
-    def test_detection_of_cyclic_dependency(self):
+    def test_detection_of_cyclic_dependency_chain(self):
         chunk1 = FakeSource()
         artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
 
