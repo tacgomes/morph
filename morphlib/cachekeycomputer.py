@@ -29,7 +29,7 @@ class CacheKeyComputer():
                                            "TOOLCHAIN_TARGET", "PREFIX",
                                            "BOOTSTRAP", "CFLAGS")])
 
-    def get_cache_key(self, source):
+    def compute_key(self, source):
         return self._hash_id(self.get_cache_id(source))
 
     def _hash_id(self, cache_id):

@@ -36,7 +36,15 @@ class CacheKeyComputerTests(unittest.TestCase):
             'chunk.morph': '''{
                 "name": "chunk",
                 "kind": "chunk"
-             }''',
+            }''',
+            'chunk2.morph': '''{
+                "name": "chunk2",
+                "kind": "chunk"
+            }''',
+            'chunk3.morph': '''{
+                "name": "chunk3",
+                "kind": "chunk"
+            }''',
             'stratum.morph': '''{
                 "name": "stratum",
                 "kind": "stratum",
@@ -47,8 +55,32 @@ class CacheKeyComputerTests(unittest.TestCase):
                         "ref": "original/ref"
                     }
                 ]
-             }''',
-         }.iteritems():
+            }''',
+            'stratum2.morph': '''{
+                "name": "stratum2",
+                "kind": "stratum",
+                "sources": [
+                    {
+                        "name": "chunk2",
+                        "repo": "repo",
+                        "ref": "original/ref"
+                    },
+                    {
+                        "name": "chunk3",
+                        "repo": "repo",
+                        "ref": "original/ref"
+                    }
+                ]
+            }''',
+            'system.morph': '''{
+                "name": "system",
+                "kind": "system",
+                "strata": [
+                    "stratum",
+                    "stratum2"
+                ]
+            }''',
+        }.iteritems():
             source = morphlib.source.Source('repo', 'original/ref', 'sha',
                                    morphlib.morph2.Morphology(text), name)
             pool.add(source)
@@ -64,7 +96,7 @@ class CacheKeyComputerTests(unittest.TestCase):
                 "CFLAGS": "-O4"})
         self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
 
-    def test_get_cache_key_hashes_all_types(self):
+    def test_compute_key_hashes_all_types(self):
         runcount = {'thing': 0, 'dict': 0, 'list': 0, 'tuple': 0}
         def inccount(func, name):
             def f(sha, item):
@@ -75,7 +107,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         self.ckc._hash_dict = inccount(self.ckc._hash_dict, 'dict')
         self.ckc._hash_list = inccount(self.ckc._hash_list, 'list')
         self.ckc._hash_tuple = inccount(self.ckc._hash_tuple, 'tuple')
-        self.ckc.get_cache_key(self.sources['stratum.morph'])
+        self.ckc.compute_key(self.sources['stratum.morph'])
         self.assertNotEqual(runcount['thing'], 0)
         self.assertNotEqual(runcount['dict'], 0)
         self.assertNotEqual(runcount['list'], 0)
@@ -85,12 +117,12 @@ class CacheKeyComputerTests(unittest.TestCase):
         validchars = '0123456789abcdef'
         return len(s) == 64 and all(c in validchars for c in s)
 
-    def test_get_cache_key_returns_sha256(self):
+    def test_compute_key_returns_sha256(self):
         self.assertTrue(self._valid_sha256(
-                        self.ckc.get_cache_key(self.sources['stratum.morph'])))
+                        self.ckc.compute_key(self.sources['system.morph'])))
 
     def test_different_env_gives_different_key(self):
-        oldsha = self.ckc.get_cache_key(self.sources['stratum.morph'])
+        oldsha = self.ckc.compute_key(self.sources['system.morph'])
         build_env = DummyBuildEnvironment({
                 "USER": "foouser",
                 "USERNAME": "foouser",
@@ -102,4 +134,4 @@ class CacheKeyComputerTests(unittest.TestCase):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         self.assertNotEqual(oldsha,
-                            ckc.get_cache_key(self.sources['stratum.morph']))
+                            ckc.compute_key(self.sources['system.morph']))
