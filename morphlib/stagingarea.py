@@ -14,8 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import logging
+import os
 import shutil
 import tarfile
+
+import morphlib
 
 
 class StagingArea(object):
@@ -35,6 +39,46 @@ class StagingArea(object):
     
     def __init__(self, dirname):
         self.dirname = dirname
+        self._chroot = 'chroot' if os.getuid() == 0 else 'echo'
+
+    # Wrapper to be overridden by unit tests.
+    def _mkdir(self, dirname): # pragma: no cover
+        os.mkdir(dirname)
+
+    def _dir_for_source(self, source, suffix):
+        dirname = os.path.join(self.dirname, 
+                               '%s.%s' % (source.morphology['name'], suffix))
+        self._mkdir(dirname)
+        return dirname
+
+    def builddir(self, source):
+        '''Create a build directory for a given source project.
+        
+        Return path to directory.
+        
+        '''
+
+        return self._dir_for_source(source, 'build')
+        
+    def destdir(self, source):
+        '''Create an installation target directory for a given source project.
+        
+        This is meant to be used as $DESTDIR when installing chunks.
+        Return path to directory.
+        
+        '''
+
+        return self._dir_for_source(source, 'inst')
+
+    def relative(self, filename):
+        '''Return a filename relative to the staging area.'''
+
+        dirname = self.dirname
+        if not dirname.endswith('/'):
+            dirname += '/'
+
+        assert filename.startswith(dirname)
+        return filename[len(dirname)-1:] # include leading slash
 
     def install_artifact(self, handle):
         '''Install a build artifact into the staging area.
@@ -44,7 +88,7 @@ class StagingArea(object):
         
         '''
         
-        tf = tarfile.TarFile(fileobj=handle)
+        tf = tarfile.open(fileobj=handle)
         tf.extractall(path=self.dirname)
 
     def remove(self):
@@ -57,4 +101,18 @@ class StagingArea(object):
         '''
         
         shutil.rmtree(self.dirname)
+
+    def runcmd(self, argv, **kwargs): # pragma: no cover
+        '''Run a command in a chroot in the staging area.'''
+        ex = morphlib.execute.Execute('/', logging.debug)
+        cwd = kwargs.get('cwd') or '/'
+        if 'cwd' in kwargs:
+            cwd = kwargs['cwd']
+            del kwargs['cwd']
+        else:
+            cwd = '/'
+        real_argv = [self._chroot, self.dirname, 
+                     'sh', '-c', 'cd "$1" && shift && eval "$@"', '--',
+                     cwd] + argv
+        return ex.runv(real_argv, **kwargs)
 

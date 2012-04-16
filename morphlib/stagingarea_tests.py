@@ -23,11 +23,20 @@ import unittest
 import morphlib
 
 
+class FakeSource(object):
+
+    def __init__(self):
+        self.morphology = {
+            'name': 'le-name',
+        }
+
+
 class StagingAreaTests(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
         self.staging = os.path.join(self.tempdir, 'staging')
+        self.created_dirs = []
         self.sa = morphlib.stagingarea.StagingArea(self.staging)
 
     def tearDown(self):
@@ -53,13 +62,34 @@ class StagingAreaTests(unittest.TestCase):
                 files.append(x[len(root):] or '/')
         return files
 
+    def fake_mkdir(self, dirname):
+        self.created_dirs.append(dirname)
+
     def test_remembers_specified_directory(self):
         self.assertEqual(self.sa.dirname, self.staging)
 
     def test_accepts_root_directory(self):
         sa = morphlib.stagingarea.StagingArea('/')
         self.assertEqual(sa.dirname, '/')
-        
+    
+    def test_creates_build_directory(self):
+        source = FakeSource()
+        self.sa._mkdir = self.fake_mkdir
+        dirname = self.sa.builddir(source)
+        self.assertEqual(self.created_dirs, [dirname])
+        self.assertTrue(dirname.startswith(self.staging))
+    
+    def test_creates_install_directory(self):
+        source = FakeSource()
+        self.sa._mkdir = self.fake_mkdir
+        dirname = self.sa.destdir(source)
+        self.assertEqual(self.created_dirs, [dirname])
+        self.assertTrue(dirname.startswith(self.staging))
+    
+    def test_makes_relative_name(self):
+        filename = os.path.join(self.staging, 'foobar')
+        self.assertEqual(self.sa.relative(filename), '/foobar')
+    
     def test_installs_artifact(self):
         chunk_tar = self.create_chunk()
         with open(chunk_tar, 'rb') as f:
