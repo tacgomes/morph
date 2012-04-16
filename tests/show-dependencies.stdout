@@ -1,133 +1,133 @@
-dependency tree:
-  test-repo|master|cairo.morph
-  test-repo|master|dbus-glib.morph
-    -> test-repo|master|dbus.morph
-    -> test-repo|master|glib.morph
-  test-repo|master|dbus.morph
-  test-repo|master|exo.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4util.morph
-  test-repo|master|fontconfig.morph
-  test-repo|master|freetype.morph
-  test-repo|master|garcon.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4util.morph
-  test-repo|master|gdk-pixbuf.morph
-    -> test-repo|master|glib.morph
-  test-repo|master|glib.morph
-  test-repo|master|gtk-stack.morph
-    -> test-repo|master|cairo.morph
-    -> test-repo|master|dbus-glib.morph
-    -> test-repo|master|dbus.morph
-    -> test-repo|master|fontconfig.morph
-    -> test-repo|master|freetype.morph
-    -> test-repo|master|gdk-pixbuf.morph
-    -> test-repo|master|glib.morph
-    -> test-repo|master|gtk.morph
-    -> test-repo|master|pango.morph
-  test-repo|master|gtk-xfce-engine.morph
-    -> test-repo|master|garcon.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|gtk.morph
-    -> test-repo|master|cairo.morph
-    -> test-repo|master|gdk-pixbuf.morph
-    -> test-repo|master|glib.morph
-    -> test-repo|master|pango.morph
-  test-repo|master|libxfce4ui.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|libxfce4util.morph
-    -> test-repo|master|gtk-stack.morph
-  test-repo|master|pango.morph
-    -> test-repo|master|fontconfig.morph
-    -> test-repo|master|freetype.morph
-  test-repo|master|thunar.morph
-    -> test-repo|master|exo.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-  test-repo|master|tumbler.morph
-    -> test-repo|master|gtk-stack.morph
-  test-repo|master|xfce-core.morph
-    -> test-repo|master|exo.morph
-    -> test-repo|master|garcon.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|gtk-xfce-engine.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|libxfce4util.morph
-    -> test-repo|master|thunar.morph
-    -> test-repo|master|tumbler.morph
-    -> test-repo|master|xfce4-appfinder.morph
-    -> test-repo|master|xfce4-panel.morph
-    -> test-repo|master|xfce4-session.morph
-    -> test-repo|master|xfce4-settings.morph
-    -> test-repo|master|xfconf.morph
-    -> test-repo|master|xfdesktop.morph
-    -> test-repo|master|xfwm4.morph
-  test-repo|master|xfce4-appfinder.morph
-    -> test-repo|master|garcon.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|xfce4-panel.morph
-    -> test-repo|master|exo.morph
-    -> test-repo|master|garcon.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-  test-repo|master|xfce4-session.morph
-    -> test-repo|master|exo.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|xfce4-settings.morph
-    -> test-repo|master|exo.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|xfconf.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4util.morph
-  test-repo|master|xfdesktop.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
-  test-repo|master|xfwm4.morph
-    -> test-repo|master|gtk-stack.morph
-    -> test-repo|master|libxfce4ui.morph
-    -> test-repo|master|xfconf.morph
+dependency graph:
+  test-repo|master|cairo.morph|cairo
+  test-repo|master|dbus-glib.morph|dbus-glib
+    -> test-repo|master|dbus.morph|dbus
+    -> test-repo|master|glib.morph|glib
+  test-repo|master|dbus.morph|dbus
+  test-repo|master|exo.morph|exo
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4util.morph|libxfce4util
+  test-repo|master|fontconfig.morph|fontconfig
+  test-repo|master|freetype.morph|freetype
+  test-repo|master|garcon.morph|garcon
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4util.morph|libxfce4util
+  test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
+    -> test-repo|master|glib.morph|glib
+  test-repo|master|glib.morph|glib
+  test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|cairo.morph|cairo
+    -> test-repo|master|dbus-glib.morph|dbus-glib
+    -> test-repo|master|dbus.morph|dbus
+    -> test-repo|master|fontconfig.morph|fontconfig
+    -> test-repo|master|freetype.morph|freetype
+    -> test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
+    -> test-repo|master|glib.morph|glib
+    -> test-repo|master|gtk.morph|gtk
+    -> test-repo|master|pango.morph|pango
+  test-repo|master|gtk-xfce-engine.morph|gtk-xfce-engine
+    -> test-repo|master|garcon.morph|garcon
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|gtk.morph|gtk
+    -> test-repo|master|cairo.morph|cairo
+    -> test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
+    -> test-repo|master|glib.morph|glib
+    -> test-repo|master|pango.morph|pango
+  test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|libxfce4util.morph|libxfce4util
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+  test-repo|master|pango.morph|pango
+    -> test-repo|master|fontconfig.morph|fontconfig
+    -> test-repo|master|freetype.morph|freetype
+  test-repo|master|thunar.morph|thunar
+    -> test-repo|master|exo.morph|exo
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+  test-repo|master|tumbler.morph|tumbler
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+  test-repo|master|xfce-core.morph|xfce-core
+    -> test-repo|master|exo.morph|exo
+    -> test-repo|master|garcon.morph|garcon
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|gtk-xfce-engine.morph|gtk-xfce-engine
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|libxfce4util.morph|libxfce4util
+    -> test-repo|master|thunar.morph|thunar
+    -> test-repo|master|tumbler.morph|tumbler
+    -> test-repo|master|xfce4-appfinder.morph|xfce4-appfinder
+    -> test-repo|master|xfce4-panel.morph|xfce4-panel
+    -> test-repo|master|xfce4-session.morph|xfce4-session
+    -> test-repo|master|xfce4-settings.morph|xfce4-settings
+    -> test-repo|master|xfconf.morph|xfconf
+    -> test-repo|master|xfdesktop.morph|xfdesktop
+    -> test-repo|master|xfwm4.morph|xfwm4
+  test-repo|master|xfce4-appfinder.morph|xfce4-appfinder
+    -> test-repo|master|garcon.morph|garcon
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|xfce4-panel.morph|xfce4-panel
+    -> test-repo|master|exo.morph|exo
+    -> test-repo|master|garcon.morph|garcon
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+  test-repo|master|xfce4-session.morph|xfce4-session
+    -> test-repo|master|exo.morph|exo
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|xfce4-settings.morph|xfce4-settings
+    -> test-repo|master|exo.morph|exo
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|xfconf.morph|xfconf
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4util.morph|libxfce4util
+  test-repo|master|xfdesktop.morph|xfdesktop
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
+  test-repo|master|xfwm4.morph|xfwm4
+    -> test-repo|master|gtk-stack.morph|gtk-stack
+    -> test-repo|master|libxfce4ui.morph|libxfce4ui
+    -> test-repo|master|xfconf.morph|xfconf
 build order:
   group:
-    test-repo|master|freetype.morph
-    test-repo|master|fontconfig.morph
-    test-repo|master|cairo.morph
-    test-repo|master|glib.morph
-    test-repo|master|dbus.morph
+    test-repo|master|freetype.morph|freetype
+    test-repo|master|fontconfig.morph|fontconfig
+    test-repo|master|cairo.morph|cairo
+    test-repo|master|glib.morph|glib
+    test-repo|master|dbus.morph|dbus
   group:
-    test-repo|master|pango.morph
-    test-repo|master|gdk-pixbuf.morph
-    test-repo|master|dbus-glib.morph
+    test-repo|master|pango.morph|pango
+    test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
+    test-repo|master|dbus-glib.morph|dbus-glib
   group:
-    test-repo|master|gtk.morph
+    test-repo|master|gtk.morph|gtk
   group:
-    test-repo|master|gtk-stack.morph
+    test-repo|master|gtk-stack.morph|gtk-stack
   group:
-    test-repo|master|libxfce4util.morph
-    test-repo|master|tumbler.morph
+    test-repo|master|libxfce4util.morph|libxfce4util
+    test-repo|master|tumbler.morph|tumbler
   group:
-    test-repo|master|xfconf.morph
-    test-repo|master|exo.morph
-    test-repo|master|garcon.morph
+    test-repo|master|xfconf.morph|xfconf
+    test-repo|master|exo.morph|exo
+    test-repo|master|garcon.morph|garcon
   group:
-    test-repo|master|libxfce4ui.morph
+    test-repo|master|libxfce4ui.morph|libxfce4ui
   group:
-    test-repo|master|thunar.morph
-    test-repo|master|xfce4-panel.morph
-    test-repo|master|xfce4-settings.morph
-    test-repo|master|xfce4-session.morph
-    test-repo|master|xfwm4.morph
-    test-repo|master|xfdesktop.morph
-    test-repo|master|xfce4-appfinder.morph
-    test-repo|master|gtk-xfce-engine.morph
+    test-repo|master|thunar.morph|thunar
+    test-repo|master|xfce4-panel.morph|xfce4-panel
+    test-repo|master|xfce4-settings.morph|xfce4-settings
+    test-repo|master|xfce4-session.morph|xfce4-session
+    test-repo|master|xfwm4.morph|xfwm4
+    test-repo|master|xfdesktop.morph|xfdesktop
+    test-repo|master|xfce4-appfinder.morph|xfce4-appfinder
+    test-repo|master|gtk-xfce-engine.morph|gtk-xfce-engine
   group:
-    test-repo|master|xfce-core.morph
+    test-repo|master|xfce-core.morph|xfce-core

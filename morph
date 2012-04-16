@@ -189,7 +189,6 @@ class Morph(cliapp.Application):
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
 
-        graph = morphlib.buildgraph.BuildGraph()
         pool = morphlib.sourcepool.SourcePool()
 
         if not os.path.exists(self.settings['cachedir']):
@@ -226,17 +225,23 @@ class Morph(cliapp.Application):
                                             morphology,   filename)
             pool.add(source)
 
-        order = graph.compute_build_order(pool)
-        self.output.write('dependency tree:\n')
-        for source in sorted(pool, key=str):
-            self.output.write('  %s\n' % source)
-            for dependency in sorted(source.dependencies, key=str):
+        env = morphlib.buildenvironment.BuildEnvironment(self.settings)
+        computer = morphlib.cachekeycomputer.CacheKeyComputer(env)
+        resolver = morphlib.artifactresolver.ArtifactResolver(computer)
+        artifacts = resolver.resolve_artifacts(pool)
+
+        self.output.write('dependency graph:\n')
+        for artifact in sorted(artifacts, key=str):
+            self.output.write('  %s\n' % artifact)
+            for dependency in sorted(artifact.dependencies, key=str):
                 self.output.write('    -> %s\n' % dependency)
+
+        order = morphlib.buildorder.BuildOrder(artifacts)
         self.output.write('build order:\n')
-        for group in order:
+        for group in order.groups:
             self.output.write('  group:\n')
-            for source in group:
-                self.output.write('    %s\n' % source)
+            for artifact in group:
+                self.output.write('    %s\n' % artifact)
 
     def cmd_update_gits(self, args):
         '''Update cached git repositories.
