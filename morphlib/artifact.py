@@ -16,6 +16,21 @@
 
 class Artifact(object):
 
+    '''Represent a build result generated from a source.
+    
+    Has the following properties:
+    
+    * ``source`` -- the source from which the artifact is built
+    * ``name`` -- the name of the artifact
+    * ``cache_key`` -- a cache key to uniquely identify the artifact
+    * ``dependencies`` -- list of Artifacts that need to be built beforehand
+    * ``dependents`` -- list of Artifacts that need this Artifact to be built
+    
+    The ``dependencies`` and ``dependents`` lists MUST be modified by
+    the ``add_dependencies`` and ``add_dependent`` methods only.
+    
+    '''
+    
     def __init__(self, source, name, cache_key):
         self.source = source
         self.name = name
