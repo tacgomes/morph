@@ -21,6 +21,7 @@ import collections
 import json
 import logging
 import os
+import tempfile
 
 import morphlib
 from morphlib import buildworker
@@ -191,8 +192,7 @@ class Morph(cliapp.Application):
 
         return pool
 
-
-    def cmd_build(self, args):
+    def cmd_build_old(self, args):
         '''Build a binary from a morphology.
         
         Command line arguments are the repository, git tree-ish reference,
@@ -235,6 +235,74 @@ class Morph(cliapp.Application):
             builder.build(order)
 
             tempdir.remove()
+
+    def cmd_build(self, args):
+        '''Build a binary from a morphology.
+        
+        Command line arguments are the repository, git tree-ish reference,
+        and morphology filename. Morph takes care of building all dependencies
+        before building the morphology. All generated binaries are put into the
+        cache.
+        
+        (The triplet of command line arguments may be repeated as many
+        times as necessary.)
+        
+        '''
+
+        logging.debug('cmd_build starting')
+
+        cachedir = self.settings['cachedir']
+        if not os.path.exists(cachedir):
+            os.mkdir(cachedir)
+
+        build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
+        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+        lac = morphlib.localartifactcache.LocalArtifactCache(cachedir)
+        lrc = morphlib.localrepocache.LocalRepoCache(
+                cachedir,
+                self.settings['git-base-url'],
+                bundle_base_url=self.settings['bundle-server'])
+
+        for repo_name, ref, filename in self._itertriplets(args):
+            logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
+            srcpool = self._create_source_pool(lrc, repo_name, ref, filename)
+            ar = morphlib.artifactresolver.ArtifactResolver(ckc)
+            artifacts = ar.resolve_artifacts(srcpool)
+            order = morphlib.buildorder.BuildOrder(artifacts)
+
+            needed = []
+            for group in order.groups:
+                for artifact in group:
+                    if not lac.has(artifact):
+                        needed.append(artifact)
+
+            for artifact in needed:
+                repo = lrc.cache_repo(repo_name)
+                repo.update()
+
+            if self.settings['bootstrap']:
+                staging_root = '/'
+            else:
+                staging_root = tempfile.mkdtemp()
+            staging_area = morphlib.stagingarea.StagingArea(staging_root)
+
+            builder = morphlib.builder2.Builder(staging_area, lac,
+                                                build_env,
+                                                self.settings['max-jobs'])
+            for group in order.groups:
+                for artifact in group:
+                    if artifact in needed:
+                        builder.build_and_cache(artifact)
+                # install chunks only
+                chunk_artifacts = [x 
+                                   for x in group 
+                                   if x.source.morphology['kind'] == 'chunk']
+                for artifact in chunk_artifacts:
+                    handle = lac.get(artifact)
+                    staging_area.install_artifact(handle)
+
+            if staging_root != '/':
+                staging_area.remove()
 
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''

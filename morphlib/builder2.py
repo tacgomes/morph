@@ -17,6 +17,7 @@
 import json
 import logging
 import os
+import time
 
 import morphlib
 
@@ -87,6 +88,7 @@ class BuilderBase(object):
                                           self.artifact.cache_key)
         
     def runcmd(self, *args, **kwargs):
+        kwargs['env'] = self.build_env.env
         return self.staging_area.runcmd(*args, **kwargs)
 
 
@@ -103,14 +105,63 @@ class ChunkBuilder(BuilderBase):
             return morphology[which]
 
     def build_and_cache(self): # pragma: no cover
+        builddir = self.staging_area.builddir(self.artifact.source)
+        self.get_sources(builddir)
         destdir = self.staging_area.destdir(self.artifact.source)
-        self.run_commands(destdir)
+        self.run_commands(builddir, destdir)
         self.assemble_chunk_artifacts(destdir)
 
-    def run_commands(self, destdir): # pragma: no cover
+    def get_sources(self, srcdir): # pragma: no cover
+        '''Get sources from git to a source directory, for building.'''
+
+        def extract_treeish(source, destdir):
+            logging.debug('Extracting %s into %s' % (source.repo, destdir))
+            if not os.path.exists(destdir):
+                os.mkdir(destdir)
+            morphlib.git.copy_repository(source.repo.path, destdir, 
+                                         logging.debug)
+            morphlib.git.checkout_ref(destdir, source.sha1, logging.debug)
+            morphlib.git.reset_workdir(destdir, logging.debug)
+            submodules = morphlib.git.Submodules(source.repo.path, source.sha1)
+            try:
+                submodules.load()
+            except morphlib.git.NoModulesFileError:
+                return []
+            else:
+                return [(sub.url, os.path.join(destdir, sub.path))
+                        for sub in submodules]
+
+        todo = [(self.artifact.source, srcdir)]
+        while todo:
+            source, srcdir = todo.pop()
+            todo += extract_treeish(source, srcdir)
+        self.set_mtime_recursively(srcdir)
+
+    def set_mtime_recursively(self, root): # pragma: no cover
+        '''Set the mtime for every file in a directory tree to the same.
+        
+        We do this because git checkout does not set the mtime to anything,
+        and some projects (binutils, gperf for example) include formatted
+        documentation and try to randomly build things or not because of
+        the timestamps. This should help us get more reliable  builds.
+        
+        '''
+        
+        now = time.time()
+        for dirname, subdirs, basenames in os.walk(root, topdown=False):
+            for basename in basenames:
+                pathname = os.path.join(dirname, basename)
+                # we need the following check to ignore broken symlinks
+                if os.path.exists(pathname):
+                    os.utime(pathname, (now, now))
+            os.utime(dirname, (now, now))
+
+
+    def run_commands(self, builddir, destdir): # pragma: no cover
         m = self.artifact.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
+        relative_builddir = self.staging_area.relative(builddir)
         relative_destdir = self.staging_area.relative(destdir)
         self.build_env.env['DESTDIR'] = relative_destdir
 
@@ -128,7 +179,7 @@ class ChunkBuilder(BuilderBase):
                     self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
                 else:
                     self.build_env.env['MAKEFLAGS'] = '-j1'
-                self.runcmd(['sh', '-c', cmd], cwd=relative_destdir)
+                self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
         ex = None # create_chunk doesn't actually use this
