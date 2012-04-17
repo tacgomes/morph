@@ -43,7 +43,7 @@ class FakeSource(object):
             'description': 'c',
         }
         
-        self.repo = 'd'
+        self.repo = morphlib.cachedrepo.CachedRepo('repo', 'url', 'path')
         self.original_ref = 'e'
         self.sha1 = 'f'
         self.filename = 'g'
@@ -107,7 +107,7 @@ class BuilderBaseTests(unittest.TestCase):
         self.assertEqual(meta['source-name'], morphology['name'])
         self.assertEqual(meta['kind'], morphology['kind'])
         self.assertEqual(meta['description'], morphology['description'])
-        self.assertEqual(meta['repo'], source.repo)
+        self.assertEqual(meta['repo'], source.repo.url)
         self.assertEqual(meta['original_ref'], source.original_ref)
         self.assertEqual(meta['sha1'], source.sha1)
         self.assertEqual(meta['morphology'], source.filename)

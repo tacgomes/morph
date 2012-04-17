@@ -42,12 +42,14 @@ class BuilderBase(object):
         
         '''
         
+        assert isinstance(self.artifact.source.repo, 
+                          morphlib.cachedrepo.CachedRepo)
         meta = {
             'artifact-name': artifact_name,
             'source-name': self.artifact.source.morphology['name'],
             'kind': self.artifact.source.morphology['kind'],
             'description': self.artifact.source.morphology['description'],
-            'repo': self.artifact.source.repo,
+            'repo': self.artifact.source.repo.url,
             'original_ref': self.artifact.source.original_ref,
             'sha1': self.artifact.source.sha1,
             'morphology': self.artifact.source.filename,
@@ -222,7 +224,7 @@ class StratumBuilder(BuilderBase):
         self.write_metadata(destdir, artifact_name)
         artifact = self.new_artifact(artifact_name)
         with self.artifact_cache.put(artifact) as f:
-            morphlib.bins.create_stratum(destdir, f, ex)
+            morphlib.bins.create_stratum(destdir, f, None)
 
 
 class SystemBuilder(BuilderBase): # pragma: no cover
