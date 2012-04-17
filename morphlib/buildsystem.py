@@ -123,12 +123,39 @@ class AutotoolsBuildSystem(BuildSystem):
         return any(exists(x) for x in indicators)
 
 
+class PythonDistutilsBuildSystem(BuildSystem):
+
+    '''The Python distutils build systems.'''
+
+    name = 'python-distutils'
+    
+    def __init__(self):
+        self.configure_commands = [
+        ]
+        self.build_commands = [
+            'python setup.py build',
+        ]
+        self.test_commands = [
+        ]
+        self.install_commands = [
+            'python setup.py install --root "$DESTDIR"',
+        ]
+
+    def used_by_project(self, exists):
+        indicators = [
+            'setup.py',
+        ]
+        
+        return any(exists(x) for x in indicators)
+
+
 build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
+    PythonDistutilsBuildSystem(),
     DummyBuildSystem(),
 ]
-    
+
 
 def detect_build_system(exists):
     '''Automatically detect the build system, if possible.
