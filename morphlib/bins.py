@@ -101,6 +101,18 @@ def create_stratum(rootdir, f, ex):
     tar.close()
 
 
+def unpack_binary_from_file(f, dirname, ex): # pragma: no cover
+    '''Unpack a binary into a directory.
+    
+    The directory must exist already.
+    
+    '''
+
+    tf = tarfile.open(fileobj=f)
+    tf.extractall(path=dirname)
+    tf.close()
+
+
 def unpack_binary(filename, dirname, ex):
     '''Unpack a binary into a directory.
     
