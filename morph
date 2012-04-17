@@ -141,6 +141,37 @@ class Morph(cliapp.Application):
             yield args[0], args[1], args[2]
             args = args[3:]
 
+    def _create_source_pool(self, repo_cache, reponame, ref, filename):
+        pool = morphlib.sourcepool.SourcePool()
+        
+        queue = collections.deque([(reponame, ref, filename)])
+        while queue:
+            reponame, ref, filename = queue.popleft()
+
+            if self.settings['no-git-update']:
+                repo = repo_cache.get_repo(reponame)
+            else:
+                repo = repo_cache.cache_repo(reponame)
+                repo.update()
+            absref = repo.resolve_ref(ref)
+            text = repo.cat(absref, filename)
+            morphology = morphlib.morph2.Morphology(text)
+            if morphology['kind'] == 'system':
+                for stratum in morphology['strata']:
+                    queue.append((reponame, ref, '%s.morph' % stratum))
+            elif morphology['kind'] == 'stratum':
+                if morphology['build-depends']:
+                    for stratum in morphology['build-depends']:
+                        queue.append((reponame, ref, '%s.morph' % stratum))
+                for x in morphology['sources']:
+                    queue.append((x['repo'], x['ref'],
+                                  '%s.morph' % x['morph']))
+            source = morphlib.source.Source(reponame, ref, absref,
+                                            morphology,   filename)
+            pool.add(source)
+
+        return pool
+
 
     def cmd_build(self, args):
         '''Build a binary from a morphology.
@@ -189,8 +220,6 @@ class Morph(cliapp.Application):
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
 
-        pool = morphlib.sourcepool.SourcePool()
-
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
@@ -200,48 +229,29 @@ class Morph(cliapp.Application):
                 cachedir, baseurls, bundle_base_url)
 
         # traverse the morphs to list all the sources
-        queue = collections.deque(self._itertriplets(args))
-        while queue:
-            reponame, ref, filename = queue.popleft()
-            if self.settings['no-git-update']:
-                repo = cache.get_repo(reponame)
-            else:
-                repo = cache.cache_repo(reponame)
-                repo.update()
-            absref = repo.resolve_ref(ref)
-            text = repo.cat(absref, filename)
-            morphology = morphlib.morph2.Morphology(text)
-            if morphology['kind'] == 'system':
-                for stratum in morphology['strata']:
-                    queue.append((reponame, ref, '%s.morph' % stratum))
-            elif morphology['kind'] == 'stratum':
-                if morphology['build-depends']:
-                    for stratum in morphology['build-depends']:
-                        queue.append((reponame, ref, '%s.morph' % stratum))
-                for x in morphology['sources']:
-                    queue.append((x['repo'], x['ref'],
-                                  '%s.morph' % x['morph']))
-            source = morphlib.source.Source(reponame, ref, absref,
-                                            morphology,   filename)
-            pool.add(source)
+        for repo, ref, filename in self._itertriplets(args):
+            repo, ref, filename = args[:3]
+            pool = self._create_source_pool(cache, repo, ref, filename)
 
-        env = morphlib.buildenvironment.BuildEnvironment(self.settings)
-        computer = morphlib.cachekeycomputer.CacheKeyComputer(env)
-        resolver = morphlib.artifactresolver.ArtifactResolver(computer)
-        artifacts = resolver.resolve_artifacts(pool)
+            env = morphlib.buildenvironment.BuildEnvironment(self.settings)
+            computer = morphlib.cachekeycomputer.CacheKeyComputer(env)
+            resolver = morphlib.artifactresolver.ArtifactResolver(computer)
+            artifacts = resolver.resolve_artifacts(pool)
 
-        self.output.write('dependency graph:\n')
-        for artifact in sorted(artifacts, key=str):
-            self.output.write('  %s\n' % artifact)
-            for dependency in sorted(artifact.dependencies, key=str):
-                self.output.write('    -> %s\n' % dependency)
+            self.output.write('dependency graph for %s|%s|%s:\n' % 
+                              (repo, ref, filename))
+            for artifact in sorted(artifacts, key=str):
+                self.output.write('  %s\n' % artifact)
+                for dependency in sorted(artifact.dependencies, key=str):
+                    self.output.write('    -> %s\n' % dependency)
 
-        order = morphlib.buildorder.BuildOrder(artifacts)
-        self.output.write('build order:\n')
-        for group in order.groups:
-            self.output.write('  group:\n')
-            for artifact in group:
-                self.output.write('    %s\n' % artifact)
+            order = morphlib.buildorder.BuildOrder(artifacts)
+            self.output.write('build order for %s|%s|%s:\n' %
+                              (repo, ref, filename))
+            for group in order.groups:
+                self.output.write('  group:\n')
+                for artifact in group:
+                    self.output.write('    %s\n' % artifact)
 
     def cmd_update_gits(self, args):
         '''Update cached git repositories.

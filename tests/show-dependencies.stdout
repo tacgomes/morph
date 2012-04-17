@@ -1,4 +1,4 @@
-dependency graph:
+dependency graph for test-repo|master|xfce-core.morph:
   test-repo|master|cairo.morph|cairo
   test-repo|master|dbus-glib.morph|dbus-glib
     -> test-repo|master|dbus.morph|dbus
@@ -96,7 +96,7 @@ dependency graph:
     -> test-repo|master|gtk-stack.morph|gtk-stack
     -> test-repo|master|libxfce4ui.morph|libxfce4ui
     -> test-repo|master|xfconf.morph|xfconf
-build order:
+build order for test-repo|master|xfce-core.morph:
   group:
     test-repo|master|freetype.morph|freetype
     test-repo|master|fontconfig.morph|fontconfig
