@@ -243,7 +243,7 @@ class ArtifactResolver(object):
         return artifacts
 
     def _chunk_artifact_names(self, source):
-        if 'chunks' in source.morphology:
+        if len(source.morphology['chunks']) > 0:
             return sorted(source.morphology['chunks'].keys())
         else:
             return [source.morphology['name']]

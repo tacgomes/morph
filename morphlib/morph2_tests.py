@@ -38,6 +38,7 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(m['test-commands'], [])
         self.assertEqual(m['install-commands'], [])
         self.assertEqual(m['max-jobs'], None)
+        self.assertEqual(m['chunks'], {})
 
     def test_makes_max_jobs_be_an_integer(self):
         m = Morphology('''
