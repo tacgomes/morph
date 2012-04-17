@@ -91,7 +91,7 @@ class Execute(object):
             kwargs['env'] = self.env
 
         logging.debug('runv: argv=%s' % repr(argv))
-        logging.debug('runv: env=%s' % repr(self.env))
+        logging.debug('runv: env=%s' % repr(kwargs['env']))
         logging.debug('runv: cwd=%s' % repr(self.dirname))
         self.msg('# %s' % ' '.join(argv))
         p = subprocess.Popen(argv, **kwargs)
