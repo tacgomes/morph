@@ -25,6 +25,7 @@ class BuildGraphTests(unittest.TestCase):
 
     def setUp(self):
         self.graph = morphlib.buildgraph.BuildGraph()
+        self.repo = morphlib.cachedrepo.CachedRepo('repo', 'url', 'path')
 
     def test_create_empty_build_order_for_empty_pool(self):
         pool = morphlib.sourcepool.SourcePool()
@@ -46,7 +47,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         source = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'foo.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(source)
         
         order = self.graph.compute_build_order(pool)
@@ -66,7 +67,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         source = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'foo.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(source)
 
         order = self.graph.compute_build_order(pool)
@@ -86,7 +87,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         source = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'foo.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(source)
 
         order = self.graph.compute_build_order(pool)
@@ -113,7 +114,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -128,7 +129,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'chunk.morph')
         pool.add(chunk)
 
         order = self.graph.compute_build_order(pool)
@@ -159,7 +160,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -174,7 +175,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'chunk.morph')
         pool.add(chunk)
 
         order = self.graph.compute_build_order(pool)
@@ -214,7 +215,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -225,7 +226,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -236,7 +237,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'second-chunk.morph')
         pool.add(second_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -247,7 +248,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         third_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'third-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'third-chunk.morph')
         pool.add(third_chunk)
 
         order = self.graph.compute_build_order(pool)
@@ -299,7 +300,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -310,7 +311,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -321,7 +322,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'second-chunk.morph')
         pool.add(second_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -332,7 +333,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         third_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'third-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'third-chunk.morph')
         pool.add(third_chunk)
 
         order = self.graph.compute_build_order(pool)
@@ -360,7 +361,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -374,7 +376,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -388,7 +391,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         third_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'third-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'third-stratum.morph')
         pool.add(third_stratum)
 
         order = self.graph.compute_build_order(pool)
@@ -414,7 +418,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -440,7 +445,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -451,7 +457,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -462,7 +468,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'second-chunk.morph')
         pool.add(second_chunk)
 
         order = self.graph.compute_build_order(pool)
@@ -492,7 +498,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -503,7 +510,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -518,7 +526,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         system = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'system.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'system.morph')
         pool.add(system)
 
         order = self.graph.compute_build_order(pool)
@@ -546,7 +554,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -560,7 +569,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         self.assertRaises(morphlib.buildgraph.MutualDependencyError,
@@ -589,7 +599,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -615,7 +626,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -626,7 +638,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -637,7 +650,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-chunk.morph')
         pool.add(second_chunk)
 
         self.assertRaises(morphlib.buildgraph.MutualDependencyError,
@@ -677,7 +691,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-stratum.morph')
         pool.add(first_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -703,7 +718,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-stratum.morph')
         pool.add(second_stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -714,7 +730,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -725,7 +742,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'second-chunk.morph')
         pool.add(second_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -736,7 +754,8 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'third-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph,
+                'third-chunk.morph')
         pool.add(second_chunk)
 
         self.assertRaises(morphlib.buildgraph.CyclicDependencyChainError,
@@ -768,7 +787,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -779,7 +798,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         first_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'first-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'first-chunk.morph')
         pool.add(first_chunk)
 
         morph = morphlib.morph2.Morphology(
@@ -790,7 +809,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         second_chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'second-chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'second-chunk.morph')
         pool.add(second_chunk)
 
         self.assertRaises(morphlib.buildgraph.DependencyOrderError,
@@ -815,7 +834,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         stratum = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
 
         morph = morphlib.morph2.Morphology(
@@ -826,7 +845,7 @@ class BuildGraphTests(unittest.TestCase):
                 }
                 ''')
         chunk = morphlib.source.Source(
-                'repo', 'original/ref', 'sha1', morph, 'chunk.morph')
+                self.repo, 'original/ref', 'sha1', morph, 'chunk.morph')
         pool.add(chunk)
 
         self.assertRaises(morphlib.buildgraph.DependencyFormatError,

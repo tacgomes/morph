@@ -80,9 +80,11 @@ class CachedRepoTests(unittest.TestCase):
         raise morphlib.execute.CommandFailure('git remote update origin', '')
 
     def setUp(self):
+        self.repo_name = 'foo'
         self.repo_url = 'git://foo.bar/foo.git'
         self.repo_path = '/tmp/foo'
-        self.repo = cachedrepo.CachedRepo(self.repo_url, self.repo_path)
+        self.repo = cachedrepo.CachedRepo(
+                self.repo_name, self.repo_url, self.repo_path)
         self.repo._show_ref = self.show_ref
         self.repo._rev_list = self.rev_list
         self.repo._cat_file = self.cat_file
@@ -93,7 +95,8 @@ class CachedRepoTests(unittest.TestCase):
     def tearDown(self):
         self.tempdir.remove()
 
-    def test_constructor_sets_url_and_path(self):
+    def test_constructor_sets_name_and_url_and_path(self):
+        self.assertEqual(self.repo.original_name, self.repo_name)
         self.assertEqual(self.repo.url, self.repo_url)
         self.assertEqual(self.repo.path, self.repo_path)
 

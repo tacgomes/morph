@@ -74,9 +74,10 @@ class CachedRepo(object):
 
     '''
 
-    def __init__(self, url, path):
-        '''Creates a new CachedRepo for a given repo URL and local path.'''
+    def __init__(self, original_name, url, path):
+        '''Creates a new CachedRepo for a repo name, URL and local path.'''
 
+        self.original_name = original_name
         self.url = url
         self.path = path
         self.ex = morphlib.execute.Execute(self.path, logging.debug)
