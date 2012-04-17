@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+import cliapp
+import logging
+import urllib
+
+from bottle import Bottle, request, response, run
+from morphcacheserver.repocache import RepoCache
+
+
+defaults = {
+    'repo-dir': '/var/cache/morph-cache-server/gits',
+}
+
+
+class MorphCacheServer(cliapp.Application):
+
+    def add_settings(self):
+        self.settings.string(['repo-dir'],
+                             'path to the repository cache directory',
+                             metavar='PATH',
+                             default=defaults['repo-dir'])
+
+    def process_args(self, args):
+        app = Bottle()
+
+        repo_cache = RepoCache(self, self.settings['repo-dir'])
+        
+        @app.get('/sha1s')
+        def sha1():
+            repo = self._unescape_parameter(request.query.repo)
+            ref = self._unescape_parameter(request.query.ref)
+            try:
+                sha1 = repo_cache.resolve_ref(repo, ref)
+                return {
+                    'repo': '%s' % repo,
+                    'ref': '%s' % ref,
+                    'sha1': '%s' % sha1
+                }
+            except Exception, e:
+                response.status = 404
+                logging.debug('%s' % e)
+        
+        @app.get('/files')
+        def file():
+            repo = self._unescape_parameter(request.query.repo)
+            ref = self._unescape_parameter(request.query.ref)
+            filename = self._unescape_parameter(request.query.filename)
+            try:
+                content = repo_cache.cat_file(repo, ref, filename)
+                response.set_header('Content-Type', 'application/octet-stream')
+                return content
+            except Exception, e:
+                response.status = 404
+                logging.debug('%s' % e)
+        
+        root = Bottle()
+        root.mount(app, '/1.0')
+        
+        run(root, host='0.0.0.0', port=8080, reloader=True)
+
+    def _unescape_parameter(self, param):
+        return urllib.unquote(param)
+
+
+if __name__ == '__main__':
+    MorphCacheServer().run()
