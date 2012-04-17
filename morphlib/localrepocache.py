@@ -80,6 +80,7 @@ class LocalRepoCache(object):
             bundle_base_url += '/' # pragma: no cover
         self._bundle_base_url = bundle_base_url
         self._ex = morphlib.execute.Execute(cachedir, logging.debug)
+        self._cached_repo_objects = {}
 
     def _exists(self, filename): # pragma: no cover
         '''Does a file exist?
@@ -239,8 +240,14 @@ class LocalRepoCache(object):
     def get_repo(self, reponame):
         '''Return an object representing a cached repository.'''
 
-        for repourl, path in self._base_iterate(reponame):
-            if self._exists(path):
-                return morphlib.cachedrepo.CachedRepo(repourl, path)
+        if reponame in self._cached_repo_objects:
+            return self._cached_repo_objects[reponame]
+        else:
+            for repourl, path in self._base_iterate(reponame):
+                if self._exists(path):
+                    repo = morphlib.cachedrepo.CachedRepo(
+                            reponame, repourl, path)
+                    self._cached_repo_objects[reponame] = repo
+                    return repo
         raise NotCached(reponame)
 
