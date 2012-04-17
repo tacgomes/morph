@@ -166,8 +166,8 @@ class Morph(cliapp.Application):
                 for x in morphology['sources']:
                     queue.append((x['repo'], x['ref'],
                                   '%s.morph' % x['morph']))
-            source = morphlib.source.Source(reponame, ref, absref,
-                                            morphology,   filename)
+            source = morphlib.source.Source(repo, ref, absref,
+                                            morphology, filename)
             pool.add(source)
 
         return pool
