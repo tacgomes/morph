@@ -115,6 +115,7 @@ class AutotoolsBuildSystem(BuildSystem):
     def used_by_project(self, exists):
         indicators = [
             'autogen.sh',
+            'configure',
             'configure.ac',
             'configure.in',
             'configure.in.in',
