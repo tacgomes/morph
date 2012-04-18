@@ -29,6 +29,7 @@ from morphcacheserver.repocache import RepoCache
 defaults = {
     'repo-dir': '/var/cache/morph-cache-server/gits',
     'bundle-dir': '/var/cache/morph-cache-server/bundles',
+    'artifact-dir': '/var/cache/morph-cache-server/artifacts',
 }
 
 
@@ -43,6 +44,10 @@ class MorphCacheServer(cliapp.Application):
                              'path to the bundle cache directory',
                              metavar='PATH',
                              default=defaults['bundle-dir'])
+        self.settings.string(['artifact-dir'],
+                             'path to the artifact cache directory',
+                             metavar='PATH',
+                             default=defaults['artifact-dir'])
 
     def process_args(self, args):
         app = Bottle()
@@ -87,6 +92,18 @@ class MorphCacheServer(cliapp.Application):
             dirname = os.path.dirname(filename)
             basename = os.path.basename(filename)
             return static_file(basename, root=dirname, download=True)
+
+        @app.get('/artifacts')
+        def artifact():
+            basename = self._unescape_parameter(request.query.filename)
+            filename = os.path.join(self.settings['artifact-dir'], basename)
+            if os.path.exists(filename):
+                return static_file(basename,
+                                   root=self.settings['artifact-dir'],
+                                   download=True)
+            else:
+                response.status = 404
+                logging.debug('artifact %s does not exist' % basename)
         
         root = Bottle()
         root.mount(app, '/1.0')
