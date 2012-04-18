@@ -81,8 +81,7 @@ class CacheKeyComputerTests(unittest.TestCase):
                 ]
             }''',
         }.iteritems():
-            repo = morphlib.cachedrepo.CachedRepo('repo', 'url', 'path')
-            source = morphlib.source.Source(repo, 'original/ref', 'sha',
+            source = morphlib.source.Source('repo', 'original/ref', 'sha',
                                    morphlib.morph2.Morphology(text), name)
             pool.add(source)
             self.sources[name] = source

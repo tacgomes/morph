@@ -69,7 +69,7 @@ class BuildGraph(object):
     def _realise_system_dependencies(self, system, queue, source_pool):
         for stratum_name in system.morphology['strata']:
             stratum = source_pool.lookup(
-                    system.repo.original_name,
+                    system.repo_name,
                     system.original_ref,
                     '%s.morph' % stratum_name)
             
@@ -82,7 +82,7 @@ class BuildGraph(object):
         if stratum.morphology['build-depends']:
             for stratum_name in stratum.morphology['build-depends']:
                 other_stratum = source_pool.lookup(
-                        stratum.repo.original_name,
+                        stratum.repo_name,
                         stratum.original_ref,
                         '%s.morph' % stratum_name)
                 strata.append(other_stratum)

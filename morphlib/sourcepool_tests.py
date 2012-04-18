@@ -22,8 +22,7 @@ import morphlib
 class DummySource(object):
 
     def __init__(self):
-        self.repo = morphlib.cachedrepo.CachedRepo(
-                'repo', 'repo url', 'repo path')
+        self.repo_name = 'repo'
         self.original_ref = 'original/ref'
         self.sha1 = 'dummy.sha1'
         self.filename = 'dummy.morph'
@@ -48,7 +47,7 @@ class SourcePoolTests(unittest.TestCase):
 
     def test_looks_up_source(self):
         self.pool.add(self.source)
-        result = self.pool.lookup(self.source.repo.original_name,
+        result = self.pool.lookup(self.source.repo_name,
                                   self.source.original_ref,
                                   self.source.filename)
         self.assertEqual(result, self.source)
@@ -56,7 +55,7 @@ class SourcePoolTests(unittest.TestCase):
     def test_lookup_raises_keyerror_if_not_found(self):
         self.assertRaises(KeyError,
                           self.pool.lookup,
-                          self.source.repo.original_name,
+                          self.source.repo_name,
                           self.source.original_ref,
                           self.source.filename)
 
