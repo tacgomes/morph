@@ -14,8 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import logging
 import os
 import tempfile
+
 
 class SaveFile(file):
 
@@ -61,6 +63,8 @@ class SaveFile(file):
 
     def close(self):
         ret = file.close(self)
+        logging.debug('Rename temporary file %s to %s' %
+                        (self._savefile_tempname, self._savefile_filename))
         os.rename(self._savefile_tempname, self._savefile_filename)
         return ret
 
