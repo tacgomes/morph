@@ -75,7 +75,7 @@ class RemoteRepoCache(object):
         return self._make_request(
                 'files?repo=%s&ref=%s&filename=%s' % (repo_url, ref, filename))
 
-    def _make_request(self, path):
+    def _make_request(self, path): # pragma: no cover
         server_url = self.server_url
         if not server_url.endswith('/'):
             server_url += '/'
