@@ -37,16 +37,16 @@ class StagingArea(object):
     
     '''
     
-    def __init__(self, dirname):
+    def __init__(self, dirname, tempdir):
         self.dirname = dirname
-        self._chroot = 'chroot' if os.getuid() == 0 else 'echo'
+        self.tempdir = tempdir
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname): # pragma: no cover
         os.mkdir(dirname)
 
     def _dir_for_source(self, source, suffix):
-        dirname = os.path.join(self.dirname, 
+        dirname = os.path.join(self.tempdir, 
                                '%s.%s' % (source.morphology['name'], suffix))
         self._mkdir(dirname)
         return dirname
@@ -111,8 +111,6 @@ class StagingArea(object):
             del kwargs['cwd']
         else:
             cwd = '/'
-        real_argv = [self._chroot, self.dirname, 
-                     'sh', '-c', 'cd "$1" && shift && eval "$@"', '--',
-                     cwd] + argv
+        real_argv = ['linux-user-chroot', '--chdir', cwd, self.dirname] + argv
         return ex.runv(real_argv, **kwargs)
 
