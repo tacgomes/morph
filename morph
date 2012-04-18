@@ -193,50 +193,6 @@ class Morph(cliapp.Application):
 
         return pool
 
-    def cmd_build_old(self, args):
-        '''Build a binary from a morphology.
-        
-        Command line arguments are the repository, git tree-ish reference,
-        and morphology filename. Morph takes care of building all dependencies
-        before building the morphology. All generated binaries are put into the
-        cache.
-        
-        (The triplet of command line arguments may be repeated as many
-        times as necessary.)
-        
-        '''
-
-
-        if not os.path.exists(self.settings['cachedir']):
-            os.mkdir(self.settings['cachedir'])
-
-        for repo, ref, filename in self._itertriplets(args):
-            tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
-            morph_loader = MorphologyLoader(self.settings)
-            source_manager = morphlib.sourcemanager.SourceManager(self,
-                                update=not self.settings['no-git-update'])
-            factory = morphlib.builder.Factory(tempdir)
-            builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                               source_manager, factory)
-
-            # Unpack manually specified build dependencies.
-            factory.create_staging()
-            for bin in self.settings['staging-filler']:
-                factory.unpack_binary_from_file(bin)
-
-            # derive a build order from the dependency graph
-            graph = BuildDependencyGraph(source_manager, morph_loader,
-                                         repo, ref, filename)
-            graph.resolve()
-            blobs, order = graph.build_order()
-
-            self.msg('Building %s|%s|%s' % (repo, ref, filename))
-
-            # build things in this order
-            builder.build(order)
-
-            tempdir.remove()
-
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
