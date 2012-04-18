@@ -20,12 +20,14 @@ import cliapp
 import logging
 import urllib
 
-from bottle import Bottle, request, response, run
+from bottle import Bottle, request, response, run, static_file
+
 from morphcacheserver.repocache import RepoCache
 
 
 defaults = {
     'repo-dir': '/var/cache/morph-cache-server/gits',
+    'bundle-dir': '/var/cache/morph-cache-server/bundles',
 }
 
 
@@ -36,11 +38,17 @@ class MorphCacheServer(cliapp.Application):
                              'path to the repository cache directory',
                              metavar='PATH',
                              default=defaults['repo-dir'])
+        self.settings.string(['bundle-dir'],
+                             'path to the bundle cache directory',
+                             metavar='PATH',
+                             default=defaults['bundle-dir'])
 
     def process_args(self, args):
         app = Bottle()
 
-        repo_cache = RepoCache(self, self.settings['repo-dir'])
+        repo_cache = RepoCache(self,
+                               self.settings['repo-dir'],
+                               self.settings['bundles'])
 
         @app.get('/sha1s')
         def sha1():
@@ -70,6 +78,12 @@ class MorphCacheServer(cliapp.Application):
             except Exception, e:
                 response.status = 404
                 logging.debug('%s' % e)
+
+        @app.get('/bundles')
+        def bundle():
+            repo = self._unescape_parameter(request.query.repo)
+            filename = repo_cache.get_bundle_filename(repo)
+            return static_file(filename, download=True)
         
         root = Bottle()
         root.mount(app, '/1.0')

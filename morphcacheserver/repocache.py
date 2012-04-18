@@ -44,13 +44,14 @@ class UnresolvedNamedReferenceError(cliapp.AppException):
 
 class RepoCache(object):
     
-    def __init__(self, app, dirname):
+    def __init__(self, app, repo_cache_dir, bundle_cache_dir):
         self.app = app
-        self.dirname = dirname
+        self.repo_cache_dir = repo_cache_dir
+        self.bundle_cache_dir = bundle_cache_dir
 
     def resolve_ref(self, repo_url, ref):
         quoted_url = self._quote_url(repo_url)
-        repo_dir = os.path.join(self.dirname, quoted_url)
+        repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
         if not os.path.exists(repo_dir):
             raise RepositoryNotFoundError(repo_url)
         try:
@@ -68,7 +69,7 @@ class RepoCache(object):
 
     def cat_file(self, repo_url, ref, filename):
         quoted_url = self._quote_url(repo_url)
-        repo_dir = os.path.join(self.dirname, quoted_url)
+        repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
         if not self._is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(repo_url, ref)
         if not os.path.exists(repo_dir):
@@ -79,6 +80,10 @@ class RepoCache(object):
             raise InvalidReferenceError(repo_url, ref)
 
         return self._cat_file(repo_dir, sha1, filename)
+
+    def get_bundle_filename(self, repo_url):
+        quoted_url = self._quote_url(repo_url)
+        return os.path.join(self.bundle_dir, '%s.bndl' % quoted_url)
         
     def _quote_url(self, url):
         valid_chars = string.digits + string.letters + '%_'
