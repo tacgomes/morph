@@ -187,7 +187,6 @@ class Morph(cliapp.Application):
                                   '%s.morph' % x['morph']))
             source = morphlib.source.Source(reponame, ref, absref,
                                             morphology, filename)
-            source.repo = repo
             pool.add(source)
 
         return pool
