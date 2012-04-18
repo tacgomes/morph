@@ -31,7 +31,7 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_list_with_one_artifact_results_in_one_group(self):
         chunk = FakeSource()
-        artifact = morphlib.artifact.Artifact(chunk, 'chunk', 'key')
+        artifact = morphlib.artifact.Artifact(chunk, 'chunk')
 
         order = morphlib.buildorder.BuildOrder([artifact])
 
@@ -40,10 +40,10 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_list_with_two_unrelated_artifacts_results_in_one_group(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
 
         order = morphlib.buildorder.BuildOrder([artifact1, artifact2])
 
@@ -52,10 +52,10 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_list_with_two_dependent_artifacts_results_in_two_groups(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
         artifact2.add_dependency(artifact1)
 
         order = morphlib.buildorder.BuildOrder([artifact1, artifact2])
@@ -66,14 +66,14 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_chain_of_three_dependent_artifacts_results_in_three_groups(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
         artifact2.add_dependency(artifact1)
 
         chunk3 = FakeSource()
-        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3', 'key3')
+        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3')
         artifact3.add_dependency(artifact2)
 
         order = morphlib.buildorder.BuildOrder(
@@ -86,14 +86,14 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_two_artifacts_depending_on_another_results_in_two_groups(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
         artifact2.add_dependency(artifact1)
 
         chunk3 = FakeSource()
-        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3', 'key3')
+        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3')
         artifact3.add_dependency(artifact1)
 
         order = morphlib.buildorder.BuildOrder(
@@ -105,13 +105,13 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_one_artifact_depending_on_two_others_results_in_two_groups(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
 
         chunk3 = FakeSource()
-        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3', 'key3')
+        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3')
         artifact3.add_dependency(artifact1)
         artifact3.add_dependency(artifact2)
 
@@ -124,13 +124,13 @@ class BuildOrderTests(unittest.TestCase):
 
     def test_detection_of_cyclic_dependency_chain(self):
         chunk1 = FakeSource()
-        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1', 'key1')
+        artifact1 = morphlib.artifact.Artifact(chunk1, 'chunk1')
 
         chunk2 = FakeSource()
-        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2', 'key2')
+        artifact2 = morphlib.artifact.Artifact(chunk2, 'chunk2')
 
         chunk3 = FakeSource()
-        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3', 'key3')
+        artifact3 = morphlib.artifact.Artifact(chunk3, 'chunk3')
 
         artifact1.add_dependency(artifact3)
         artifact2.add_dependency(artifact1)

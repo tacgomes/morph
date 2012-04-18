@@ -70,8 +70,7 @@ class ArtifactResolver(object):
     
     '''
 
-    def __init__(self, cache_key_computer):
-        self.cache_key_computer = cache_key_computer
+    def __init__(self):
         self._cached_artifacts = None
         self._added_artifacts = None
         self._source_pool = None
@@ -93,11 +92,9 @@ class ArtifactResolver(object):
         while queue:
             source = queue.popleft()
 
-            cache_key = self.cache_key_computer.compute_key(source)
-
             if source.morphology['kind'] == 'system':
                 artifact = self._get_artifact(
-                        source, source.morphology['name'], cache_key)
+                        source, source.morphology['name'])
 
                 if not artifact in self._added_artifacts:
                     artifacts.append(artifact)
@@ -112,7 +109,7 @@ class ArtifactResolver(object):
                         self._added_artifacts.add(artifact)
             elif source.morphology['kind'] == 'stratum':
                 artifact = self._get_artifact(
-                        source, source.morphology['name'], cache_key)
+                        source, source.morphology['name'])
 
                 if not artifact in self._added_artifacts:
                     artifacts.append(artifact)
@@ -128,7 +125,7 @@ class ArtifactResolver(object):
             elif source.morphology['kind'] == 'chunk':
                 names = self._chunk_artifact_names(source)
                 for name in names:
-                    artifact = self._get_artifact(source, name, cache_key)
+                    artifact = self._get_artifact(source, name)
                     if not artifact in self._added_artifacts:
                         artifacts.append(artifact)
                         self._added_artifacts.add(artifact)
@@ -143,12 +140,12 @@ class ArtifactResolver(object):
                        if x.morphology['kind'] != 'chunk']
             return collections.deque(sources)
 
-    def _get_artifact(self, source, name, cache_key):
-        info = (source, name, cache_key)
+    def _get_artifact(self, source, name):
+        info = (source, name)
         if info in self._cached_artifacts:
             return self._cached_artifacts[info]
         else:
-            artifact = morphlib.artifact.Artifact(info[0], info[1], info[2])
+            artifact = morphlib.artifact.Artifact(info[0], info[1])
             self._cached_artifacts[info] = artifact
             return artifact
 
@@ -161,8 +158,7 @@ class ArtifactResolver(object):
                     system.source.original_ref,
                     '%s.morph' % stratum_name)
 
-            cache_key = self.cache_key_computer.compute_key(source)
-            stratum = self._get_artifact(source, stratum_name, cache_key)
+            stratum = self._get_artifact(source, stratum_name)
 
             system.add_dependency(stratum)
             queue.append(source)
@@ -183,9 +179,7 @@ class ArtifactResolver(object):
                         stratum.source.original_ref,
                         '%s.morph' % stratum_name)
 
-                cache_key = self.cache_key_computer.compute_key(other_source)
-                other_stratum = self._get_artifact(
-                        other_source, stratum_name, cache_key)
+                other_stratum = self._get_artifact(other_source, stratum_name)
 
                 strata.append(other_stratum)
 
@@ -211,10 +205,7 @@ class ArtifactResolver(object):
             if not info['name'] in possible_names:
                 raise UndefinedChunkArtifactError(stratum.source, info['name'])
 
-            cache_key = self.cache_key_computer.compute_key(chunk_source)
-            
-            chunk_artifact = self._get_artifact(
-                    chunk_source, info['name'], cache_key)
+            chunk_artifact = self._get_artifact(chunk_source, info['name'])
             chunk_artifacts.append(chunk_artifact)
 
             artifacts.append(chunk_artifact)

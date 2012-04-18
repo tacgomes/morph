@@ -18,7 +18,8 @@ import hashlib
 
 import morphlib
 
-class CacheKeyComputer():
+
+class CacheKeyComputer(object):
 
     def __init__(self, build_env):
         self._build_env = build_env
@@ -29,8 +30,8 @@ class CacheKeyComputer():
                                            "TOOLCHAIN_TARGET", "PREFIX",
                                            "BOOTSTRAP", "CFLAGS")])
 
-    def compute_key(self, source):
-        return self._hash_id(self.get_cache_id(source))
+    def compute_key(self, artifact):
+        return self._hash_id(self.get_cache_id(artifact))
 
     def _hash_id(self, cache_id):
         sha = hashlib.sha256()
@@ -59,20 +60,19 @@ class CacheKeyComputer():
         for item in tup:
             self._hash_thing(sha, item)
 
-    def get_cache_id(self, source):
+    def get_cache_id(self, artifact):
         try:
-            return self._calculated[source]
+            return self._calculated[artifact]
         except KeyError:
-            cacheid = self._calculate(source)
-            self._calculated[source] = cacheid
+            cacheid = self._calculate(artifact)
+            self._calculated[artifact] = cacheid
             return cacheid
 
-    def _calculate(self, source):
+    def _calculate(self, artifact):
         return {
             'arch': self._build_env.arch,
             'env': self._filterenv(self._build_env.env),
-            'ref': source.sha1,
-            'filename': source.filename,
-            'kids': [self.get_cache_id(dependency)
-                     for dependency in source.dependencies],
+            'ref': artifact.source.sha1,
+            'filename': artifact.source.filename,
+            'kids': [self.get_cache_id(x) for x in artifact.dependencies]
         }

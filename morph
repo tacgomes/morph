@@ -259,9 +259,7 @@ class Morph(cliapp.Application):
                     local_repo_cache, remote_repo_cache,
                     repo, ref, filename)
 
-            env = morphlib.buildenvironment.BuildEnvironment(self.settings)
-            computer = morphlib.cachekeycomputer.CacheKeyComputer(env)
-            resolver = morphlib.artifactresolver.ArtifactResolver(computer)
+            resolver = morphlib.artifactresolver.ArtifactResolver()
             artifacts = resolver.resolve_artifacts(pool)
 
             self.output.write('dependency graph for %s|%s|%s:\n' % 

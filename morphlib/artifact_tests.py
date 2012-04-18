@@ -27,7 +27,7 @@ class ArtifactTests(unittest.TestCase):
                 {
                     "chunk": "chunk",
                     "kind": "chunk",
-                    "artifacts": {
+                    "chunks": {
                         "chunk-runtime": [
                             "usr/bin",
                             "usr/sbin",
@@ -42,12 +42,11 @@ class ArtifactTests(unittest.TestCase):
                 ''')
         self.source = morphlib.source.Source(
                 'repo', 'ref', 'sha1', morph, 'chunk.morph')
-        self.cache_key = 'cachekey'
         self.artifact_name = 'chunk-runtime'
         self.artifact = morphlib.artifact.Artifact(
-                self.source, self.artifact_name, self.cache_key)
+                self.source, self.artifact_name)
         self.other = morphlib.artifact.Artifact(
-                self.source, self.artifact_name, self.cache_key)
+                self.source, self.artifact_name)
 
     def test_constructor_sets_source(self):
         self.assertEqual(self.artifact.source, self.source)
@@ -55,8 +54,8 @@ class ArtifactTests(unittest.TestCase):
     def test_constructor_sets_name(self):
         self.assertEqual(self.artifact.name, self.artifact_name)
 
-    def test_constructor_sets_cache_key(self):
-        self.assertEqual(self.artifact.cache_key, self.cache_key)
+    def test_constructor_initializes_cache_key_as_none(self):
+        self.assertEqual(self.artifact.cache_key, None)
 
     def test_sets_dependencies_to_empty(self):
         self.assertEqual(self.artifact.dependencies, [])

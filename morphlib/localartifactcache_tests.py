@@ -45,9 +45,9 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.source = morphlib.source.Source(
                 'repo', 'ref', 'sha1', morph, 'chunk.morph')
         self.runtime_artifact = morphlib.artifact.Artifact(
-                self.source, 'chunk-runtime', 'cachekey')
+                self.source, 'chunk-runtime')
         self.devel_artifact = morphlib.artifact.Artifact(
-                self.source, 'chunk-devel', 'cachekey')
+                self.source, 'chunk-devel')
 
     def tearDown(self):
         self.tempdir.remove()

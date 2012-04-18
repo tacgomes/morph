@@ -20,13 +20,6 @@ import unittest
 import morphlib
 
 
-class FakeCacheKeyComputer(object):
-    '''Fake computer that uses the uppercase source name as the cache key.'''
-
-    def compute_key(self, source):
-        return source.morphology['name'].upper()
-
-
 class FakeChunkMorphology(morphlib.morph2.Morphology):
 
     def __init__(self, name, artifact_names=[]):
@@ -94,9 +87,7 @@ class FakeStratumMorphology(morphlib.morph2.Morphology):
 class ArtifactResolverTests(unittest.TestCase):
 
     def setUp(self):
-        self.cache_key_computer = FakeCacheKeyComputer()
-        self.resolver = morphlib.artifactresolver.ArtifactResolver(
-                self.cache_key_computer)
+        self.resolver = morphlib.artifactresolver.ArtifactResolver()
 
     def test_resolve_artifacts_using_an_empty_pool(self):
         pool = morphlib.sourcepool.SourcePool()
@@ -117,7 +108,6 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, source)
         self.assertEqual(artifacts[0].name, 'chunk')
-        self.assertEqual(artifacts[0].cache_key, 'CHUNK')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
 
@@ -134,7 +124,6 @@ class ArtifactResolverTests(unittest.TestCase):
         self.assertEqual(len(artifacts), 1)
         self.assertEqual(artifacts[0].source, source)
         self.assertEqual(artifacts[0].name, 'chunk-runtime')
-        self.assertEqual(artifacts[0].cache_key, 'CHUNK')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
 
@@ -152,13 +141,11 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, source)
         self.assertEqual(artifacts[0].name, 'chunk-devel')
-        self.assertEqual(artifacts[0].cache_key, 'CHUNK')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, source)
         self.assertEqual(artifacts[1].name, 'chunk-runtime')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [])
 
@@ -180,7 +167,6 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'foo')
-        self.assertEqual(artifacts[0].cache_key, 'FOO')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
 
@@ -202,7 +188,6 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, system)
         self.assertEqual(artifacts[0].name, 'foo')
-        self.assertEqual(artifacts[0].cache_key, 'FOO')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
 
@@ -226,13 +211,11 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies, [artifacts[1]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, chunk)
         self.assertEqual(artifacts[1].name, 'chunk')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0]])
 
@@ -259,20 +242,17 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies,
                          [artifacts[1], artifacts[2]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, chunk)
         self.assertEqual(artifacts[1].name, 'chunk-devel')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0], artifacts[2]])
 
         self.assertEqual(artifacts[2].source, chunk)
         self.assertEqual(artifacts[2].name, 'chunk-runtime')
-        self.assertEqual(artifacts[2].cache_key, 'CHUNK')
         self.assertEqual(artifacts[2].dependencies, [artifacts[1]])
         self.assertEqual(artifacts[2].dependents, [artifacts[0]])
 
@@ -298,13 +278,11 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies, [artifacts[1]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, chunk)
         self.assertEqual(artifacts[1].name, 'chunk-runtime')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0]])
 
@@ -336,20 +314,17 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies,
                          [artifacts[1], artifacts[2]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, foo_chunk)
         self.assertEqual(artifacts[1].name, 'foo')
-        self.assertEqual(artifacts[1].cache_key, 'FOO')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0], artifacts[2]])
 
         self.assertEqual(artifacts[2].source, bar_chunk)
         self.assertEqual(artifacts[2].name, 'bar')
-        self.assertEqual(artifacts[2].cache_key, 'BAR')
         self.assertEqual(artifacts[2].dependencies, [artifacts[1]])
         self.assertEqual(artifacts[2].dependents, [artifacts[0]])
 
@@ -372,13 +347,11 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum1)
         self.assertEqual(artifacts[0].name, 'stratum1')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM1')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [artifacts[1]])
 
         self.assertEqual(artifacts[1].source, stratum2)
         self.assertEqual(artifacts[1].name, 'stratum2')
-        self.assertEqual(artifacts[1].cache_key, 'STRATUM2')
         self.assertEqual(artifacts[1].dependencies, [artifacts[0]])
         self.assertEqual(artifacts[1].dependents, [])
 
@@ -415,27 +388,23 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum1)
         self.assertEqual(artifacts[0].name, 'stratum1')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM1')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents,
                         [artifacts[1], artifacts[2], artifacts[3]])
 
         self.assertEqual(artifacts[1].source, stratum2)
         self.assertEqual(artifacts[1].name, 'stratum2')
-        self.assertEqual(artifacts[1].cache_key, 'STRATUM2')
         self.assertEqual(artifacts[1].dependencies,
                          [artifacts[0], artifacts[2], artifacts[3]])
         self.assertEqual(artifacts[1].dependents, [])
         
         self.assertEqual(artifacts[2].source, chunk1)
         self.assertEqual(artifacts[2].name, 'chunk1')
-        self.assertEqual(artifacts[2].cache_key, 'CHUNK1')
         self.assertEqual(artifacts[2].dependencies, [artifacts[0]])
         self.assertEqual(artifacts[2].dependents, [artifacts[1], artifacts[3]])
         
         self.assertEqual(artifacts[3].source, chunk2)
         self.assertEqual(artifacts[3].name, 'chunk2')
-        self.assertEqual(artifacts[3].cache_key, 'CHUNK2')
         self.assertEqual(artifacts[3].dependencies,
                          [artifacts[0], artifacts[2]])
         self.assertEqual(artifacts[3].dependents, [artifacts[1]])
@@ -474,20 +443,17 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum1)
         self.assertEqual(artifacts[0].name, 'stratum1')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM1')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [artifacts[1], artifacts[2]])
 
         self.assertEqual(artifacts[1].source, system)
         self.assertEqual(artifacts[1].name, 'system')
-        self.assertEqual(artifacts[1].cache_key, 'SYSTEM')
         self.assertEqual(artifacts[1].dependencies,
                          [artifacts[0], artifacts[2]])
         self.assertEqual(artifacts[1].dependents, [])
 
         self.assertEqual(artifacts[2].source, stratum2)
         self.assertEqual(artifacts[2].name, 'stratum2')
-        self.assertEqual(artifacts[2].cache_key, 'STRATUM2')
         self.assertEqual(artifacts[2].dependencies, [artifacts[0]])
         self.assertEqual(artifacts[2].dependents, [artifacts[1]])
 
@@ -549,27 +515,23 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies,
                          [artifacts[1], artifacts[2], artifacts[3]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, chunk1)
         self.assertEqual(artifacts[1].name, 'chunk1')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK1')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents,
                          [artifacts[0], artifacts[3]])
 
         self.assertEqual(artifacts[2].source, chunk2)
         self.assertEqual(artifacts[2].name, 'chunk2')
-        self.assertEqual(artifacts[2].cache_key, 'CHUNK2')
         self.assertEqual(artifacts[2].dependencies, [])
         self.assertEqual(artifacts[2].dependents, [artifacts[0], artifacts[3]])
 
         self.assertEqual(artifacts[3].source, chunk3)
         self.assertEqual(artifacts[3].name, 'chunk3')
-        self.assertEqual(artifacts[3].cache_key, 'CHUNK3')
         self.assertEqual(artifacts[3].dependencies,
                          [artifacts[1], artifacts[2]])
         self.assertEqual(artifacts[3].dependents, [artifacts[0]])
@@ -689,13 +651,11 @@ class ArtifactResolverTests(unittest.TestCase):
 
         self.assertEqual(artifacts[0].source, stratum)
         self.assertEqual(artifacts[0].name, 'stratum')
-        self.assertEqual(artifacts[0].cache_key, 'STRATUM')
         self.assertEqual(artifacts[0].dependencies, [artifacts[1]])
         self.assertEqual(artifacts[0].dependents, [])
 
         self.assertEqual(artifacts[1].source, chunk)
         self.assertEqual(artifacts[1].name, 'chunk')
-        self.assertEqual(artifacts[1].cache_key, 'CHUNK')
         self.assertEqual(artifacts[1].dependencies, [])
         self.assertEqual(artifacts[1].dependents, [artifacts[0]])
 

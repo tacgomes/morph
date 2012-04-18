@@ -60,17 +60,12 @@ class LocalArtifactCache(object):
         filename = self._source_metadata_filename(source, cachekey, name)
         return open(filename)
 
-    def _artifact_basename(self, artifact):
-        return '%s.%s.%s' % (artifact.cache_key,
-                             artifact.source.morphology['kind'],
-                             artifact.name)
-
     def _artifact_filename(self, artifact):
-        basename = self._artifact_basename(artifact)
+        basename = artifact.basename()
         return os.path.join(self.cachedir, basename)
 
     def _artifact_metadata_filename(self, artifact, name):
-        basename = '%s.%s' % (self._artifact_basename(artifact), name)
+        basename = '%s.%s' % (artifact.basename(), name)
         return os.path.join(self.cachedir, basename)
 
 

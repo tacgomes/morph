@@ -31,10 +31,10 @@ class Artifact(object):
     
     '''
     
-    def __init__(self, source, name, cache_key):
+    def __init__(self, source, name):
         self.source = source
         self.name = name
-        self.cache_key = cache_key
+        self.cache_key = None
         self.dependencies = []
         self.dependents = []
 

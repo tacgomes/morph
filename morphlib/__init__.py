@@ -23,7 +23,6 @@ import bins
 import blobs
 import buildcontroller
 import builddependencygraph
-import buildgraph
 import buildenvironment
 import buildorder
 import buildsystem

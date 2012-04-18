@@ -18,6 +18,7 @@ import unittest
 
 import morphlib
 
+
 class DummyBuildEnvironment:
     '''Fake build environment class that doesn't need
        settings to pick the environment, it just gets passed
@@ -27,11 +28,11 @@ class DummyBuildEnvironment:
         self.arch = morphlib.util.arch() if arch == None else arch
         self.env = env
 
+
 class CacheKeyComputerTests(unittest.TestCase):
 
     def setUp(self):
-        pool = morphlib.sourcepool.SourcePool()
-        self.sources = {}
+        self.source_pool = morphlib.sourcepool.SourcePool()
         for name, text in {
             'chunk.morph': '''{
                 "name": "chunk",
@@ -83,9 +84,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         }.iteritems():
             source = morphlib.source.Source('repo', 'original/ref', 'sha',
                                    morphlib.morph2.Morphology(text), name)
-            pool.add(source)
-            self.sources[name] = source
-        morphlib.buildgraph.BuildGraph().compute_build_order(pool)
+            self.source_pool.add(source)
         self.build_env = DummyBuildEnvironment({
                 "USER": "foouser",
                 "USERNAME": "foouser",
@@ -94,7 +93,16 @@ class CacheKeyComputerTests(unittest.TestCase):
                 "PREFIX": "/baserock",
                 "BOOTSTRAP": "false",
                 "CFLAGS": "-O4"})
+        self.artifact_resolver = morphlib.artifactresolver.ArtifactResolver()
+        self.artifacts = self.artifact_resolver.resolve_artifacts(
+                self.source_pool)
         self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
+
+    def _find_artifact(self, name):
+        for artifact in self.artifacts:
+            if artifact.name == name:
+                return artifact
+        raise
 
     def test_compute_key_hashes_all_types(self):
         runcount = {'thing': 0, 'dict': 0, 'list': 0, 'tuple': 0}
@@ -103,11 +111,15 @@ class CacheKeyComputerTests(unittest.TestCase):
                 runcount[name] = runcount[name] + 1
                 func(sha, item)
             return f
+
         self.ckc._hash_thing = inccount(self.ckc._hash_thing, 'thing')
         self.ckc._hash_dict = inccount(self.ckc._hash_dict, 'dict')
         self.ckc._hash_list = inccount(self.ckc._hash_list, 'list')
         self.ckc._hash_tuple = inccount(self.ckc._hash_tuple, 'tuple')
-        self.ckc.compute_key(self.sources['stratum.morph'])
+
+        artifact = self._find_artifact('system')
+        self.ckc.compute_key(artifact)
+
         self.assertNotEqual(runcount['thing'], 0)
         self.assertNotEqual(runcount['dict'], 0)
         self.assertNotEqual(runcount['list'], 0)
@@ -115,14 +127,16 @@ class CacheKeyComputerTests(unittest.TestCase):
 
     def _valid_sha256(self, s):
         validchars = '0123456789abcdef'
-        return len(s) == 64 and all(c in validchars for c in s)
+        return len(s) == 64 and all([c in validchars for c in s])
 
     def test_compute_key_returns_sha256(self):
+        artifact = self._find_artifact('system')
         self.assertTrue(self._valid_sha256(
-                        self.ckc.compute_key(self.sources['system.morph'])))
+                        self.ckc.compute_key(artifact)))
 
     def test_different_env_gives_different_key(self):
-        oldsha = self.ckc.compute_key(self.sources['system.morph'])
+        artifact = self._find_artifact('system')
+        oldsha = self.ckc.compute_key(artifact)
         build_env = DummyBuildEnvironment({
                 "USER": "foouser",
                 "USERNAME": "foouser",
@@ -133,5 +147,4 @@ class CacheKeyComputerTests(unittest.TestCase):
                 "CFLAGS": "-Os"})
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
-        self.assertNotEqual(oldsha,
-                            ckc.compute_key(self.sources['system.morph']))
+        self.assertNotEqual(oldsha, ckc.compute_key(artifact))
