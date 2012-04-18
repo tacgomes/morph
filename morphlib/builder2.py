@@ -86,8 +86,7 @@ class BuilderBase(object):
         
     def new_artifact(self, artifact_name):
         '''Return an Artifact object for something built from our source.'''
-        return morphlib.artifact.Artifact(self.artifact.source, artifact_name,
-                                          self.artifact.cache_key)
+        return morphlib.artifact.Artifact(self.artifact.source, artifact_name)
         
     def runcmd(self, *args, **kwargs):
         kwargs['env'] = self.build_env.env
@@ -116,27 +115,27 @@ class ChunkBuilder(BuilderBase):
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
 
-        def extract_treeish(source, destdir):
-            logging.debug('Extracting %s into %s' % (source.repo, destdir))
+        def extract_repo(path, sha1, destdir):
+            logging.debug('Extracting %s into %s' % (path, destdir))
             if not os.path.exists(destdir):
                 os.mkdir(destdir)
-            morphlib.git.copy_repository(source.repo.path, destdir, 
-                                         logging.debug)
-            morphlib.git.checkout_ref(destdir, source.sha1, logging.debug)
+            morphlib.git.copy_repository(path, destdir, logging.debug)
+            morphlib.git.checkout_ref(destdir, sha1, logging.debug)
             morphlib.git.reset_workdir(destdir, logging.debug)
-            submodules = morphlib.git.Submodules(source.repo.path, source.sha1)
+            submodules = morphlib.git.Submodules(path, sha1)
             try:
                 submodules.load()
             except morphlib.git.NoModulesFileError:
                 return []
             else:
-                return [(sub.url, os.path.join(destdir, sub.path))
+                return [(sub.path, sub.commit, os.path.join(destdir, sub.path))
                         for sub in submodules]
 
-        todo = [(self.artifact.source, srcdir)]
+        s = self.artifact.source
+        todo = [(s.repo.path, s.sha1, srcdir)]
         while todo:
-            source, srcdir = todo.pop()
-            todo += extract_treeish(source, srcdir)
+            path, sha1, srcdir = todo.pop()
+            todo += extract_repo(path, sha1, srcdir)
         self.set_mtime_recursively(srcdir)
 
     def set_mtime_recursively(self, root): # pragma: no cover

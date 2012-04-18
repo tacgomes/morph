@@ -263,12 +263,16 @@ class Morph(cliapp.Application):
                 cachedir,
                 self.settings['git-base-url'],
                 bundle_base_url=self.settings['bundle-server'])
+        rrc = None
 
         for repo_name, ref, filename in self._itertriplets(args):
             logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
-            srcpool = self._create_source_pool(lrc, repo_name, ref, filename)
-            ar = morphlib.artifactresolver.ArtifactResolver(ckc)
+            srcpool = self._create_source_pool(lrc, rrc, repo_name, ref, 
+                                               filename)
+            ar = morphlib.artifactresolver.ArtifactResolver()
             artifacts = ar.resolve_artifacts(srcpool)
+            for artifact in artifacts:
+                artifact.cache_key = ckc.compute_key(artifact)
             order = morphlib.buildorder.BuildOrder(artifacts)
 
             needed = []
@@ -278,8 +282,9 @@ class Morph(cliapp.Application):
                         needed.append(artifact)
 
             for artifact in needed:
-                repo = lrc.cache_repo(repo_name)
-                repo.update()
+                artifact.source.repo = lrc.cache_repo(
+                                            artifact.source.repo_name)
+                artifact.source.repo.update()
 
             if (self.settings['bootstrap'] or 
                 not self.settings['staging-chroot']):
