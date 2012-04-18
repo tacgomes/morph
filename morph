@@ -334,26 +334,33 @@ class Morph(cliapp.Application):
                 cachedir, baseurls, bundle_base_url)
 
         # Reverse so we process things in the order given by the user.
-        queue = collections.deque(self._itertriplets(args))
+        queue = collections.deque((n, r, f, None)
+                                  for n, r, f in self._itertriplets(args))
 
         while queue:
-            reponame, ref, filename = queue.popleft()
+            reponame, ref, filename, kind = queue.popleft()
             self.msg('Updating %s|%s|%s' % (reponame, ref, filename))
             repo = cache.cache_repo(reponame)
             repo.update()
+            if kind == 'chunk':
+                continue
             absref = repo.resolve_ref(ref)
             text = repo.cat(absref, filename)
             morphology = morphlib.morph2.Morphology(text)
-            if morphology['kind'] == 'system':
+            if kind == None:
+                kind = morphology['kind']
+            if kind == 'system':
                 for stratum in morphology['strata']:
-                    queue.append((reponame, ref, '%s.morph' % stratum))
-            elif morphology['kind'] == 'stratum':
+                    queue.append((reponame, ref, '%s.morph' % stratum,
+                                  'stratum'))
+            elif kind == 'stratum':
                 if morphology['build-depends']:
                     for stratum in morphology['build-depends']:
-                        queue.append((reponame, ref, '%s.morph' % stratum))
+                        queue.append((reponame, ref, '%s.morph' % stratum,
+                                      'stratum'))
                 for x in morphology['sources']:
                     queue.append((x['repo'], x['ref'],
-                                  '%s.morph' % x['morph']))
+                                  '%s.morph' % x['morph'], 'chunk'))
 
     def cmd_build_single(self, args):
         '''Build a binary from a morphology but do not build its dependencies.
