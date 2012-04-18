@@ -83,7 +83,7 @@ class RepoCache(object):
 
     def get_bundle_filename(self, repo_url):
         quoted_url = self._quote_url(repo_url)
-        return os.path.join(self.bundle_dir, '%s.bndl' % quoted_url)
+        return os.path.join(self.bundle_cache_dir, '%s.bndl' % quoted_url)
         
     def _quote_url(self, url):
         valid_chars = string.digits + string.letters + '%_'

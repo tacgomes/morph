@@ -18,6 +18,7 @@
 
 import cliapp
 import logging
+import os
 import urllib
 
 from bottle import Bottle, request, response, run, static_file
@@ -48,7 +49,7 @@ class MorphCacheServer(cliapp.Application):
 
         repo_cache = RepoCache(self,
                                self.settings['repo-dir'],
-                               self.settings['bundles'])
+                               self.settings['bundle-dir'])
 
         @app.get('/sha1s')
         def sha1():
@@ -83,7 +84,9 @@ class MorphCacheServer(cliapp.Application):
         def bundle():
             repo = self._unescape_parameter(request.query.repo)
             filename = repo_cache.get_bundle_filename(repo)
-            return static_file(filename, download=True)
+            dirname = os.path.dirname(filename)
+            basename = os.path.basename(filename)
+            return static_file(basename, root=dirname, download=True)
         
         root = Bottle()
         root.mount(app, '/1.0')
