@@ -55,6 +55,10 @@ class Morph(cliapp.Application):
                              'base URL to download bundles',
                              metavar='URL',
                              default=None)
+        self.settings.string(['cache-server'],
+                             'HTTP URL of the morph cache server to use',
+                             metavar='URL',
+                             default=None)
         self.settings.string(['cachedir'], 
                              'put build results in DIR',
                              metavar='DIR', 
@@ -141,20 +145,35 @@ class Morph(cliapp.Application):
             yield args[0], args[1], args[2]
             args = args[3:]
 
-    def _create_source_pool(self, repo_cache, reponame, ref, filename):
+    def _create_source_pool(
+            self, local_repo_cache, remote_repo_cache,
+            reponame, ref, filename):
         pool = morphlib.sourcepool.SourcePool()
         
         queue = collections.deque([(reponame, ref, filename)])
         while queue:
             reponame, ref, filename = queue.popleft()
 
-            if self.settings['no-git-update']:
-                repo = repo_cache.get_repo(reponame)
+            if local_repo_cache.has_repo(reponame):
+                repo = local_repo_cache.get_repo(reponame)
+                if not self.settings['no-git-update']:
+                    repo.update()
+                absref = repo.resolve_ref(ref)
+                text = repo.cat(absref, filename)
             else:
-                repo = repo_cache.cache_repo(reponame)
-                repo.update()
-            absref = repo.resolve_ref(ref)
-            text = repo.cat(absref, filename)
+                try:
+                    absref = remote_repo_cache.resolve_ref(reponame, ref)
+                    text = remote_repo_cache.cat_file(
+                            reponame, absref, filename)
+                except:
+                    if self.settings['no-git-update']:
+                        repo = local_repo_cache.get_repo(reponame)
+                    else:
+                        repo = local_repo_cache.cache_repo(reponame)
+                        repo.update()
+                    absref = repo.resolve_ref(ref)
+                    text = repo.cat(absref, filename)
+
             morphology = morphlib.morph2.Morphology(text)
             if morphology['kind'] == 'system':
                 for stratum in morphology['strata']:
@@ -226,13 +245,20 @@ class Morph(cliapp.Application):
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
         baseurls = self.settings['git-base-url']
         bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
+        local_repo_cache = morphlib.localrepocache.LocalRepoCache(
                 cachedir, baseurls, bundle_base_url)
+        if self.settings['cache-server']:
+            remote_repo_cache = morphlib.remoterepocache.RemoteRepoCache(
+                    self.settings['cache-server'], baseurls)
+        else:
+            remote_repo_cache = None
 
         # traverse the morphs to list all the sources
         for repo, ref, filename in self._itertriplets(args):
             repo, ref, filename = args[:3]
-            pool = self._create_source_pool(cache, repo, ref, filename)
+            pool = self._create_source_pool(
+                    local_repo_cache, remote_repo_cache,
+                    repo, ref, filename)
 
             env = morphlib.buildenvironment.BuildEnvironment(self.settings)
             computer = morphlib.cachekeycomputer.CacheKeyComputer(env)

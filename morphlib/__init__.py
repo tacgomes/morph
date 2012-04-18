@@ -40,6 +40,7 @@ import localrepocache
 import morph2
 import morphology
 import morphologyloader
+import remoterepocache
 import savefile
 import source
 import sourcemanager
