@@ -297,7 +297,10 @@ class Morph(cliapp.Application):
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
+                        logging.debug('Need to build %s' % artifact.name)
                         builder.build_and_cache(artifact)
+                    else:
+                        logging.debug('No need to build %s' % artifact.name)
                 # install chunks only
                 chunk_artifacts = [x 
                                    for x in group 
