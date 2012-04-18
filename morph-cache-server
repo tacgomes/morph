@@ -41,7 +41,7 @@ class MorphCacheServer(cliapp.Application):
         app = Bottle()
 
         repo_cache = RepoCache(self, self.settings['repo-dir'])
-        
+
         @app.get('/sha1s')
         def sha1():
             repo = self._unescape_parameter(request.query.repo)

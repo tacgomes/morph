@@ -19,6 +19,13 @@ import os
 import string
 
 
+class RepositoryNotFoundError(cliapp.AppException):
+
+    def __init__(self, repo):
+        cliapp.AppException.__init__(
+                self, 'Repository %s does not exist in the cache' % repo)
+
+
 class InvalidReferenceError(cliapp.AppException):
     
     def __init__(self, repo, ref):
@@ -44,6 +51,8 @@ class RepoCache(object):
     def resolve_ref(self, repo_url, ref):
         quoted_url = self._quote_url(repo_url)
         repo_dir = os.path.join(self.dirname, quoted_url)
+        if not os.path.exists(repo_dir):
+            raise RepositoryNotFoundError(repo_url)
         try:
             refs = self._show_ref(repo_dir, ref).split('\n')
             refs = [x.split() for x in refs if 'origin' in x]
@@ -60,9 +69,10 @@ class RepoCache(object):
     def cat_file(self, repo_url, ref, filename):
         quoted_url = self._quote_url(repo_url)
         repo_dir = os.path.join(self.dirname, quoted_url)
-
         if not self._is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(repo_url, ref)
+        if not os.path.exists(repo_dir):
+            raise RepositoryNotFoundError(repo_url)
         try:
             sha1 = self._rev_list(repo_dir, ref).strip()
         except:
