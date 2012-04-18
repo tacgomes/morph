@@ -100,6 +100,7 @@ class MorphCacheServer(cliapp.Application):
             if os.path.exists(filename):
                 return static_file(basename,
                                    root=self.settings['artifact-dir'],
+                                   filename=basename,
                                    download=True)
             else:
                 response.status = 404
