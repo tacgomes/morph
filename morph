@@ -21,6 +21,7 @@ import collections
 import json
 import logging
 import os
+import shutil
 import tempfile
 
 import morphlib
@@ -280,11 +281,15 @@ class Morph(cliapp.Application):
                 repo = lrc.cache_repo(repo_name)
                 repo.update()
 
-            if self.settings['bootstrap']:
+            if (self.settings['bootstrap'] or 
+                not self.settings['staging-chroot']):
                 staging_root = '/'
+                staging_temp = tempfile.mkdtemp()
             else:
                 staging_root = tempfile.mkdtemp()
-            staging_area = morphlib.stagingarea.StagingArea(staging_root)
+                staging_temp = staging_root
+            staging_area = morphlib.stagingarea.StagingArea(staging_root,
+                                                            staging_temp)
 
             builder = morphlib.builder2.Builder(staging_area, lac,
                                                 build_env,
@@ -303,6 +308,8 @@ class Morph(cliapp.Application):
 
             if staging_root != '/':
                 staging_area.remove()
+            if staging_temp != '/':
+                shutil.rmtree(staging_temp)
 
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
