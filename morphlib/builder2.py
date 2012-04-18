@@ -86,7 +86,9 @@ class BuilderBase(object):
         
     def new_artifact(self, artifact_name):
         '''Return an Artifact object for something built from our source.'''
-        return morphlib.artifact.Artifact(self.artifact.source, artifact_name)
+        a = morphlib.artifact.Artifact(self.artifact.source, artifact_name)
+        a.cache_key = self.artifact.cache_key
+        return a
         
     def runcmd(self, *args, **kwargs):
         kwargs['env'] = self.build_env.env
