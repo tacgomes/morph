@@ -46,9 +46,9 @@ class LocalRepoCacheTests(unittest.TestCase):
         
     def fake_git(self, args, cwd=None):
         if args[0] == 'clone':
-            self.assertEqual(len(args), 3)
-            remote = args[1]
-            local = args[2]
+            self.assertEqual(len(args), 4)
+            remote = args[2]
+            local = args[3]
             if local in self.cache:
                 raise Exception('cloning twice to %s' % local)
             self.remotes['origin'] = {'url': remote, 'updates': 0}

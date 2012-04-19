@@ -226,7 +226,7 @@ class LocalRepoCache(object):
 
         for repourl, path in self._base_iterate(reponame):
             try:
-                self._git(['clone', '-n', '-l', repourl, path])
+                self._git(['clone', '-n', repourl, path])
             except morphlib.execute.CommandFailure, e:
                 errors.append('Unable to clone from %s to %s: %s' %
                                                  (repourl, path, e))
