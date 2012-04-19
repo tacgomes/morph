@@ -149,48 +149,19 @@ class Morph(cliapp.Application):
 
     def _create_source_pool(
             self, local_repo_cache, remote_repo_cache,
-            reponame, ref, filename):
+            triplet):
         pool = morphlib.sourcepool.SourcePool()
-        
-        queue = collections.deque([(reponame, ref, filename)])
-        while queue:
-            reponame, ref, filename = queue.popleft()
-
-            if local_repo_cache.has_repo(reponame):
-                repo = local_repo_cache.get_repo(reponame)
-                if not self.settings['no-git-update']:
-                    repo.update()
-                absref = repo.resolve_ref(ref)
-                text = repo.cat(absref, filename)
-            else:
-                try:
-                    absref = remote_repo_cache.resolve_ref(reponame, ref)
-                    text = remote_repo_cache.cat_file(
-                            reponame, absref, filename)
-                except:
-                    if self.settings['no-git-update']:
-                        repo = local_repo_cache.get_repo(reponame)
-                    else:
-                        repo = local_repo_cache.cache_repo(reponame)
-                        repo.update()
-                    absref = repo.resolve_ref(ref)
-                    text = repo.cat(absref, filename)
-
+        def add_to_pool(reponame, ref, filename, kind):
+            text, absref = self._readmorph(local_repo_cache, remote_repo_cache,
+                                           reponame, ref, filename)
             morphology = morphlib.morph2.Morphology(text)
-            if morphology['kind'] == 'system':
-                for stratum in morphology['strata']:
-                    queue.append((reponame, ref, '%s.morph' % stratum))
-            elif morphology['kind'] == 'stratum':
-                if morphology['build-depends']:
-                    for stratum in morphology['build-depends']:
-                        queue.append((reponame, ref, '%s.morph' % stratum))
-                for x in morphology['sources']:
-                    queue.append((x['repo'], x['ref'],
-                                  '%s.morph' % x['morph']))
             source = morphlib.source.Source(reponame, ref, absref,
                                             morphology, filename)
             pool.add(source)
 
+        self._traverse_morphs([triplet], local_repo_cache, remote_repo_cache,
+                              update=not self.settings['no-git-update'],
+                              visit=add_to_pool)
         return pool
 
     def cmd_build(self, args):
@@ -223,8 +194,8 @@ class Morph(cliapp.Application):
 
         for repo_name, ref, filename in self._itertriplets(args):
             logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
-            srcpool = self._create_source_pool(lrc, rrc, repo_name, ref, 
-                                               filename)
+            srcpool = self._create_source_pool(lrc, rrc, (repo_name, ref,
+                                               filename))
             ar = morphlib.artifactresolver.ArtifactResolver()
             artifacts = ar.resolve_artifacts(srcpool)
             for artifact in artifacts:
@@ -296,7 +267,7 @@ class Morph(cliapp.Application):
             repo, ref, filename = args[:3]
             pool = self._create_source_pool(
                     local_repo_cache, remote_repo_cache,
-                    repo, ref, filename)
+                    (repo, ref, filename))
 
             resolver = morphlib.artifactresolver.ArtifactResolver()
             artifacts = resolver.resolve_artifacts(pool)
@@ -316,6 +287,58 @@ class Morph(cliapp.Application):
                 for artifact in group:
                     self.output.write('    %s\n' % artifact)
 
+    def _readmorph(self, lrc, rrc, reponame, ref, filename, update=True):
+        absref, text = None, None
+        if lrc.has_repo(reponame):
+            repo = lrc.get_repo(reponame)
+            if update:
+                repo.update()
+            absref = repo.resolve_ref(ref)
+            text = repo.cat(absref, filename)
+        elif rrc != None:
+            try:
+                absref = rrc.resolve_ref(reponame, ref)
+                text = rrc.cat_file(reponame, absref, filename)
+            except:
+                pass
+        if absref == None or text == None:
+            if update:
+                repo = lrc.cache_repo(reponame)
+                repo.update()
+            else:
+                repo = lrc.get_repo(reponame)
+            absref = repo.resolve_ref(ref)
+            text = repo.cat(absref, filename)
+        return text, absref
+
+    def _traverse_morphs(self, triplets, lrc, rrc, update=True,
+                         visit=lambda rn, rf, fn, k: None):
+        queue = collections.deque()
+        for reponame, ref, filename in triplets:
+            text, absref = self._readmorph(lrc, rrc, reponame, ref,
+                                           filename, update)
+            morphology = morphlib.morph2.Morphology(text)
+            queue.append((reponame, ref, filename, morphology['kind']))
+
+        while queue:
+            reponame, ref, filename, kind = queue.popleft()
+            visit(reponame, ref, filename, kind)
+            if kind == 'chunk':
+                continue
+
+            text, absref = self._readmorph(lrc, rrc, reponame, ref,
+                                           filename, update)
+            morphology = morphlib.morph2.Morphology(text)
+            if kind == 'system':
+                queue.extend((reponame, ref, '%s.morph' % s, 'stratum')
+                             for s in morphology['strata'])
+            elif kind == 'stratum':
+                if morphology['build-depends']:
+                    queue.extend((reponame, ref, '%s.morph' % s, 'stratum')
+                                 for s in morphology['build-depends'])
+                queue.extend((x['repo'], x['ref'], '%s.morph' % x['morph'],
+                               'chunk') for x in morphology['sources'])
+
     def cmd_update_gits(self, args):
         '''Update cached git repositories.
 
@@ -333,34 +356,10 @@ class Morph(cliapp.Application):
         cache = morphlib.localrepocache.LocalRepoCache(
                 cachedir, baseurls, bundle_base_url)
 
-        # Reverse so we process things in the order given by the user.
-        queue = collections.deque((n, r, f, None)
-                                  for n, r, f in self._itertriplets(args))
-
-        while queue:
-            reponame, ref, filename, kind = queue.popleft()
+        def do_print(reponame, ref, filename, kind):
             self.msg('Updating %s|%s|%s' % (reponame, ref, filename))
-            repo = cache.cache_repo(reponame)
-            repo.update()
-            if kind == 'chunk':
-                continue
-            absref = repo.resolve_ref(ref)
-            text = repo.cat(absref, filename)
-            morphology = morphlib.morph2.Morphology(text)
-            if kind == None:
-                kind = morphology['kind']
-            if kind == 'system':
-                for stratum in morphology['strata']:
-                    queue.append((reponame, ref, '%s.morph' % stratum,
-                                  'stratum'))
-            elif kind == 'stratum':
-                if morphology['build-depends']:
-                    for stratum in morphology['build-depends']:
-                        queue.append((reponame, ref, '%s.morph' % stratum,
-                                      'stratum'))
-                for x in morphology['sources']:
-                    queue.append((x['repo'], x['ref'],
-                                  '%s.morph' % x['morph'], 'chunk'))
+        self._traverse_morphs(self._itertriplets(args), cache, None,
+                              update=True, visit=do_print)
 
     def cmd_build_single(self, args):
         '''Build a binary from a morphology but do not build its dependencies.
