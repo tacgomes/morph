@@ -216,7 +216,7 @@ class Morph(cliapp.Application):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
         lac = morphlib.localartifactcache.LocalArtifactCache(cachedir)
         lrc = morphlib.localrepocache.LocalRepoCache(
-                cachedir,
+                os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],
                 bundle_base_url=self.settings['bundle-server'])
         rrc = None

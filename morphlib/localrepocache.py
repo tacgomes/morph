@@ -189,7 +189,7 @@ class LocalRepoCache(object):
             return False, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
 
         try:
-            self._git(['clone', bundle_path, path])
+            self._git(['clone', '-n', bundle_path, path])
             self._git(['remote', 'set-url', 'origin', repourl], cwd=path)
         except morphlib.execute.CommandFailure, e: # pragma: no cover
             if self._exists(path):
@@ -226,7 +226,7 @@ class LocalRepoCache(object):
 
         for repourl, path in self._base_iterate(reponame):
             try:
-                self._git(['clone', repourl, path])
+                self._git(['clone', '-n', '-l', repourl, path])
             except morphlib.execute.CommandFailure, e:
                 errors.append('Unable to clone from %s to %s: %s' %
                                                  (repourl, path, e))
