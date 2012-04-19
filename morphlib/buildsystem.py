@@ -150,10 +150,38 @@ class PythonDistutilsBuildSystem(BuildSystem):
         return any(exists(x) for x in indicators)
 
 
+class PerlBuildSystem(BuildSystem):
+
+    '''The Perl build system.'''
+
+    name = 'perl'
+
+    def __init__(self):
+        self.configure_commands = [
+            'perl Makefile.PL',
+        ]
+        self.build_commands = [
+            'make',
+        ]
+        self.test_commands = [
+        ]
+        self.install_commands = [
+            'make install',
+        ]
+
+    def used_by_project(self, exists):
+        indicators = [
+            'Makefile.PL',
+        ]
+
+        return any(exists(x) for x in indicators)
+
+
 build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
     PythonDistutilsBuildSystem(),
+    PerlBuildSystem(),
     DummyBuildSystem(),
 ]
 
