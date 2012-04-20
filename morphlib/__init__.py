@@ -39,6 +39,7 @@ import localartifactcache
 import localrepocache
 import morph2
 import morphology
+import morphologyfactory
 import morphologyloader
 import remoteartifactcache
 import remoterepocache
