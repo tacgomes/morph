@@ -81,6 +81,32 @@ class RepoCache(object):
 
         return self._cat_file(repo_dir, sha1, filename)
 
+    def ls_tree(self, repo_url, ref, path):
+        quoted_url = self._quote_url(repo_url)
+        repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
+        if not self._is_valid_sha1(ref):
+            raise UnresolvedNamedReferenceError(repo_url, ref)
+        if not os.path.exists(repo_dir):
+            raise RepositoryNotFoundError(repo_url)
+
+        try:
+            sha1 = self._rev_list(repo_dir, ref).strip()
+        except:
+            raise InvalidReferenceError(repo_url, ref)
+
+        lines = self._ls_tree(repo_dir, sha1, path).strip()
+        lines = lines.splitlines()
+        data = {}
+        for line in lines:
+            elements = line.split()
+            basename = elements[3]
+            data[basename] = {
+                'mode': elements[0],
+                'kind': elements[1],
+                'sha1': elements[2],
+            }
+        return data
+
     def get_bundle_filename(self, repo_url):
         quoted_url = self._quote_url(repo_url)
         return os.path.join(self.bundle_cache_dir, '%s.bndl' % quoted_url)
@@ -101,6 +127,9 @@ class RepoCache(object):
         return self.app.runcmd(
                 ['git', 'cat-file', 'blob', '%s:%s' % (sha1, filename)],
                 cwd=repo_dir)
+
+    def _ls_tree(self, repo_dir, sha1, path):
+        return self.app.runcmd(['git', 'ls-tree', sha1, path], cwd=repo_dir)
 
     def _is_valid_sha1(self, ref):
         valid_chars = 'abcdefABCDEF0123456789'

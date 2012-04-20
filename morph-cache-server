@@ -85,6 +85,22 @@ class MorphCacheServer(cliapp.Application):
                 response.status = 404
                 logging.debug('%s' % e)
 
+        @app.get('/trees')
+        def tree():
+            repo = self._unescape_parameter(request.query.repo)
+            ref = self._unescape_parameter(request.query.ref)
+            path = self._unescape_parameter(request.query.path)
+            try:
+                tree = repo_cache.ls_tree(repo, ref, path)
+                return {
+                    'repo': '%s' % repo,
+                    'ref': '%s' % ref,
+                    'tree': tree,
+                }
+            except Exception, e:
+                response.status = 404
+                logging.debug('%s' % e)
+
         @app.get('/bundles')
         def bundle():
             repo = self._unescape_parameter(request.query.repo)
