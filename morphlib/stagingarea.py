@@ -111,6 +111,7 @@ class StagingArea(object):
             del kwargs['cwd']
         else:
             cwd = '/'
-        real_argv = ['linux-user-chroot', '--chdir', cwd, self.dirname] + argv
+        real_argv = ['/usr/sbin/chroot', self.dirname, 'sh', '-xc',
+                     'cd "$1" && shift && exec "$@"', '--', cwd] + argv
         return ex.runv(real_argv, **kwargs)
 
