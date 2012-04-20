@@ -15,9 +15,14 @@
 
 
 import cliapp
-import httplib2
 import urllib2
 import urlparse
+
+
+class HeadRequest(urllib2.Request): # pragma: no cover
+
+    def get_method(self):
+        return 'HEAD'
 
 
 class GetError(cliapp.AppException):
@@ -81,10 +86,12 @@ class RemoteArtifactCache(object):
 
     def _has_file(self, filename): # pragma: no cover
         url = self._request_url(filename)
-        http = httplib2.Http()
-        response = http.request(url, 'HEAD')
-        status = response[0]['status']
-        return status >= 200 and status < 400
+        request = HeadRequest(url)
+        try:
+            urllib2.urlopen(request)
+            return True
+        except urllib2.HTTPError:
+            return False
 
     def _get_file(self, filename): # pragma: no cover
         url = self._request_url(filename)
@@ -95,4 +102,4 @@ class RemoteArtifactCache(object):
         if not server_url.endswith('/'):
             server_url += '/'
         return urlparse.urljoin(
-                server_url, '/1.0/artifacts/filename=%s' % filename)
+                server_url, '/1.0/artifacts?filename=%s' % filename)
