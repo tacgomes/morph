@@ -59,7 +59,8 @@ def create_fs(ex, partition):
              '-b', '4294967296', partition])
 
 def mount(ex, partition, mount_point):
-    os.mkdir(mount_point)
+    if not os.path.exists(mount_point):
+        os.mkdir(mount_point)
     ex.runv(['mount', partition, mount_point])
 
 def unmount(ex, mount_point):
