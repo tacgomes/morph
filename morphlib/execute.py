@@ -97,13 +97,14 @@ class Execute(object):
         p = subprocess.Popen(argv, **kwargs)
         out, err = p.communicate(feed_stdin)
         
+        if _log: # pragma: no cover
+            logging.error('Exit code: %d' % p.returncode)
+            logging.error('Standard output:\n%s' %
+                            morphlib.util.indent(out or ''))
+            logging.error('Standard error:\n%s' %
+                            morphlib.util.indent(err or ''))
         if p.returncode != 0:
-            if _log: # pragma: no cover
-                logging.error('Exit code: %d' % p.returncode)
-                logging.error('Standard output:\n%s' %
-                                morphlib.util.indent(out or ''))
-                logging.error('Standard error:\n%s' %
-                                morphlib.util.indent(err or ''))
             raise CommandFailure(' '.join(argv), out)
-        return out
+        else:
+            return out
 
