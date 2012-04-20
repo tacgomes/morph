@@ -45,7 +45,7 @@ then
         fi
 
         case "$x" in
-            wget-list|baserock-bootstrap)
+            baserock-bootstrap)
                 ;;
             *)
                 if awk 'length > 79' "$x" | grep . > /dev/null
