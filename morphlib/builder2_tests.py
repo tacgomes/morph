@@ -55,6 +55,7 @@ class FakeArtifact(object):
         self.name = name
         self.source = FakeSource()
         self.cache_key = 'blahblah'
+        self.cache_id = {}
 
 
 class FakeBuildEnv(object):
