@@ -17,7 +17,9 @@
 import unittest
 
 from morphlib.morph2 import Morphology
-from morphlib.morphologyfactory import MorphologyFactory, AutodetectError
+from morphlib.morphologyfactory import (MorphologyFactory,
+                                        AutodetectError,
+                                        NotcachedError)
 
 class FakeRemoteRepoCache(object):
     def cat_file(self, reponame, sha1, filename):
@@ -53,6 +55,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lrc = FakeLocalRepoCache(self.lr)
         self.rrc = FakeRemoteRepoCache()
         self.mf = MorphologyFactory(self.lrc, self.rrc)
+        self.lmf = MorphologyFactory(self.lrc, None)
 
     def nosuchfile(self):
         raise IOError('File not found')
@@ -60,12 +63,14 @@ class MorphologyFactoryTests(unittest.TestCase):
         return False
 
     def test_gets_morph_from_local_repo(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'foo.morph')
+        morph = self.mf.get_morphology('reponame', 'sha1',
+                                       'foo.morph')
         self.assertEqual('local-foo', morph['name'])
 
     def test_gets_morph_from_remote_repo(self):
         self.lrc.has_repo = self.doesnothaverepo
-        morph = self.mf.get_morphology('reponame', 'sha1', 'foo.morph')
+        morph = self.mf.get_morphology('reponame', 'sha1',
+                                       'foo.morph')
         self.assertEqual('remote-foo', morph['name'])
 
     def test_autodetects_local_morphology(self):
@@ -87,4 +92,20 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lr.list_files = lambda x: ['.']
         self.rrc.list_files = lambda x: ['.']
         self.assertRaises(AutodetectError, self.mf.get_morphology,
+                          'reponame', 'sha1', 'unreached.morph')
+
+    def test_looks_locally_with_no_remote(self):
+        morph = self.lmf.get_morphology('reponame', 'sha1', 
+                                        'foo.morph')
+        self.assertEqual('local-foo', morph['name'])
+
+    def test_autodetects_locally_with_no_remote(self):
+        self.lr.cat = self.nosuchfile
+        morph = self.lmf.get_morphology('reponame', 'sha1',
+                                        'assumed-local.morph')
+        self.assertEqual('assumed-local', morph['name'])
+
+    def test_fails_when_local_not_cached_and_no_remote(self):
+        self.lrc.has_repo = self.doesnothaverepo
+        self.assertRaises(NotcachedError, self.lmf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')

@@ -245,8 +245,6 @@ The variables are:
 * `GIT_BUNDLES`; which must be a url to a bundles directory;
   morph will try to fetch bundles from here before trying the
   git-base-url; **required**
-* `LFS_MIRROR`; which must point to a directory containing all
-  the tarballs mentioned in `wget-list`; **required**
 * `snapshot`; which should be `false` (or any executable that
   exits unsuccessfully) if creating a snapshot after each stage
   of the bootstrap is not desirable; optional
