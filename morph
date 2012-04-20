@@ -240,7 +240,8 @@ class Morph(cliapp.Application):
             for artifact in needed:
                 artifact.source.repo = lrc.cache_repo(
                                             artifact.source.repo_name)
-                artifact.source.repo.update()
+                if not self.settings['no-git-update']:
+                    artifact.source.repo.update()
 
             if (self.settings['bootstrap'] or 
                 not self.settings['staging-chroot']):
