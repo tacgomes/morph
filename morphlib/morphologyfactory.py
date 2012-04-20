@@ -57,14 +57,25 @@ class MorphologyFactory(object):
             raise NotcachedError(reponame)
 
     def _autodetect_text(self, reponame, sha1, filename):
+        # TODO get lists of files from the cache to reduce round trips
         if self._lrc.has_repo(reponame):
             repo = self._lrc.get_repo(reponame)
-            files = repo.list_files(sha1)
+            def has_file(filename):
+                try:
+                    repo.cat(sha1, filename)
+                    return True
+                except IOError:
+                    return False
         elif self._rrc is not None:
-            files = self._rrc.list_files(reponame, sha1)
+            def has_file(filename):
+                try:
+                    text = self._rrc.cat_file(reponame, sha1, filename)
+                    return True
+                except morphlib.remoterepocache.CatFileError:
+                    return False
         else:
             raise NotcachedError(reponame)
-        bs = morphlib.buildsystem.detect_build_system(lambda x: x in files)
+        bs = morphlib.buildsystem.detect_build_system(has_file)
         if bs is None:
             raise AutodetectError(reponame, sha1)
         # TODO consider changing how morphs are located to be by morph
