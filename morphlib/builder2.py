@@ -269,8 +269,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         self._move_image_to_cache(image_name)
 
     def _create_image(self, image_name):
-        morphlib.fsutils.create_image(self.ex, image_name,
-                                      self.artifact.morphology['disk-size'])
+        morphlib.fsutils.create_image(
+            self.ex, image_name, self.artifact.source.morphology['disk-size'])
 
     def _partition_image(self, image_name):
         morphlib.fsutils.partition_image(self.ex, image_name)
