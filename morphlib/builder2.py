@@ -303,7 +303,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         logging.debug('Unpacking strata to %s' % path)
         for stratum_artifact in self.artifact.dependencies:
             with self.artifact_cache.get(stratum_artifact) as f:
-                morphlib.bins.unpack_binary_from_file(f, path, self.ex)
+                morphlib.bins.unpack_binary_from_file(f, path)
         morphlib.builder.ldconfig(self.ex, path)
 
     def _create_fstab(self, path):
