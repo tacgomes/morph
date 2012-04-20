@@ -20,26 +20,27 @@ from morphlib.morph2 import Morphology
 from morphlib.morphologyfactory import (MorphologyFactory,
                                         AutodetectError,
                                         NotcachedError)
+from morphlib.remoterepocache import CatFileError
 
 class FakeRemoteRepoCache(object):
     def cat_file(self, reponame, sha1, filename):
-        return '''{
-            "name": "remote-foo",
-            "kind": "chunk",
-            "build-system": "bar"
-        }'''
-    def list_files(self, reponame, sha1):
-        return ['configure', 'Makefile']
+        if filename.endswith('.morph'):
+           return '''{
+                "name": "remote-foo",
+                "kind": "chunk",
+                "build-system": "bar"
+            }'''
+        return 'text'
 
 class FakeLocalRepo(object):
     def cat(self, sha1, filename):
-        return '''{
-            "name": "local-foo",
-            "kind": "chunk",
-            "build-system": "bar"
-        }'''
-    def list_files(self, sha1):
-        return ['configure', 'Makefile']
+        if filename.endswith('.morph'):
+            return '''{
+                "name": "local-foo",
+                "kind": "chunk",
+                "build-system": "bar"
+            }'''
+        return 'text'
 
 class FakeLocalRepoCache(object):
     def __init__(self, lr):
@@ -57,8 +58,19 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.mf = MorphologyFactory(self.lrc, self.rrc)
         self.lmf = MorphologyFactory(self.lrc, None)
 
-    def nosuchfile(self):
+    def nolocalfile(self, *args):
         raise IOError('File not found')
+    def noremotefile(self, *args):
+        raise CatFileError('reponame', 'ref', 'filename')
+    def nolocalmorph(self, *args):
+        if args[-1].endswith('.morph'):
+            raise IOError('File not found')
+        return 'text'
+    def noremotemorph(self, *args):
+        if args[-1].endswith('.morph'):
+            raise CatFileError('reponame', 'ref', 'filename')
+        return 'text'
+
     def doesnothaverepo(self, reponame):
         return False
 
@@ -74,23 +86,27 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertEqual('remote-foo', morph['name'])
 
     def test_autodetects_local_morphology(self):
-        self.lr.cat = self.nosuchfile
+        self.lr.cat = self.nolocalmorph
         morph = self.mf.get_morphology('reponame', 'sha1', 
                                        'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
 
     def test_autodetects_remote_morphology(self):
         self.lrc.has_repo = self.doesnothaverepo
-        self.rrc.cat_file = self.nosuchfile
+        self.rrc.cat_file = self.noremotemorph
         morph = self.mf.get_morphology('reponame', 'sha1',
                                        'assumed-remote.morph')
         self.assertEqual('assumed-remote', morph['name'])
 
-    def test_raises_error_when_fails_detect(self):
-        self.lr.cat = self.nosuchfile
-        self.rrc.cat_file = self.nosuchfile
-        self.lr.list_files = lambda x: ['.']
-        self.rrc.list_files = lambda x: ['.']
+    def test_raises_error_when_fails_detect_locally(self):
+        self.lr.cat = self.nolocalfile
+        self.assertRaises(AutodetectError, self.mf.get_morphology,
+                          'reponame', 'sha1', 'unreached.morph')
+
+    def test_raises_error_when_fails_detect_remotely(self):
+        self.lrc.has_repo = self.doesnothaverepo
+        self.rrc.cat_file = self.noremotefile
+#        self.mf.get_morphology('reponame', 'sha1', 'unreached.morph')
         self.assertRaises(AutodetectError, self.mf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
@@ -100,7 +116,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertEqual('local-foo', morph['name'])
 
     def test_autodetects_locally_with_no_remote(self):
-        self.lr.cat = self.nosuchfile
+        self.lr.cat = self.nolocalmorph
         morph = self.lmf.get_morphology('reponame', 'sha1',
                                         'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
