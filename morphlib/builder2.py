@@ -269,34 +269,43 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         self._move_image_to_cache(image_name)
 
     def _create_image(self, image_name):
+        logging.debug('Creating disk image %s' % image_name)
         morphlib.fsutils.create_image(
             self.ex, image_name, self.artifact.source.morphology['disk-size'])
 
     def _partition_image(self, image_name):
+        logging.debug('Partitioning disk image %s' % image_name)
         morphlib.fsutils.partition_image(self.ex, image_name)
 
     def _install_mbr(self, image_name):
+        logging.debug('Installing mbr on disk image %s' % image_name)
         morphlib.fsutils.install_mbr(self.ex, image_name)
 
     def _setup_device_mapping(self, image_name):
+        logging.debug('Device mapping partitions in %s' % image_name)
         return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
 
     def _create_fs(self, partition):
+        logging.debug('Creating filesystem on %s' % partition)
         morphlib.fsutils.create_fs(self.ex, partition)
 
     def _mount(self, partition, mount_point):
+        logging.debug('Mounting %s on %s' % (partition, mount_point))
         morphlib.fsutils.mount(self.ex, partition, mount_point)
 
     def _create_subvolume(self, path):
+        logging.debug('Creating subvolume %s' % path)
         self.ex.runv(['btrfs', 'subvolume', 'create', path])
 
     def _unpack_strata(self, path):
+        logging.debug('Unpacking strata to %s' % path)
         for stratum_artifact in self.artifact.dependencies:
             with self.artifact_cache.get(stratum_artifact) as f:
                 morphlib.bins.unpack_binary_from_file(f, path, self.ex)
         morphlib.builder.ldconfig(self.ex, path)
 
     def _create_fstab(self, path):
+        logging.debug('Creating fstab in %s' % path)
         fstab = os.path.join(path, 'etc', 'fstab')
         if not os.path.exists(os.path.dirname(fstab)): # FIXME: should exist
             os.makedirs(os.path.dirname(fstab))
@@ -306,6 +315,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             f.write('/dev/sda1 / btrfs errors=remount-ro 0 1\n')
 
     def _create_extlinux_config(self, path):
+        logging.debug('Creating extlinux.conf in %s' % path)
         config = os.path.join(path, 'extlinux.conf')
         with open(config, 'w') as f:
             f.write('default linux\n')
@@ -316,6 +326,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                                            'init=/sbin/init quiet rw\n')
 
     def _create_subvolume_snapshot(self, path, source, target):
+        logging.debug('Creating subvolume snapshot %s to %s' % 
+                        (source, target))
         self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
                      cwd=path)
 
@@ -330,6 +342,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                      os.path.join(targetfs, 'boot', 'System.map'))
 
     def _install_extlinux(self, path):
+        logging.debug('Installing extlinux to %s' % path)
         self.ex.runv(['extlinux', '--install', path])
 
         # FIXME this hack seems to be necessary to let extlinux finish
@@ -337,13 +350,16 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         time.sleep(2)
 
     def _unmount(self, mount_point):
+        logging.debug('Unmounting %s' % mount_point)
         if mount_point is not None:
             morphlib.fsutils.unmount(self.ex, mount_point)
 
     def _undo_device_mapping(self, image_name):
+        logging.debug('Undoing device mappings for %s' % image_name)
         morphlib.fsutils.undo_device_mapping(self.ex, image_name)
 
     def _move_image_to_cache(self, image_name):
+        logging.debug('Moving image to cache: %s' % image_name)
         # FIXME: Need to create file directly in cache to avoid costly
         # copying here.
         with self.artifact_cache.put(self.artifact) as outf:
