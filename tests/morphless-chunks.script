@@ -58,4 +58,9 @@ git commit --quiet -m initial
 
 "$SRCDIR/scripts/test-morph" build stratum master alfred.morph
 
-ls -l "$DATADIR/cache/gits/"*.chunk.*
+for chunk in "$DATADIR/cache/"*.chunk.*
+do
+    echo "$chunk:" | sed 's/[^.]*//'
+    tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    echo
+done
