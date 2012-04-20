@@ -211,13 +211,19 @@ class Morph(cliapp.Application):
                 if not self.settings['no-git-update']:
                     artifact.source.repo.update()
 
-            if (self.settings['bootstrap'] or 
-                not self.settings['staging-chroot']):
+            if self.settings['bootstrap']:
                 staging_root = '/'
                 staging_temp = tempfile.mkdtemp()
-            else:
+                install_chunks = True
+            elif self.settings['staging-chroot']:
                 staging_root = tempfile.mkdtemp()
                 staging_temp = staging_root
+                install_chunks = True
+            else:
+                staging_root = '/'
+                staging_temp = tempfile.mkdtemp()
+                install_chunks = False
+
             staging_area = morphlib.stagingarea.StagingArea(staging_root,
                                                             staging_temp)
 
@@ -231,13 +237,16 @@ class Morph(cliapp.Application):
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
-                # install chunks only
-                chunk_artifacts = [x 
-                                   for x in group 
-                                   if x.source.morphology['kind'] == 'chunk']
-                for artifact in chunk_artifacts:
-                    handle = lac.get(artifact)
-                    staging_area.install_artifact(handle)
+
+                if install_chunks:
+                    # install chunks only
+                    chunk_artifacts = [x 
+                                       for x in group 
+                                       if x.source.morphology['kind'] == 
+                                            'chunk']
+                    for artifact in chunk_artifacts:
+                        handle = lac.get(artifact)
+                        staging_area.install_artifact(handle)
 
             if staging_root != '/':
                 staging_area.remove()
