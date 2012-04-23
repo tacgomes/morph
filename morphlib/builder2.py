@@ -54,6 +54,8 @@ class BuilderBase(object):
             'original_ref': self.artifact.source.original_ref,
             'sha1': self.artifact.source.sha1,
             'morphology': self.artifact.source.filename,
+            'cache-key': self.artifact.cache_key,
+            'cache-id': self.artifact.cache_id,
         }
         
         return meta
@@ -82,7 +84,7 @@ class BuilderBase(object):
         # Unit tests use StringIO, which in Python 2.6 isn't usable with
         # the "with" statement. So we don't do it with "with".
         f = self._open(filename, 'w')
-        f.write(json.dumps(meta))
+        f.write(json.dumps(meta, indent=4, sort_keys=True))
         f.close()
         
     def new_artifact(self, artifact_name):

@@ -27,10 +27,10 @@ class Morphology(object):
     '''
     
     static_defaults = [
-        ('configure-commands', []),
-        ('build-commands', []),
-        ('test-commands', []),
-        ('install-commands', []),
+        ('configure-commands', None),
+        ('build-commands', None),
+        ('test-commands', None),
+        ('install-commands', None),
         ('chunks', {}),
         ('sources', []),
         ('strata', []),

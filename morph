@@ -197,6 +197,7 @@ class Morph(cliapp.Application):
             artifacts = ar.resolve_artifacts(srcpool)
             for artifact in artifacts:
                 artifact.cache_key = ckc.compute_key(artifact)
+                artifact.cache_id = ckc.get_cache_id(artifact)
             order = morphlib.buildorder.BuildOrder(artifacts)
 
             needed = []

@@ -23,6 +23,7 @@ class Artifact(object):
     * ``source`` -- the source from which the artifact is built
     * ``name`` -- the name of the artifact
     * ``cache_key`` -- a cache key to uniquely identify the artifact
+    * ``cache_id`` -- a dict describing the components of the cache key
     * ``dependencies`` -- list of Artifacts that need to be built beforehand
     * ``dependents`` -- list of Artifacts that need this Artifact to be built
     
@@ -34,6 +35,7 @@ class Artifact(object):
     def __init__(self, source, name):
         self.source = source
         self.name = name
+        self.cache_id = None
         self.cache_key = None
         self.dependencies = []
         self.dependents = []

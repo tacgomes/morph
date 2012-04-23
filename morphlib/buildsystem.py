@@ -139,7 +139,7 @@ class PythonDistutilsBuildSystem(BuildSystem):
         self.test_commands = [
         ]
         self.install_commands = [
-            'python setup.py install --root "$DESTDIR"',
+            'python setup.py install --prefix "$PREFIX" --root "$DESTDIR"',
         ]
 
     def used_by_project(self, exists):
