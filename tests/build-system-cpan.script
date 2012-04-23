@@ -58,7 +58,6 @@ git commit --quiet -m 'convert hello into a perl cpan project'
 TEMPEXTRACT="$DATADIR/cpanextract"
 mkdir -p "$TEMPEXTRACT"
 
-PERLVERSION=`perl -e 'print $^V' | sed 's|^v\(.*\)|\1|'`
 PERLMAJOR=`perl -e 'print $^V' | sed 's|^v\([^\.]*\)\.[^\.]*\.[^\.]*$|\1|'`
 ARCH=`perl -V | grep archname | sed 's|^.*archname=\(\S*\).*$|\1|'`
 
@@ -68,6 +67,5 @@ do
     tar -tf "$chunk" | LC_ALL=C sort |
             sed -e '/^\.\/./s:^\./::' \
                 -e s/"$ARCH"/ARCH/ \
-                -e s/perl"$PERLMAJOR"/PERLDIR/ \
-                -e s/"$PERLVERSION"/PERLVERSION/
+                -e s/perl"$PERLMAJOR"/PERLDIR/
 done
