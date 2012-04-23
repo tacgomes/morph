@@ -1,0 +1,11 @@
+.chunk.hello:
+./
+baserock/
+baserock/hello.meta
+bin/
+bin/hello
+lib/
+lib/python2.7/
+lib/python2.7/site-packages/
+lib/python2.7/site-packages/hello-0.0.0-py2.7.egg-info
+
