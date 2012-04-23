@@ -191,21 +191,29 @@ class Morph(cliapp.Application):
 
         for repo_name, ref, filename in self._itertriplets(args):
             logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
+
+            logging.debug('cmd_build: creating source pool')
             srcpool = self._create_source_pool(lrc, rrc, (repo_name, ref,
                                                filename))
+            logging.debug('cmd_build: creating artifact resolver')
             ar = morphlib.artifactresolver.ArtifactResolver()
+            logging.debug('cmd_build: resolving artifacts')
             artifacts = ar.resolve_artifacts(srcpool)
+            logging.debug('cmd_build: computing cache keys')
             for artifact in artifacts:
                 artifact.cache_key = ckc.compute_key(artifact)
                 artifact.cache_id = ckc.get_cache_id(artifact)
+            logging.debug('cmd_build: computing build order')
             order = morphlib.buildorder.BuildOrder(artifacts)
 
+            logging.debug('cmd_build: finding what needs to be built')
             needed = []
             for group in order.groups:
                 for artifact in group:
                     if not lac.has(artifact):
                         needed.append(artifact)
 
+            logging.debug('cmd_build: cloning/updating cached repos')
             for artifact in needed:
                 artifact.source.repo = lrc.cache_repo(
                                             artifact.source.repo_name)
@@ -240,6 +248,7 @@ class Morph(cliapp.Application):
                         logging.debug('No need to build %s' % artifact.name)
 
                 if install_chunks:
+                    logging.debug('installing chunks from just-built group')
                     # install chunks only
                     chunk_artifacts = [x 
                                        for x in group 
