@@ -19,13 +19,11 @@
 
 set -eu
 
-( # make the dummy stratum contain a chunk for a fake kernel
-    mkdir -p "$DATADIR/dummykernel"
-    cd "$DATADIR/dummykernel"
-    git init --quiet
-    cat <<EOF >dummykernel.morph
+# Make a dummy kernel chunk.
+mkdir "$DATADIR/kernel-repo"
+cat <<EOF > "$DATADIR/kernel-repo/linux.morph"
 {
-    "name": "dummykernel",
+    "name": "linux",
     "kind": "chunk",
     "install-commands": [
         "mkdir -p \"\$DESTDIR/boot\"",
@@ -35,52 +33,75 @@ set -eu
     ]
 }
 EOF
-        
-        
-    git add .
-    git commit --quiet -m "Make dummy boot files"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" init --quiet
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" add .
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" commit --quiet -m foo \
+    > /dev/null
 
-    cd "$DATADIR/morphs-repo"
-    git checkout --quiet master
-    sed -i -e 's/^.*sources.*$/&\
-        {\
-            "name": "dummykernel",\
-            "ref": "master"\
-        },\
-/' hello-stratum.morph
+# Make a stratum that include hello and kernel chunks.
+cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "sources": [
+        {
+            "name": "hello",
+            "repo": "chunk-repo",
+            "ref": "farrokh"
+        },
+        {
+            "name": "linux",
+            "repo": "kernel-repo",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" commit --quiet -am foo \
+    > /dev/null
 
-    git commit --quiet -m "add dummy kernel" hello-stratum.morph
-)
+# Build first image. Remember the stratum.
+"$SRCDIR/scripts/test-morph" build morphs-repo master hello-system.morph
+img1=$(find "$DATADIR/cache" -maxdepth 1 -name '*.system.*')
+stratum1=$(find "$DATADIR/cache" -maxdepth 1 -name '*.stratum.*')
 
-tests.as-root/morph build morphs-repo master hello-system.morph
+# Modify the chunk, in a new branch.
+"$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet farrokh
+"$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet -b alfred
+sed -i s/hello/goodbye/ "$DATADIR/chunk-repo/hello.c"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" commit -am goodbye \
+    > /dev/null
+    
+# Modify the morphs repo to use the new chunk branch, creating a new 
+# branch for the morphs repo.
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" checkout --quiet -b alfred
+sed -i 's/farrokh/alfred/' "$DATADIR/morphs-repo/hello-stratum.morph"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" commit -am goodbye \
+    > /dev/null
 
-# save the stratum as we will apply the patch on top of this later
-cp "$DATADIR/cache/"*stratum* "$DATADIR"/farrokh-stratum
+# Build second image.
+"$SRCDIR/scripts/test-morph" build morphs-repo alfred hello-system.morph
+img2=$(find "$DATADIR/cache" -maxdepth 1 -name '*.system.*' \
+            ! -name $(basename "$img1"))
 
- 
-( # make an evil stratum
-        cd "$DATADIR/chunk-repo"
-        git checkout --quiet -b evil farrokh
-        sed -i -e 's/hello/goodbye/g' hello.c
-        git add hello.c
-        git commit --quiet -m "Make the program evil"
+# Make the patch.
+patch="$DATADIR/patch"
+"$SRCDIR/scripts/test-morph" make-patch "$patch" \
+    morphs-repo master hello-system.morph \
+    morphs-repo alfred hello-system.morph --log=/home/liw/foo.log
 
-        cd "$DATADIR/morphs-repo"
-        git checkout --quiet -b evil master
-        sed -i -e 's/farrokh/evil/g' hello-stratum.morph
-        git add hello-stratum.morph
-        git commit --quiet -m "Build evil systems"
-)
+# Unpack the original stratum and run the program.
+mkdir "$DATADIR/unpacked"
+cd "$DATADIR/unpacked"
+tar -xf "$stratum1"
+echo "old version:"
+./bin/hello
 
-tests.as-root/morph build morphs-repo evil hello-system.morph
+# Apply patch, run program again. We should get updated output.
+tbdiff-deploy "$patch" 2>/dev/null
+echo "new version:"
+./bin/hello
 
-# make a patch to make the system evil
-PATCH="$DATADIR"/patchfile
-tests.as-root/morph make-patch "$PATCH" morphs-repo master hello-system.morph \
-                                morphs-repo evil hello-system.morph
+# Done.
+echo "Done."
 
-UNPACKED="$DATADIR"/unpacked
-mkdir -p "$UNPACKED"
-tar -C "$UNPACKED" -xf "$DATADIR"/farrokh-stratum
-(cd "$UNPACKED" && tbdiff-deploy "$PATCH") 2>/dev/null
-"$UNPACKED"/bin/hello

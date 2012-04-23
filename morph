@@ -507,57 +507,84 @@ class Morph(cliapp.Application):
         tempdir.remove()
 
     def cmd_make_patch(self, args):
-        assert os.path.exists(self.settings['cachedir'])
+        '''Create a Trebuchet patch between two system images.'''
         
-        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
-        morph_loader = MorphologyLoader(self.settings)
-        src_manager = morphlib.sourcemanager.SourceManager(self, update=False)
-        factory = morphlib.builder.Factory(tempdir)
-        factory.create_staging()
-        builder = morphlib.builder.Builder(tempdir, self, morph_loader,
-                                           src_manager, factory)
-        #cachedir = morphlib.cachedir.CacheDir(self.settings['cachedir'])
-        ex = morphlib.execute.Execute('.', self.msg)
+        logging.debug('cmd_make_patch starting')
+        
+        if len(args) != 7:
+            raise cliapp.AppException('make-patch requires arguments: '
+                                      'name of output file plus two triplest')
 
-        outpath = args[0]
-        args = args[1:]
-        trip_iter = self._itertriplets(args)
-        paths = {}
-        for name in ('source', 'target'):
-            repo, ref, filename = trip_iter.next()
-            treeish = src_manager.get_treeish(repo, ref)
-            morph = morph_loader.load(treeish, filename)
-            blob = morphlib.blobs.Blob.create_blob(morph)
-            blob_builder = builder.create_blob_builder(blob)
-            paths[name] = blob_builder.filename(morph.name)
+        output = args[0]
+        repo_name1, ref1, filename1 = args[1:4]
+        repo_name2, ref2, filename2 = args[4:7]
 
+        self.settings.require('cachedir')
+        cachedir = self.settings['cachedir']
+        build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
+        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+        lac = morphlib.localartifactcache.LocalArtifactCache(cachedir)
+        lrc = morphlib.localrepocache.LocalRepoCache(
+                os.path.join(cachedir, 'gits'),
+                self.settings['git-base-url'],
+                bundle_base_url=self.settings['bundle-server'])
+        rrc = None
+
+        def the_one(source, repo_name, ref, filename):
+            return (source.repo_name == repo_name and
+                    source.original_ref == ref and
+                    source.filename == filename)
+
+        def get_artifact(repo_name, ref, filename):
+            srcpool = self._create_source_pool(lrc, rrc, 
+                                               (repo_name, ref, filename))
+            ar = morphlib.artifactresolver.ArtifactResolver()
+            artifacts = ar.resolve_artifacts(srcpool)
+            for artifact in artifacts:
+                artifact.cache_key = ckc.compute_key(artifact)
+                if the_one(artifact.source, repo_name, ref, filename):
+                    return artifact
+
+        artifact1 = get_artifact(repo_name1, ref1, filename1)
+        artifact2 = get_artifact(repo_name2, ref2, filename2)
+
+        image_path_1 = lac.get(artifact1).name
+        image_path_2 = lac.get(artifact2).name
+        
+        def setup(path):
+            part = morphlib.fsutils.setup_device_mapping(ex, path)
+            mount_point = tempfile.mkdtemp()
+            morphlib.fsutils.mount(ex, part, mount_point)
+            return mount_point
+
+        def cleanup(path, mount_point):
+            try:
+                morphlib.fsutils.unmount(ex, mount_point)
+            except:
+                pass
+            try:
+                morphlib.fsutils.undo_device_mapping(ex, path)
+            except:
+                pass
+            try:
+                os.rmdir(mount_point)
+            except:
+                pass
+
+        ex = morphlib.execute.Execute('.', logging.debug)
         try:
-            for name in paths.iterkeys():
-                # mount the system images
-                part = morphlib.fsutils.setup_device_mapping(ex, paths[name])
-                mount_point = tempdir.join('mnt_' + name)
-                morphlib.fsutils.mount(ex, part, mount_point)
+            mount_point_1 = setup(image_path_1)
+            mount_point_2 = setup(image_path_2)
 
-            # make a diff
-            ex.runv(['tbdiff-create', outpath,
-                     os.path.join(tempdir.join('mnt_source'), 'factory'),
-                     os.path.join(tempdir.join('mnt_target'), 'factory')])
-        except Exception:
+            ex.runv(['tbdiff-create', output,
+                     os.path.join(mount_point_1, 'factory'),
+                     os.path.join(mount_point_2, 'factory')])
+        except BaseException:
             raise
         finally:
-            # cleanup
-            for name in paths.iterkeys():
-                mount_point = tempdir.join('mnt_' + name)
-                try:
-                    morphlib.fsutils.unmount(ex, mount_point)
-                except:
-                    pass
-                try:
-                    morphlib.fsutils.undo_device_mapping(ex, paths[name])
-                except:
-                    pass
-            factory.remove_staging()
-
+            cleanup(image_path_1, mount_point_1)
+            cleanup(image_path_2, mount_point_2)
+        
     def cmd_init(self, args):
         '''Initialize a mine.'''
         
