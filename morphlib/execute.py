@@ -98,11 +98,13 @@ class Execute(object):
         out, err = p.communicate(feed_stdin)
         
         if _log: # pragma: no cover
-            logging.error('Exit code: %d' % p.returncode)
-            logging.error('Standard output:\n%s' %
-                            morphlib.util.indent(out or ''))
-            logging.error('Standard error:\n%s' %
-                            morphlib.util.indent(err or ''))
+            if p.returncode == 0:
+                logger = logging.debug
+            else:
+                logger = logging.error
+            logger('Exit code: %d' % p.returncode)
+            logger('Standard output:\n%s' % morphlib.util.indent(out or ''))
+            logger('Standard error:\n%s' % morphlib.util.indent(err or ''))
         if p.returncode != 0:
             raise CommandFailure(' '.join(argv), out)
         else:
