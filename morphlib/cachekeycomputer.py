@@ -31,6 +31,10 @@ class CacheKeyComputer(object):
                                            "BOOTSTRAP", "CFLAGS")])
 
     def compute_key(self, artifact):
+        logging.debug('computing cache key for artifact %s from source '
+                      'repo %s, sha1 %s, filename %s' %
+                        (artifact.name, artifact.source.repo_name,
+                         artifact.source.sha1, artifact.source.filename))
         return self._hash_id(self.get_cache_id(artifact))
 
     def _hash_id(self, cache_id):
