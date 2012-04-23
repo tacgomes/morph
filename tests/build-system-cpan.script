@@ -55,11 +55,8 @@ git commit --quiet -m 'convert hello into a perl cpan project'
 
 "$SRCDIR/scripts/test-morph" build --prefix=/ chunk-repo farrokh hello.morph
 
-TEMPEXTRACT="$DATADIR/cpanextract"
-mkdir -p "$TEMPEXTRACT"
-
 PERLMAJOR=`perl -e 'print $^V' | sed 's|^v\([^\.]*\)\.[^\.]*\.[^\.]*$|\1|'`
-ARCH=`perl -V | grep archname | sed 's|^.*archname=\(\S*\).*$|\1|'`
+ARCH=`perl -V | grep 'archname' | grep -v -e '-Darchname' | sed 's|^.*archname=\(\S*\).*$|\1|'`
 
 for chunk in "$DATADIR/cache/"*.chunk.*
 do
