@@ -166,7 +166,7 @@ class CPANBuildSystem(BuildSystem):
         self.test_commands = [
         ]
         self.install_commands = [
-            'make install',
+            'make DESTDIR="$DESTDIR" install',
         ]
 
     def used_by_project(self, exists):
