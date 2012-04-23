@@ -15,6 +15,7 @@
 
 
 import hashlib
+import logging
 
 import morphlib
 
