@@ -158,7 +158,7 @@ class CPANBuildSystem(BuildSystem):
 
     def __init__(self):
         self.configure_commands = [
-            'perl Makefile.PL',
+            'perl Makefile.PL INSTALL_BASE="$PREFIX"',
         ]
         self.build_commands = [
             'make',
