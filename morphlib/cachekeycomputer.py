@@ -66,6 +66,10 @@ class CacheKeyComputer(object):
             self._hash_thing(sha, item)
 
     def get_cache_id(self, artifact):
+        logging.debug('computing cache id for artifact %s from source '
+                      'repo %s, sha1 %s, filename %s' %
+                        (artifact.name, artifact.source.repo_name,
+                         artifact.source.sha1, artifact.source.filename))
         try:
             return self._calculated[artifact]
         except KeyError:
