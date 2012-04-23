@@ -150,11 +150,11 @@ class PythonDistutilsBuildSystem(BuildSystem):
         return any(exists(x) for x in indicators)
 
 
-class PerlBuildSystem(BuildSystem):
+class CPANBuildSystem(BuildSystem):
 
-    '''The Perl build system.'''
+    '''The Perl cpan build system.'''
 
-    name = 'perl'
+    name = 'cpan'
 
     def __init__(self):
         self.configure_commands = [
@@ -181,7 +181,7 @@ build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
     PythonDistutilsBuildSystem(),
-    PerlBuildSystem(),
+    CPANBuildSystem(),
     DummyBuildSystem(),
 ]
 
