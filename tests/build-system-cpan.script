@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# Convert the hello-chunk project to perl with CPAN
+#
+# Copyright (C) 2011, 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -eu
+
+chunkrepo="$DATADIR/chunk-repo"
+cd "$chunkrepo"
+
+git checkout --quiet farrokh
+
+git rm --quiet hello.c
+
+cat <<EOF >hello
+#!/usr/bin/perl
+print "hello, world\n"
+EOF
+git add hello
+
+cat <<EOF >Makefile.PL
+use strict;
+use warnings;
+use ExtUtils::MakeMaker;
+WriteMakefile(
+    EXE_FILES => ['hello'],
+)
+EOF
+git add Makefile.PL
+
+cat <<EOF >hello.morph
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-system": "cpan"
+}
+EOF
+git add hello.morph
+
+git commit --quiet -m 'convert hello into a perl cpan project'
+
+"$SRCDIR/scripts/test-morph" build chunk-repo farrokh hello.morph
+
+TEMPEXTRACT="$DATADIR/cpanextract"
+mkdir -p "$TEMPEXTRACT"
+
+PERLVERSION=`perl -e 'print $^V' | sed 's|^v\(.*\)|\1|'`
+PERLMAJOR=`perl -e 'print $^V' | sed 's|^v\([^\.]*\)\.[^\.]*\.[^\.]*$|\1|'`
+ARCH=`perl -V | grep archname | sed 's|^.*archname=\(\S*\).*$|\1|'`
+
+for chunk in "$DATADIR/cache/"*.chunk.*
+do
+    echo "$chunk:" | sed 's/[^.]*//'
+    tar -tf "$chunk" | LC_ALL=C sort |
+            sed -e '/^\.\/./s:^\./::' \
+                -e s/"$ARCH"/ARCH/ \
+                -e s/perl"$PERLMAJOR"/PERLDIR/ \
+                -e s/"$PERLVERSION"/PERLVERSION/
+done

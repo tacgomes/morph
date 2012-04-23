@@ -1,0 +1,19 @@
+arch=x86_64-linux major=5 version=5.14.2
+.chunk.hello:
+./
+baserock/
+baserock/hello.meta
+usr/
+usr/bin/
+usr/bin/hello
+usr/lib/
+usr/lib/PERLDIR/
+usr/lib/PERLDIR/PERLVERSION/
+usr/lib/PERLDIR/PERLVERSION/ARCH/
+usr/lib/PERLDIR/PERLVERSION/ARCH/perllocal.pod
+usr/lib/PERLDIR/site_perl/
+usr/lib/PERLDIR/site_perl/PERLVERSION/
+usr/lib/PERLDIR/site_perl/PERLVERSION/ARCH/
+usr/lib/PERLDIR/site_perl/PERLVERSION/ARCH/auto/
+usr/lib/PERLDIR/site_perl/PERLVERSION/ARCH/auto/hello.build/
+usr/lib/PERLDIR/site_perl/PERLVERSION/ARCH/auto/hello.build/.packlist
