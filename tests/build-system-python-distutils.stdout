@@ -6,5 +6,5 @@ bin/
 bin/hello
 lib/
 lib/python2.x/
-lib/python2.x/dist-packages/
-lib/python2.x/dist-packages/hello.egg-info/
+lib/python2.x/packages/
+lib/python2.x/packages/hello.egg-info/

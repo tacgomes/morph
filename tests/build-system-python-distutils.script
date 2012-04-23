@@ -62,4 +62,5 @@ done |
 sed -e 's:^local/::' \
     -e 's:lib/python2.[6-9]/:lib/python2.x/:' \
     -e 's:/hello-0\.0\.0[^/]*\.egg-info$:/hello.egg-info/:' \
+    -e 's:[^/]*-packages:packages:' \
     -e '/^$/d'
