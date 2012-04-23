@@ -83,5 +83,5 @@ class CacheKeyComputer(object):
             'env': self._filterenv(self._build_env.env),
             'ref': artifact.source.sha1,
             'filename': artifact.source.filename,
-            'kids': [self.get_cache_id(x) for x in artifact.dependencies]
+            'kids': [self.compute_key(x) for x in artifact.dependencies]
         }
