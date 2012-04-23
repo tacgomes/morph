@@ -329,7 +329,8 @@ class Morph(cliapp.Application):
         while queue:
             reponame, ref, filename = queue.popleft()
             absref = self._resolveref(lrc, rrc, reponame, ref, update)
-            morphology = morph_factory.get_morphology(reponame, absref, filename)
+            morphology = morph_factory.get_morphology(
+                            reponame, absref, filename)
             visit(reponame, ref, filename, absref, morphology)
             if morphology['kind'] == 'system':
                 queue.extend((reponame, ref, '%s.morph' % s)
