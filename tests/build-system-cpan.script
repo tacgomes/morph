@@ -53,7 +53,7 @@ git add hello.morph
 
 git commit --quiet -m 'convert hello into a perl cpan project'
 
-"$SRCDIR/scripts/test-morph" build chunk-repo farrokh hello.morph
+"$SRCDIR/scripts/test-morph" build --prefix=/ chunk-repo farrokh hello.morph
 
 TEMPEXTRACT="$DATADIR/cpanextract"
 mkdir -p "$TEMPEXTRACT"
