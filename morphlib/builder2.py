@@ -132,12 +132,26 @@ class ChunkBuilder(BuilderBase):
 
     def build_and_cache(self): # pragma: no cover
         with self.build_watch('overall-build'):
+            mounted = self.mount_proc()
             builddir = self.staging_area.builddir(self.artifact.source)
             self.get_sources(builddir)
             destdir = self.staging_area.destdir(self.artifact.source)
             self.run_commands(builddir, destdir)
             self.assemble_chunk_artifacts(destdir)
+            if mounted:
+                self.umount_proc()
         self.save_build_times()
+
+    def mount_proc(self): # pragma: no cover
+        try:
+            self.staging_area.runcmd(['mount', '-t', 'proc', 'proc', '/proc'])
+        except morphlib.execute.CommandFailure:
+            return False
+        else:
+            return True
+
+    def umount_proc(self): # pragma: no cover
+        self.staging_area.runcmd(['umount', '/proc'])
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
