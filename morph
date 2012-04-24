@@ -243,9 +243,11 @@ class Morph(cliapp.Application):
                 for artifact in group:
                     if artifact in needed:
                         logging.debug('Need to build %s' % artifact.name)
+                        self.msg('Building %s' % artifact.name)
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
+                        self.msg('Using cached %s' % artifact.name)
 
                 if install_chunks:
                     logging.debug('installing chunks from just-built group')
