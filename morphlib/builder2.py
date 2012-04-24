@@ -138,8 +138,9 @@ class ChunkBuilder(BuilderBase):
                 # FIXME: This is ugly, but the best I can do atm. We need
                 # to combine sub.path, which is a relative path, with the
                 # directory in the cache where the git repos are. --liw
-                sub_path = os.path.join(cache_dir, sub.path)
-                return [(sub_path, sub.commit, os.path.join(destdir, sub.path))
+                return [(os.path.join(cache_dir, sub.path), 
+                         sub.commit, 
+                         os.path.join(destdir, sub.path))
                         for sub in submodules]
 
         s = self.artifact.source
