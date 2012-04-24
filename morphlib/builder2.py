@@ -120,6 +120,8 @@ class ChunkBuilder(BuilderBase):
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
 
+        cache_dir = os.path.dirname(self.artifact.source.repo.path)
+
         def extract_repo(path, sha1, destdir):
             logging.debug('Extracting %s into %s' % (path, destdir))
             if not os.path.exists(destdir):
@@ -133,7 +135,11 @@ class ChunkBuilder(BuilderBase):
             except morphlib.git.NoModulesFileError:
                 return []
             else:
-                return [(sub.path, sub.commit, os.path.join(destdir, sub.path))
+                # FIXME: This is ugly, but the best I can do atm. We need
+                # to combine sub.path, which is a relative path, with the
+                # directory in the cache where the git repos are. --liw
+                sub_path = os.path.join(cache_dir, sub.path)
+                return [(sub_path, sub.commit, os.path.join(destdir, sub.path))
                         for sub in submodules]
 
         s = self.artifact.source
