@@ -143,14 +143,18 @@ class ChunkBuilder(BuilderBase):
         self.save_build_times()
 
     def mount_proc(self): # pragma: no cover
+        logging.debug('Mounting /proc in staging area')
         try:
+            self.staging_area.runcmd(['mkdir', '-p', '/proc'])
             self.staging_area.runcmd(['mount', '-t', 'proc', 'proc', '/proc'])
         except morphlib.execute.CommandFailure:
+            logging.error('Could not mount /proc in staging area')
             return False
         else:
             return True
 
     def umount_proc(self): # pragma: no cover
+        logging.error('Unmounting /proc in staging area')
         self.staging_area.runcmd(['umount', '/proc'])
 
     def get_sources(self, srcdir): # pragma: no cover
