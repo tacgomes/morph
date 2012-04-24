@@ -236,16 +236,18 @@ class Morph(cliapp.Application):
             staging_area = morphlib.stagingarea.StagingArea(staging_root,
                                                             staging_temp)
 
-            builder = morphlib.builder2.Builder(staging_area, lac,
+            builder = morphlib.builder2.Builder(staging_area, lac, lrc,
                                                 build_env,
                                                 self.settings['max-jobs'])
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
                         logging.debug('Need to build %s' % artifact.name)
+                        self.msg('Building %s' % artifact.name)
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
+                        self.msg('Using cached %s' % artifact.name)
 
                 if install_chunks:
                     logging.debug('installing chunks from just-built group')
