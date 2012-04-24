@@ -237,7 +237,8 @@ class ChunkBuilder(BuilderBase):
     
             files = os.listdir(destdir)
             if files:
-                raise Exception('DESTDIR %s is not empty: %s' % (destdir, files))
+                raise Exception('DESTDIR %s is not empty: %s' %
+                                (destdir, files))
 
 
 class StratumBuilder(BuilderBase):
