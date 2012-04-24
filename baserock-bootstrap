@@ -471,7 +471,7 @@ case "$buildwhat" in
         ;;
     pass1b)
         time pass1_build_with_morph
-        time pass1_dump_build_times
+#        time pass1_dump_build_times
         ;;
     pass2a)
         time pass2_get_morph
@@ -481,7 +481,7 @@ case "$buildwhat" in
         ;;
     pass2b)
         time pass2_build_with_morph_in_chroot
-        time pass2_dump_build_times
+#        time pass2_dump_build_times
         time pass2b_cleanup_at_end
         ;;
     pass3a)
@@ -490,7 +490,7 @@ case "$buildwhat" in
         ;;
     pass3b)
         time pass3_build_with_morph_in_chroot
-        time pass3_dump_build_times
+#        time pass3_dump_build_times
         ;;
     *)  echo "Usage! (sorry, I'm unhelpful)" 1>&2
         exit 1
