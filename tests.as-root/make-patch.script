@@ -88,7 +88,7 @@ img2=$(find "$DATADIR/cache" -maxdepth 1 -name '*.system.*' \
 patch="$DATADIR/patch"
 "$SRCDIR/scripts/test-morph" make-patch "$patch" \
     morphs-repo master hello-system.morph \
-    morphs-repo alfred hello-system.morph --log=/home/liw/foo.log
+    morphs-repo alfred hello-system.morph
 
 # Unpack the original stratum and run the program.
 mkdir "$DATADIR/unpacked"
