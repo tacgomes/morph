@@ -370,9 +370,10 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
                                                'init=/sbin/init quiet rw\n')
     
-        def _create_subvolume_snapshot(self, path, source, target):
-            logging.debug('Creating subvolume snapshot %s to %s' % 
-                            (source, target))
+    def _create_subvolume_snapshot(self, path, source, target):
+        logging.debug('Creating subvolume snapshot %s to %s' % 
+                        (source, target))
+        with self.build_watch('create-runtime-snapshot'):
             self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
                          cwd=path)
 
