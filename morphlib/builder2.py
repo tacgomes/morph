@@ -22,7 +22,6 @@ import time
 
 import morphlib
 
-
 class BuilderBase(object):
 
     '''Base class for building artifacts.'''
@@ -34,6 +33,25 @@ class BuilderBase(object):
         self.artifact = artifact
         self.build_env = build_env
         self.max_jobs = max_jobs
+        self.build_watch = morphlib.stopwatch.Stopwatch()
+
+    def save_build_times(self):
+        '''Write the times captured by the stopwatch'''
+        meta = {
+            'build-times': {}
+        }
+        for stage in self.build_watch.ticks.iterkeys():
+            meta['build-times'][stage] = {
+                'start': '%s' % self.build_watch.start_time(stage),
+                'stop': '%s' % self.build_watch.stop_time(stage),
+                'delta': '%.4f' % self.build_watch.start_stop_seconds(stage)
+            }
+
+        logging.debug('Writing metadata to the cache')
+        meta_artifact = self.new_artifact('meta')
+        with self.artifact_cache.put(meta_artifact) as f:
+            json.dump(meta, f, indent=4, sort_keys=True)
+            f.write('\n')
     
     def create_metadata(self, artifact_name):
         '''Create metadata to artifact to allow it to be reproduced later.
@@ -111,11 +129,13 @@ class ChunkBuilder(BuilderBase):
             return morphology[which]
 
     def build_and_cache(self): # pragma: no cover
-        builddir = self.staging_area.builddir(self.artifact.source)
-        self.get_sources(builddir)
-        destdir = self.staging_area.destdir(self.artifact.source)
-        self.run_commands(builddir, destdir)
-        self.assemble_chunk_artifacts(destdir)
+        with self.build_watch('overall-build'):
+            builddir = self.staging_area.builddir(self.artifact.source)
+            self.get_sources(builddir)
+            destdir = self.staging_area.destdir(self.artifact.source)
+            self.run_commands(builddir, destdir)
+            self.assemble_chunk_artifacts(destdir)
+        self.save_build_times()
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
@@ -176,38 +196,40 @@ class ChunkBuilder(BuilderBase):
                  ('test', False),
                  ('install', False)]
         for step, in_parallel in steps:
-            cmds = self.get_commands('%s-commands' % step, m, bs)
-            for cmd in cmds:
-                if in_parallel:
-                    max_jobs = self.artifact.source.morphology['max-jobs']
-                    if max_jobs is None:
-                        max_jobs = self.max_jobs
-                    self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
-                else:
-                    self.build_env.env['MAKEFLAGS'] = '-j1'
-                self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
+            with self.build_watch(step):
+                cmds = self.get_commands('%s-commands' % step, m, bs)
+                for cmd in cmds:
+                    if in_parallel:
+                        max_jobs = self.artifact.source.morphology['max-jobs']
+                        if max_jobs is None:
+                            max_jobs = self.max_jobs
+                        self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
+                    else:
+                        self.build_env.env['MAKEFLAGS'] = '-j1'
+                    self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
-        ex = None # create_chunk doesn't actually use this
-        specs = self.artifact.source.morphology['chunks']
-        if len(specs) == 0:
-            specs = {
-                self.artifact.source.morphology['name']: ['.'],
-            }
-        for artifact_name in specs:
-            self.write_metadata(destdir, artifact_name)
-            patterns = specs[artifact_name]
-            patterns += [r'baserock/%s\.' % artifact_name]
-
-            artifact = self.new_artifact(artifact_name)
-            with self.artifact_cache.put(artifact) as f:
-                logging.debug('assembling chunk %s' % artifact_name)
-                logging.debug('assembling into %s' % f.name)
-                morphlib.bins.create_chunk(destdir, f, patterns, ex)
-
-        files = os.listdir(destdir)
-        if files:
-            raise Exception('DESTDIR %s is not empty: %s' % (destdir, files))
+        with self.build_watch('create-chunks'):
+            ex = None # create_chunk doesn't actually use this
+            specs = self.artifact.source.morphology['chunks']
+            if len(specs) == 0:
+                specs = {
+                    self.artifact.source.morphology['name']: ['.'],
+                }
+            for artifact_name in specs:
+                self.write_metadata(destdir, artifact_name)
+                patterns = specs[artifact_name]
+                patterns += [r'baserock/%s\.' % artifact_name]
+    
+                artifact = self.new_artifact(artifact_name)
+                with self.artifact_cache.put(artifact) as f:
+                    logging.debug('assembling chunk %s' % artifact_name)
+                    logging.debug('assembling into %s' % f.name)
+                    morphlib.bins.create_chunk(destdir, f, patterns, ex)
+    
+            files = os.listdir(destdir)
+            if files:
+                raise Exception('DESTDIR %s is not empty: %s' % (destdir, files))
 
 
 class StratumBuilder(BuilderBase):
@@ -215,20 +237,24 @@ class StratumBuilder(BuilderBase):
     '''Build stratum artifacts.'''
 
     def build_and_cache(self): # pragma: no cover
-        destdir = self.staging_area.destdir(self.artifact.source)
+        with self.build_watch('overall-build'):
+            destdir = self.staging_area.destdir(self.artifact.source)
+    
+            constituents = [dependency
+                            for dependency in self.artifact.dependencies
+                            if dependency.source.morphology['kind'] == 'chunk']
+            with self.build_watch('unpack-chunks'):
+                for chunk_artifact in constituents:
+                    with self.artifact_cache.get(chunk_artifact) as f:
+                        morphlib.bins.unpack_binary_from_file(f, destdir)
 
-        constituents = [dependency
-                        for dependency in self.artifact.dependencies
-                        if dependency.source.morphology['kind'] == 'chunk']
-        for chunk_artifact in constituents:
-            with self.artifact_cache.get(chunk_artifact) as f:
-                morphlib.bins.unpack_binary_from_file(f, destdir)
-
-        artifact_name = self.artifact.source.morphology['name']
-        self.write_metadata(destdir, artifact_name)
-        artifact = self.new_artifact(artifact_name)
-        with self.artifact_cache.put(artifact) as f:
-            morphlib.bins.create_stratum(destdir, f, None)
+            with self.build_watch('create-binary'):    
+                artifact_name = self.artifact.source.morphology['name']
+                self.write_metadata(destdir, artifact_name)
+                artifact = self.new_artifact(artifact_name)
+                with self.artifact_cache.put(artifact) as f:
+                    morphlib.bins.create_stratum(destdir, f, None)
+        self.save_build_times()
 
 
 class SystemBuilder(BuilderBase): # pragma: no cover
@@ -236,144 +262,162 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     '''Build system image artifacts.'''
 
     def build_and_cache(self):
-        logging.debug('SystemBuilder.do_build called')
-        self.ex = morphlib.execute.Execute(self.staging_area.dirname,
-                                           logging.debug)
-        
-        image_name = os.path.join(self.staging_area.dirname,
-                                  '%s.img' % self.artifact.name)
-        self._create_image(image_name)
-        self._partition_image(image_name)
-        self._install_mbr(image_name)
-        partition = self._setup_device_mapping(image_name)
-
-        mount_point = None
-        try:
-            self._create_fs(partition)
-            mount_point = self.staging_area.destdir(self.artifact.source)
-            self._mount(partition, mount_point)
-            factory_path = os.path.join(mount_point, 'factory')
-            self._create_subvolume(factory_path)
-            self._unpack_strata(factory_path)
-            self._create_fstab(factory_path)
-            self._create_extlinux_config(factory_path)
-            self._create_subvolume_snapshot(
-                    mount_point, 'factory', 'factory-run')
-            factory_run_path = os.path.join(mount_point, 'factory-run')
-            self._install_boot_files(factory_run_path, mount_point)
-            self._install_extlinux(mount_point)
-            self._unmount(mount_point)
-        except BaseException, e:
-            logging.error('Got error while system image building, '
-                            'unmounting and device unmapping')
-            self._unmount(mount_point)
+        with self.build_watch('overall-build'):
+            logging.debug('SystemBuilder.do_build called')
+            self.ex = morphlib.execute.Execute(self.staging_area.dirname,
+                                               logging.debug)
+            
+            image_name = os.path.join(self.staging_area.dirname,
+                                      '%s.img' % self.artifact.name)
+            self._create_image(image_name)
+            self._partition_image(image_name)
+            self._install_mbr(image_name)
+            partition = self._setup_device_mapping(image_name)
+    
+            mount_point = None
+            try:
+                self._create_fs(partition)
+                mount_point = self.staging_area.destdir(self.artifact.source)
+                self._mount(partition, mount_point)
+                factory_path = os.path.join(mount_point, 'factory')
+                self._create_subvolume(factory_path)
+                self._unpack_strata(factory_path)
+                self._create_fstab(factory_path)
+                self._create_extlinux_config(factory_path)
+                self._create_subvolume_snapshot(
+                        mount_point, 'factory', 'factory-run')
+                factory_run_path = os.path.join(mount_point, 'factory-run')
+                self._install_boot_files(factory_run_path, mount_point)
+                self._install_extlinux(mount_point)
+                self._unmount(mount_point)
+            except BaseException, e:
+                logging.error('Got error while system image building, '
+                                'unmounting and device unmapping')
+                self._unmount(mount_point)
+                self._undo_device_mapping(image_name)
+                raise
+    
             self._undo_device_mapping(image_name)
-            raise
-
-        self._undo_device_mapping(image_name)
-        self._move_image_to_cache(image_name)
+            self._move_image_to_cache(image_name)
+        self.save_build_times()
 
     def _create_image(self, image_name):
         logging.debug('Creating disk image %s' % image_name)
-        morphlib.fsutils.create_image(
-            self.ex, image_name, self.artifact.source.morphology['disk-size'])
+        with self.build_watch('create-image'):
+            morphlib.fsutils.create_image(
+                self.ex, image_name,
+                self.artifact.source.morphology['disk-size'])
 
     def _partition_image(self, image_name):
         logging.debug('Partitioning disk image %s' % image_name)
-        morphlib.fsutils.partition_image(self.ex, image_name)
+        with self.build_watch('partition-image'):
+            morphlib.fsutils.partition_image(self.ex, image_name)
 
     def _install_mbr(self, image_name):
         logging.debug('Installing mbr on disk image %s' % image_name)
-        morphlib.fsutils.install_mbr(self.ex, image_name)
+        with self.build_watch('install-mbr'):
+            morphlib.fsutils.install_mbr(self.ex, image_name)
 
     def _setup_device_mapping(self, image_name):
         logging.debug('Device mapping partitions in %s' % image_name)
-        return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
+        with self.build_watch('setup-device-mapper'):
+            return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
 
     def _create_fs(self, partition):
         logging.debug('Creating filesystem on %s' % partition)
-        morphlib.fsutils.create_fs(self.ex, partition)
+        with self.build_watch('create-filesystem'):
+            morphlib.fsutils.create_fs(self.ex, partition)
 
     def _mount(self, partition, mount_point):
         logging.debug('Mounting %s on %s' % (partition, mount_point))
-        morphlib.fsutils.mount(self.ex, partition, mount_point)
+        with self.build_watch('mount-filesystem'):
+            morphlib.fsutils.mount(self.ex, partition, mount_point)
 
     def _create_subvolume(self, path):
         logging.debug('Creating subvolume %s' % path)
-        self.ex.runv(['btrfs', 'subvolume', 'create', path])
+        with self.build_watch('create-factory-subvolume'):
+            self.ex.runv(['btrfs', 'subvolume', 'create', path])
 
     def _unpack_strata(self, path):
         logging.debug('Unpacking strata to %s' % path)
-        for stratum_artifact in self.artifact.dependencies:
-            with self.artifact_cache.get(stratum_artifact) as f:
-                morphlib.bins.unpack_binary_from_file(f, path)
-        morphlib.builder.ldconfig(self.ex, path)
+        with self.build_watch('unpack-strata'):
+            for stratum_artifact in self.artifact.dependencies:
+                with self.artifact_cache.get(stratum_artifact) as f:
+                    morphlib.bins.unpack_binary_from_file(f, path)
+            morphlib.builder.ldconfig(self.ex, path)
 
     def _create_fstab(self, path):
         logging.debug('Creating fstab in %s' % path)
-        fstab = os.path.join(path, 'etc', 'fstab')
-        if not os.path.exists(os.path.dirname(fstab)): # FIXME: should exist
-            os.makedirs(os.path.dirname(fstab))
-        with open(fstab, 'w') as f:
-            f.write('proc      /proc proc  defaults          0 0\n')
-            f.write('sysfs     /sys  sysfs defaults          0 0\n')
-            f.write('/dev/sda1 / btrfs errors=remount-ro 0 1\n')
+        with self.build_watch('create-fstab'):
+            fstab = os.path.join(path, 'etc', 'fstab')
+            if not os.path.exists(os.path.dirname(fstab)):# FIXME: should exist
+                os.makedirs(os.path.dirname(fstab))
+            with open(fstab, 'w') as f:
+                f.write('proc      /proc proc  defaults          0 0\n')
+                f.write('sysfs     /sys  sysfs defaults          0 0\n')
+                f.write('/dev/sda1 / btrfs errors=remount-ro 0 1\n')
 
     def _create_extlinux_config(self, path):
         logging.debug('Creating extlinux.conf in %s' % path)
-        config = os.path.join(path, 'extlinux.conf')
-        with open(config, 'w') as f:
-            f.write('default linux\n')
-            f.write('timeout 1\n')
-            f.write('label linux\n')
-            f.write('kernel /boot/vmlinuz\n')
-            f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
-                                           'init=/sbin/init quiet rw\n')
-
-    def _create_subvolume_snapshot(self, path, source, target):
-        logging.debug('Creating subvolume snapshot %s to %s' % 
-                        (source, target))
-        self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
-                     cwd=path)
+        with self.build_watch('create-extlinux-config'):
+            config = os.path.join(path, 'extlinux.conf')
+            with open(config, 'w') as f:
+                f.write('default linux\n')
+                f.write('timeout 1\n')
+                f.write('label linux\n')
+                f.write('kernel /boot/vmlinuz\n')
+                f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
+                                               'init=/sbin/init quiet rw\n')
+    
+        def _create_subvolume_snapshot(self, path, source, target):
+            logging.debug('Creating subvolume snapshot %s to %s' % 
+                            (source, target))
+            self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
+                         cwd=path)
 
     def _install_boot_files(self, sourcefs, targetfs):
         logging.debug('installing boot files into root volume')
-        shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
-                     os.path.join(targetfs, 'extlinux.conf'))
-        os.mkdir(os.path.join(targetfs, 'boot'))
-        shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
-                     os.path.join(targetfs, 'boot', 'vmlinuz'))
-        shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
-                     os.path.join(targetfs, 'boot', 'System.map'))
+        with self.build_watch('install-boot-files'):
+            shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
+                         os.path.join(targetfs, 'extlinux.conf'))
+            os.mkdir(os.path.join(targetfs, 'boot'))
+            shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
+                         os.path.join(targetfs, 'boot', 'vmlinuz'))
+            shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
+                         os.path.join(targetfs, 'boot', 'System.map'))
 
     def _install_extlinux(self, path):
         logging.debug('Installing extlinux to %s' % path)
-        self.ex.runv(['extlinux', '--install', path])
+        with self.build_watch('install-bootloader'):
+            self.ex.runv(['extlinux', '--install', path])
 
-        # FIXME this hack seems to be necessary to let extlinux finish
-        self.ex.runv(['sync'])
-        time.sleep(2)
+            # FIXME this hack seems to be necessary to let extlinux finish
+            self.ex.runv(['sync'])
+            time.sleep(2)
 
     def _unmount(self, mount_point):
         logging.debug('Unmounting %s' % mount_point)
-        if mount_point is not None:
-            morphlib.fsutils.unmount(self.ex, mount_point)
+        with self.build_watch('unmount-filesystem'):
+            if mount_point is not None:
+                morphlib.fsutils.unmount(self.ex, mount_point)
 
     def _undo_device_mapping(self, image_name):
         logging.debug('Undoing device mappings for %s' % image_name)
-        morphlib.fsutils.undo_device_mapping(self.ex, image_name)
+        with self.build_watch('undo-device-mapper'):
+            morphlib.fsutils.undo_device_mapping(self.ex, image_name)
 
     def _move_image_to_cache(self, image_name):
         logging.debug('Moving image to cache: %s' % image_name)
         # FIXME: Need to create file directly in cache to avoid costly
         # copying here.
-        with self.artifact_cache.put(self.artifact) as outf:
-            with open(image_name) as inf:
-                while True:
-                    data = inf.read(1024**2)
-                    if not data:
-                        break
-                    outf.write(data)
+        with self.build_watch('cache-image'):
+            with self.artifact_cache.put(self.artifact) as outf:
+                with open(image_name) as inf:
+                    while True:
+                        data = inf.read(1024**2)
+                        if not data:
+                            break
+                        outf.write(data)
 
 
 class Builder(object): # pragma: no cover
