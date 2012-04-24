@@ -48,8 +48,9 @@ class BuilderBase(object):
             }
 
         logging.debug('Writing metadata to the cache')
-        meta_artifact = self.new_artifact('meta')
-        with self.artifact_cache.put(meta_artifact) as f:
+        with self.artifact_cache.put_source_metadata(
+                self.artifact.source, self.artifact.cache_key,
+                'meta') as f:
             json.dump(meta, f, indent=4, sort_keys=True)
             f.write('\n')
     
