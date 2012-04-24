@@ -236,7 +236,7 @@ class Morph(cliapp.Application):
             staging_area = morphlib.stagingarea.StagingArea(staging_root,
                                                             staging_temp)
 
-            builder = morphlib.builder2.Builder(staging_area, lac,
+            builder = morphlib.builder2.Builder(staging_area, lac, lrc,
                                                 build_env,
                                                 self.settings['max-jobs'])
             for group in order.groups:

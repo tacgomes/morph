@@ -27,11 +27,12 @@ class BuilderBase(object):
 
     '''Base class for building artifacts.'''
 
-    def __init__(self, staging_area, artifact_cache, artifact, build_env, 
-                 max_jobs):
+    def __init__(self, staging_area, artifact_cache, artifact, repo_cache,
+                 build_env, max_jobs):
         self.staging_area = staging_area
         self.artifact_cache = artifact_cache
         self.artifact = artifact
+        self.repo_cache = repo_cache
         self.build_env = build_env
         self.max_jobs = max_jobs
     
@@ -135,13 +136,12 @@ class ChunkBuilder(BuilderBase):
             except morphlib.git.NoModulesFileError:
                 return []
             else:
-                # FIXME: This is ugly, but the best I can do atm. We need
-                # to combine sub.path, which is a relative path, with the
-                # directory in the cache where the git repos are. --liw
-                return [(os.path.join(cache_dir, sub.path), 
-                         sub.commit, 
-                         os.path.join(destdir, sub.path))
-                        for sub in submodules]
+                tuples = []
+                for sub in submodules:
+                    cached_repo = self.repo_cache.get_repo(sub.repo)
+                    sub_dir = os.path.join(destdir, sub.path)
+                    tuples.append((cached_repo.path, sub.commit, sub_dir))
+                return tuples
 
         s = self.artifact.source
         todo = [(s.repo.path, s.sha1, srcdir)]
@@ -393,16 +393,19 @@ class Builder(object): # pragma: no cover
         'system': SystemBuilder,
     }
 
-    def __init__(self, staging_area, artifact_cache, build_env, max_jobs):
+    def __init__(self, staging_area, artifact_cache, repo_cache, build_env, 
+                 max_jobs):
         self.staging_area = staging_area
         self.artifact_cache = artifact_cache
+        self.repo_cache = repo_cache
         self.build_env = build_env
         self.max_jobs = max_jobs
         
     def build_and_cache(self, artifact):
         kind = artifact.source.morphology['kind']
         o = self.classes[kind](self.staging_area, self.artifact_cache, 
-                               artifact, self.build_env, self.max_jobs)
+                               artifact, self.repo_cache, self.build_env, 
+                               self.max_jobs)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
         o.build_and_cache()
