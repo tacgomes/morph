@@ -262,7 +262,7 @@ class Morph(cliapp.Application):
 
             if staging_root != '/':
                 staging_area.remove()
-            if staging_temp != '/':
+            if staging_temp != '/' and os.path.exists(staging_temp):
                 shutil.rmtree(staging_temp)
 
     def cmd_show_dependencies(self, args):
