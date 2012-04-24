@@ -138,7 +138,7 @@ class ChunkBuilder(BuilderBase):
             else:
                 tuples = []
                 for sub in submodules:
-                    cached_repo = self.repo_cache.get_repo(sub.repo)
+                    cached_repo = self.repo_cache.get_repo(sub.url)
                     sub_dir = os.path.join(destdir, sub.path)
                     tuples.append((cached_repo.path, sub.commit, sub_dir))
                 return tuples
