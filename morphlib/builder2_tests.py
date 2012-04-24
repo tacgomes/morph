@@ -66,6 +66,57 @@ class FakeBuildEnv(object):
             'PATH': '/le-bin:/le-bon:/le-bin-bon',
         }
 
+class FakeFileHandle(object):
+
+    def __init__(self, cache, key):
+        self._string = ""
+        self._cache = cache
+        self._key = key
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._cache._cached[self._key] = self._string
+
+    def write(self, string):
+        self._string += string
+
+class FakeArtifactCache(object):
+
+    def __init__(self):
+        self._cached = {}
+
+    def put(self, artifact):
+        return FakeFileHandle(self, (artifact.cache_key, artifact.name))
+
+    def put_artifact_metadata(self, artifact, name):
+        return FakeFileHandle(self, (artifact.cache_key, artifact.name, name))
+
+    def put_source_metadata(self, source, cachekey, name):
+        return FakeFileHandle(self, (cachekey, name))
+
+    def get(self, artifact):
+        return StringIO.StringIO(
+                self._cached[(artifact.cache_key, artifact.name)])
+
+    def get_artifact_metadata(self, artifact, name):
+        return StringIO.StringIO(
+                self._cached[(artifact.cache_key, artifact.name, name)])
+
+    def get_source_metadata(self, source, cachekey, name):
+        return StringIO.StringIO(
+                self._cached[(cachekey, name)])
+
+    def has(self, artifact):
+        return (artifact.cache_key, artifact.name) in self._cached
+
+    def has_artifact_metadata(self, artifact, name):
+        return (artifact.cache_key, artifact.name, name) in self._cached
+
+    def has_source_metadata(self, source, cachekey, name):
+        return (cachekey, name) in self._cached
+
 
 class BuilderBaseTests(unittest.TestCase):
 
@@ -81,7 +132,7 @@ class BuilderBaseTests(unittest.TestCase):
     def setUp(self):
         self.commands_run = []
         self.staging_area = FakeStagingArea(self.fake_runcmd)
-        self.artifact_cache = None # Not used by tests
+        self.artifact_cache = FakeArtifactCache()
         self.artifact = FakeArtifact('le-artifact')
         self.build_env = FakeBuildEnv()
         self.max_jobs = 1
@@ -130,6 +181,23 @@ class BuilderBaseTests(unittest.TestCase):
         meta = json.loads(self.open_handle.getvalue())
         self.assertEqual(meta, orig_meta)
 
+    def test_writes_build_times(self):
+        with self.builder.build_watch('nothing'):
+            pass
+        self.builder.save_build_times()
+        self.assertTrue(self.artifact_cache.has_source_metadata(
+                self.artifact.source, self.artifact.cache_key, 'meta'))
+
+    def test_watched_events_in_cache(self):
+        events = ["configure", "build", "install"]
+        for event in events:
+            with self.builder.build_watch(event):
+                pass
+        self.builder.save_build_times()
+        meta = json.load(self.artifact_cache.get_source_metadata(
+                self.artifact.source, self.artifact.cache_key, 'meta'))
+        self.assertEqual(sorted(events),
+                         sorted(meta['build-times'].keys()))
 
 class ChunkBuilderTests(unittest.TestCase):
 
