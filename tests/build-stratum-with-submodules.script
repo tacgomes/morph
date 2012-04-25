@@ -35,7 +35,7 @@ cat <<EOF > "$parent/parent.morph"
 }
 EOF
 
-"$SRCDIR/scripts/run-git-in" "$parent" init
+"$SRCDIR/scripts/run-git-in" "$parent" init --quiet
 "$SRCDIR/scripts/run-git-in" "$parent" add .
 "$SRCDIR/scripts/run-git-in" "$parent" \
     submodule --quiet add -b farrokh "$DATADIR/chunk-repo" le-sub > /dev/null
