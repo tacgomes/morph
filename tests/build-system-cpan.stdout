@@ -5,9 +5,8 @@ baserock/hello.meta
 bin/
 bin/hello
 lib/
-lib/PERLDIR/
-lib/PERLDIR/ARCH/
-lib/PERLDIR/ARCH/auto/
-lib/PERLDIR/ARCH/auto/hello.build/
-lib/PERLDIR/ARCH/auto/hello.build/.packlist
-lib/PERLDIR/ARCH/perllocal.pod
+lib/perl/
+lib/perl/auto/
+lib/perl/auto/hello.build/
+lib/perl/auto/hello.build/.packlist
+lib/perl/perllocal.pod
