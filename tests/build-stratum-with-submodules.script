@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# Test build a stratum that uses a chunk which needs a submodule.
+#
+# Copyright (C) 2011, 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -eux
+
+# tests/setup creates a chunk-repo. We now create a new chunk, which
+# uses chunk-repo as a submodule.
+
+parent="$DATADIR/parent-repo"
+mkdir "$parent"
+cat <<EOF > "$parent/parent.morph"
+{
+    "name": "parent",
+    "kind": "chunk",
+    "build-system": "manual",
+    "build-commands": [
+        "test -f le-sub/README"
+    ]
+}
+EOF
+
+"$SRCDIR/scripts/run-git-in" "$parent" init
+"$SRCDIR/scripts/run-git-in" "$parent" add .
+"$SRCDIR/scripts/run-git-in" "$parent" \
+    submodule --quiet add -b farrokh "$DATADIR/chunk-repo" le-sub > /dev/null
+"$SRCDIR/scripts/run-git-in" "$parent" commit --quiet -m initial
+
+
+# Modify the stratum to refer to the parent, not the submodule.
+
+morphs="$DATADIR/morphs-repo"
+cat <<EOF > "$morphs/submod-stratum.morph"
+{
+    "name": "submod-stratum",
+    "kind": "stratum",
+    "sources": [
+        {
+            "name": "parent",
+            "repo": "parent-repo",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+"$SRCDIR/scripts/run-git-in" "$morphs" add submod-stratum.morph
+"$SRCDIR/scripts/run-git-in" "$morphs" commit --quiet -m 'foo'
+
+
+# No build and verify we got a stratum.
+
+"$SRCDIR/scripts/test-morph" build morphs-repo master submod-stratum.morph
+tar -tf "$DATADIR/cache/"*.stratum.* | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
