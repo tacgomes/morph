@@ -29,7 +29,8 @@ submodule="$DATADIR/submodule-repo"
 # create an empty commit in a chunk repository
 chunkrepo="$DATADIR/chunk-repo"
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" checkout --quiet farrokh
-"$SRCDIR/scripts/run-git-in" "$chunkrepo" submodule --quiet add "$submodule"
+"$SRCDIR/scripts/run-git-in" "$chunkrepo" submodule --quiet add "$submodule" \
+    > /dev/null
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" commit --quiet -m "add submodule"
 
 "$SRCDIR/scripts/test-morph" update-gits morphs-repo master hello-stratum.morph
