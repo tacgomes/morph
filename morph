@@ -214,11 +214,14 @@ class Morph(cliapp.Application):
                         needed.append(artifact)
 
             logging.debug('cmd_build: cloning/updating cached repos')
+            done = set()
             for artifact in needed:
                 artifact.source.repo = lrc.cache_repo(
                                             artifact.source.repo_name)
                 if not self.settings['no-git-update']:
-                    artifact.source.repo.update()
+                    self._cache_repo_and_submodules(
+                        lrc, artifact.source.repo.url, artifact.source.sha1,
+                        done)
 
             if self.settings['bootstrap']:
                 staging_root = '/'
