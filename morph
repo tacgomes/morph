@@ -386,10 +386,40 @@ class Morph(cliapp.Application):
         cache = morphlib.localrepocache.LocalRepoCache(
                 cachedir, baseurls, bundle_base_url)
 
-        def do_print(reponame, ref, filename, absref, morphology):
+        subs_to_process = set()
+        
+        def visit(reponame, ref, filename, absref, morphology):
             self.msg('Updating %s|%s|%s' % (reponame, ref, filename))
+            assert cache.has_repo(reponame)
+            cached_repo = cache.get_repo(reponame)
+            try:
+                submodules = morphlib.git.Submodules(cached_repo.path, ref)
+                submodules.load()
+            except morphlib.git.NoModulesFileError:
+                pass
+            else:
+                for submod in submodules:
+                    subs_to_process.add((submod.url, submod.commit))
+            
         self._traverse_morphs(self._itertriplets(args), cache, None,
-                              update=True, visit=do_print)
+                              update=True, visit=visit)
+
+        done = set()
+        while subs_to_process:
+            url, ref = subs_to_process.pop()
+            done.add((url, ref))
+            cached_repo = cache.cache_repo(url)
+            cached_repo.update()
+
+            try:
+                submodules = morphlib.git.Submodules(cached_repo.path, ref)
+                submodules.load()
+            except morphlib.git.NoModulesFileError:
+                pass
+            else:
+                for submod in submodules:
+                    if (submod.url, submod.commit) not in done:
+                        subs_to_process.add((submod.url, submod.commit))
 
     def cmd_build_single(self, args):
         '''Build a binary from a morphology but do not build its dependencies.
