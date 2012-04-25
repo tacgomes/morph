@@ -27,7 +27,7 @@ class BuilderBase(object):
     '''Base class for building artifacts.'''
 
     def __init__(self, staging_area, artifact_cache, artifact, repo_cache,
-                 build_env, max_jobs):
+                 build_env, max_jobs, setup_proc):
         self.staging_area = staging_area
         self.artifact_cache = artifact_cache
         self.artifact = artifact
@@ -35,6 +35,7 @@ class BuilderBase(object):
         self.build_env = build_env
         self.max_jobs = max_jobs
         self.build_watch = morphlib.stopwatch.Stopwatch()
+        self.setup_proc = setup_proc
 
     def save_build_times(self):
         '''Write the times captured by the stopwatch'''
@@ -133,29 +134,35 @@ class ChunkBuilder(BuilderBase):
     def build_and_cache(self): # pragma: no cover
         with self.build_watch('overall-build'):
             mounted = self.mount_proc()
-            builddir = self.staging_area.builddir(self.artifact.source)
-            self.get_sources(builddir)
-            destdir = self.staging_area.destdir(self.artifact.source)
-            self.run_commands(builddir, destdir)
-            self.assemble_chunk_artifacts(destdir)
-            if mounted:
-                self.umount_proc()
+            try:
+                builddir = self.staging_area.builddir(self.artifact.source)
+                self.get_sources(builddir)
+                destdir = self.staging_area.destdir(self.artifact.source)
+                self.run_commands(builddir, destdir)
+                self.assemble_chunk_artifacts(destdir)
+            except BaseException:
+                self.umount_proc(mounted)
+                raise
+            else:
+                self.umount_proc(mounted)
         self.save_build_times()
 
     def mount_proc(self): # pragma: no cover
         logging.debug('Mounting /proc in staging area')
-        try:
-            self.staging_area.runcmd(['mkdir', '-p', '/proc'])
-            self.staging_area.runcmd(['mount', '-t', 'proc', 'proc', '/proc'])
-        except morphlib.execute.CommandFailure:
-            logging.error('Could not mount /proc in staging area')
-            return False
+        path = os.path.join(self.staging_area.dirname, 'proc')
+        if os.path.exists(path) and self.setup_proc:
+            ex = morphlib.execute.Execute('.', logging.debug)
+            ex.runv(['mount', '-t', 'proc', 'none', path])
+            return path
         else:
-            return True
+            logging.debug('Not mounting /proc after all, %s does not exist' %
+                            path)
+            return None
 
-    def umount_proc(self): # pragma: no cover
-        logging.error('Unmounting /proc in staging area')
-        self.staging_area.runcmd(['umount', '/proc'])
+    def umount_proc(self, mounted): # pragma: no cover
+        if mounted:
+            logging.error('Unmounting /proc in staging area')
+            self.staging_area.runcmd(['umount', mounted])
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
@@ -465,12 +472,13 @@ class Builder(object): # pragma: no cover
         self.repo_cache = repo_cache
         self.build_env = build_env
         self.max_jobs = max_jobs
+        self.setup_proc = False
         
     def build_and_cache(self, artifact):
         kind = artifact.source.morphology['kind']
         o = self.classes[kind](self.staging_area, self.artifact_cache, 
                                artifact, self.repo_cache, self.build_env, 
-                               self.max_jobs)
+                               self.max_jobs, self.setup_proc)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
         o.build_and_cache()

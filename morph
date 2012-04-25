@@ -224,21 +224,29 @@ class Morph(cliapp.Application):
                 staging_root = '/'
                 staging_temp = tempfile.mkdtemp()
                 install_chunks = True
+                setup_proc = False
             elif self.settings['staging-chroot']:
                 staging_root = tempfile.mkdtemp()
                 staging_temp = staging_root
                 install_chunks = True
+                setup_proc = True
             else:
                 staging_root = '/'
                 staging_temp = tempfile.mkdtemp()
                 install_chunks = False
+                setup_proc = False
 
             staging_area = morphlib.stagingarea.StagingArea(staging_root,
                                                             staging_temp)
+            if self.settings['staging-chroot']:
+                self._install_initial_staging(staging_area)
 
             builder = morphlib.builder2.Builder(staging_area, lac, lrc,
                                                 build_env,
                                                 self.settings['max-jobs'])
+            if setup_proc:
+                builder.setup_proc = True
+
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
@@ -264,6 +272,13 @@ class Morph(cliapp.Application):
                 staging_area.remove()
             if staging_temp != '/' and os.path.exists(staging_temp):
                 shutil.rmtree(staging_temp)
+
+    def _install_initial_staging(self, staging_area):
+        logging.debug('Pre-populating staging area %s' % staging_area.dirname)
+        logging.debug('Fillers: %s' % repr(self.settings['staging-filler']))
+        for filename in self.settings['staging-filler']:
+            with open(filename, 'rb') as f:
+                staging_area.install_artifact(f)
 
     def cmd_show_dependencies(self, args):
         '''Dumps the dependency tree of all input morphologies.'''
