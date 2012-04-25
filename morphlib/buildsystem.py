@@ -158,7 +158,7 @@ class CPANBuildSystem(BuildSystem):
 
     def __init__(self):
         self.configure_commands = [
-            'perl Makefile.PL INSTALLDIRS=site INSTALLSITEARCH="$PREFIX/lib/perl" INSTALLSITELIB="$PREFIX/lib/perl" INSTALLSITEBIN="$PREFIX/bin" INSTALLSITESCRIPT="$PREFIX/bin" INSTALLSITEMAN1DIR="$PREFIX/share/man/man1" INSTALLMAN3DIR="$PREFIX/share/man/man3"',
+            'perl Makefile.PL INSTALLDIRS=perl INSTALLARCHLIB="$PREFIX/lib/perl" INSTALLPRIVLIB="$PREFIX/lib/perl" INSTALLBIN="$PREFIX/bin" INSTALLSCRIPT="$PREFIX/bin" INSTALLMAN1DIR="$PREFIX/share/man/man1" INSTALLMAN3DIR="$PREFIX/share/man/man3"',
         ]
         self.build_commands = [
             'make',
