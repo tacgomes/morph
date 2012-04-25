@@ -161,7 +161,7 @@ class ChunkBuilder(BuilderBase):
 
     def umount_proc(self, mounted): # pragma: no cover
         if mounted:
-            logging.error('Unmounting /proc in staging area')
+            logging.error('Unmounting /proc in staging area: %s' % mounted)
             self.staging_area.runcmd(['umount', mounted])
 
     def get_sources(self, srcdir): # pragma: no cover
