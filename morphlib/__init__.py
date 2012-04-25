@@ -17,6 +17,14 @@
 '''Baserock library.'''
 
 
+import cliapp
+
+
+class Error(cliapp.AppException):
+
+    '''Base for all morph exceptions that cause user-visible messages.'''
+
+
 import artifact
 import artifactresolver
 import bins

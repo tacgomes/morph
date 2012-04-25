@@ -34,7 +34,7 @@ urlparse.uses_fragment.extend(gitscheme)
 
 
 
-class NoRemote(Exception):
+class NoRemote(morphlib.Error):
 
     def __init__(self, reponame, errors):
         self.reponame = reponame
@@ -44,12 +44,13 @@ class NoRemote(Exception):
         return '\n\t'.join(['Cannot find remote git repository: %s' %
                             self.reponame] + self.errors)
 
-class NotCached(Exception):
+class NotCached(morphlib.Error):
     def __init__(self, reponame):
         self.reponame = reponame
 
     def __str__(self): # pragma: no cover
         return 'Repository %s is not cached yet' % self.reponame
+
 
 class LocalRepoCache(object):
 
