@@ -87,7 +87,9 @@ class StagingArea(object):
         the artifact is a tarball.
         
         '''
-        
+
+        logging.debug('Installing artifact %s' % 
+                        getattr(handle, 'name', 'unknown name'))        
         tf = tarfile.open(fileobj=handle)
         tf.extractall(path=self.dirname)
 
@@ -111,7 +113,7 @@ class StagingArea(object):
             del kwargs['cwd']
         else:
             cwd = '/'
-        real_argv = ['/usr/sbin/chroot', self.dirname, 'sh', '-xc',
+        real_argv = ['/usr/sbin/chroot', self.dirname, 'sh', '-c',
                      'cd "$1" && shift && exec "$@"', '--', cwd] + argv
         return ex.runv(real_argv, **kwargs)
 
