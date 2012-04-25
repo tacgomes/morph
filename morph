@@ -405,6 +405,12 @@ class Morph(cliapp.Application):
                               update=True, visit=visit)
 
         done = set()
+        for url, ref in subs_to_process:
+            self._cache_repo_and_submodules(cache, url, ref, done)
+
+    def _cache_repo_and_submodules(self, cache, url, ref, done):
+        subs_to_process = set()
+        subs_to_process.add((url, ref))
         while subs_to_process:
             url, ref = subs_to_process.pop()
             done.add((url, ref))
