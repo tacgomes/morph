@@ -160,8 +160,8 @@ class ChunkBuilder(BuilderBase):
             return None
 
     def umount_proc(self, mounted): # pragma: no cover
-        path = os.path.join(mounted, 'self')
-        if mounted and self.setup_proc and os.path.exists(path):
+        if (mounted and self.setup_proc and mounted and 
+            os.path.exists(os.path.join(mounted, 'self'))):
             logging.error('Unmounting /proc in staging area: %s' % mounted)
             ex = morphlib.execute.Execute('.', logging.debug)
             ex.runv(['umount', mounted])
