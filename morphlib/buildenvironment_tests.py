@@ -32,6 +32,7 @@ class BuildEnvironmentTests(unittest.TestCase):
             'ccache-remotedir': '',
             'ccache-remotenlevels': 2,
             'no-distcc': True,
+            'staging-chroot': False,
         }
         self.fake_env = {
             'PATH': '/fake_bin',

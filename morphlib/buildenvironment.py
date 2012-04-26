@@ -44,7 +44,6 @@ class BuildEnvironment():
         # copy a set of white-listed variables from the original env
         copied_vars = dict.fromkeys([
             'DISTCC_HOSTS',
-            'TMPDIR',
             'LD_PRELOAD',
             'LD_LIBRARY_PATH',
             'FAKEROOTKEY',
@@ -60,6 +59,10 @@ class BuildEnvironment():
         for name in copied_vars:
             if copied_vars[name] is not None:
                 env[name] = copied_vars[name]
+
+        if settings['bootstrap'] or not settings['staging-chroot']:
+            if 'TMPDIR' in self._osenv:
+                env['TMPDIR'] = self._osenv['TMPDIR']
 
         env['TERM'] = self._override_term
         env['SHELL'] = self._override_shell
