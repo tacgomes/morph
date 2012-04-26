@@ -139,11 +139,12 @@ class ChunkBuilder(BuilderBase):
                 self.get_sources(builddir)
                 destdir = self.staging_area.destdir(self.artifact.source)
                 self.run_commands(builddir, destdir)
-                self.umount_proc(mounted)
-                self.assemble_chunk_artifacts(destdir)
-            except BaseException:
+            except:
                 self.umount_proc(mounted)
                 raise
+            self.umount_proc(mounted)
+            self.assemble_chunk_artifacts(destdir)
+
         self.save_build_times()
 
     def mount_proc(self): # pragma: no cover
@@ -159,9 +160,11 @@ class ChunkBuilder(BuilderBase):
             return None
 
     def umount_proc(self, mounted): # pragma: no cover
-        if mounted and self.setup_proc and os.path.exists(mounted):
+        path = os.path.join(mounted, 'self')
+        if mounted and self.setup_proc and os.path.exists(path):
             logging.error('Unmounting /proc in staging area: %s' % mounted)
-            self.staging_area.runcmd(['umount', mounted])
+            ex = morphlib.execute.Execute('.', logging.debug)
+            ex.runv(['umount', mounted])
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
