@@ -43,6 +43,7 @@ class BuildEnvironment():
 
         # copy a set of white-listed variables from the original env
         copied_vars = dict.fromkeys([
+            'BOOTSTRAP_TOOLS',
             'DISTCC_HOSTS',
             'LD_PRELOAD',
             'LD_LIBRARY_PATH',
