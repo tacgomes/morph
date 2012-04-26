@@ -102,17 +102,16 @@ class StagingArea(object):
         # overwriting files.
         
         def monkey_patcher(real):
-            def make_something(tarinfo, targetpath):
+            def make_something(tarinfo, targetpath): # pragma: no cover
                 try:
                     return real(tarinfo, targetpath)
                 except OSError, e:
-                    if e.errno == errno.EEXIST:
-                        pass
-                    elif e.filename is None:
-                        e.filename = targetpath
-                        raise e
-                    else:
-                        raise
+                    if e.errno != errno.EEXIST:
+                        if e.filename is None:
+                            e.filename = targetpath
+                            raise e
+                        else:
+                            raise
             return make_something
 
         tf.makedir = monkey_patcher(tf.makedir)
