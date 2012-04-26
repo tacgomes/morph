@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import errno
 import logging
 import os
 import shutil
@@ -91,6 +92,36 @@ class StagingArea(object):
         logging.debug('Installing artifact %s' % 
                         getattr(handle, 'name', 'unknown name'))        
         tf = tarfile.open(fileobj=handle)
+        
+        # This is evil, but necessary. For some reason Python's system
+        # call wrappers (os.mknod and such) do not (always?) set the
+        # filename attribute of the OSError exception they raise. We
+        # fix that by monkey patching the tf instance with wrappers
+        # for the relevant methods to add things. The wrapper further
+        # ignores EEXIST errors, since we do not (currently!) care about
+        # overwriting files.
+        
+        def monkey_patcher(real):
+            def make_something(tarinfo, targetpath):
+                try:
+                    return real(tarinfo, targetpath)
+                except OSError, e:
+                    if e.errno == errno.EEXIST:
+                        pass
+                    elif e.filename is None:
+                        e.filename = targetpath
+                        raise e
+                    else:
+                        raise
+            return make_something
+
+        tf.makedir = monkey_patcher(tf.makedir)
+        tf.makefile = monkey_patcher(tf.makefile)
+        tf.makeunknown = monkey_patcher(tf.makeunknown)
+        tf.makefifo = monkey_patcher(tf.makefifo)
+        tf.makedev = monkey_patcher(tf.makedev)
+        tf.makelink = monkey_patcher(tf.makelink)
+
         tf.extractall(path=self.dirname)
 
     def remove(self):
