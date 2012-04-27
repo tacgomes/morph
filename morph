@@ -175,6 +175,7 @@ class Morph(cliapp.Application):
         '''
 
         logging.debug('cmd_build starting')
+        self.msg('Build starts')
 
         cachedir = self.settings['cachedir']
         if not os.path.exists(cachedir):
@@ -191,7 +192,9 @@ class Morph(cliapp.Application):
 
         for repo_name, ref, filename in self._itertriplets(args):
             logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
+            self.msg('Building %s %s %s' % (repo_name, ref, filename))
 
+            self.msg('Figuring out the right build order')
             logging.debug('cmd_build: creating source pool')
             srcpool = self._create_source_pool(lrc, rrc, (repo_name, ref,
                                                filename))
