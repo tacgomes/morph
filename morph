@@ -219,6 +219,7 @@ class Morph(cliapp.Application):
                 artifact.source.repo = lrc.cache_repo(
                                             artifact.source.repo_name)
                 if not self.settings['no-git-update']:
+                    self.msg('Cloning/updating %s' % artifact.source.repo.url)
                     self._cache_repo_and_submodules(
                         lrc, artifact.source.repo.url, artifact.source.sha1,
                         done)
