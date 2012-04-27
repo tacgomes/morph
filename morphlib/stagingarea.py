@@ -103,6 +103,9 @@ class StagingArea(object):
         
         def monkey_patcher(real):
             def make_something(tarinfo, targetpath): # pragma: no cover
+                if os.path.exists(targetpath):
+                    try:     os.remove(targetpath)
+                    except:  pass
                 try:
                     return real(tarinfo, targetpath)
                 except OSError, e:
