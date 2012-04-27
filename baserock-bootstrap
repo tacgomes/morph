@@ -184,7 +184,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -234,7 +234,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -271,7 +271,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -351,7 +351,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT <<EOF >"$do_chroot"
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -402,7 +402,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT >"$do_chroot" <<EOF
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
@@ -440,7 +440,7 @@ EOF
     local do_chroot="$BASEDIR/do-chroot.bash"
     $HOST_CAT >"$do_chroot" <<EOF
 #!/bin/bash
-trap "umount $LFS/proc $LFS/sys" INT TERM EXIT
+trap "umount $LFS/proc $LFS/sys || true" INT TERM EXIT
 set -e
 set -x
 if ! mount | grep "$LFS/proc" >/dev/null
