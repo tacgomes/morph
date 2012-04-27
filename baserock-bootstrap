@@ -381,7 +381,7 @@ pass3_build_with_morph_in_chroot()
 set -e
 set -x
 
-export PATH="/usr/bin:/bin"
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 cd /baserock/gits/morph
 python ./morph --verbose build \
     morphs master foundation.morph \
