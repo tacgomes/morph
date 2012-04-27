@@ -400,7 +400,7 @@ class Morph(cliapp.Application):
             assert cache.has_repo(reponame)
             cached_repo = cache.get_repo(reponame)
             try:
-                submodules = morphlib.git.Submodules(cached_repo.path, ref)
+                submodules = morphlib.git.Submodules(cached_repo.path, absref)
                 submodules.load()
             except morphlib.git.NoModulesFileError:
                 pass
