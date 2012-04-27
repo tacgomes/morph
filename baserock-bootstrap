@@ -28,7 +28,7 @@ HOST_MKDIR=`which mkdir`
 HOST_CHMOD=`which chmod`
 
 export CCACHE_DIR="/var/tmp/ccache"
-export PATH="$tools/lib/ccache:$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin"
+export PATH="$tools/lib/ccache:$tools/bin:$tools/sbin:/usr/lib/ccache:/usr/bin:/bin:/usr/sbin:/sbin"
 
 pass1_directories()
 {
