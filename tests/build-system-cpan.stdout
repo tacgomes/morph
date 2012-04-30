@@ -1,12 +1,2 @@
 .chunk.hello:
-./
-baserock/
-baserock/hello.meta
-bin/
 bin/hello
-lib/
-lib/perl/
-lib/perl/auto/
-lib/perl/auto/hello.build/
-lib/perl/auto/hello.build/.packlist
-lib/perl/perllocal.pod
