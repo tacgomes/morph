@@ -18,6 +18,7 @@ import errno
 import logging
 import os
 import shutil
+import stat
 import tarfile
 
 import morphlib
@@ -101,11 +102,56 @@ class StagingArea(object):
         # ignores EEXIST errors, since we do not (currently!) care about
         # overwriting files.
         
+        def follow_symlink(path): # pragma: no cover
+            try:
+                return os.stat(path)
+            except OSError:
+                return None
+        
+        def prepare_extract(tarinfo, targetpath): # pragma: no cover
+            '''Prepare to extract a tar file member onto targetpath?
+            
+            If the target already exist, and we can live with it or
+            remove it, we do so. Otherwise, raise an error.
+            
+            It's OK to extract if:
+
+            * the target does not exist
+            * the member is a directory a directory and the 
+              target is a directory or a symlink to a directory
+              (just extract, no need to remove)
+            * the member is not a directory, and the target is not a directory
+              or a symlink to a directory (remove target, then extract)
+            
+            '''
+
+            try:
+                existing = os.lstat(targetpath)
+            except OSError:
+                return True # target does not exist
+
+            if tarinfo.isdir():
+                if existing.isdir():
+                    return True
+                elif existing.islnk():
+                    st = follow_symlink(targetpath)
+                    return st and stat.S_ISDIR(st.st_mode)
+            else:
+                if existing.isdir():
+                    return False
+                elif existing.islnk():
+                    st = follow_symlink(targetpath)
+                    if st and not stat.S_ISDIR(st.st_mode):
+                        os.remove(targetpath)
+                        return True
+                else:
+                    os.remove(targetpath)
+                    return True
+            return False
+
         def monkey_patcher(real):
             def make_something(tarinfo, targetpath): # pragma: no cover
-                if os.path.exists(targetpath):
-                    try:     os.remove(targetpath)
-                    except:  pass
+                prepare_extract(tarinfo, targetpath)
                 try:
                     return real(tarinfo, targetpath)
                 except OSError, e:
