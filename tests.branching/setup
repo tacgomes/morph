@@ -74,6 +74,9 @@ scripts/run-git-in "$DATADIR/morphs" commit -m initial
 
 # Add an extra branch to the morphs repo.
 scripts/run-git-in "$DATADIR/morphs" checkout -b alfred
+touch "$DATADIR/morphs/this.is.alfred"
+scripts/run-git-in "$DATADIR/morphs" add this.is.alfred
+scripts/run-git-in "$DATADIR/morphs" commit --quiet -m 'mark as alfred'
 scripts/run-git-in "$DATADIR/morphs" checkout master
 
 

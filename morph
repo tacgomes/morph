@@ -719,13 +719,13 @@ class Morph(cliapp.Application):
     def cmd_branch(self, args):
         '''Branch the whole system.'''
         
-        if len(args) != 1:
+        if len(args) not in [1, 2]:
             raise cliapp.AppException('morph branch needs name of branch '
                                         'as parameter')
 
         new_branch = args[0]
         repo = 'morphs'
-        commit = 'master'
+        commit = 'master' if len(args) == 1 else args[1]
 
         # Create the system branch directory.
         os.makedirs(new_branch)

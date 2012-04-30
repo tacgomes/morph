@@ -1,0 +1,35 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Make sure "morph branch" creates a new system branch.
+
+set -eu
+
+cd "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" init
+
+"$SRCDIR/scripts/test-morph" branch newbranch origin/alfred
+
+echo "File tree:"
+"$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' | 
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+
+echo "Current branches:"
+"$SRCDIR/scripts/run-git-in" newbranch/morphs branch
+
+echo "Current origin:"
+"$SRCDIR/scripts/run-git-in" newbranch/morphs remote show origin |
+    sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'

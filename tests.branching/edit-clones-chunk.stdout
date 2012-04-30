@@ -5,9 +5,7 @@ Current origin, morphs:
 * remote origin
   Fetch URL: file://TMP/morphs
   Push  URL: file://TMP/morphs
-  HEAD branch (remote HEAD is ambiguous, may be one of the following):
-    alfred
-    master
+  HEAD branch: master
   Remote branches:
     alfred tracked
     master tracked

@@ -10,6 +10,7 @@ d ./newbranch/morphs
 d ./newbranch/morphs/.git
 f ./newbranch/morphs/hello-stratum.chunk
 f ./newbranch/morphs/hello-system.chunk
+f ./newbranch/morphs/this.is.alfred
 Current branches:
   master
 * newbranch
@@ -21,7 +22,8 @@ Current origin:
   Remote branches:
     alfred tracked
     master tracked
-  Local branch configured for 'git pull':
-    master merges with remote master
+  Local branches configured for 'git pull':
+    master    merges with remote master
+    newbranch merges with remote alfred
   Local ref configured for 'git push':
     master pushes to master (up to date)
