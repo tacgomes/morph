@@ -131,15 +131,15 @@ class StagingArea(object):
                 return True # target does not exist
 
             if tarinfo.isdir():
-                if existing.isdir():
+                if stat.S_ISDIR(existing.st_mode):
                     return True
-                elif existing.islnk():
+                elif stat.S_ISLNK(existing.st_mode):
                     st = follow_symlink(targetpath)
                     return st and stat.S_ISDIR(st.st_mode)
             else:
-                if existing.isdir():
+                if stat.S_ISDIR(existing.st_mode):
                     return False
-                elif existing.islnk():
+                elif stat.S_ISLNK(existing.st_mode):
                     st = follow_symlink(targetpath)
                     if st and not stat.S_ISDIR(st.st_mode):
                         os.remove(targetpath)
