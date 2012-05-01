@@ -98,30 +98,30 @@ dependency graph for test-repo|master|xfce-core.morph:
     -> test-repo|master|xfconf.morph|xfconf
 build order for test-repo|master|xfce-core.morph:
   group:
+    test-repo|master|glib.morph|glib
     test-repo|master|freetype.morph|freetype
     test-repo|master|fontconfig.morph|fontconfig
+  group:
     test-repo|master|cairo.morph|cairo
-    test-repo|master|glib.morph|glib
+    test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
+    test-repo|master|pango.morph|pango
     test-repo|master|dbus.morph|dbus
   group:
-    test-repo|master|pango.morph|pango
-    test-repo|master|gdk-pixbuf.morph|gdk-pixbuf
-    test-repo|master|dbus-glib.morph|dbus-glib
-  group:
     test-repo|master|gtk.morph|gtk
+    test-repo|master|dbus-glib.morph|dbus-glib
   group:
     test-repo|master|gtk-stack.morph|gtk-stack
   group:
     test-repo|master|libxfce4util.morph|libxfce4util
-    test-repo|master|tumbler.morph|tumbler
   group:
     test-repo|master|xfconf.morph|xfconf
+  group:
     test-repo|master|exo.morph|exo
+    test-repo|master|libxfce4ui.morph|libxfce4ui
     test-repo|master|garcon.morph|garcon
   group:
-    test-repo|master|libxfce4ui.morph|libxfce4ui
-  group:
     test-repo|master|thunar.morph|thunar
+    test-repo|master|tumbler.morph|tumbler
     test-repo|master|xfce4-panel.morph|xfce4-panel
     test-repo|master|xfce4-settings.morph|xfce4-settings
     test-repo|master|xfce4-session.morph|xfce4-session

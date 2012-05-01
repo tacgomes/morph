@@ -31,31 +31,30 @@ class BuildOrder:
         self.artifacts = artifacts
 
         if artifacts:
-            sorting = self._compute_topological_sorting(artifacts)
+            sorting = self._compute_reverse_topological_sorting(artifacts)
             self.groups = self._create_build_groups(sorting)
         else:
             self.groups = []
 
-    def _compute_topological_sorting(self, artifacts):
-        '''Computes a topological sorting of the build graph. 
+    def _compute_reverse_topological_sorting(self, artifacts):
+        '''Computes a reverse topological sorting of the build graph. 
         
-        A topological sorting basically is the result of a series of
+        A reverse topological sorting basically is the result of a series of
         breadth-first searches starting at each leaf node (artifacts with no
-        dependencies). Artifacts are added to the sorting as soon as all their
-        dependencies have been added (which means that by then, all
-        dependencies are satisfied).
+        dependents). Artifacts are added to the sorting as soon as all their
+        dependents have been added.
 
         For more information, see
         http://en.wikipedia.org/wiki/Topological_sorting.
         
         '''
 
-        # map artifacts to sets of satisfied dependencies. this is to detect
+        # map artifacts to sets of satisfied dependents. this is to detect
         # when we can actually add artifacts to the BFS queue. rather than
         # dropping links between nodes, like most topological sorting
-        # algorithms do, we simply remember all satisfied dependencies and
+        # algorithms do, we simply remember all satisfied dependents and
         # check if all of them are met repeatedly
-        satisfied_dependencies = {}
+        satisfied_dependents = {}
 
         # create an empty sorting
         sorting = collections.deque()
@@ -63,8 +62,8 @@ class BuildOrder:
         # create a set of leafs to start the DFS from
         leafs = collections.deque()
         for artifact in artifacts:
-            satisfied_dependencies[artifact] = set()
-            if len(artifact.dependencies) == 0:
+            satisfied_dependents[artifact] = set()
+            if len(artifact.dependents) == 0:
                 leafs.append(artifact)
 
         while len(leafs) > 0:
@@ -75,15 +74,15 @@ class BuildOrder:
             sorting.append(artifact)
 
             # mark this dependency as resolved in dependent artifacts
-            for dependent in artifact.dependents:
-                satisfied_dependencies[dependent].add(artifact)
+            for dependency in artifact.dependencies:
+                satisfied_dependents[dependency].add(artifact)
 
                 # add the dependent blob as a leaf if all
-                # its dependencies have been resolved
-                has = len(satisfied_dependencies[dependent])
-                needs = len(dependent.dependencies)
+                # its dependents have been resolved
+                has = len(satisfied_dependents[dependency])
+                needs = len(dependency.dependents)
                 if has == needs:
-                    leafs.append(dependent)
+                    leafs.append(dependency)
 
         # if not all dependencies were resolved on the way, we
         # have found at least one cyclic dependency
@@ -96,21 +95,23 @@ class BuildOrder:
         groups = collections.deque()
 
         if sorting:
-            # create the first group
+            # create the last group
             group = []
             groups.append(group)
 
-            # traverse the build graph in topological order
-            for source in sorting:
-                # add the current item to the current group, or a new group
-                # if one of its dependencies is in the current one
-                create_group = False
-                for dependency in source.dependencies:
-                    if dependency in group:
-                        create_group = True
-                if create_group:
-                    group = []
-                    groups.append(group)
-                group.append(source)
+            # traverse the build graph in reverse topological order
+            for artifact in sorting:
+                # add artifact to a group that comes as late in the build order
+                # as possible; if the first group contains any dependents,
+                # add the artifact to a new group at the beginning of the order
+                for group in groups:
+                    if not any([x in group for x in artifact.dependents]):
+                        group.append(artifact)
+                        break
+                    else:
+                        group = []
+                        group.append(artifact)
+                        groups.appendleft(group)
+                        break
 
         return groups
