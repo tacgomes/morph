@@ -17,9 +17,11 @@ export LC_ALL=C
 if (uname -m | grep arm) >/dev/null; then
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2"
+    export BSP_STRATUM="imx53-bsp.morph"
 else
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
     export TARGET_CFLAGS="-O2"
+    export BSP_STRATUM="x86_64-generic-bsp.morph"
 fi
 
 HOST_CAT=`which cat`
@@ -337,7 +339,7 @@ cd /baserock/gits/morph
 while ! python ./morph --verbose update-gits \
     morphs master foundation.morph \
     morphs master devel.morph \
-    morphs master linux-stratum.morph \
+    morphs master $BSP_STRATUM \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
@@ -386,7 +388,7 @@ cd /baserock/gits/morph
 python ./morph --verbose build \
     morphs master foundation.morph \
     morphs master devel.morph \
-    morphs master linux-stratum.morph \
+    morphs master $BSP_STRATUM \
         --staging-chroot \
         $(for x in $LFS/baserock/cache.pass2/*.stratum.*;  \
             do echo -n "--staging-filler=\"$x\" "; done) \
