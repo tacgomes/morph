@@ -145,16 +145,14 @@ class Morph(cliapp.Application):
             yield args[0], args[1], args[2]
             args = args[3:]
 
-    def _create_source_pool(
-            self, local_repo_cache, remote_repo_cache,
-            triplet):
+    def _create_source_pool(self, lrc, rrc, triplet):
         pool = morphlib.sourcepool.SourcePool()
         def add_to_pool(reponame, ref, filename, absref, morphology):
             source = morphlib.source.Source(reponame, ref, absref,
                                             morphology, filename)
             pool.add(source)
 
-        self._traverse_morphs([triplet], local_repo_cache, remote_repo_cache,
+        self._traverse_morphs([triplet], lrc, rrc,
                               update=not self.settings['no-git-update'],
                               visit=add_to_pool)
         return pool
@@ -191,7 +189,12 @@ class Morph(cliapp.Application):
                 os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],
                 bundle_base_url=self.settings['bundle-server'])
-        rrc = None
+        if self.settings['cache-server']:
+            rrc = morphlib.remoterepocache.RemoteRepoCache(
+                    self.settings['cache-server'],
+                    self.settings['git-base-url'])
+        else:
+            rrc = None
 
         for repo_name, ref, filename in self._itertriplets(args):
             logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
@@ -199,8 +202,8 @@ class Morph(cliapp.Application):
 
             self.msg('Figuring out the right build order')
             logging.debug('cmd_build: creating source pool')
-            srcpool = self._create_source_pool(lrc, rrc, (repo_name, ref,
-                                               filename))
+            srcpool = self._create_source_pool(
+                    lrc, rrc, (repo_name, ref, filename))
             logging.debug('cmd_build: creating artifact resolver')
             ar = morphlib.artifactresolver.ArtifactResolver()
             logging.debug('cmd_build: resolving artifacts')
@@ -222,13 +225,16 @@ class Morph(cliapp.Application):
             logging.debug('cmd_build: cloning/updating cached repos')
             done = set()
             for artifact in needed:
-                artifact.source.repo = lrc.cache_repo(
-                                            artifact.source.repo_name)
-                if not self.settings['no-git-update']:
-                    self.msg('Cloning/updating %s' % artifact.source.repo.url)
+                if self.settings['no-git-update']:
+                    artifact.source.repo = lrc.get_repo(
+                            artifact.source.repo_name)
+                else:
+                    self.msg('Cloning/updating %s' % artifact.source.repo_name)
+                    artifact.source.repo = lrc.cache_repo(
+                            artifact.source.repo_name)
                     self._cache_repo_and_submodules(
-                        lrc, artifact.source.repo.url, artifact.source.sha1,
-                        done)
+                            lrc, artifact.source.repo.url,
+                            artifact.source.sha1, done)
 
             if self.settings['bootstrap']:
                 staging_root = '/'
@@ -251,9 +257,9 @@ class Morph(cliapp.Application):
             if self.settings['staging-chroot']:
                 self._install_initial_staging(staging_area)
 
-            builder = morphlib.builder2.Builder(staging_area, lac, lrc,
-                                                build_env,
-                                                self.settings['max-jobs'])
+            builder = morphlib.builder2.Builder(
+                    staging_area, lac, lrc,
+                    build_env, self.settings['max-jobs'])
             if setup_proc:
                 builder.setup_proc = True
 
@@ -298,20 +304,19 @@ class Morph(cliapp.Application):
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
         baseurls = self.settings['git-base-url']
         bundle_base_url = self.settings['bundle-server']
-        local_repo_cache = morphlib.localrepocache.LocalRepoCache(
+        lrc = morphlib.localrepocache.LocalRepoCache(
                 cachedir, baseurls, bundle_base_url)
         if self.settings['cache-server']:
-            remote_repo_cache = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'], baseurls)
+            rrc = morphlib.remoterepocache.RemoteRepoCache(
+                    self.settings['cache-server'],
+                    self.settings['git-base-url'])
         else:
-            remote_repo_cache = None
+            rrc = None
 
         # traverse the morphs to list all the sources
         for repo, ref, filename in self._itertriplets(args):
             repo, ref, filename = args[:3]
-            pool = self._create_source_pool(
-                    local_repo_cache, remote_repo_cache,
-                    (repo, ref, filename))
+            pool = self._create_source_pool(lrc, rrc, (repo, ref, filename))
 
             resolver = morphlib.artifactresolver.ArtifactResolver()
             artifacts = resolver.resolve_artifacts(pool)
@@ -460,7 +465,12 @@ class Morph(cliapp.Application):
                 os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],
                 bundle_base_url=self.settings['bundle-server'])
-        rrc = None
+        if self.settings['cache-server']:
+            rrc = morphlib.remoterepocache.RemoteRepoCache(
+                    self.settings['cache-server'],
+                    self.settings['git-base-url'])
+        else:
+            rrc = None
 
         def the_one(source, repo_name, ref, filename):
             return (source.repo_name == repo_name and
@@ -468,8 +478,8 @@ class Morph(cliapp.Application):
                     source.filename == filename)
 
         def get_artifact(repo_name, ref, filename):
-            srcpool = self._create_source_pool(lrc, rrc, 
-                                               (repo_name, ref, filename))
+            srcpool = self._create_source_pool(
+                    lrc, rrc, (repo_name, ref, filename))
             ar = morphlib.artifactresolver.ArtifactResolver()
             artifacts = ar.resolve_artifacts(srcpool)
             for artifact in artifacts:
