@@ -27,8 +27,6 @@ import tempfile
 import morphlib
 from morphlib import buildworker
 from morphlib import buildcontroller
-from morphlib.morphologyloader import MorphologyLoader
-from morphlib.builddependencygraph import BuildDependencyGraph
 
 
 defaults = {

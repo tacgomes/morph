@@ -22,6 +22,44 @@ import time
 
 import morphlib
 
+
+def ldconfig(ex, rootdir): # pragma: no cover
+    '''Run ldconfig for the filesystem below ``rootdir``.
+
+    Essentially, ``rootdir`` specifies the root of a new system.
+    Only directories below it are considered.
+
+    ``etc/ld.so.conf`` below ``rootdir`` is assumed to exist and
+    be populated by the right directories, and should assume
+    the root directory is ``rootdir``. Example: if ``rootdir``
+    is ``/tmp/foo``, then ``/tmp/foo/etc/ld.so.conf`` should
+    contain ``/lib``, not ``/tmp/foo/lib``.
+    
+    The ldconfig found via ``$PATH`` is used, not the one in ``rootdir``,
+    since in bootstrap mode that might not yet exist, the various 
+    implementations should be compatible enough.
+
+    '''
+
+    conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
+    if os.path.exists(conf):
+        logging.debug('Running ldconfig for %s' % rootdir)
+        cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
+        
+        # The following trickery with $PATH is necessary during the Baserock
+        # bootstrap build: we are not guaranteed that PATH contains the
+        # directory (/sbin conventionally) that ldconfig is in. Then again,
+        # it might, and if so, we don't want to hardware a particular
+        # location. So we add the possible locations to the end of $PATH
+        # and restore that aftewards.
+        old_path = ex.env['PATH']
+        ex.env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
+        ex.runv(['ldconfig', '-r', rootdir])
+        ex.env['PATH'] = old_path
+    else:
+        logging.debug('No %s, not running ldconfig' % conf)
+
+
 class BuilderBase(object):
 
     '''Base class for building artifacts.'''
@@ -380,7 +418,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             for stratum_artifact in self.artifact.dependencies:
                 with self.artifact_cache.get(stratum_artifact) as f:
                     morphlib.bins.unpack_binary_from_file(f, path)
-            morphlib.builder.ldconfig(self.ex, path)
+            ldconfig(self.ex, path)
 
     def _create_fstab(self, path):
         logging.debug('Creating fstab in %s' % path)
