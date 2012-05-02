@@ -693,29 +693,35 @@ class Morph(cliapp.Application):
             raise cliapp.AppException("Can't find the mine directory")
         self.output.write('%s\n' % dirname)
     
-    def _clone_to_directory(self, dirname, repo, ref):
+    def _clone_to_directory(self, dirname, reponame, ref):
         '''Clone a repository below a directory.
         
         As a side effect, clone it into the morph repository.
         
         '''
 
-        # Get the repository into the cache.
-        tempdir = morphlib.tempdir.Tempdir(self.settings['tempdir'])
-        morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self,
-                                update=not self.settings['no-git-update'])
-        treeish = source_manager.get_treeish(repo, ref)
+        # Setup.
+        if not os.path.exists(self.settings['cachedir']):
+            os.mkdir(self.settings['cachedir'])
+        cachedir = os.path.join(self.settings['cachedir'], 'gits')
+        baseurls = self.settings['git-base-url']
+        bundle_base_url = self.settings['bundle-server']
+        cache = morphlib.localrepocache.LocalRepoCache(
+                cachedir, baseurls, bundle_base_url)
+
+        # Get the repository into the cache; make sure it is up to date.
+        repo = cache.cache_repo(reponame)
+        repo.update()
         
         # Clone it from cache to target directory.
-        morphlib.git.clone(dirname, treeish.repo, self.msg)
+        morphlib.git.clone(dirname, repo.path, self.msg)
         
         # Set the origin to point at the original repository.
-        morphlib.git.set_remote(dirname, 'origin', treeish.original_repo)
+        morphlib.git.set_remote(dirname, 'origin', repo.url)
         
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)
-    
+
     def cmd_branch(self, args):
         '''Branch the whole system.'''
         
