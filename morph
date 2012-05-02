@@ -824,11 +824,15 @@ class Morph(cliapp.Application):
 
     def cmd_petrify(self, args):
         '''Make refs to chunks be absolute SHA-1s.'''
-        
-        morph_loader = MorphologyLoader(self.settings)
-        source_manager = morphlib.sourcemanager.SourceManager(self,
-                            update=not self.settings['no-git-update'])
 
+        if not os.path.exists(self.settings['cachedir']):
+            os.mkdir(self.settings['cachedir'])
+        cachedir = os.path.join(self.settings['cachedir'], 'gits')
+        baseurls = self.settings['git-base-url']
+        bundle_base_url = self.settings['bundle-server']
+        cache = morphlib.localrepocache.LocalRepoCache(
+                cachedir, baseurls, bundle_base_url)
+        
         for filename in args:
             with open(filename) as f:
                 morph = json.load(f)
@@ -840,11 +844,11 @@ class Morph(cliapp.Application):
             self.msg('Petrifying %s' % filename)
 
             for source in morph['sources']:
-                repo = source.get('repo', source['name'])
+                reponame = source.get('repo', source['name'])
                 ref = source['ref']
-                self.msg('.. looking up sha1 for %s %s' % (repo, ref))
-                treeish = source_manager.get_treeish(repo, ref)
-                source['ref'] = treeish.sha1
+                self.msg('.. looking up sha1 for %s %s' % (reponame, ref))
+                repo = cache.get_repo(reponame)
+                source['ref'] = repo.resolve_ref(ref)
             
             with open(filename, 'w') as f:
                 json.dump(morph, f, indent=2)
