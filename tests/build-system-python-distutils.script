@@ -53,7 +53,7 @@ git commit --quiet -m 'convert hello into a python project'
 
 "$SRCDIR/scripts/test-morph" build --prefix= chunk-repo farrokh hello.morph
 
-for chunk in "$DATADIR/cache/"*.chunk.*
+for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
     tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

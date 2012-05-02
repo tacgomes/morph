@@ -22,7 +22,7 @@
 
 set -eu
 
-cache="$DATADIR/cache"
+cache="$DATADIR/cache/artifacts"
 
 # Make a branch in the chunk repo where we can make our own modifications.
 (cd "$DATADIR/chunk-repo" &&

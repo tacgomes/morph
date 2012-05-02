@@ -179,9 +179,14 @@ class Morph(cliapp.Application):
         if not os.path.exists(cachedir):
             os.mkdir(cachedir)
 
+        artifact_cachedir = os.path.join(self.settings['cachedir'], 'artifacts')
+        if not os.path.exists(artifact_cachedir):
+            os.mkdir(artifact_cachedir)
+
         build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        lac = morphlib.localartifactcache.LocalArtifactCache(cachedir)
+        lac = morphlib.localartifactcache.LocalArtifactCache(
+                os.path.join(cachedir, 'artifacts'))
         lrc = morphlib.localrepocache.LocalRepoCache(
                 os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],
@@ -449,7 +454,8 @@ class Morph(cliapp.Application):
         cachedir = self.settings['cachedir']
         build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        lac = morphlib.localartifactcache.LocalArtifactCache(cachedir)
+        lac = morphlib.localartifactcache.LocalArtifactCache(
+                os.path.join(cachedir, 'artifacts'))
         lrc = morphlib.localrepocache.LocalRepoCache(
                 os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],

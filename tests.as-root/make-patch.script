@@ -62,8 +62,8 @@ EOF
 
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build morphs-repo master hello-system.morph
-img1=$(find "$DATADIR/cache" -maxdepth 1 -name '*.system.*')
-stratum1=$(find "$DATADIR/cache" -maxdepth 1 -name '*.stratum.*')
+img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*')
+stratum1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.stratum.*')
 
 # Modify the chunk, in a new branch.
 "$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet farrokh
@@ -81,7 +81,7 @@ sed -i 's/farrokh/alfred/' "$DATADIR/morphs-repo/hello-stratum.morph"
 
 # Build second image.
 "$SRCDIR/scripts/test-morph" build morphs-repo alfred hello-system.morph
-img2=$(find "$DATADIR/cache" -maxdepth 1 -name '*.system.*' \
+img2=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*' \
             ! -name $(basename "$img1"))
 
 # Make the patch.

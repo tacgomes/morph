@@ -139,6 +139,7 @@ class BuilderBaseTests(unittest.TestCase):
         self.max_jobs = 1
         self.builder = morphlib.builder2.BuilderBase(self.staging_area,
                                                      self.artifact_cache,
+                                                     None,
                                                      self.artifact,
                                                      self.repo_cache,
                                                      self.build_env,
@@ -205,8 +206,8 @@ class BuilderBaseTests(unittest.TestCase):
 class ChunkBuilderTests(unittest.TestCase):
 
     def setUp(self):
-        self.build = morphlib.builder2.ChunkBuilder(None, None, None, None, 
-                                                    None, 1, False)
+        self.build = morphlib.builder2.ChunkBuilder(None, None, None, None,
+                                                    None, None, 1, False)
 
     def test_uses_morphology_commands_when_given(self):
         m = { 'build-commands': ['build-it'] }

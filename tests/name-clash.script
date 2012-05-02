@@ -56,5 +56,5 @@ EOF
 # unpack it and check the contents
 INSTDIR="$DATADIR"/unpack
 mkdir -p "$INSTDIR"
-tar -C "$INSTDIR" -xhf "$DATADIR/cache/"*hello-stratum*
+tar -C "$INSTDIR" -xhf "$DATADIR/cache/artifacts/"*hello-stratum*
 test "$("$INSTDIR"/bin/hello)" = "hello, world"
