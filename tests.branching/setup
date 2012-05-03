@@ -28,7 +28,7 @@ set -eu
 # Create a morph configuration file
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
-git-base-url = file://$DATADIR/
+repo-alias = test=file://$DATADIR/#file://$DATADIR/
 cachedir = $DATADIR/mine/.morph/cache
 log = $DATADIR/morph.log
 keep-path = true
@@ -61,7 +61,8 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.chunk"
     "sources": [
         {
             "name": "hello",
-            "ref": "master"
+            "ref": "master",
+            "repo": "test:hello"
         }
     ]
 }
