@@ -28,7 +28,7 @@ set -eu
 # Create a morph configuration file
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
-repo-alias = test=file://$DATADIR/#file://$DATADIR/
+repo-alias = baserock=file://$DATADIR/%s#file://$DATADIR/%s
 cachedir = $DATADIR/mine/.morph/cache
 log = $DATADIR/morph.log
 keep-path = true
@@ -62,7 +62,7 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.chunk"
         {
             "name": "hello",
             "ref": "master",
-            "repo": "test:hello"
+            "repo": "baserock:hello"
         }
     ]
 }
