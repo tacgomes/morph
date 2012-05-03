@@ -28,7 +28,7 @@ cd "$DATADIR/mine"
 
 # Make a change to a chunk.
 cd newbranch/morphs
-"$SRCDIR/scripts/test-morph" edit hello master
+"$SRCDIR/scripts/test-morph" edit baserock:hello master
 cd ../hello
 touch newfile.txt
 git add newfile.txt
@@ -38,8 +38,8 @@ git commit -m foo --quiet
 cd "$DATADIR/mine"
 "$SRCDIR/scripts/test-morph" branch otherbranch
 cd otherbranch/morphs
-"$SRCDIR/scripts/test-morph" edit hello master
-"$SRCDIR/scripts/test-morph" merge newbranch hello
+"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" merge newbranch baserock:hello
 
 # Check results.
 cd ../hello

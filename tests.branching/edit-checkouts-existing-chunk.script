@@ -27,7 +27,7 @@ cd "$DATADIR/mine"
 
 # Edit the hello chunk in alfred.
 cd alfred/morphs
-"$SRCDIR/scripts/test-morph" edit hello alfred
+"$SRCDIR/scripts/test-morph" edit baserock:hello alfred
 
 echo "Current branches, morphs:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/morphs" branch

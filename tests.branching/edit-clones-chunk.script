@@ -27,7 +27,7 @@ cd "$DATADIR/mine"
 
 # Edit chunk.
 cd newbranch/morphs
-"$SRCDIR/scripts/test-morph" edit hello master
+"$SRCDIR/scripts/test-morph" edit baserock:hello master
 
 echo "Current branches, morphs:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/morphs" branch
