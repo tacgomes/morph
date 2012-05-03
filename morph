@@ -34,6 +34,14 @@ defaults = {
         'git://gitorious.org/baserock-morphs/',
         'git://gitorious.org/baserock/',
     ],
+    'repo-alias': [
+        'upstream='
+            'git://gitorious.org/baserock-morphs/%s='
+            'git@gitorious.org:baserock-morphs/%s.git',
+        'baserock='
+            'git://gitorious.org/baserock/%s='
+            'git@gitorious.org:baserock/%s.git',
+    ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
     'prefix': '/usr',
@@ -51,6 +59,14 @@ class Morph(cliapp.Application):
                              'prepend URL to git repos that are not URLs',
                              metavar='URL',
                              default=defaults['git-base-url'])
+        self.settings.string_list(['repo-alias'],
+                            'define URL prefix aliases to allow repository '
+                                'addresses to be shortened; '
+                                'use alias=pullpattern=pushpattern '
+                                'to allow alias:shortname to be used instead '
+                                'of the full URL; the patterns must contain '
+                                'a %s where the shortname gets replaced',
+                            default=defaults['repo-alias'])
         self.settings.string(['bundle-server'],
                              'base URL to download bundles',
                              metavar='URL',
