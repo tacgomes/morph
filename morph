@@ -177,7 +177,8 @@ class Morph(cliapp.Application):
         if not os.path.exists(cachedir):
             os.mkdir(cachedir)
 
-        artifact_cachedir = os.path.join(self.settings['cachedir'], 'artifacts')
+        artifact_cachedir = os.path.join(
+                self.settings['cachedir'], 'artifacts')
         if not os.path.exists(artifact_cachedir):
             os.mkdir(artifact_cachedir)
 
