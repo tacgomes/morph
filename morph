@@ -185,6 +185,11 @@ class Morph(cliapp.Application):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
         lac = morphlib.localartifactcache.LocalArtifactCache(
                 os.path.join(cachedir, 'artifacts'))
+        if self.settings['cache-server']:
+            rac = morphlib.remoteartifactcache.RemoteArtifactCache(
+                    self.settings['cache-server'])
+        else:
+            rac = None
         lrc = morphlib.localrepocache.LocalRepoCache(
                 os.path.join(cachedir, 'gits'),
                 self.settings['git-base-url'],
@@ -220,7 +225,8 @@ class Morph(cliapp.Application):
             for group in order.groups:
                 for artifact in group:
                     if not lac.has(artifact):
-                        needed.append(artifact)
+                        if not rac or not rac.has(artifact):
+                            needed.append(artifact)
 
             logging.debug('cmd_build: cloning/updating cached repos')
             done = set()
@@ -258,8 +264,8 @@ class Morph(cliapp.Application):
                 self._install_initial_staging(staging_area)
 
             builder = morphlib.builder2.Builder(
-                    staging_area, lac, lrc,
-                    build_env, self.settings['max-jobs'])
+                    staging_area, lac, rac, lrc, build_env,
+                    self.settings['max-jobs'])
             if setup_proc:
                 builder.setup_proc = True
 

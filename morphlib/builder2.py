@@ -64,10 +64,12 @@ class BuilderBase(object):
 
     '''Base class for building artifacts.'''
 
-    def __init__(self, staging_area, artifact_cache, artifact, repo_cache,
+    def __init__(self, staging_area, local_artifact_cache,
+                 remote_artifact_cache, artifact, repo_cache,
                  build_env, max_jobs, setup_proc):
         self.staging_area = staging_area
-        self.artifact_cache = artifact_cache
+        self.local_artifact_cache = local_artifact_cache
+        self.remote_artifact_cache = remote_artifact_cache
         self.artifact = artifact
         self.repo_cache = repo_cache
         self.build_env = build_env
@@ -88,7 +90,7 @@ class BuilderBase(object):
             }
 
         logging.debug('Writing metadata to the cache')
-        with self.artifact_cache.put_source_metadata(
+        with self.local_artifact_cache.put_source_metadata(
                 self.artifact.source, self.artifact.cache_key,
                 'meta') as f:
             json.dump(meta, f, indent=4, sort_keys=True)
@@ -295,7 +297,7 @@ class ChunkBuilder(BuilderBase):
                 patterns += [r'baserock/%s\.' % artifact_name]
     
                 artifact = self.new_artifact(artifact_name)
-                with self.artifact_cache.put(artifact) as f:
+                with self.local_artifact_cache.put(artifact) as f:
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
                     morphlib.bins.create_chunk(destdir, f, patterns, ex)
@@ -319,14 +321,23 @@ class StratumBuilder(BuilderBase):
                             if dependency.source.morphology['kind'] == 'chunk']
             with self.build_watch('unpack-chunks'):
                 for chunk_artifact in constituents:
-                    with self.artifact_cache.get(chunk_artifact) as f:
-                        morphlib.bins.unpack_binary_from_file(f, destdir)
+                    # download the chunk artifact if necessary
+                    if not self.local_artifact_cache.has(chunk_artifact):
+                        source = self.remote_artifact_cache.get(chunk_artifact)
+                        target = self.local_artifact_cache.put(chunk_artifact)
+                        shutil.copyfileobj(source, target)
+                        target.close()
+                        source.close()
+                    # unpack it from the local artifact cache
+                    f = self.local_artifact_cache.get(chunk_artifact)
+                    morphlib.bins.unpack_binary_from_file(f, destdir)
+                    f.close()
 
             with self.build_watch('create-binary'):    
                 artifact_name = self.artifact.source.morphology['name']
                 self.write_metadata(destdir, artifact_name)
                 artifact = self.new_artifact(artifact_name)
-                with self.artifact_cache.put(artifact) as f:
+                with self.local_artifact_cache.put(artifact) as f:
                     morphlib.bins.create_stratum(destdir, f, None)
         self.save_build_times()
 
@@ -416,8 +427,17 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         logging.debug('Unpacking strata to %s' % path)
         with self.build_watch('unpack-strata'):
             for stratum_artifact in self.artifact.dependencies:
-                with self.artifact_cache.get(stratum_artifact) as f:
-                    morphlib.bins.unpack_binary_from_file(f, path)
+                # download the stratum artifact if necessary
+                if not self.local_artifact_cache.has(stratum_artifact):
+                    source = self.remote_artifact_cache.get(stratum_artifact)
+                    target = self.local_artifact_cache.put(stratum_artifact)
+                    shutil.copyfileobj(source, target)
+                    target.close()
+                    source.close()
+                # unpack it from the local artifact cache
+                f = self.local_artifact_cache.get(stratum_artifact)
+                morphlib.bins.unpack_binary_from_file(f, path)
+                f.close()
             ldconfig(self.ex, path)
 
     def _create_fstab(self, path):
@@ -486,7 +506,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         # FIXME: Need to create file directly in cache to avoid costly
         # copying here.
         with self.build_watch('cache-image'):
-            with self.artifact_cache.put(self.artifact) as outf:
+            with self.local_artifact_cache.put(self.artifact) as outf:
                 with open(image_name) as inf:
                     while True:
                         data = inf.read(1024**2)
@@ -505,10 +525,11 @@ class Builder(object): # pragma: no cover
         'system': SystemBuilder,
     }
 
-    def __init__(self, staging_area, artifact_cache, repo_cache, build_env, 
-                 max_jobs):
+    def __init__(self, staging_area, local_artifact_cache,
+                 remote_artifact_cache, repo_cache, build_env, max_jobs):
         self.staging_area = staging_area
-        self.artifact_cache = artifact_cache
+        self.local_artifact_cache = local_artifact_cache
+        self.remote_artifact_cache = remote_artifact_cache
         self.repo_cache = repo_cache
         self.build_env = build_env
         self.max_jobs = max_jobs
@@ -516,8 +537,9 @@ class Builder(object): # pragma: no cover
         
     def build_and_cache(self, artifact):
         kind = artifact.source.morphology['kind']
-        o = self.classes[kind](self.staging_area, self.artifact_cache, 
-                               artifact, self.repo_cache, self.build_env, 
+        o = self.classes[kind](self.staging_area, self.local_artifact_cache, 
+                               self.remote_artifact_cache, artifact,
+                               self.repo_cache, self.build_env, 
                                self.max_jobs, self.setup_proc)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
