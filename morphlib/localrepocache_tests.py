@@ -23,9 +23,9 @@ import morphlib
 class LocalRepoCacheTests(unittest.TestCase):
 
     def setUp(self):
-        baseurls = ['git://example.com/']
+        aliases = ['upstream=git://example.com/%s=example.com:%s.git']
         bundle_base_url = 'http://lorry.example.com/bundles/'
-        self.reponame = 'reponame'
+        self.reponame = 'upstream:reponame'
         self.repourl = 'git://example.com/reponame'
         escaped_url = 'git___example_com_reponame'
         self.bundle_url = '%s%s.bndl' % (bundle_base_url, escaped_url)
@@ -36,7 +36,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.fetched = []
         self.removed = []
         self.lrc = morphlib.localrepocache.LocalRepoCache(self.cachedir,
-                                                          baseurls,
+                                                          aliases,
                                                           bundle_base_url)
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
@@ -77,13 +77,13 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.cache.add(path)
         return True
 
-    def test_has_not_got_relative_repo_initially(self):
+    def test_has_not_got_shortened_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.reponame))
 
     def test_has_not_got_absolute_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.repourl))
 
-    def test_caches_relative_repository_on_request(self):
+    def test_caches_shortened_repository_on_request(self):
         self.lrc.cache_repo(self.reponame)
         self.assertTrue(self.lrc.has_repo(self.reponame))
         self.assertTrue(self.lrc.has_repo(self.repourl))
@@ -122,7 +122,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertEqual(self.removed, [self.cache_path + '.bundle'])
         self.assertEqual(self.remotes['origin']['url'], self.repourl)
 
-    def test_gets_cached_relative_repo(self):
+    def test_gets_cached_shortened_repo(self):
         self.lrc.cache_repo(self.reponame)
         cached = self.lrc.get_repo(self.reponame)
         self.assertTrue(cached is not None)
