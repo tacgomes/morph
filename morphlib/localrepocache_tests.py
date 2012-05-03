@@ -23,7 +23,7 @@ import morphlib
 class LocalRepoCacheTests(unittest.TestCase):
 
     def setUp(self):
-        aliases = ['upstream=git://example.com/%s=example.com:%s.git']
+        aliases = ['upstream=git://example.com/%s#example.com:%s.git']
         bundle_base_url = 'http://lorry.example.com/bundles/'
         self.reponame = 'upstream:reponame'
         self.repourl = 'git://example.com/reponame'
@@ -82,7 +82,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertEqual(self.lrc.pull_url(self.reponame), self.repourl)
 
     def test_expands_shortened_url_correctly_for_pushing(self):
-        self.assertEqual(self.lrc.push_url(self.reponame), self.repourl)
+        self.assertEqual(self.lrc.push_url(self.reponame), self.pushurl)
 
     def test_has_not_got_shortened_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.reponame))

@@ -16,6 +16,7 @@
 
 import logging
 import os
+import re
 import urllib2
 import urlparse
 import shutil
@@ -88,9 +89,9 @@ class LocalRepoCache(object):
     
     '''
     
-    def __init__(self, cachedir, baseurls, bundle_base_url=None):
+    def __init__(self, cachedir, aliases, bundle_base_url=None):
         self._cachedir = cachedir
-        self._baseurls = baseurls
+        self._aliases = aliases
         if bundle_base_url and not bundle_base_url.endswith('/'):
             bundle_base_url += '/' # pragma: no cover
         self._bundle_base_url = bundle_base_url
@@ -185,11 +186,49 @@ class LocalRepoCache(object):
             path = self._cache_name(repourl)
             yield repourl, path
     
+    def _split_reponame(self, reponame):
+        '''Split reponame into prefix and suffix.
+        
+        The prefix is returned as None if there was no prefix.
+        
+        '''
+
+        pat = r'^(?P<prefix>[a-z0-9]+):(?P<rest>.*)$'
+        m = re.match(pat, reponame)
+        if m:
+            return m.group('prefix'), m.group('rest')
+        else:
+            return None, reponame
+    
+    def _apply_url_pattern(self, pattern, shortname):
+        assert '%s' in pattern
+        return shortname.join(pattern.split('%s'))
+    
+    def _expand_reponame(self, reponame, patname):
+        prefix, suffix = self._split_reponame(reponame)
+
+        # There was no prefix.
+        if prefix is None:
+            return reponame
+
+        pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)'
+        for alias in self._aliases:
+            m = re.match(pat, alias)
+            if m and m.group('prefix') == prefix:
+                pullpat = m.group(patname)
+                return self._apply_url_pattern(pullpat, suffix)
+
+        # Unknown prefix. Which means it may be a real URL instead.
+        # Let the caller deal with it.        
+        return reponame
+    
     def pull_url(self, reponame):
         '''Expand a possibly shortened repo name to a pull url.'''
-        
+        return self._expand_reponame(reponame, 'pullpat')
+
     def push_url(self, reponame):
         '''Expand a possibly shortened repo name to a push url.'''
+        return self._expand_reponame(reponame, 'pushpat')
     
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''

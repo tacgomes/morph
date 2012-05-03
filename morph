@@ -36,10 +36,10 @@ defaults = {
     ],
     'repo-alias': [
         'upstream='
-            'git://gitorious.org/baserock-morphs/%s='
+            'git://gitorious.org/baserock-morphs/%s#'
             'git@gitorious.org:baserock-morphs/%s.git',
         'baserock='
-            'git://gitorious.org/baserock/%s='
+            'git://gitorious.org/baserock/%s#'
             'git@gitorious.org:baserock/%s.git',
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
