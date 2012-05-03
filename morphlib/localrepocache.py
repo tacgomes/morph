@@ -185,6 +185,12 @@ class LocalRepoCache(object):
             path = self._cache_name(repourl)
             yield repourl, path
     
+    def pull_url(self, reponame):
+        '''Expand a possibly shortened repo name to a pull url.'''
+        
+    def push_url(self, reponame):
+        '''Expand a possibly shortened repo name to a push url.'''
+    
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''
         for repourl, path in self._base_iterate(reponame):

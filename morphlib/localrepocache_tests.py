@@ -27,6 +27,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         bundle_base_url = 'http://lorry.example.com/bundles/'
         self.reponame = 'upstream:reponame'
         self.repourl = 'git://example.com/reponame'
+        self.pushurl = 'example.com:reponame.git'
         escaped_url = 'git___example_com_reponame'
         self.bundle_url = '%s%s.bndl' % (bundle_base_url, escaped_url)
         self.cachedir = '/cache/dir'
@@ -76,6 +77,12 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.fetched.append(url)
         self.cache.add(path)
         return True
+
+    def test_expands_shortened_url_correctly_for_pulling(self):
+        self.assertEqual(self.lrc.pull_url(self.reponame), self.repourl)
+
+    def test_expands_shortened_url_correctly_for_pushing(self):
+        self.assertEqual(self.lrc.push_url(self.reponame), self.repourl)
 
     def test_has_not_got_shortened_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.reponame))
