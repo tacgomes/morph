@@ -581,6 +581,15 @@ class Morph(cliapp.Application):
             raise cliapp.AppException("Can't find the mine directory")
         self.output.write('%s\n' % dirname)
     
+    def _resolve_reponame(self, reponame):
+        '''Return the full pull URL of a reponame.'''
+
+        # Setup.
+        aliases = self.settings['repo-alias']
+        cache = morphlib.localrepocache.LocalRepoCache(None, aliases, None)
+
+        return cache.pull_url(reponame)
+    
     def _clone_to_directory(self, dirname, reponame, ref):
         '''Clone a repository below a directory.
         
@@ -681,7 +690,7 @@ class Morph(cliapp.Application):
             raise cliapp.AppException('morph edit must get a repository name '
                                         'and commit ref as argument')
 
-        repo = args[0]
+        repo = self._resolve_reponame(args[0])
         ref = args[1]
 
         mine_directory = self._deduce_mine_directory()
@@ -710,6 +719,7 @@ class Morph(cliapp.Application):
         this_branch = self._deduce_system_branch()
         
         for repo in args[1:]:
+            repo = self._resolve_reponame(repo)
             basename = os.path.basename(repo)
             pull_from = os.path.join(mine, other_branch, basename)
             repo_dir = os.path.join(mine, this_branch, basename)
