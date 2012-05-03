@@ -23,7 +23,7 @@ import morphlib
 class LocalRepoCacheTests(unittest.TestCase):
 
     def setUp(self):
-        aliases = ['upstream=git://example.com/%s#example.com:%s.git']
+        aliases = ['upstream=git://example.com/#example.com:%s.git']
         bundle_base_url = 'http://lorry.example.com/bundles/'
         self.reponame = 'upstream:reponame'
         self.repourl = 'git://example.com/reponame'
