@@ -149,15 +149,10 @@ class CachedRepo(object):
             raise CheckoutDirectoryExistsError(self, target_dir)
             
         os.mkdir(target_dir)
-
-        try:
-            sha1 = self._rev_list(ref).strip()
-        except morphlib.execute.CommandFailure:
-            raise InvalidReferenceError(self, ref)
         
         try:
             self._copy_repository(self.path, target_dir)
-            self._checkout_ref(sha1, target_dir)
+            self._checkout_ref(ref, target_dir)
         except morphlib.execute.CommandFailure:
             raise CheckoutError(self, ref, target_dir)
 
@@ -189,7 +184,7 @@ class CachedRepo(object):
                       target_dir])
 
     def _checkout_ref(self, ref, target_dir): # pragma: no cover
-        self.ex.runv(['git', 'checkout', ref], pwd=target_dir)
+        self.ex.runv(['git', 'checkout', ref], cwd=target_dir)
 
     def _update(self): # pragma: no cover
         self.ex.runv(['git', 'remote', 'update', 'origin'])

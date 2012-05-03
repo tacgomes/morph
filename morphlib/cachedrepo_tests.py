@@ -65,7 +65,11 @@ class CachedRepoTests(unittest.TestCase):
         pass
 
     def checkout_ref(self, ref, target_dir):
-        if ref == 'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
+        bad_refs = [
+            'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+            '079bbfd447c8534e464ce5d40b80114c2022ebf4',
+        ]
+        if ref in bad_refs:
             # simulate a git failure or something similar to
             # trigger a CheckoutError
             raise morphlib.execute.CommandFailure('git checkout %s' % ref, '')
@@ -153,7 +157,7 @@ class CachedRepoTests(unittest.TestCase):
                           self.tempdir.dirname)
 
     def test_fail_checkout_from_invalid_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.checkout,
+        self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
                           '079bbfd447c8534e464ce5d40b80114c2022ebf4',
                           self.tempdir.join('checkout-from-invalid-ref'))
 

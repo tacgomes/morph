@@ -592,7 +592,7 @@ class Morph(cliapp.Application):
         repo.update()
         
         # Clone it from cache to target directory.
-        morphlib.git.clone(dirname, repo.path, self.msg)
+        repo.checkout(ref, os.path.abspath(dirname))
         
         # Set the origin to point at the original repository.
         morphlib.git.set_remote(dirname, 'origin', repo.url)
