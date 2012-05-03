@@ -52,7 +52,7 @@ cat <<EOF > "$morphs/submod-stratum.morph"
     "sources": [
         {
             "name": "parent",
-            "repo": "parent-repo",
+            "repo": "test:parent-repo",
             "ref": "master"
         }
     ]
@@ -64,6 +64,7 @@ EOF
 
 # No build and verify we got a stratum.
 
-"$SRCDIR/scripts/test-morph" build morphs-repo master submod-stratum.morph
+"$SRCDIR/scripts/test-morph" build test:morphs-repo master submod-stratum.morph
 tar -tf "$DATADIR/cache/artifacts/"*.stratum.* | LC_ALL=C sort \
     | sed '/^\.\/./s:^\./::'
+

@@ -1,7 +1,6 @@
 #!/bin/bash
 #
-# Test a basic distributed build of two depending strata
-# with a couple of chunks in them.
+# Test "show-dependencies" subcommand.
 #
 # Copyright (C) 2012  Codethink Limited
 # 
@@ -20,6 +19,6 @@
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" \
-    show-dependencies test-repo master xfce-core.morph | \
-    sed "s,$DATADIR,TMP,g"
+"$SRCDIR/scripts/test-morph" --log=/home/liw/morph.log \
+    show-dependencies test:test-repo master xfce-core.morph |
+    sed 's/test://'

@@ -33,7 +33,8 @@ chunkrepo="$DATADIR/chunk-repo"
     > /dev/null
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" commit --quiet -m "add submodule"
 
-"$SRCDIR/scripts/test-morph" update-gits morphs-repo master hello-stratum.morph
+"$SRCDIR/scripts/test-morph" update-gits \
+    test:morphs-repo master hello-stratum.morph
 
 test -d "$DATADIR/cache/gits/"*chunk?repo* && echo chunk-repo cached
 test -d "$DATADIR/cache/gits/"*morphs?repo* && echo morphs-repo cached

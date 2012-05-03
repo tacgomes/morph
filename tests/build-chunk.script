@@ -19,7 +19,7 @@
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" build chunk-repo farrokh hello.morph
+"$SRCDIR/scripts/test-morph" build test:chunk-repo farrokh hello.morph
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do

@@ -47,6 +47,7 @@ cat << EOF > alfred.morph
     "sources": [
         {
             "name": "morphless",
+            "repo": "test:morphless",
             "ref": "master"
         }
     ]
@@ -56,7 +57,7 @@ git init --quiet
 git add alfred.morph
 git commit --quiet -m initial
 
-"$SRCDIR/scripts/test-morph" build stratum master alfred.morph
+"$SRCDIR/scripts/test-morph" build test:stratum master alfred.morph
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do

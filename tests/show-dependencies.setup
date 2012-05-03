@@ -81,28 +81,28 @@ cat <<EOF > gtk-stack.morph
   "sources": [
     {
       "name": "freetype",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "fontconfig",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "cairo",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "pango",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "freetype",
@@ -111,14 +111,14 @@ cat <<EOF > gtk-stack.morph
     },
     {
       "name": "glib",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "gdk-pixbuf",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "glib"
@@ -126,7 +126,7 @@ cat <<EOF > gtk-stack.morph
     },
     {
       "name": "gtk",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "cairo",
@@ -137,14 +137,14 @@ cat <<EOF > gtk-stack.morph
     },
     {
       "name": "dbus",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "dbus-glib",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "dbus",
@@ -203,14 +203,14 @@ cat <<EOF > xfce-core.morph
   "sources": [
     {
       "name": "libxfce4util",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "xfconf",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4util"
@@ -218,7 +218,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "libxfce4ui",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "xfconf"
@@ -226,7 +226,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "exo",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4util"
@@ -234,7 +234,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "garcon",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4util"
@@ -242,7 +242,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "thunar",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -251,14 +251,14 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "tumbler",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
       ]
     },
     {
       "name": "xfce4-panel",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -268,7 +268,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "xfce4-settings",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -278,7 +278,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "xfce4-session",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -288,7 +288,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "xfwm4",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -297,7 +297,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "xfdesktop",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -306,7 +306,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "xfce4-appfinder",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
@@ -316,7 +316,7 @@ cat <<EOF > xfce-core.morph
     },
     {
       "name": "gtk-xfce-engine",
-      "repo": "test-repo",
+      "repo": "test:test-repo",
       "ref": "master",
       "build-depends": [
         "libxfce4ui",
