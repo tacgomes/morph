@@ -19,6 +19,6 @@
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" --log=/home/liw/morph.log \
+"$SRCDIR/scripts/test-morph" \
     show-dependencies test:test-repo master xfce-core.morph |
     sed 's/test://'
