@@ -135,19 +135,15 @@ class CachedRepo(object):
                           (filename, ref, self))
 
     def checkout(self, ref, target_dir):
-        '''Unpacks the repository in a directory and checks out a SHA1 ref.
+        '''Unpacks the repository in a directory and checks out a commit ref.
 
-        Raises an UnresolvedNamedReferenceError if the specified ref is not
-        a SHA1 ref. Raises a CheckoutDirectoryExistsError if the target
+        Raises a CheckoutDirectoryExistsError if the target
         directory already exists. Raises an InvalidReferenceError if the
         ref is not found in the repository. Raises a CheckoutError if
         something else goes wrong while copying the repository or checking
         out the SHA1 ref.
 
         '''
-
-        if not self.is_valid_sha1(ref):
-            raise UnresolvedNamedReferenceError(self, ref)
 
         if os.path.exists(target_dir):
             raise CheckoutDirectoryExistsError(self, target_dir)

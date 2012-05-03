@@ -152,11 +152,6 @@ class CachedRepoTests(unittest.TestCase):
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           self.tempdir.dirname)
 
-    def test_fail_checkout_from_named_ref_which_is_not_allowed(self):
-        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
-                          self.repo.checkout, 'master',
-                          self.tempdir.join('checkout-from-named-ref'))
-
     def test_fail_checkout_from_invalid_ref(self):
         self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.checkout,
                           '079bbfd447c8534e464ce5d40b80114c2022ebf4',
