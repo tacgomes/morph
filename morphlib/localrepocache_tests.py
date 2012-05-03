@@ -84,6 +84,12 @@ class LocalRepoCacheTests(unittest.TestCase):
     def test_expands_shortened_url_correctly_for_pushing(self):
         self.assertEqual(self.lrc.push_url(self.reponame), self.pushurl)
 
+    def test_expands_full_url_correctly_for_pulling(self):
+        self.assertEqual(self.lrc.pull_url(self.repourl), self.repourl)
+
+    def test_expands_full_url_correctly_for_pushing(self):
+        self.assertEqual(self.lrc.push_url(self.pushurl), self.pushurl)
+
     def test_has_not_got_shortened_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.reponame))
 

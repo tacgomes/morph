@@ -178,14 +178,6 @@ class LocalRepoCache(object):
         path = os.path.join(self._cachedir, basename)
         return path
     
-    def _base_iterate(self, reponame):
-        for baseurl in self._baseurls:
-            if not baseurl.endswith('/'):
-                baseurl += '/' # pragma: no cover
-            repourl = urlparse.urljoin(baseurl, reponame)
-            path = self._cache_name(repourl)
-            yield repourl, path
-    
     def _split_reponame(self, reponame):
         '''Split reponame into prefix and suffix.
         
@@ -232,10 +224,9 @@ class LocalRepoCache(object):
     
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''
-        for repourl, path in self._base_iterate(reponame):
-            if self._exists(path):
-                return True
-        return False
+        url = self.pull_url(reponame)
+        path = self._cache_name(url)
+        return self._exists(path)
 
     def _clone_with_bundle(self, repourl, path):
         escaped = self._escape(repourl)
@@ -276,22 +267,21 @@ class LocalRepoCache(object):
             pass
 
         if self._bundle_base_url:
-            for repourl, path in self._base_iterate(reponame):
-                ok, error = self._clone_with_bundle(repourl, path)
-                if ok:
-                    return self.get_repo(reponame)
-                else:
-                   errors.append(error)
-
-        for repourl, path in self._base_iterate(reponame):
-            try:
-                self._git(['clone', '-n', repourl, path])
-            except morphlib.execute.CommandFailure, e:
-                errors.append('Unable to clone from %s to %s: %s' %
-                                                 (repourl, path, e))
+            repourl = self.pull_url(reponame)
+            path = self._cache_name(repourl)
+            ok, error = self._clone_with_bundle(repourl, path)
+            if ok:
+                return self.get_repo(reponame)
             else:
-                break
-        else:
+               errors.append(error)
+
+        repourl = self.pull_url(reponame)
+        path = self._cache_name(repourl)
+        try:
+            self._git(['clone', '-n', repourl, path])
+        except morphlib.execute.CommandFailure, e:
+            errors.append('Unable to clone from %s to %s: %s' %
+                             (repourl, path, e))
             raise NoRemote(reponame, errors)
 
         return self.get_repo(reponame)
@@ -302,11 +292,11 @@ class LocalRepoCache(object):
         if reponame in self._cached_repo_objects:
             return self._cached_repo_objects[reponame]
         else:
-            for repourl, path in self._base_iterate(reponame):
-                if self._exists(path):
-                    repo = morphlib.cachedrepo.CachedRepo(
-                            reponame, repourl, path)
-                    self._cached_repo_objects[reponame] = repo
-                    return repo
+            repourl = self.pull_url(reponame)
+            path = self._cache_name(repourl)
+            if self._exists(path):
+                repo = morphlib.cachedrepo.CachedRepo(reponame, repourl, path)
+                self._cached_repo_objects[reponame] = repo
+                return repo
         raise NotCached(reponame)
 
