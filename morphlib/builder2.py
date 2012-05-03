@@ -349,10 +349,10 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def build_and_cache(self):
         with self.build_watch('overall-build'):
             logging.debug('SystemBuilder.do_build called')
-            self.ex = morphlib.execute.Execute(self.staging_area.dirname,
+            self.ex = morphlib.execute.Execute(self.staging_area.tempdir,
                                                logging.debug)
             
-            image_name = os.path.join(self.staging_area.dirname,
+            image_name = os.path.join(self.staging_area.tempdir,
                                       '%s.img' % self.artifact.name)
             self._create_image(image_name)
             self._partition_image(image_name)
@@ -449,7 +449,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             with open(fstab, 'w') as f:
                 f.write('proc      /proc proc  defaults          0 0\n')
                 f.write('sysfs     /sys  sysfs defaults          0 0\n')
-                f.write('/dev/sda1 / btrfs errors=remount-ro 0 1\n')
+                f.write('/dev/vda1 / btrfs errors=remount-ro 0 1\n')
 
     def _create_extlinux_config(self, path):
         logging.debug('Creating extlinux.conf in %s' % path)
@@ -460,8 +460,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.write('timeout 1\n')
                 f.write('label linux\n')
                 f.write('kernel /boot/vmlinuz\n')
-                f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
-                                               'init=/sbin/init quiet rw\n')
+                f.write('append root=/dev/vda1 rootflags=subvol=factory-run '
+                                               'init=/lib/systemd/systemd rw\n')
     
     def _create_subvolume_snapshot(self, path, source, target):
         logging.debug('Creating subvolume snapshot %s to %s' % 
