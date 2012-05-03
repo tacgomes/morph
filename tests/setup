@@ -119,7 +119,7 @@ git commit --quiet -m "add morphs"
 # Create a morph configuration file.
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
-repo-alias = test:file://$DATADIR/#file://$DATADIR/
+repo-alias = test=file://$DATADIR/%s#file://$DATADIR/%s
 cachedir = $DATADIR/cache
 log = $DATADIR/morph.log
 keep-path = true
