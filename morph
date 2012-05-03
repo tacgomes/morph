@@ -30,10 +30,6 @@ from morphlib import buildcontroller
 
 
 defaults = {
-    'git-base-url': [
-        'git://gitorious.org/baserock-morphs/',
-        'git://gitorious.org/baserock/',
-    ],
     'repo-alias': [
         'upstream='
             'git://gitorious.org/baserock-morphs/%s#'
@@ -53,12 +49,11 @@ defaults = {
 
 class Morph(cliapp.Application):
 
+    system_repo_base = 'morphs'
+    system_repo_name = 'baserock:%s' % system_repo_base
+
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'], 'show what is happening')
-        self.settings.string_list(['git-base-url'],
-                             'prepend URL to git repos that are not URLs',
-                             metavar='URL',
-                             default=defaults['git-base-url'])
         self.settings.string_list(['repo-alias'],
                             'define URL prefix aliases to allow repository '
                                 'addresses to be shortened; '
@@ -209,7 +204,7 @@ class Morph(cliapp.Application):
             rac = None
         lrc = morphlib.localrepocache.LocalRepoCache(
                 os.path.join(cachedir, 'gits'),
-                self.settings['git-base-url'],
+                self.settings['repo-alias'],
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
@@ -325,10 +320,10 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        baseurls = self.settings['git-base-url']
+        aliases = self.settings['repo-alias']
         bundle_base_url = self.settings['bundle-server']
         lrc = morphlib.localrepocache.LocalRepoCache(
-                cachedir, baseurls, bundle_base_url)
+                cachedir, aliases, bundle_base_url)
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
                     self.settings['cache-server'],
@@ -338,7 +333,6 @@ class Morph(cliapp.Application):
 
         # traverse the morphs to list all the sources
         for repo, ref, filename in self._itertriplets(args):
-            repo, ref, filename = args[:3]
             pool = self._create_source_pool(lrc, rrc, (repo, ref, filename))
 
             resolver = morphlib.artifactresolver.ArtifactResolver()
@@ -419,10 +413,10 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        baseurls = self.settings['git-base-url']
+        aliases = self.settings['repo-alias']
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, baseurls, bundle_base_url)
+                cachedir, aliases, bundle_base_url)
 
         subs_to_process = set()
         
@@ -486,7 +480,7 @@ class Morph(cliapp.Application):
                 os.path.join(cachedir, 'artifacts'))
         lrc = morphlib.localrepocache.LocalRepoCache(
                 os.path.join(cachedir, 'gits'),
-                self.settings['git-base-url'],
+                self.settings['repo-alias'],
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
@@ -598,10 +592,10 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        baseurls = self.settings['git-base-url']
+        aliases = self.settings['repo-alias']
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, baseurls, bundle_base_url)
+                cachedir, aliases, bundle_base_url)
 
         # Get the repository into the cache; make sure it is up to date.
         repo = cache.cache_repo(reponame)
@@ -624,15 +618,14 @@ class Morph(cliapp.Application):
                                         'as parameter')
 
         new_branch = args[0]
-        repo = 'morphs'
         commit = 'master' if len(args) == 1 else args[1]
 
         # Create the system branch directory.
         os.makedirs(new_branch)
 
         # Clone into system branch directory.
-        new_repo = os.path.join(new_branch, os.path.basename(repo))
-        self._clone_to_directory(new_repo, repo, commit)
+        new_repo = os.path.join(new_branch, self.system_repo_base)
+        self._clone_to_directory(new_repo, self.system_repo_name, commit)
         
         # Create a new branch in the local morphs repository.
         self.runcmd(['git', 'checkout', '-b', new_branch, commit],
@@ -646,14 +639,14 @@ class Morph(cliapp.Application):
                                         'branch as parameter')
 
         system_branch = args[0]
-        repo = 'morphs'
 
         # Create the system branch directory.
         os.makedirs(system_branch)
 
         # Clone into system branch directory.
-        new_repo = os.path.join(system_branch, os.path.basename(repo))
-        self._clone_to_directory(new_repo, repo, system_branch)
+        new_repo = os.path.join(system_branch, self.system_repo_base)
+        self._clone_to_directory(
+            new_repo, self.system_repo_name, system_branch)
 
     def _deduce_system_branch(self):
         minedir = self._deduce_mine_directory()
@@ -728,10 +721,10 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        baseurls = self.settings['git-base-url']
+        aliases = self.settings['repo-alias']
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, baseurls, bundle_base_url)
+                cachedir, aliases, bundle_base_url)
         
         for filename in args:
             with open(filename) as f:
