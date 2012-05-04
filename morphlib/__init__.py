@@ -46,6 +46,7 @@ import morph2
 import morphologyfactory
 import remoteartifactcache
 import remoterepocache
+import repoaliasresolver
 import savefile
 import source
 import sourcepool
