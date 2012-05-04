@@ -413,10 +413,11 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        aliases = self.settings['repo-alias']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, aliases, bundle_base_url)
+                cachedir, repo_resolver, bundle_base_url)
 
         subs_to_process = set()
         
@@ -599,10 +600,11 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        aliases = self.settings['repo-alias']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, aliases, bundle_base_url)
+                cachedir, repo_resolver, bundle_base_url)
 
         # Get the repository into the cache; make sure it is up to date.
         repo = cache.cache_repo(reponame)
@@ -618,8 +620,8 @@ class Morph(cliapp.Application):
         filename = os.path.join(dirname, '.git', 'config')
         with open(filename, 'a') as f:
             f.write('\n')
-            f.write('[url "%s"]\n' % cache.push_url(reponame))
-            f.write('pushInsteadOf = %s\n' % cache.pull_url(reponame))
+            f.write('[url "%s"]\n' % repo_resolver.push_url(reponame))
+            f.write('pushInsteadOf = %s\n' % repo_resolver.pull_url(reponame))
         
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)

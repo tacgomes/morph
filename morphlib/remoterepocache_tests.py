@@ -41,12 +41,13 @@ class RemoteRepoCacheTests(unittest.TestCase):
             }
         }
         self.server_url = 'http://foo.bar'
-        self.base_urls = [
-            'git://gitorious.org/baserock-morphs',
-            'git://gitorious.org/baserock'
+        aliases = [
+            'upstream=git://gitorious.org/baserock-morphs/#foo',
+            'baserock=git://gitorious.org/baserock/#foo'
         ]
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
         self.cache = morphlib.remoterepocache.RemoteRepoCache(
-                self.server_url, self.base_urls)
+                self.server_url, resolver)
         self.cache._resolve_ref_for_repo_url = self._resolve_ref_for_repo_url
         self.cache._cat_file_for_repo_url = self._cat_file_for_repo_url
 
@@ -54,7 +55,7 @@ class RemoteRepoCacheTests(unittest.TestCase):
         self.assertEqual(self.cache.server_url, self.server_url)
 
     def test_resolve_existing_ref_for_existing_repo(self):
-        sha1 = self.cache.resolve_ref('morph', 'master')
+        sha1 = self.cache.resolve_ref('baserock:morph', 'master')
         self.assertEqual(
                 sha1,
                 self.sha1s['git://gitorious.org/baserock/morph']['master'])
@@ -66,7 +67,7 @@ class RemoteRepoCacheTests(unittest.TestCase):
 
     def test_fail_resolving_non_existent_ref_for_existing_repo(self):
         self.assertRaises(morphlib.remoterepocache.ResolveRefError,
-                          self.cache.resolve_ref, 'morph',
+                          self.cache.resolve_ref, 'baserock:morph',
                           'non-existent-ref')
 
     def test_fail_resolving_non_existent_ref_for_non_existent_repo(self):
@@ -76,24 +77,24 @@ class RemoteRepoCacheTests(unittest.TestCase):
 
     def test_cat_existing_file_in_existing_repo_and_ref(self):
         content = self.cache.cat_file(
-                'linux', 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+                'upstream:linux', 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                 'linux.morph')
         self.assertEqual(content, 'linux morphology')
     
     def test_fail_cat_file_using_invalid_sha1(self):
         self.assertRaises(morphlib.remoterepocache.CatFileError,
-                          self.cache.cat_file, 'linux', 'blablabla',
+                          self.cache.cat_file, 'upstream:linux', 'blablabla',
                           'linux.morph')
 
     def test_fail_cat_non_existent_file_in_existing_repo_and_ref(self):
         self.assertRaises(morphlib.remoterepocache.CatFileError,
-                          self.cache.cat_file, 'linux',
+                          self.cache.cat_file, 'upstream:linux',
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           'non-existent-file')
 
     def test_fail_cat_file_in_non_existent_ref_in_existing_repo(self):
         self.assertRaises(morphlib.remoterepocache.CatFileError,
-                          self.cache.cat_file, 'linux',
+                          self.cache.cat_file, 'upstream:linux',
                           'ecd7a325095a0d19b8c3d76f578d85b979461d41',
                           'linux.morph')
 
