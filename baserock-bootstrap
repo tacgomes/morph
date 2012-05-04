@@ -389,7 +389,7 @@ python ./morph --verbose build \
     morphs master devel.morph \
     morphs master $BSP_STRATUM \
         --staging-chroot \
-        --staging-filler="$LFS/baserock/pass2-artifacts/"*.stratum.bootstrap-pass2 \
+        --staging-filler "$LFS/baserock/pass2-artifacts/"*.stratum.bootstrap-pass2 \
         --no-git-update \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
