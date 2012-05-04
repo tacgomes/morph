@@ -202,14 +202,14 @@ class Morph(cliapp.Application):
                     self.settings['cache-server'])
         else:
             rac = None
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         lrc = morphlib.localrepocache.LocalRepoCache(
-                os.path.join(cachedir, 'gits'),
-                self.settings['repo-alias'],
+                os.path.join(cachedir, 'gits'), repo_resolver,
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'],
-                    self.settings['git-base-url'])
+                    self.settings['cache-server'], repo_resolver)
         else:
             rrc = None
 
@@ -320,14 +320,14 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        aliases = self.settings['repo-alias']
         bundle_base_url = self.settings['bundle-server']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         lrc = morphlib.localrepocache.LocalRepoCache(
-                cachedir, aliases, bundle_base_url)
+                cachedir, repo_resolver, bundle_base_url)
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'],
-                    self.settings['git-base-url'])
+                    self.settings['cache-server'], repo_resolver)
         else:
             rrc = None
 
@@ -478,14 +478,14 @@ class Morph(cliapp.Application):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
         lac = morphlib.localartifactcache.LocalArtifactCache(
                 os.path.join(cachedir, 'artifacts'))
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         lrc = morphlib.localrepocache.LocalRepoCache(
-                os.path.join(cachedir, 'gits'),
-                self.settings['repo-alias'],
+                os.path.join(cachedir, 'gits'), repo_resolver,
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'],
-                    self.settings['git-base-url'])
+                    self.settings['cache-server'], repo_resolver)
         else:
             rrc = None
 
@@ -584,11 +584,9 @@ class Morph(cliapp.Application):
     def _resolve_reponame(self, reponame):
         '''Return the full pull URL of a reponame.'''
 
-        # Setup.
-        aliases = self.settings['repo-alias']
-        cache = morphlib.localrepocache.LocalRepoCache(None, aliases, None)
-
-        return cache.pull_url(reponame)
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
+        return resolver.pull_url(reponame)
     
     def _clone_to_directory(self, dirname, reponame, ref):
         '''Clone a repository below a directory.

@@ -89,9 +89,9 @@ class LocalRepoCache(object):
     
     '''
     
-    def __init__(self, cachedir, aliases, bundle_base_url=None):
+    def __init__(self, cachedir, resolver, bundle_base_url=None):
         self._cachedir = cachedir
-        self._aliases = aliases
+        self._resolver = resolver
         if bundle_base_url and not bundle_base_url.endswith('/'):
             bundle_base_url += '/' # pragma: no cover
         self._bundle_base_url = bundle_base_url
@@ -178,67 +178,9 @@ class LocalRepoCache(object):
         path = os.path.join(self._cachedir, basename)
         return path
     
-    def _split_reponame(self, reponame):
-        '''Split reponame into prefix and suffix.
-        
-        The prefix is returned as None if there was no prefix.
-        
-        '''
-
-        pat = r'^(?P<prefix>[a-z0-9]+):(?P<rest>.*)$'
-        m = re.match(pat, reponame)
-        if m:
-            return m.group('prefix'), m.group('rest')
-        else:
-            return None, reponame
-    
-    def _apply_url_pattern(self, pattern, shortname):
-        if '%s' in pattern:
-            return shortname.join(pattern.split('%s'))
-        else:
-            return pattern + shortname
-    
-    def _expand_reponame(self, reponame, patname):
-        logging.debug('expanding: reponame=%s' % reponame)
-        logging.debug('expanding: patname=%s' % patname)
-
-        prefix, suffix = self._split_reponame(reponame)
-        logging.debug('expanding: prefix=%s' % prefix)
-        logging.debug('expanding: suffix=%s' % suffix)
-
-        # There was no prefix.
-        if prefix is None:
-            logging.debug('expanding: no prefix')
-            return reponame
-
-        pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)$'
-        for alias in self._aliases:
-            logging.debug('expanding: alias="%s"' % alias)
-            m = re.match(pat, alias)
-            logging.debug('expanding: m=%s' % repr(m))
-            if m:
-                logging.debug('expanding: prefix group=%s' % m.group('prefix'))
-            if m and m.group('prefix') == prefix:
-                pullpat = m.group(patname)
-                logging.debug('expanding: pullpat=%s' % pullpat)
-                return self._apply_url_pattern(pullpat, suffix)
-
-        # Unknown prefix. Which means it may be a real URL instead.
-        # Let the caller deal with it.        
-        logging.debug('expanding: unknown prefix')
-        return reponame
-    
-    def pull_url(self, reponame):
-        '''Expand a possibly shortened repo name to a pull url.'''
-        return self._expand_reponame(reponame, 'pullpat')
-
-    def push_url(self, reponame):
-        '''Expand a possibly shortened repo name to a push url.'''
-        return self._expand_reponame(reponame, 'pushpat')
-    
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''
-        url = self.pull_url(reponame)
+        url = self._resolver.pull_url(reponame)
         path = self._cache_name(url)
         return self._exists(path)
 
@@ -281,7 +223,7 @@ class LocalRepoCache(object):
             pass
 
         if self._bundle_base_url:
-            repourl = self.pull_url(reponame)
+            repourl = self._resolver.pull_url(reponame)
             path = self._cache_name(repourl)
             ok, error = self._clone_with_bundle(repourl, path)
             if ok:
@@ -289,7 +231,7 @@ class LocalRepoCache(object):
             else:
                errors.append(error)
 
-        repourl = self.pull_url(reponame)
+        repourl = self._resolver.pull_url(reponame)
         path = self._cache_name(repourl)
         try:
             self._git(['clone', '-n', repourl, path])
@@ -306,7 +248,7 @@ class LocalRepoCache(object):
         if reponame in self._cached_repo_objects:
             return self._cached_repo_objects[reponame]
         else:
-            repourl = self.pull_url(reponame)
+            repourl = self._resolver.pull_url(reponame)
             path = self._cache_name(repourl)
             if self._exists(path):
                 repo = morphlib.cachedrepo.CachedRepo(reponame, repourl, path)
