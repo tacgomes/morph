@@ -306,7 +306,7 @@ pass2b_cleanup_at_end()
 {
     echo "Remove unnecessary stuff at the end of pass2b"
     rm -rf "$LFS/tools"
-    rm -f "$LFS"/baserock/cache/*.chunk.*
+    rm -f "$LFS"/baserock/cache/artifacts/*.chunk.*
 }
 
 
@@ -324,10 +324,9 @@ pass3_get_sources_with_morph_in_chroot()
     # but the cached chunks may be invalid, so
     # move them away 
     cd "$LFS/baserock/gits/morph"
-    if [ ! -e "$LFS/baserock/cache.pass2" ]; then
-        mv "$LFS/baserock/cache" "$LFS/baserock/cache.pass2"
-        mkdir -p "$LFS/baserock/cache"
-        mv "$LFS/baserock/cache.pass2/gits" "$LFS/baserock/cache/gits"
+    if [ ! -e "$LFS/baserock/pass2-artifacts" ]; then
+        mv "$LFS/baserock/cache/artifacts" "$LFS/baserock/pass2-artifacts"
+        mkdir -p "$LFS/baserock/cache/artifacts"
     fi
 
     cat <<EOF > "$LFS/baserock/build.sh"
@@ -390,8 +389,7 @@ python ./morph --verbose build \
     morphs master devel.morph \
     morphs master $BSP_STRATUM \
         --staging-chroot \
-        $(for x in $LFS/baserock/cache.pass2/*.stratum.*;  \
-            do echo -n "--staging-filler=\"$x\" "; done) \
+        --staging-filler="$LFS/baserock/pass2-artifacts/"*.stratum.bootstrap-pass2 \
         --no-git-update \
         --cachedir=/baserock/cache \
         --log=/baserock/morph.log \
