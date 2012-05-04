@@ -38,32 +38,23 @@ class CatFileError(cliapp.AppException):
 
 class RemoteRepoCache(object):
 
-    def __init__(self, server_url, base_urls):
+    def __init__(self, server_url, resolver):
         self.server_url = server_url
-        self._base_urls = base_urls
-
-    def _base_iterate(self, repo_name):
-        for base_url in self._base_urls:
-            if not base_url.endswith('/'):
-                base_url += '/'
-            repo_url = urlparse.urljoin(base_url, repo_name)
-            yield repo_url
+        self._resolver = resolver
 
     def resolve_ref(self, repo_name, ref):
-        for repo_url in self._base_iterate(repo_name):
-            try:
-                return self._resolve_ref_for_repo_url(repo_url, ref)
-            except:
-                pass
-        raise ResolveRefError(repo_name, ref)
+        repo_url = self._resolver.pull_url(repo_name)
+        try:
+            return self._resolve_ref_for_repo_url(repo_url, ref)
+        except:
+            raise ResolveRefError(repo_name, ref)
 
     def cat_file(self, repo_name, ref, filename):
-        for repo_url in self._base_iterate(repo_name):
-            try:
-                return self._cat_file_for_repo_url(repo_url, ref, filename)
-            except:
-                pass
-        raise CatFileError(repo_name, ref, filename)
+        repo_url = self._resolver.pull_url(repo_name)
+        try:
+            return self._cat_file_for_repo_url(repo_url, ref, filename)
+        except:
+            raise CatFileError(repo_name, ref, filename)
 
     def _resolve_ref_for_repo_url(self, repo_url, ref): # pragma: no cover
         data = self._make_request('sha1s?repo=%s&ref=%s' % (repo_url, ref))
