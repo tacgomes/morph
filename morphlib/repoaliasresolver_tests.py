@@ -72,8 +72,12 @@ class RepoAliasResolverTests(unittest.TestCase):
         self.assertEqual(self.resolver.push_url('unknown:bar'), 'unknown:bar')
 
     def test_resolve_urls_for_pattern_without_placeholder(self):
-        self.assertEqual(self.resolver.pull_url('append:foo'), 'git://append/foo')
-        self.assertEqual(self.resolver.push_url('append:foo'), 'git@append/foo')
+        self.assertEqual(
+            self.resolver.pull_url('append:foo'), 'git://append/foo')
+        self.assertEqual(
+            self.resolver.push_url('append:foo'), 'git@append/foo')
 
-        self.assertEqual(self.resolver.pull_url('append:bar'), 'git://append/bar')
-        self.assertEqual(self.resolver.push_url('append:bar'), 'git@append/bar')
+        self.assertEqual(
+            self.resolver.pull_url('append:bar'), 'git://append/bar')
+        self.assertEqual(
+            self.resolver.push_url('append:bar'), 'git@append/bar')
