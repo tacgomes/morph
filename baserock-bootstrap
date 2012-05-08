@@ -385,9 +385,9 @@ set -x
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 cd /baserock/gits/morph
 python ./morph --verbose build \
-    morphs master foundation.morph \
-    morphs master devel.morph \
-    morphs master $BSP_STRATUM \
+    baserock:morphs master foundation.morph \
+    baserock:morphs master devel.morph \
+    baserock:morphs master $BSP_STRATUM \
         --staging-chroot \
         --staging-filler "$LFS/baserock/pass2-artifacts/"*.stratum.bootstrap-pass2 \
         --no-git-update \
