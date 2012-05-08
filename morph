@@ -281,26 +281,30 @@ class Morph(cliapp.Application):
             if setup_proc:
                 builder.setup_proc = True
 
+            to_be_installed = set()
+
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
                         logging.debug('Need to build %s' % artifact.name)
                         self.msg('Building %s' % artifact.name)
+
+                        for chunk_artifact in to_be_installed:
+                            logging.debug('Installing %s' %  chunk_artifact.name)
+                            self.msg('  Installing %s' % chunk_artifact.name)
+                            handle = lac.get(chunk_artifact)
+                            staging_area.install_artifact(handle)
+                        to_be_installed.clear()
+
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
                         self.msg('Using cached %s' % artifact.name)
 
                 if install_chunks:
-                    logging.debug('installing chunks from just-built group')
-                    # install chunks only
-                    chunk_artifacts = [x 
-                                       for x in group 
-                                       if x.source.morphology['kind'] == 
-                                            'chunk']
-                    for artifact in chunk_artifacts:
-                        handle = lac.get(artifact)
-                        staging_area.install_artifact(handle)
+                    to_be_installed.update(
+                            [x for x in group
+                             if x.source.morphology['kind'] == 'chunk'])
 
             if staging_root != '/':
                 staging_area.remove()
