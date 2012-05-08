@@ -738,10 +738,11 @@ class Morph(cliapp.Application):
         if not os.path.exists(self.settings['cachedir']):
             os.mkdir(self.settings['cachedir'])
         cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        aliases = self.settings['repo-alias']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-                cachedir, aliases, bundle_base_url)
+                cachedir, repo_resolver, bundle_base_url)
         
         for filename in args:
             with open(filename) as f:
