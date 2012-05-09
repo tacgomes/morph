@@ -24,37 +24,39 @@ import morphlib.execute
 class InvalidReferenceError(cliapp.AppException):
 
     def __init__(self, repo, ref):
-        Exception.__init__(self, 'Ref %s is an invalid reference for repo %s' %
-                           (ref, repo))
+        cliapp.AppException.__init__(
+            self, 'Ref %s is an invalid reference for repo %s' % (ref, repo))
 
 
 class UnresolvedNamedReferenceError(cliapp.AppException):
 
     def __init__(self, repo, ref):
-        Exception.__init__(self, 'Ref %s is not a SHA1 ref for repo %s' %
-                           (ref, repo))
+        cliapp.AppException.__init__(
+            self, 'Ref %s is not a SHA1 ref for repo %s' % (ref, repo))
 
 
 class CheckoutDirectoryExistsError(cliapp.AppException):
 
     def __init__(self, repo, target_dir):
-        Exception.__init__(
-                self, 'Checkout directory %s for repo %s already exists' %
+        cliapp.AppException.__init__(
+            self, 
+            'Checkout directory %s for repo %s already exists' % 
                 (target_dir, repo))
 
 
 class CheckoutError(cliapp.AppException):
 
     def __init__(self, repo, ref, target_dir):
-        Exception.__init__(self, 'Failed to check out %s:%s into %s' %
-                           (repo, ref, target_dir))
+        cliapp.AppException.__init__(
+            self, 
+            'Failed to check out %s:%s into %s' % (repo, ref, target_dir))
 
 
 class UpdateError(cliapp.AppException):
 
     def __init__(self, repo):
-        Exception.__init__(self, 'Failed to update cached version of repo %s' %
-                           repo)
+        cliapp.AppException.__init__(
+            self, 'Failed to update cached version of repo %s' % repo)
 
 
 class CachedRepo(object):
