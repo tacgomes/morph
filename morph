@@ -37,6 +37,9 @@ defaults = {
         'baserock='
             'git://gitorious.org/baserock/%s#'
             'git@gitorious.org:baserock/%s.git',
+        'gnome='
+            'git://git.gnome.org/%s#'
+            'ssh://git.gnome.org/git/%s',
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
