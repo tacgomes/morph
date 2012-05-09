@@ -290,7 +290,8 @@ class Morph(cliapp.Application):
                         self.msg('Building %s' % artifact.name)
 
                         for chunk_artifact in to_be_installed:
-                            logging.debug('Installing %s' %  chunk_artifact.name)
+                            logging.debug('Installing %s' %
+                                          chunk_artifact.name)
                             self.msg('  Installing %s' % chunk_artifact.name)
                             handle = lac.get(chunk_artifact)
                             staging_area.install_artifact(handle)

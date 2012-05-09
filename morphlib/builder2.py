@@ -466,7 +466,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.write('label linux\n')
                 f.write('kernel /boot/vmlinuz\n')
                 f.write('append root=/dev/vda1 rootflags=subvol=factory-run '
-                                               'init=/lib/systemd/systemd rw\n')
+                        'init=/lib/systemd/systemd rw\n')
     
     def _create_subvolume_snapshot(self, path, source, target):
         logging.debug('Creating subvolume snapshot %s to %s' % 
