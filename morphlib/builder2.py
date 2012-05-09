@@ -355,8 +355,9 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             self.ex = morphlib.execute.Execute(self.staging_area.tempdir,
                                                logging.debug)
             
-            image_name = os.path.join(self.staging_area.tempdir,
-                                      '%s.img' % self.artifact.name)
+            handle = self.local_artifact_cache.put(self.artifact)
+            image_name = handle._savefile_tempname
+
             self._create_image(image_name)
             self._partition_image(image_name)
             self._install_mbr(image_name)
@@ -378,15 +379,16 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._install_boot_files(factory_run_path, mount_point)
                 self._install_extlinux(mount_point)
                 self._unmount(mount_point)
+                handle.close()
             except BaseException, e:
                 logging.error('Got error while system image building, '
                                 'unmounting and device unmapping')
                 self._unmount(mount_point)
                 self._undo_device_mapping(image_name)
+                handle.abort()
                 raise
     
             self._undo_device_mapping(image_name)
-            self._move_image_to_cache(image_name)
         self.save_build_times()
 
     def _create_image(self, image_name):
@@ -503,19 +505,6 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         logging.debug('Undoing device mappings for %s' % image_name)
         with self.build_watch('undo-device-mapper'):
             morphlib.fsutils.undo_device_mapping(self.ex, image_name)
-
-    def _move_image_to_cache(self, image_name):
-        logging.debug('Moving image to cache: %s' % image_name)
-        # FIXME: Need to create file directly in cache to avoid costly
-        # copying here.
-        with self.build_watch('cache-image'):
-            with self.local_artifact_cache.put(self.artifact) as outf:
-                with open(image_name) as inf:
-                    while True:
-                        data = inf.read(1024**2)
-                        if not data:
-                            break
-                        outf.write(data)
 
 
 class Builder(object): # pragma: no cover
