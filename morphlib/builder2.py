@@ -329,6 +329,9 @@ class StratumBuilder(BuilderBase):
                         target.close()
                         source.close()
                     # unpack it from the local artifact cache
+                    logging.debug('unpacking chunk %s into stratum %s' %
+                                  (chunk_artifact.basename(), 
+                                   self.artifact.basename()))
                     f = self.local_artifact_cache.get(chunk_artifact)
                     morphlib.bins.unpack_binary_from_file(f, destdir)
                     f.close()
