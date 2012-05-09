@@ -49,6 +49,9 @@ class Morphology(object):
         
     def __contains__(self, key):
         return key in self._dict
+
+    def keys(self):
+        return self._dict.keys()
         
     def _set_defaults(self):
         if 'max-jobs' in self:

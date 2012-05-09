@@ -79,3 +79,16 @@ class MorphologyTests(unittest.TestCase):
 
         self.assertEqual(m['disk-size'], 1024**3)
 
+    def test_returns_dict_keys(self):
+        m = Morphology('''
+            {
+                "name": "foo",
+                "kind": "system",
+                "disk-size": "1g"
+            }
+        ''')
+
+        self.assertTrue('name' in m.keys())
+        self.assertTrue('kind' in m.keys())
+        self.assertTrue('disk-size' in m.keys())
+
