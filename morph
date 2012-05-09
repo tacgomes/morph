@@ -613,7 +613,8 @@ class Morph(cliapp.Application):
 
         # Get the repository into the cache; make sure it is up to date.
         repo = cache.cache_repo(reponame)
-        repo.update()
+        if not self.settings['no-git-update']:
+            repo.update()
         
         # Clone it from cache to target directory.
         repo.checkout(ref, os.path.abspath(dirname))
