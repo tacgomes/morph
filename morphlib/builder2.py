@@ -379,7 +379,6 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._install_boot_files(factory_run_path, mount_point)
                 self._install_extlinux(mount_point)
                 self._unmount(mount_point)
-                handle.close()
             except BaseException, e:
                 logging.error('Got error while system image building, '
                                 'unmounting and device unmapping')
@@ -389,6 +388,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 raise
     
             self._undo_device_mapping(image_name)
+            handle.close()
         self.save_build_times()
 
     def _create_image(self, image_name):
