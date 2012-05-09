@@ -78,10 +78,23 @@ class CacheKeyComputer(object):
             return cacheid
 
     def _calculate(self, artifact):
-        return {
+        keys = {
             'arch': self._build_env.arch,
             'env': self._filterenv(self._build_env.env),
-            'ref': artifact.source.sha1,
             'filename': artifact.source.filename,
             'kids': [self.compute_key(x) for x in artifact.dependencies]
         }
+        
+        kind = artifact.source.morphology['kind']
+        if kind == 'chunk':
+            keys['ref'] = artifact.source.sha1
+        elif kind in ('system', 'stratum'):
+            checksum = hashlib.sha1()
+            morphology = artifact.source.morphology
+            getkey = lambda s: [ord(c) for c in s]
+            for key in sorted(morphology.keys(), key=getkey):
+                checksum.update('%s=%s' % (key, morphology[key]))
+            keys['morphology-sha1'] = checksum.hexdigest()
+
+        return keys
+

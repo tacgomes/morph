@@ -148,3 +148,21 @@ class CacheKeyComputerTests(unittest.TestCase):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         self.assertNotEqual(oldsha, ckc.compute_key(artifact))
+        
+    def test_same_morphology_text_but_changed_sha1_gives_same_cache_key(self):
+        old_artifact = self._find_artifact('system')
+        morphology = old_artifact.source.morphology
+        new_source = morphlib.source.Source('repo', 'original/ref', 'newsha', 
+                                            morphology, 
+                                            old_artifact.source.filename)
+        self.source_pool.add(new_source)
+        artifacts = self.artifact_resolver.resolve_artifacts(self.source_pool)
+        for new_artifact in artifacts:
+            if new_artifact.source == new_source:
+                break
+        else:
+            self.assertTrue(False)
+
+        old_sha = self.ckc.compute_key(old_artifact)
+        new_sha = self.ckc.compute_key(new_artifact)
+        self.assertEqual(old_sha, new_sha)
