@@ -356,7 +356,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                                                logging.debug)
             
             handle = self.local_artifact_cache.put(self.artifact)
-            image_name = handle._savefile_tempname
+            image_name = handle.name
 
             self._create_image(image_name)
             self._partition_image(image_name)
