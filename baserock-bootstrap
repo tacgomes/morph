@@ -96,7 +96,7 @@ pass1_dump_build_times()
 {
     echo "Dumping pass 1 build times"
     cd $LFS/baserock/gits/morph
-    python ./dump-build-times $LFS/baserock/cache
+    python ./dump-build-times $LFS/baserock/cache/artifacts
 }
 
 pass2_get_morph()
@@ -267,7 +267,7 @@ set -e
 set -x
 
 cd /baserock/gits/morph
-python ./dump-build-times /baserock/cache
+python ./dump-build-times /baserock/cache/artifacts
 EOF
     $HOST_CHMOD +x "$LFS/baserock/dump-pass2-build-times.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
@@ -430,7 +430,7 @@ set -x
 
 export PATH="/usr/bin:/bin"
 cd /baserock/gits/morph
-python ./dump-build-times /baserock/cache
+python ./dump-build-times /baserock/cache/artifacts
 EOF
     $HOST_CHMOD +x "$LFS/baserock/dump-pass3-build-times.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
