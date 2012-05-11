@@ -89,12 +89,26 @@ class CacheKeyComputer(object):
         if kind == 'chunk':
             keys['ref'] = artifact.source.sha1
         elif kind in ('system', 'stratum'):
-            checksum = hashlib.sha1()
             morphology = artifact.source.morphology
-            getkey = lambda s: [ord(c) for c in s]
-            for key in sorted(morphology.keys(), key=getkey):
-                checksum.update('%s=%s' % (key, morphology[key]))
+            le_dict = dict((k,morphology[k]) for k in morphology.keys())
+            checksum = hashlib.sha1(self._stringify(le_dict))
             keys['morphology-sha1'] = checksum.hexdigest()
 
         return keys
 
+    def _stringify(self, value):
+        if type(value) in [str, unicode, int]:
+            return str(value)
+        elif value is None:
+            return ''
+        elif type(value) is list:
+            return '[' + ','.join(self._stringify(x) for x in value) + ']'
+        elif type(value) is dict:
+            keys = value.keys()
+            keys.sort(key=lambda s: [ord(c) for c in s])
+            pairs = ['%s:%s' % (self._stringify(k), self._stringify(value[k]))
+                     for k in keys]
+            return '{' + ','.join(pairs) + '}'
+        else: # pragma: no cover
+            raise NotImplementedError(
+                        'type %s is not stringified' % type(value))

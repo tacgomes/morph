@@ -166,3 +166,17 @@ class CacheKeyComputerTests(unittest.TestCase):
         old_sha = self.ckc.compute_key(old_artifact)
         new_sha = self.ckc.compute_key(new_artifact)
         self.assertEqual(old_sha, new_sha)
+        
+    def test_stringifies_string(self):
+        self.assertEqual(self.ckc._stringify('foo'), 'foo')
+        
+    def test_stringifies_integer(self):
+        self.assertEqual(self.ckc._stringify(12765), '12765')
+        
+    def test_stringifies_dict(self):
+        self.assertEqual(self.ckc._stringify({'foo': 'bar', 'yo': 'foobar' }),
+                         '{foo:bar,yo:foobar}')
+        
+    def test_stringifies_list(self):
+        self.assertEqual(self.ckc._stringify(['foo', 'bar']), '[foo,bar]')
+
