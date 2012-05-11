@@ -257,7 +257,6 @@ class ChunkBuilder(BuilderBase):
                     os.utime(pathname, (now, now))
             os.utime(dirname, (now, now))
 
-
     def run_commands(self, builddir, destdir): # pragma: no cover
         m = self.artifact.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
