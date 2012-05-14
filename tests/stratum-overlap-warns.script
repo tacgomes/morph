@@ -24,7 +24,5 @@ log="$DATADIR/morph.log"
 cache="$DATADIR/cache/artifacts"
 
 "$SRCDIR/scripts/test-morph" \
-    build --verbose --log=$log test:morphs-repo overlap overlap-stratum.morph
+    build --log=$log test:morphs-repo overlap overlap-stratum.morph
 grep WARNING $log | sed 's/^.*WARNING/WARNING/'
-(cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
- LC_ALL=C sort)

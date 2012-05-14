@@ -36,17 +36,17 @@ cat <<EOF >overlap-stratum.morph
       "ref": "overlap"
     },
     {
-      "name": "overlap-foo-baz",
-      "repo": "test:chunk-repo",
-      "ref": "overlap"
-    },
-    {
       "name": "overlap-foobar",
       "repo": "test:chunk-repo",
       "ref": "overlap"
     },
     {
       "name": "overlap-fooqux",
+      "repo": "test:chunk-repo",
+      "ref": "overlap"
+    },
+    {
+      "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
       "ref": "overlap"
     }
