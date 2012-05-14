@@ -1,0 +1,20 @@
+Build starts
+Building test:morphs-repo overlap overlap-stratum.morph
+Figuring out the right build order
+Cloning/updating test:chunk-repo
+Cloning/updating test:chunk-repo
+Cloning/updating test:chunk-repo
+Cloning/updating test:morphs-repo
+Building overlap-foo-baz
+Building overlap-foobar
+Building overlap-fooqux
+Building overlap-stratum
+WARNING Overlaps in artifact overlap-stratum detected
+WARNING   Artifacts overlap-foo-baz, overlap-foobar overlap with files:
+WARNING     bin/bar
+WARNING   Artifacts overlap-foo-baz, overlap-foobar, overlap-fooqux overlap with files:
+WARNING     bin/foo
+ chunk.overlap-foo-baz
+ chunk.overlap-foobar
+ chunk.overlap-fooqux
+ stratum.overlap-stratum

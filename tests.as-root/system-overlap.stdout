@@ -1,0 +1,30 @@
+Build starts
+Building test:morphs-repo overlap overlap-system.morph
+Figuring out the right build order
+Cloning/updating test:chunk-repo
+Cloning/updating test:chunk-repo
+Cloning/updating test:kernel-repo
+Cloning/updating test:chunk-repo
+Cloning/updating test:morphs-repo
+Cloning/updating test:morphs-repo
+Cloning/updating test:morphs-repo
+Building overlap-foo-baz
+Building overlap-foobar
+Building linux
+Building overlap-fooqux
+Building foo-baz-stratum
+Building foo-barqux-stratum
+Building overlap-system
+WARNING Overlaps in artifact foo-barqux-stratum detected
+WARNING   Artifacts overlap-foobar, overlap-fooqux overlap with files:
+WARNING     bin/foo
+WARNING Overlaps in artifact overlap-system detected
+WARNING   Artifacts foo-baz-stratum, foo-barqux-stratum overlap with files:
+WARNING     ./bin/bar
+WARNING     ./bin/foo
+ chunk.linux
+ chunk.overlap-foo-baz
+ chunk.overlap-foobar
+ chunk.overlap-fooqux
+ stratum.foo-barqux-stratum
+ stratum.foo-baz-stratum
