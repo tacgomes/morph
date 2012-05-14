@@ -81,7 +81,7 @@ def check_overlap(artifact, constituents, lac): #pragma: no cover
         logging.warning('Overlaps in artifact %s detected' % artifact.name)
         for overlapping, files in sorted(overlaps.iteritems()):
             logging.warning('  Artifacts %s overlap with files:' %
-                ', '.join(a.name for a in sorted(overlapping))
+                ', '.join(sorted(a.name for a in overlapping))
             )
             for filename in sorted(files):
                 logging.warning('    %s' % filename)

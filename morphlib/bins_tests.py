@@ -113,7 +113,7 @@ class ChunkTests(BinsTest):
 
     def unpack_chunk(self):
         os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked, self.ex)
+        morphlib.bins.unpack_binary(self.chunk_file, self.unpacked)
         
     def test_empties_everything(self):
         self.create_chunk(['.'])
@@ -158,7 +158,7 @@ class StratumTests(BinsTest):
         morphlib.bins.create_stratum(self.instdir, self.stratum_f, self.ex)
         self.stratum_f.flush()
         os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.stratum_file, self.unpacked, self.ex)
+        morphlib.bins.unpack_binary(self.stratum_file, self.unpacked)
         self.assertEqual(self.recursive_lstat(self.instdir),
                          self.recursive_lstat(self.unpacked))
 
