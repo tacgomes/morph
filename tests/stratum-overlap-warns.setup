@@ -31,6 +31,11 @@ cat <<EOF >overlap-stratum.morph
   "kind": "stratum",
   "sources": [
     {
+      "name": "dirs",
+      "repo": "test:chunk-repo",
+      "ref": "overlap"
+    },
+    {
       "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
       "ref": "overlap"
@@ -53,6 +58,19 @@ git commit --quiet -m "add overlapping stratum"
 
 cd "$chunkrepo"
 git checkout --quiet -b overlap master
+
+cat <<EOF >dirs.morph
+{
+  "name": "dirs",
+  "kind": "chunk",
+  "install-commands": [
+    "mkdir -p \$DESTDIR/bin",
+    "ln -s / \$DESTDIR/usr"
+  ]
+}
+EOF
+git add dirs.morph
+
 cat <<EOF >overlap-foo-baz.morph
 {
   "name": "overlap-foo-baz",
@@ -63,6 +81,7 @@ cat <<EOF >overlap-foo-baz.morph
   ]
 }
 EOF
+git add overlap-foo-baz.morph
 
 cat <<EOF >overlap-foobar.morph
 {
@@ -76,6 +95,7 @@ cat <<EOF >overlap-foobar.morph
   ]
 }
 EOF
+git add overlap-foobar.morph
 
 cat <<EOF >overlap-fooqux.morph
 {
@@ -88,6 +108,6 @@ cat <<EOF >overlap-fooqux.morph
   ]
 }
 EOF
-git add overlap-*.morph
+git add overlap-fooqux.morph
 
 git commit --quiet -m 'Add overlapping chunks'
