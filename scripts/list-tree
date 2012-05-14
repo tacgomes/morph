@@ -20,6 +20,26 @@
 
 set -eu
 
+shorttype(){
+  case "$*" in
+  "directory")
+    echo d
+    ;;
+  "regular file"|"regular empty file")
+    echo f
+    ;;
+  "symbolic link")
+    echo l
+    ;;
+  *)
+    echo "$*" >&2
+    echo U
+    ;;
+  esac
+}
+
 export LC_ALL=C
 cd "$1"
-find -printf '%y %p\n' | sort
+find | while read file; do
+    printf "%s %s\n" "$(shorttype $(stat -c %F $file))" "$file";
+done | sort
