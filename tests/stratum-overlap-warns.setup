@@ -20,10 +20,8 @@
 
 set -eu
 
-cache="$DATADIR/cache/artifacts"
 chunkrepo="$DATADIR/chunk-repo"
 morphsrepo="$DATADIR/morphs-repo"
-log="$DATADIR/morph.log"
 
 cd "$morphsrepo"
 git checkout --quiet -b overlap master
@@ -93,9 +91,3 @@ EOF
 git add overlap-*.morph
 
 git commit --quiet -m 'Add overlapping chunks'
-
-"$SRCDIR/scripts/test-morph" \
-    build --verbose --log=$log test:morphs-repo overlap overlap-stratum.morph
-grep WARNING $log | sed 's/^.*WARNING/WARNING/'
-(cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
- LC_ALL=C sort)
