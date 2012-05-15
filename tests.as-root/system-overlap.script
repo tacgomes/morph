@@ -1,0 +1,123 @@
+#!/bin/sh
+#
+# If a system has multiple strata that have the same files in them,
+# then this should be notified
+#
+# Copyright (C) 2011, 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -eu
+
+cache="$DATADIR/cache/artifacts"
+chunkrepo="$DATADIR/chunk-repo"
+morphsrepo="$DATADIR/morphs-repo"
+log="$DATADIR/morph.log"
+
+cd "$morphsrepo"
+git checkout --quiet -b overlap master
+cat <<EOF >overlap-system.morph
+{
+  "name": "overlap-system",
+  "kind": "system",
+  "disk-size": "1G",
+  "strata": [
+    "foo-baz-stratum",
+    "foo-barqux-stratum"
+  ]
+}
+EOF
+cat <<EOF >foo-baz-stratum.morph
+{
+  "name": "foo-baz-stratum",
+  "kind": "stratum",
+  "sources": [
+    {
+      "name": "overlap-foo-baz",
+      "repo": "test:chunk-repo",
+      "ref": "overlap"
+    },
+    {
+      "name": "linux",
+      "repo": "test:kernel-repo",
+      "ref": "master"
+    }
+  ]
+}
+EOF
+cat <<EOF >foo-barqux-stratum.morph
+{
+  "name": "foo-barqux-stratum",
+  "kind": "stratum",
+  "sources": [
+    {
+      "name": "overlap-foobar",
+      "repo": "test:chunk-repo",
+      "ref": "overlap"
+    },
+    {
+      "name": "overlap-fooqux",
+      "repo": "test:chunk-repo",
+      "ref": "overlap"
+    }
+  ]
+}
+EOF
+git add overlap-system.morph foo-baz-stratum.morph foo-barqux-stratum.morph
+git commit --quiet -m "add overlapping system"
+
+cd "$chunkrepo"
+git checkout --quiet -b overlap master
+cat <<EOF >overlap-foo-baz.morph
+{
+  "name": "overlap-foo-baz",
+  "kind": "chunk",
+  "install-commands": [
+    "mkdir -p \$DESTDIR/bin",
+    "for f in foo bar baz; do echo echo \$f >\$DESTDIR/bin/\$f; done"
+  ]
+}
+EOF
+
+cat <<EOF >overlap-foobar.morph
+{
+  "name": "overlap-foobar",
+  "kind": "chunk",
+  "install-commands": [
+    "mkdir -p \$DESTDIR/usr/bin \$DESTDIR/bin",
+    "echo echo foobar >\$DESTDIR/usr/bin/foobar",
+    "ln -s /usr/bin/foobar \$DESTDIR/bin/foo",
+    "ln -s /usr/bin/foobar \$DESTDIR/bin/bar"
+  ]
+}
+EOF
+
+cat <<EOF >overlap-fooqux.morph
+{
+  "name": "overlap-fooqux",
+  "kind": "chunk",
+  "install-commands": [
+    "mkdir -p \$DESTDIR/usr/bin \$DESTDIR/bin",
+    "for f in qux fooqux; do echo echo \$f >\$DESTDIR/usr/bin/\$f; done",
+    "ln -s /usr/bin/fooqux \$DESTDIR/bin/foo"
+  ]
+}
+EOF
+git add overlap-*.morph
+
+git commit --quiet -m 'Add overlapping chunks'
+
+"$SRCDIR/scripts/test-morph" \
+    build --log=$log test:morphs-repo overlap overlap-system.morph
+grep "WARNING\s" $log | sed 's/^.*WARNING/WARNING/'

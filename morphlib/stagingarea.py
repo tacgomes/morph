@@ -14,12 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import errno
 import logging
 import os
 import shutil
-import stat
-import tarfile
 
 import morphlib
 
@@ -91,86 +88,8 @@ class StagingArea(object):
         '''
 
         logging.debug('Installing artifact %s' % 
-                        getattr(handle, 'name', 'unknown name'))        
-        tf = tarfile.open(fileobj=handle)
-        
-        # This is evil, but necessary. For some reason Python's system
-        # call wrappers (os.mknod and such) do not (always?) set the
-        # filename attribute of the OSError exception they raise. We
-        # fix that by monkey patching the tf instance with wrappers
-        # for the relevant methods to add things. The wrapper further
-        # ignores EEXIST errors, since we do not (currently!) care about
-        # overwriting files.
-        
-        def follow_symlink(path): # pragma: no cover
-            try:
-                return os.stat(path)
-            except OSError:
-                return None
-        
-        def prepare_extract(tarinfo, targetpath): # pragma: no cover
-            '''Prepare to extract a tar file member onto targetpath?
-            
-            If the target already exist, and we can live with it or
-            remove it, we do so. Otherwise, raise an error.
-            
-            It's OK to extract if:
-
-            * the target does not exist
-            * the member is a directory a directory and the 
-              target is a directory or a symlink to a directory
-              (just extract, no need to remove)
-            * the member is not a directory, and the target is not a directory
-              or a symlink to a directory (remove target, then extract)
-            
-            '''
-
-            try:
-                existing = os.lstat(targetpath)
-            except OSError:
-                return True # target does not exist
-
-            if tarinfo.isdir():
-                if stat.S_ISDIR(existing.st_mode):
-                    return True
-                elif stat.S_ISLNK(existing.st_mode):
-                    st = follow_symlink(targetpath)
-                    return st and stat.S_ISDIR(st.st_mode)
-            else:
-                if stat.S_ISDIR(existing.st_mode):
-                    return False
-                elif stat.S_ISLNK(existing.st_mode):
-                    st = follow_symlink(targetpath)
-                    if st and not stat.S_ISDIR(st.st_mode):
-                        os.remove(targetpath)
-                        return True
-                else:
-                    os.remove(targetpath)
-                    return True
-            return False
-
-        def monkey_patcher(real):
-            def make_something(tarinfo, targetpath): # pragma: no cover
-                prepare_extract(tarinfo, targetpath)
-                try:
-                    return real(tarinfo, targetpath)
-                except OSError, e:
-                    if e.errno != errno.EEXIST:
-                        if e.filename is None:
-                            e.filename = targetpath
-                            raise e
-                        else:
-                            raise
-            return make_something
-
-        tf.makedir = monkey_patcher(tf.makedir)
-        tf.makefile = monkey_patcher(tf.makefile)
-        tf.makeunknown = monkey_patcher(tf.makeunknown)
-        tf.makefifo = monkey_patcher(tf.makefifo)
-        tf.makedev = monkey_patcher(tf.makedev)
-        tf.makelink = monkey_patcher(tf.makelink)
-
-        tf.extractall(path=self.dirname)
+                        getattr(handle, 'name', 'unknown name'))
+        morphlib.bins.unpack_binary_from_file(handle, self.dirname)
 
     def remove(self):
         '''Remove the entire staging area.

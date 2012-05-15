@@ -1,0 +1,5 @@
+WARNING Overlaps in artifact overlap-stratum detected
+WARNING   Artifacts overlap-foo-baz, overlap-foobar overlap with files:
+WARNING     bin/bar
+WARNING   Artifacts overlap-foo-baz, overlap-foobar, overlap-fooqux overlap with files:
+WARNING     bin/foo

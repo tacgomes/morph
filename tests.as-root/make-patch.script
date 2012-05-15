@@ -19,25 +19,6 @@
 
 set -eu
 
-# Make a dummy kernel chunk.
-mkdir "$DATADIR/kernel-repo"
-cat <<EOF > "$DATADIR/kernel-repo/linux.morph"
-{
-    "name": "linux",
-    "kind": "chunk",
-    "install-commands": [
-        "mkdir -p \"\$DESTDIR/boot\"",
-        "touch \"\$DESTDIR\"/extlinux.conf",
-        "touch \"\$DESTDIR\"/boot/vmlinuz",
-        "touch \"\$DESTDIR\"/boot/System.map"
-    ]
-}
-EOF
-"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" init --quiet
-"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" add .
-"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" commit --quiet -m foo \
-    > /dev/null
-
 # Make a stratum that include hello and kernel chunks.
 cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
 {

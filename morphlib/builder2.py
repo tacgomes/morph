@@ -19,6 +19,8 @@ import logging
 import os
 import shutil
 import time
+from collections import defaultdict
+import tarfile
 
 import morphlib
 
@@ -58,6 +60,31 @@ def ldconfig(ex, rootdir): # pragma: no cover
         ex.env['PATH'] = old_path
     else:
         logging.debug('No %s, not running ldconfig' % conf)
+
+
+def check_overlap(artifact, constituents, lac): #pragma: no cover
+    # check whether strata overlap
+    installed = defaultdict(set)
+    for dep in constituents:
+        handle = lac.get(dep)
+        tar = tarfile.open(fileobj=handle)
+        for member in tar.getmembers():
+            if member.type is not tarfile.DIRTYPE:
+                installed[member.name].add(dep)
+        tar.close()
+        handle.close()
+    overlaps = defaultdict(set)
+    for filename, artifacts in installed.iteritems():
+        if len(artifacts) > 1:
+            overlaps[frozenset(artifacts)].add(filename)
+    if len(overlaps) > 0:
+        logging.warning('Overlaps in artifact %s detected' % artifact.name)
+        for overlapping, files in sorted(overlaps.iteritems()):
+            logging.warning('  Artifacts %s overlap with files:' %
+                ', '.join(sorted(a.name for a in overlapping))
+            )
+            for filename in sorted(files):
+                logging.warning('    %s' % filename)
 
 
 class BuilderBase(object):
@@ -319,15 +346,21 @@ class StratumBuilder(BuilderBase):
                             for dependency in self.artifact.dependencies
                             if dependency.source.morphology['kind'] == 'chunk']
             with self.build_watch('unpack-chunks'):
+                # download the chunk artifact if necessary
                 for chunk_artifact in constituents:
-                    # download the chunk artifact if necessary
                     if not self.local_artifact_cache.has(chunk_artifact):
                         source = self.remote_artifact_cache.get(chunk_artifact)
                         target = self.local_artifact_cache.put(chunk_artifact)
                         shutil.copyfileobj(source, target)
                         target.close()
                         source.close()
-                    # unpack it from the local artifact cache
+
+                # check for chunk overlaps
+                check_overlap(self.artifact, constituents,
+                              self.local_artifact_cache)
+
+                # unpack it from the local artifact cache
+                for chunk_artifact in constituents:
                     logging.debug('unpacking chunk %s into stratum %s' %
                                   (chunk_artifact.basename(), 
                                    self.artifact.basename()))
@@ -430,15 +463,21 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def _unpack_strata(self, path):
         logging.debug('Unpacking strata to %s' % path)
         with self.build_watch('unpack-strata'):
+            # download the stratum artifact if necessary
             for stratum_artifact in self.artifact.dependencies:
-                # download the stratum artifact if necessary
                 if not self.local_artifact_cache.has(stratum_artifact):
                     source = self.remote_artifact_cache.get(stratum_artifact)
                     target = self.local_artifact_cache.put(stratum_artifact)
                     shutil.copyfileobj(source, target)
                     target.close()
                     source.close()
-                # unpack it from the local artifact cache
+
+            # check whether the strata overlap
+            check_overlap(self.artifact, self.artifact.dependencies,
+                          self.local_artifact_cache)
+
+            # unpack it from the local artifact cache
+            for stratum_artifact in self.artifact.dependencies:
                 f = self.local_artifact_cache.get(stratum_artifact)
                 morphlib.bins.unpack_binary_from_file(f, path)
                 f.close()
