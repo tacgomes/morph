@@ -24,6 +24,7 @@ Binaries are chunks, strata, and system images.
 import logging
 import os
 import re
+import errno
 import stat
 import tarfile
 
