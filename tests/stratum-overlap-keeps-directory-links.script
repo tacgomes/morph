@@ -21,8 +21,12 @@
 set -eu
 
 cache="$DATADIR/cache/artifacts"
+extracted="$DATADIR/extracted"
+mkdir -p "$extracted"
 
 "$SRCDIR/scripts/test-morph" \
     build test:morphs-repo overlap overlap-stratum.morph
-(cd "$cache" && for f in *.stratum.overlap-stratum; do tar -tvf "$f"; done |
- sed 's/^\(\S*\)[^.]*\./\1 /' | LC_ALL=C sort) | grep '/usr -> /'
+for f in "$cache"/*.stratum.overlap-stratum; do 
+    tar -xf "$f" -C "$extracted"
+done
+test -h "$extracted/usr"
