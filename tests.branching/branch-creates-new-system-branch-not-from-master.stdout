@@ -8,8 +8,8 @@ d ./.morph/cache/gits/file_morphs/.git
 d ./newbranch
 d ./newbranch/morphs
 d ./newbranch/morphs/.git
-f ./newbranch/morphs/hello-stratum.chunk
-f ./newbranch/morphs/hello-system.chunk
+f ./newbranch/morphs/hello-stratum.morph
+f ./newbranch/morphs/hello-system.morph
 f ./newbranch/morphs/this.is.alfred
 Current branches:
   master

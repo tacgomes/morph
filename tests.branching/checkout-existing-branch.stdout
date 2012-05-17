@@ -8,7 +8,7 @@ d ./.morph/cache/gits/file_morphs/.git
 d ./master
 d ./master/morphs
 d ./master/morphs/.git
-f ./master/morphs/hello-stratum.chunk
-f ./master/morphs/hello-system.chunk
+f ./master/morphs/hello-stratum.morph
+f ./master/morphs/hello-system.morph
 Current branches:
 * master

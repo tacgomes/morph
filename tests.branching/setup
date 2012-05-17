@@ -43,7 +43,7 @@ mkdir "$DATADIR/mine"
 # Create a fake morphs repository
 mkdir "$DATADIR/morphs"
 
-cat <<EOF > "$DATADIR/morphs/hello-system.chunk"
+cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 {
     "name": "hello-system",
     "kind": "system",
@@ -54,7 +54,7 @@ cat <<EOF > "$DATADIR/morphs/hello-system.chunk"
 }
 EOF
 
-cat <<EOF > "$DATADIR/morphs/hello-stratum.chunk"
+cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
 {
     "name": "hello-stratum",
     "kind": "stratum",
@@ -84,7 +84,7 @@ scripts/run-git-in "$DATADIR/morphs" checkout master
 # Create a dummy chunk repository
 mkdir "$DATADIR/hello"
 
-cat <<EOF > "$DATADIR/hello/hello.chunk"
+cat <<EOF > "$DATADIR/hello/hello.morph"
 {
     "name": "hello",
     "kind": "chunk",
