@@ -712,22 +712,32 @@ class Morph(cliapp.Application):
     def cmd_edit(self, args):
         '''Edit a component in a system branch.'''
         
-        if len(args) != 2:
+        if len(args) not in (1,2):
             raise cliapp.AppException('morph edit must get a repository name '
                                         'and commit ref as argument')
 
-        repo = self._resolve_reponame(args[0])
-        ref = args[1]
-
         mine_directory = self._deduce_mine_directory()
         system_branch = self._deduce_system_branch()
+        if system_branch is None:
+            raise morphlib.Error('Cannot deduce system branch')
+
+        morphs_dirname = os.path.join(mine_directory, system_branch, 'morphs')
+        if morphs_dirname is None:
+            raise morphlib.Error('Can not find morphs directory')
+
+        repo = self._resolve_reponame(args[0])
+
+        if len(args) == 2:
+            ref = args[1]
+        else:
+            ref = self._find_edit_ref(morphs_dirname, repo)
+            if ref is None:
+                raise morphlib.Error('Cannot deduce commit to start edit from')
+
         new_repo = os.path.join(mine_directory, system_branch, 
                                 os.path.basename(repo))
         self._clone_to_directory(new_repo, repo, ref)
         
-        system_branch = self._deduce_system_branch()
-        if system_branch is None:
-            raise morphlib.Error('Cannot deduce system branch')
         if system_branch == ref:
             self.runcmd(['git', 'checkout', system_branch],
                         cwd=new_repo)
@@ -735,15 +745,9 @@ class Morph(cliapp.Application):
             self.runcmd(['git', 'checkout', '-b', system_branch, ref],
                         cwd=new_repo)
 
-        morphs_dirname = os.path.join(mine_directory, system_branch, 'morphs')
-        if morphs_dirname is None:
-            logging.warning('Can not find morphs directory, not updating')
-            return
-        for filename, morphology in self._load_morphologies(morphs_dirname):
-            if morphology['kind'] != 'stratum':
-                continue
+        for filename, morph in self._morphs_for_repo(morphs_dirname, repo):
             changed = False
-            for spec in morphology['sources']:
+            for spec in morph['sources']:
                 spec_repo = self._resolve_reponame(spec['repo'])
                 if spec_repo == repo and spec['ref'] != system_branch:
                     if self.settings['verbose']:
@@ -752,7 +756,15 @@ class Morph(cliapp.Application):
                     spec['ref'] = system_branch
                     changed = True
             if changed:
-                self._write_morphology(filename, morphology)
+                self._write_morphology(filename, morph)
+
+    def _find_edit_ref(self, morphs_dirname, repo):
+        for filename, morph in self._morphs_for_repo(morphs_dirname, repo):
+            for spec in morph['sources']:
+                spec_repo = self._resolve_reponame(spec['repo'])
+                if spec_repo == repo:
+                    return spec['ref']
+        return None
 
     def _load_morphologies(self, dirname):
         pattern = os.path.join(dirname, '*.morph')
@@ -761,6 +773,15 @@ class Morph(cliapp.Application):
                 text = f.read()
             morphology = morphlib.morph2.Morphology(text)
             yield filename, morphology
+
+    def _morphs_for_repo(self, morphs_dirname, repo):
+        for filename, morph in self._load_morphologies(morphs_dirname):
+            if morph['kind'] == 'stratum':
+                for spec in morph['sources']:
+                    spec_repo = self._resolve_reponame(spec['repo'])
+                    if spec_repo == repo:
+                        yield filename, morph
+                        break
 
     def _write_morphology(self, filename, morphology):
         as_dict = {}
