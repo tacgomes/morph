@@ -310,6 +310,15 @@ class Morph(cliapp.Application):
                             [x for x in group
                              if x.source.morphology['kind'] == 'chunk'])
 
+            # If we are running bootstrap we probably also want the last
+            # build group to be installed as well
+            if self.settings['bootstrap']:
+                for chunk_artifact in to_be_installed:
+                    logging.debug('Installing %s' % chunk_artifact.name)
+                    self.msg('  Installing %s' % chunk_artifact.name)
+                    handle = lac.get(chunk_artifact)
+                    staging_area.install_artifact(handle)
+
             if staging_root != '/':
                 staging_area.remove()
             if staging_temp != '/' and os.path.exists(staging_temp):
