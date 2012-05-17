@@ -317,7 +317,9 @@ class ChunkBuilder(BuilderBase):
                 specs = {
                     self.artifact.source.morphology['name']: ['.'],
                 }
-            for artifact_name in specs:
+            names = specs.keys()
+            names.sort(key=lambda name: [ord(c) for c in name])
+            for artifact_name in names:
                 self.write_metadata(destdir, artifact_name)
                 patterns = specs[artifact_name]
                 patterns += [r'baserock/%s\.' % artifact_name]
