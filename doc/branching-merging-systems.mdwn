@@ -138,6 +138,10 @@ instead of branch names or whatever. The changes need to be committed
 to git manually, so that the user has a chance to give a good commit
 message.
 
+Petrification is useful to prevent the set of changes including changes
+by other team members. When a chunk is edited it will be made to refer
+to that ref instead of the SHA-1 that it is petrified to.
+
 Petrification can be done by resolving the chunk references against
 the current state of the git repositories, or it can be done by getting
 the SHA-1s directly from a system image, or a data file.
