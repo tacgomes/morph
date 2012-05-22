@@ -640,7 +640,7 @@ class Morph(cliapp.Application):
         with open(filename, 'a') as f:
             f.write('\n')
             f.write('[url "%s"]\n' % repo_resolver.push_url(reponame))
-            f.write('pushInsteadOf = %s\n' % repo_resolver.pull_url(reponame))
+            f.write('\tpushInsteadOf = %s\n' % repo_resolver.pull_url(reponame))
         
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)
@@ -736,7 +736,7 @@ class Morph(cliapp.Application):
 
         new_repo = os.path.join(mine_directory, system_branch, 
                                 os.path.basename(repo))
-        self._clone_to_directory(new_repo, repo, ref)
+        self._clone_to_directory(new_repo, args[0], ref)
         
         if system_branch == ref:
             self.runcmd(['git', 'checkout', system_branch],
