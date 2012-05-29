@@ -33,11 +33,11 @@ from morphlib import buildcontroller
 defaults = {
     'repo-alias': [
         'upstream='
-            'git://gitorious.org/baserock-morphs/%s#'
-            'git@gitorious.org:baserock-morphs/%s.git',
+            'git://roadtrain.codethink.co.uk/delta/#'
+            'gitano@roadtrain.codethink.co.uk:delta/',
         'baserock='
-            'git://gitorious.org/baserock/%s#'
-            'git@gitorious.org:baserock/%s.git',
+            'git://roadtrain.codethink.co.uk/baserock/#'
+            'gitano@roadtrain.codethink.co.uk:baserock/',
         'gnome='
             'git://git.gnome.org/%s#'
             'ssh://git.gnome.org/git/%s',
