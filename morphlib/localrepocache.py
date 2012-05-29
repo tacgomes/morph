@@ -22,6 +22,8 @@ import urlparse
 import shutil
 import string
 
+import cliapp
+
 import morphlib
 
 
@@ -89,13 +91,13 @@ class LocalRepoCache(object):
     
     '''
     
-    def __init__(self, cachedir, resolver, bundle_base_url=None):
+    def __init__(self, app, cachedir, resolver, bundle_base_url=None):
+        self._app = app
         self._cachedir = cachedir
         self._resolver = resolver
         if bundle_base_url and not bundle_base_url.endswith('/'):
             bundle_base_url += '/' # pragma: no cover
         self._bundle_base_url = bundle_base_url
-        self._ex = morphlib.execute.Execute(cachedir, logging.debug)
         self._cached_repo_objects = {}
 
     def _exists(self, filename): # pragma: no cover
@@ -116,7 +118,7 @@ class LocalRepoCache(object):
         
         '''
         
-        self._ex.runv(['git'] + args, cwd=cwd)
+        self._app.runcmd(['git'] + args, cwd=cwd)
 
     def _fetch(self, url, filename): # pragma: no cover
         '''Fetch contents of url into a file.
@@ -197,7 +199,7 @@ class LocalRepoCache(object):
         try:
             self._git(['clone', '-n', bundle_path, path])
             self._git(['remote', 'set-url', 'origin', repourl], cwd=path)
-        except morphlib.execute.CommandFailure, e: # pragma: no cover
+        except cliapp.AppException, e: # pragma: no cover
             if self._exists(path):
                 shutil.rmtree(path)
             return False, 'Unable to extract bundle %s: %s' % (bundle_path, e)
@@ -235,7 +237,7 @@ class LocalRepoCache(object):
         path = self._cache_name(repourl)
         try:
             self._git(['clone', '-n', repourl, path])
-        except morphlib.execute.CommandFailure, e:
+        except cliapp.AppException, e:
             errors.append('Unable to clone from %s to %s: %s' %
                              (repourl, path, e))
             raise NoRemote(reponame, errors)
@@ -251,7 +253,8 @@ class LocalRepoCache(object):
             repourl = self._resolver.pull_url(reponame)
             path = self._cache_name(repourl)
             if self._exists(path):
-                repo = morphlib.cachedrepo.CachedRepo(reponame, repourl, path)
+                repo = morphlib.cachedrepo.CachedRepo(self._app, reponame,
+                                                      repourl, path)
                 self._cached_repo_objects[reponame] = repo
                 return repo
         raise NotCached(reponame)

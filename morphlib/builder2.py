@@ -25,7 +25,7 @@ import tarfile
 import morphlib
 
 
-def ldconfig(ex, rootdir): # pragma: no cover
+def ldconfig(runcmd, rootdir): # pragma: no cover
     '''Run ldconfig for the filesystem below ``rootdir``.
 
     Essentially, ``rootdir`` specifies the root of a new system.
@@ -53,11 +53,10 @@ def ldconfig(ex, rootdir): # pragma: no cover
         # directory (/sbin conventionally) that ldconfig is in. Then again,
         # it might, and if so, we don't want to hardware a particular
         # location. So we add the possible locations to the end of $PATH
-        # and restore that aftewards.
-        old_path = ex.env['PATH']
-        ex.env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
-        ex.runv(['ldconfig', '-r', rootdir])
-        ex.env['PATH'] = old_path
+        env = dict(os.environ)
+        old_path = env['PATH']
+        env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
+        runcmd(['ldconfig', '-r', rootdir], env=env)
     else:
         logging.debug('No %s, not running ldconfig' % conf)
 
@@ -91,9 +90,10 @@ class BuilderBase(object):
 
     '''Base class for building artifacts.'''
 
-    def __init__(self, staging_area, local_artifact_cache,
+    def __init__(self, app, staging_area, local_artifact_cache,
                  remote_artifact_cache, artifact, repo_cache,
                  build_env, max_jobs, setup_proc):
+        self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
@@ -218,8 +218,7 @@ class ChunkBuilder(BuilderBase):
         logging.debug('Mounting /proc in staging area')
         path = os.path.join(self.staging_area.dirname, 'proc')
         if os.path.exists(path) and self.setup_proc:
-            ex = morphlib.execute.Execute('.', logging.debug)
-            ex.runv(['mount', '-t', 'proc', 'none', path])
+            self.app.runcmd(['mount', '-t', 'proc', 'none', path])
             return path
         else:
             logging.debug('Not mounting /proc after all, %s does not exist' %
@@ -230,8 +229,7 @@ class ChunkBuilder(BuilderBase):
         if (mounted and self.setup_proc and mounted and 
             os.path.exists(os.path.join(mounted, 'self'))):
             logging.error('Unmounting /proc in staging area: %s' % mounted)
-            ex = morphlib.execute.Execute('.', logging.debug)
-            ex.runv(['umount', mounted])
+            morphlib.fsutils.unmount(self.app.runcmd, mounted)
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
@@ -242,10 +240,10 @@ class ChunkBuilder(BuilderBase):
             logging.debug('Extracting %s into %s' % (path, destdir))
             if not os.path.exists(destdir):
                 os.mkdir(destdir)
-            morphlib.git.copy_repository(path, destdir, logging.debug)
-            morphlib.git.checkout_ref(destdir, sha1, logging.debug)
-            morphlib.git.reset_workdir(destdir, logging.debug)
-            submodules = morphlib.git.Submodules(path, sha1)
+            morphlib.git.copy_repository(self.app.runcmd, path, destdir)
+            morphlib.git.checkout_ref(self.app.runcmd, destdir, sha1)
+            morphlib.git.reset_workdir(self.app.runcmd, destdir)
+            submodules = morphlib.git.Submodules(self.app, path, sha1)
             try:
                 submodules.load()
             except morphlib.git.NoModulesFileError:
@@ -311,7 +309,6 @@ class ChunkBuilder(BuilderBase):
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
         with self.build_watch('create-chunks'):
-            ex = None # create_chunk doesn't actually use this
             specs = self.artifact.source.morphology['chunks']
             if len(specs) == 0:
                 specs = {
@@ -328,7 +325,7 @@ class ChunkBuilder(BuilderBase):
                 with self.local_artifact_cache.put(artifact) as f:
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
-                    morphlib.bins.create_chunk(destdir, f, patterns, ex)
+                    morphlib.bins.create_chunk(destdir, f, patterns)
     
             files = os.listdir(destdir)
             if files:
@@ -375,7 +372,7 @@ class StratumBuilder(BuilderBase):
                 self.write_metadata(destdir, artifact_name)
                 artifact = self.new_artifact(artifact_name)
                 with self.local_artifact_cache.put(artifact) as f:
-                    morphlib.bins.create_stratum(destdir, f, None)
+                    morphlib.bins.create_stratum(destdir, f)
         self.save_build_times()
 
 
@@ -386,8 +383,6 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def build_and_cache(self):
         with self.build_watch('overall-build'):
             logging.debug('SystemBuilder.do_build called')
-            self.ex = morphlib.execute.Execute(self.staging_area.tempdir,
-                                               logging.debug)
             
             handle = self.local_artifact_cache.put(self.artifact)
             image_name = handle.name
@@ -429,38 +424,39 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         logging.debug('Creating disk image %s' % image_name)
         with self.build_watch('create-image'):
             morphlib.fsutils.create_image(
-                self.ex, image_name,
+                self.app.runcmd, image_name,
                 self.artifact.source.morphology['disk-size'])
 
     def _partition_image(self, image_name):
         logging.debug('Partitioning disk image %s' % image_name)
         with self.build_watch('partition-image'):
-            morphlib.fsutils.partition_image(self.ex, image_name)
+            morphlib.fsutils.partition_image(self.app.runcmd, image_name)
 
     def _install_mbr(self, image_name):
         logging.debug('Installing mbr on disk image %s' % image_name)
         with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_mbr(self.ex, image_name)
+            morphlib.fsutils.install_mbr(self.app.runcmd, image_name)
 
     def _setup_device_mapping(self, image_name):
         logging.debug('Device mapping partitions in %s' % image_name)
         with self.build_watch('setup-device-mapper'):
-            return morphlib.fsutils.setup_device_mapping(self.ex, image_name)
+            return morphlib.fsutils.setup_device_mapping(self.app.runcmd,
+                                                         image_name)
 
     def _create_fs(self, partition):
         logging.debug('Creating filesystem on %s' % partition)
         with self.build_watch('create-filesystem'):
-            morphlib.fsutils.create_fs(self.ex, partition)
+            morphlib.fsutils.create_fs(self.app.runcmd, partition)
 
     def _mount(self, partition, mount_point):
         logging.debug('Mounting %s on %s' % (partition, mount_point))
         with self.build_watch('mount-filesystem'):
-            morphlib.fsutils.mount(self.ex, partition, mount_point)
+            morphlib.fsutils.mount(self.app.runcmd, partition, mount_point)
 
     def _create_subvolume(self, path):
         logging.debug('Creating subvolume %s' % path)
         with self.build_watch('create-factory-subvolume'):
-            self.ex.runv(['btrfs', 'subvolume', 'create', path])
+            self.app.runcmd(['btrfs', 'subvolume', 'create', path])
 
     def _unpack_strata(self, path):
         logging.debug('Unpacking strata to %s' % path)
@@ -483,7 +479,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f = self.local_artifact_cache.get(stratum_artifact)
                 morphlib.bins.unpack_binary_from_file(f, path)
                 f.close()
-            ldconfig(self.ex, path)
+            ldconfig(self.app.runcmd, path)
 
     def _create_fstab(self, path):
         logging.debug('Creating fstab in %s' % path)
@@ -512,7 +508,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         logging.debug('Creating subvolume snapshot %s to %s' % 
                         (source, target))
         with self.build_watch('create-runtime-snapshot'):
-            self.ex.runv(['btrfs', 'subvolume', 'snapshot', source, target],
+            self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
                          cwd=path)
 
     def _install_boot_files(self, sourcefs, targetfs):
@@ -529,22 +525,22 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def _install_extlinux(self, path):
         logging.debug('Installing extlinux to %s' % path)
         with self.build_watch('install-bootloader'):
-            self.ex.runv(['extlinux', '--install', path])
+            self.app.runcmd(['extlinux', '--install', path])
 
             # FIXME this hack seems to be necessary to let extlinux finish
-            self.ex.runv(['sync'])
+            self.app.runcmd(['sync'])
             time.sleep(2)
 
     def _unmount(self, mount_point):
         logging.debug('Unmounting %s' % mount_point)
         with self.build_watch('unmount-filesystem'):
             if mount_point is not None:
-                morphlib.fsutils.unmount(self.ex, mount_point)
+                morphlib.fsutils.unmount(self.app.runcmd, mount_point)
 
     def _undo_device_mapping(self, image_name):
         logging.debug('Undoing device mappings for %s' % image_name)
         with self.build_watch('undo-device-mapper'):
-            morphlib.fsutils.undo_device_mapping(self.ex, image_name)
+            morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
 
 
 class Builder(object): # pragma: no cover
@@ -557,8 +553,9 @@ class Builder(object): # pragma: no cover
         'system': SystemBuilder,
     }
 
-    def __init__(self, staging_area, local_artifact_cache,
+    def __init__(self, app, staging_area, local_artifact_cache,
                  remote_artifact_cache, repo_cache, build_env, max_jobs):
+        self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
@@ -569,7 +566,8 @@ class Builder(object): # pragma: no cover
         
     def build_and_cache(self, artifact):
         kind = artifact.source.morphology['kind']
-        o = self.classes[kind](self.staging_area, self.local_artifact_cache, 
+        o = self.classes[kind](self.app, self.staging_area,
+                               self.local_artifact_cache,
                                self.remote_artifact_cache, artifact,
                                self.repo_cache, self.build_env, 
                                self.max_jobs, self.setup_proc)

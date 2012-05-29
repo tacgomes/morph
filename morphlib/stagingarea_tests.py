@@ -37,7 +37,8 @@ class StagingAreaTests(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
-        self.sa = morphlib.stagingarea.StagingArea(self.staging, self.staging)
+        self.sa = morphlib.stagingarea.StagingArea(object(), self.staging,
+                                                   self.staging)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -69,7 +70,7 @@ class StagingAreaTests(unittest.TestCase):
         self.assertEqual(self.sa.dirname, self.staging)
 
     def test_accepts_root_directory(self):
-        sa = morphlib.stagingarea.StagingArea('/', '/tmp')
+        sa = morphlib.stagingarea.StagingArea(object(), '/', '/tmp')
         self.assertEqual(sa.dirname, '/')
     
     def test_creates_build_directory(self):

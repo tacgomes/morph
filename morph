@@ -26,8 +26,6 @@ import shutil
 import tempfile
 
 import morphlib
-from morphlib import buildworker
-from morphlib import buildcontroller
 
 
 defaults = {
@@ -144,11 +142,6 @@ class Morph(cliapp.Application):
                               'build things in a staging chroot '
                                 '(require real root to use)')
 
-        self.settings.string_list(['worker'],
-                                  'IP or host name of a machine to distribute '
-                                  'build work to',
-                                  metavar='HOSTNAME')
-
     def _itertriplets(self, args):
         '''Generate repo, ref, filename triples from args.'''
         
@@ -208,7 +201,7 @@ class Morph(cliapp.Application):
             rac = None
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(
+        lrc = morphlib.localrepocache.LocalRepoCache(self,
                 os.path.join(cachedir, 'gits'), repo_resolver,
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
@@ -274,12 +267,13 @@ class Morph(cliapp.Application):
                 install_chunks = False
                 setup_proc = False
 
-            staging_area = morphlib.stagingarea.StagingArea(staging_root,
+            staging_area = morphlib.stagingarea.StagingArea(self,
+                                                            staging_root,
                                                             staging_temp)
             if self.settings['staging-chroot']:
                 self._install_initial_staging(staging_area)
 
-            builder = morphlib.builder2.Builder(
+            builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
                     self.settings['max-jobs'])
             if setup_proc:
@@ -341,7 +335,7 @@ class Morph(cliapp.Application):
         bundle_base_url = self.settings['bundle-server']
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(
+        lrc = morphlib.localrepocache.LocalRepoCache(self,
                 cachedir, repo_resolver, bundle_base_url)
         if self.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
@@ -434,7 +428,7 @@ class Morph(cliapp.Application):
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
+        cache = morphlib.localrepocache.LocalRepoCache(self,
                 cachedir, repo_resolver, bundle_base_url)
 
         subs_to_process = set()
@@ -444,7 +438,8 @@ class Morph(cliapp.Application):
             assert cache.has_repo(reponame)
             cached_repo = cache.get_repo(reponame)
             try:
-                submodules = morphlib.git.Submodules(cached_repo.path, absref)
+                submodules = morphlib.git.Submodules(self, cached_repo.path,
+                                                     absref)
                 submodules.load()
             except morphlib.git.NoModulesFileError:
                 pass
@@ -469,7 +464,8 @@ class Morph(cliapp.Application):
             cached_repo.update()
 
             try:
-                submodules = morphlib.git.Submodules(cached_repo.path, ref)
+                submodules = morphlib.git.Submodules(self, cached_repo.path,
+                                                     ref)
                 submodules.load()
             except morphlib.git.NoModulesFileError:
                 pass
@@ -499,7 +495,7 @@ class Morph(cliapp.Application):
                 os.path.join(cachedir, 'artifacts'))
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(
+        lrc = morphlib.localrepocache.LocalRepoCache(self,
                 os.path.join(cachedir, 'gits'), repo_resolver,
                 bundle_base_url=self.settings['bundle-server'])
         if self.settings['cache-server']:
@@ -530,18 +526,18 @@ class Morph(cliapp.Application):
         image_path_2 = lac.get(artifact2).name
         
         def setup(path):
-            part = morphlib.fsutils.setup_device_mapping(ex, path)
+            part = morphlib.fsutils.setup_device_mapping(self.runcmd, path)
             mount_point = tempfile.mkdtemp(dir=self.settings['tempdir'])
-            morphlib.fsutils.mount(ex, part, mount_point)
+            morphlib.fsutils.mount(self.runcmd, part, mount_point)
             return mount_point
 
         def cleanup(path, mount_point):
             try:
-                morphlib.fsutils.unmount(ex, mount_point)
+                morphlib.fsutils.unmount(self.runcmd, mount_point)
             except:
                 pass
             try:
-                morphlib.fsutils.undo_device_mapping(ex, path)
+                morphlib.fsutils.undo_device_mapping(self.runcmd, path)
             except:
                 pass
             try:
@@ -549,14 +545,13 @@ class Morph(cliapp.Application):
             except:
                 pass
 
-        ex = morphlib.execute.Execute('.', logging.debug)
         try:
             mount_point_1 = setup(image_path_1)
             mount_point_2 = setup(image_path_2)
 
-            ex.runv(['tbdiff-create', output,
-                     os.path.join(mount_point_1, 'factory'),
-                     os.path.join(mount_point_2, 'factory')])
+            self.runcmd(['tbdiff-create', output,
+                         os.path.join(mount_point_1, 'factory'),
+                         os.path.join(mount_point_2, 'factory')])
         except BaseException:
             raise
         finally:
@@ -621,7 +616,7 @@ class Morph(cliapp.Application):
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
+        cache = morphlib.localrepocache.LocalRepoCache(self,
                 cachedir, repo_resolver, bundle_base_url)
 
         # Get the repository into the cache; make sure it is up to date.
@@ -633,14 +628,14 @@ class Morph(cliapp.Application):
         repo.checkout(ref, os.path.abspath(dirname))
         
         # Set the origin to point at the original repository.
-        morphlib.git.set_remote(dirname, 'origin', repo.url)
+        morphlib.git.set_remote(self.runcmd, dirname, 'origin', repo.url)
         
         # Add push url rewrite rule to .git/config.
         filename = os.path.join(dirname, '.git', 'config')
         with open(filename, 'a') as f:
             f.write('\n')
             f.write('[url "%s"]\n' % repo_resolver.push_url(reponame))
-            f.write('\tpushInsteadOf = %s\n' % repo_resolver.pull_url(reponame))
+            f.write('\tpushInsteadOf = %s\n' %repo_resolver.pull_url(reponame))
         
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)
@@ -823,7 +818,7 @@ class Morph(cliapp.Application):
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
                 self.settings['repo-alias'])
         bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
+        cache = morphlib.localrepocache.LocalRepoCache(self,
                 cachedir, repo_resolver, bundle_base_url)
         
         for filename in args:
@@ -860,9 +855,10 @@ class Morph(cliapp.Application):
             msg = kwargs['msg']
             del kwargs['msg']
 
-	if 'env' not in kwargs:
+        if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
-	kwargs['env'].update(TMPDIR=self.settings['tempdir'])
+        if self.settings['tempdir'] is not None:
+            kwargs['env'].update(TMPDIR=self.settings['tempdir'])
 
         # convert the command line arguments into a string
         commands = [argv] + list(args)
@@ -877,80 +873,6 @@ class Morph(cliapp.Application):
 
         # run the command line
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)
-
-    # This is in morph so that policy is easily visible, and not embedded
-    # deep down in the call stack.
-    def clean_env(self):
-        '''Create a fresh set of environment variables for a clean build.
-        
-        Return a dict with the new environment.
-        
-        '''
-        
-        path = os.environ['PATH']
-        tools = os.environ.get('BOOTSTRAP_TOOLS')
-        distcc_hosts = os.environ.get('DISTCC_HOSTS')
-
-        # copy a set of white-listed variables from the original env
-        copied_vars = dict.fromkeys([
-            'TMPDIR',
-            'LD_PRELOAD',
-            'LD_LIBRARY_PATH',
-            'FAKEROOTKEY',
-            'FAKED_MODE',
-            'FAKEROOT_FD_BASE',
-        ])
-        for name in copied_vars:
-            copied_vars[name] = os.environ.get(name, None)
-
-        env = {}
-        
-        # apply the copied variables to the clean env
-        for name in copied_vars:
-            if copied_vars[name] is not None:
-                env[name] = copied_vars[name]
-
-        env['TERM'] = 'dumb'
-        env['SHELL'] = '/bin/sh'
-        env['USER'] = \
-            env['USERNAME'] = \
-            env['LOGNAME'] = 'tomjon'
-        env['LC_ALL'] = 'C'
-        env['HOME'] = '/tmp'
-
-        if self.settings['keep-path'] or self.settings['bootstrap']:
-            env['PATH'] = path
-        else:
-            env['PATH'] = '/sbin:/usr/sbin:/bin:/usr/bin'
-
-        env['TOOLCHAIN_TARGET'] = self.settings['toolchain-target']
-        env['CFLAGS'] = self.settings['target-cflags']
-        env['PREFIX'] = self.settings['prefix']
-        env['BOOTSTRAP'] = 'true' if self.settings['bootstrap'] else 'false'
-        if tools is not None:
-            env['BOOTSTRAP_TOOLS'] = tools
-        if distcc_hosts is not None:
-            env['DISTCC_HOSTS'] = distcc_hosts
-
-        if not self.settings['no-ccache']:
-            env['PATH'] = ('/usr/lib/ccache:%s' % env['PATH'])
-# FIXME: This needs to be made working, but it doesn't really, right now:
-# the tempdir is not available inside the staging chroot.
-#            env['CCACHE_BASEDIR'] = self.tempdir.dirname
-            env['CCACHE_EXTRAFILES'] = ':'.join(
-                f for f in ('/baserock/binutils.meta',
-                            '/baserock/eglibc.meta',
-                            '/baserock/gcc.meta') if os.path.exists(f)
-            )
-            if self.settings['ccache-remotedir'] != '':
-                env['CCACHE_REMOTEDIR'] = self.settings['ccache-remotedir']
-            env['CCACHE_REMOTENLEVELS'] = \
-                                    str(self.settings['ccache-remotenlevels'])
-            if not self.settings['no-distcc']:
-                env['CCACHE_PREFIX'] = 'distcc'
-            
-        return env
-
 
 if __name__ == '__main__':
     Morph().run()

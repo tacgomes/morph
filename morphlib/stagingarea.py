@@ -36,7 +36,8 @@ class StagingArea(object):
     
     '''
     
-    def __init__(self, dirname, tempdir):
+    def __init__(self, app, dirname, tempdir):
+        self._app = app
         self.dirname = dirname
         self.tempdir = tempdir
 
@@ -104,7 +105,6 @@ class StagingArea(object):
 
     def runcmd(self, argv, **kwargs): # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
-        ex = morphlib.execute.Execute('/', logging.debug)
         cwd = kwargs.get('cwd') or '/'
         if 'cwd' in kwargs:
             cwd = kwargs['cwd']
@@ -113,5 +113,5 @@ class StagingArea(object):
             cwd = '/'
         real_argv = ['chroot', self.dirname, 'sh', '-c',
                      'cd "$1" && shift && exec "$@"', '--', cwd] + argv
-        return ex.runv(real_argv, **kwargs)
+        return self._app.runcmd(real_argv, **kwargs)
 

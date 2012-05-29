@@ -17,6 +17,8 @@
 import unittest
 import urllib2
 
+import cliapp
+
 import morphlib
 
 
@@ -36,7 +38,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.remotes = {}
         self.fetched = []
         self.removed = []
-        self.lrc = morphlib.localrepocache.LocalRepoCache(
+        self.lrc = morphlib.localrepocache.LocalRepoCache(object(),
                 self.cachedir, repo_resolver, bundle_base_url)
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
@@ -106,7 +108,7 @@ class LocalRepoCacheTests(unittest.TestCase):
 
     def test_fails_to_cache_when_remote_does_not_exist(self):
         def fail(args):
-            raise morphlib.execute.CommandFailure('', '')
+            raise cliapp.AppException('', '')
         self.lrc._git = fail
         self.assertRaises(morphlib.localrepocache.NoRemote, 
                           self.lrc.cache_repo, self.repourl)

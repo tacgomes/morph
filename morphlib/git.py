@@ -22,78 +22,9 @@ import os
 import re
 import StringIO
 
+import cliapp
+
 import morphlib
-
-
-class NoMorphs(Exception):
-
-    def __init__(self, repo, ref):
-        Exception.__init__(self, 'Cannot find any morpologies at %s:%s' %
-                           (repo, ref))
-
-
-class TooManyMorphs(Exception):
-
-    def __init__(self, repo, ref, morphs):
-        Exception.__init__(self, 'Too many morphologies at %s:%s: %s' %
-                           (repo, ref, ', '.join(morphs)))
-
-
-class InvalidReferenceError(cliapp.AppException):
-
-    def __init__(self, repo, ref):
-        Exception.__init__(self, '%s is an invalid reference for repo %s' %
-                           (ref, repo))
-
-
-class Treeish(object):
-
-    def __init__(self, repo, original_repo, ref, msg=logging.debug):
-        self.repo = repo
-        self.msg = msg
-        self.sha1 = None
-        self.ref = None
-        self.original_repo = original_repo
-        self._resolve_ref(ref) 
-
-    def __hash__(self):
-        return hash((self.repo, self.ref))
-
-    def __eq__(self, other):
-        return other.repo == self.repo and other.ref == self.ref
-
-    def __str__(self):
-        return '%s:%s' % (self.repo, self.ref)
-
-    def _resolve_ref(self, ref):
-        ex = morphlib.execute.Execute(self.repo, self.msg)
-        try:
-            refs = ex.runv(['git', 'show-ref', ref]).split('\n')
-
-            # split each ref line into an array, drop non-origin branches
-            refs = [x.split() for x in refs if 'origin' in x]
-
-            binascii.unhexlify(refs[0][0]) #Valid hex?
-            self.sha1 = refs[0][0]
-            self.ref = refs[0][1]
-        except morphlib.execute.CommandFailure:
-            self._is_sha(ref)
-
-    def _is_sha(self, ref):
-        if len(ref) != 40:
-            raise InvalidReferenceError(self.original_repo, ref)
-
-        try:
-                binascii.unhexlify(ref)
-                ex = morphlib.execute.Execute(self.repo, self.msg)
-                ex.runv(['git', 'rev-list', '--no-walk', ref])
-                self.sha1 = ref
-                # NOTE this is a hack, but we really don't want to add
-                # conditionals all over the place in order to handle
-                # situations where we only have a .sha1, do we?
-                self.ref = ref
-        except (TypeError, morphlib.execute.CommandFailure):
-            raise InvalidReferenceError(self.original_repo, ref)
 
 
 class NoModulesFileError(cliapp.AppException):
@@ -109,13 +40,6 @@ class Submodule(object):
         self.name = name
         self.url = url
         self.path = path
-
-
-class ModulesFileParseError(cliapp.AppException):
-
-    def __init__(self, repo, ref, message):
-        Exception.__init__(self, 'Failed to parse %s:%s:.gitmodules: %s' %
-                           (repo, ref, message))
 
 
 class InvalidSectionError(cliapp.AppException):
@@ -136,7 +60,8 @@ class MissingSubmoduleCommitError(cliapp.AppException):
 
 class Submodules(object):
 
-    def __init__(self, repo, ref, msg=logging.debug):
+    def __init__(self, app, repo, ref, msg=logging.debug):
+        self.app = app
         self.repo = repo
         self.ref = ref
         self.msg = msg
@@ -154,17 +79,16 @@ class Submodules(object):
     def _read_gitmodules_file(self):
         try:
             # try to read the .gitmodules file from the repo/ref
-            ex = morphlib.execute.Execute(self.repo, self.msg)
-            content = ex.runv(['git', 'cat-file', 'blob', '%s:.gitmodules' %
-                               self.ref])
+            content = self.app.runcmd(
+                    ['git', 'cat-file', 'blob', '%s:.gitmodules' % self.ref],
+                    cwd=self.repo)
 
             # drop indentation in sections, as RawConfigParser cannot handle it
             return '\n'.join([line.strip() for line in content.splitlines()])
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             raise NoModulesFileError(self.repo, self.ref)
 
     def _validate_and_read_entries(self, parser):
-        ex = morphlib.execute.Execute(self.repo, self.msg)
         for section in parser.sections():
             # validate section name against the 'section "foo"' pattern
             section_pattern = r'submodule "(.*)"'
@@ -179,8 +103,8 @@ class Submodules(object):
                 try:
                     # list objects in the parent repo tree to find the commit
                     # object that corresponds to the submodule
-                    commit = ex.runv(['git', 'ls-tree', self.ref,
-                                      submodule.name])
+                    commit = self.app.runcmd(['git', 'ls-tree', self.ref,
+                                              submodule.name], cwd=self.repo)
 
                     # read the commit hash from the output
                     fields = commit.split()
@@ -199,7 +123,7 @@ class Submodules(object):
                         self.msg('Skipping submodule "%s" as %s:%s has '
                                  'a non-commit object for it' %
                                  (submodule.name, self.repo, self.ref))
-                except morphlib.execute.CommandFailure:
+                except cliapp.AppException:
                     raise MissingSubmoduleCommitError(self.repo, self.ref,
                                                       submodule.name)
             else:
@@ -213,57 +137,20 @@ class Submodules(object):
         return len(self.submodules)
 
 
-def get_morph_text(treeish, filename, msg=logging.debug):
-    '''Return a morphology from a git repository.'''
-    ex = morphlib.execute.Execute(treeish.repo, msg=msg)
-    return ex.runv(['git', 'cat-file', 'blob', '%s:%s'
-                   % (treeish.sha1, filename)])
-
-def extract_bundle(location, bundle, msg=logging.debug):
-    '''Extract a bundle into git at location'''
-    ex = morphlib.execute.Execute(location, msg=msg)
-    return ex.runv(['git', 'clone', '-n', bundle, '.'])
-
-def clone(location, repo, msg=logging.debug):
-    '''clone at git repo into location'''
-    ex = morphlib.execute.Execute('.', msg=msg)
-    return ex.runv(['git', 'clone', '-n', '-l', repo, location])
-
-def init(location, msg=logging.debug):
-    '''initialise git repo at location'''
-    os.mkdir(location)
-    ex = morphlib.execute.Execute(location, msg=msg)
-    return ex.runv(['git', 'init'])
-
-def set_remote(gitdir, name, url, msg=logging.debug):
+def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
-    ex = morphlib.execute.Execute(gitdir, msg=msg)
-    return ex.runv(['git', 'remote', 'set-url', name, url])
+    return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)
 
-def update_remote(gitdir, name, msg=logging.debug):
-    ex = morphlib.execute.Execute(gitdir, msg=msg)
-    return ex.runv(['git', 'remote', 'update', name])
-
-def copy_repository(repo, destdir, msg=logging.debug):
+def copy_repository(runcmd, repo, destdir):
     '''Copies a cached repository into a directory using cp.'''
-    ex = morphlib.execute.Execute('.', msg=msg)
-    return ex.runv(['cp', '-a', os.path.join(repo, '.git'), destdir])
+    return runcmd(['cp', '-a', os.path.join(repo, '.git'), destdir])
 
-def checkout_ref(gitdir, ref, msg=logging.debug):
+def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
-    ex = morphlib.execute.Execute(gitdir, msg=msg)
-    ex.runv(['git', 'checkout', ref])
+    runcmd(['git', 'checkout', ref], cwd=gitdir)
 
-def reset_workdir(gitdir, msg=logging.debug):
+def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
     '''and the status of the working directory'''
-    ex = morphlib.execute.Execute(gitdir, msg=msg)
-    ex.runv(['git', 'clean', '-fxd'])
-    ex.runv(['git', 'reset', '--hard', 'HEAD'])
-
-def set_submodule_url(gitdir, name, url, msg=logging.debug):
-    '''Changes the URL of a submodule to point to a specific location.'''
-    ex = morphlib.execute.Execute(gitdir, msg=msg)
-    ex.runv(['git', 'config', 'submodule.%s.url' % name, url])
-    ex.runv(['git', 'config', '-f', '.gitmodules',
-             'submodule.%s.url' % name, url])
+    runcmd(['git', 'clean', '-fxd'], cwd=gitdir)
+    runcmd(['git', 'reset', '--hard', 'HEAD'], cwd=gitdir)

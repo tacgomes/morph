@@ -18,8 +18,7 @@ import cliapp
 import logging
 import os
 
-import morphlib.execute
-
+import morphlib
 
 class InvalidReferenceError(cliapp.AppException):
 
@@ -76,13 +75,13 @@ class CachedRepo(object):
 
     '''
 
-    def __init__(self, original_name, url, path):
+    def __init__(self, app, original_name, url, path):
         '''Creates a new CachedRepo for a repo name, URL and local path.'''
 
+        self.app = app
         self.original_name = original_name
         self.url = url
         self.path = path
-        self.ex = morphlib.execute.Execute(self.path, logging.debug)
 
     def is_valid_sha1(self, ref):
         '''Checks whether a string is a valid SHA1.'''
@@ -103,14 +102,14 @@ class CachedRepo(object):
             # split each ref line into an array, drop non-origin branches
             refs = [x.split() for x in refs if 'origin' in x]
             return refs[0][0]
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             pass
 
         if not self.is_valid_sha1(ref):
             raise InvalidReferenceError(self, ref)
         try:
             return self._rev_list(ref).strip()
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             raise InvalidReferenceError(self, ref)
 
     def cat(self, ref, filename):
@@ -127,12 +126,12 @@ class CachedRepo(object):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref).strip()
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             raise InvalidReferenceError(self, ref)
 
         try:
             return self._cat_file(sha1, filename)
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             raise IOError('File %s does not exist in ref %s of repo %s' %
                           (filename, ref, self))
 
@@ -155,7 +154,7 @@ class CachedRepo(object):
         try:
             self._copy_repository(self.path, target_dir)
             self._checkout_ref(ref, target_dir)
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException:
             raise CheckoutError(self, ref, target_dir)
 
     def update(self):
@@ -168,28 +167,32 @@ class CachedRepo(object):
 
         try:
             self._update()
-        except morphlib.execute.CommandFailure:
+        except cliapp.AppException, e:
             raise UpdateError(self)
 
+    def _runcmd(self, *args, **kwargs): # pragma: no cover
+        if not 'cwd' in kwargs:
+            kwargs['cwd'] = self.path
+        return self.app.runcmd(*args, **kwargs)
+
     def _show_ref(self, ref): # pragma: no cover
-        return self.ex.runv(['git', 'show-ref', ref])
+        return self._runcmd(['git', 'show-ref', ref])
 
     def _rev_list(self, ref): # pragma: no cover
-        return self.ex.runv(['git', 'rev-list', '--no-walk', ref])
+        return self._runcmd(['git', 'rev-list', '--no-walk', ref])
 
     def _cat_file(self, ref, filename): # pragma: no cover
-        return self.ex.runv(['git', 'cat-file', 'blob',
+        return self._runcmd(['git', 'cat-file', 'blob',
                              '%s:%s' % (ref, filename)])
 
     def _copy_repository(self, source_dir, target_dir): # pragma: no cover
-        self.ex.runv(['cp', '-a', os.path.join(source_dir, '.git'),
-                      target_dir])
+        morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
 
     def _checkout_ref(self, ref, target_dir): # pragma: no cover
-        self.ex.runv(['git', 'checkout', ref], cwd=target_dir)
+        morphlib.git.checkout_ref(self._runcmd, target_dir, ref)
 
     def _update(self): # pragma: no cover
-        self.ex.runv(['git', 'remote', 'update', 'origin'])
+        self._runcmd(['git', 'remote', 'update', 'origin'])
 
     def __str__(self): # pragma: no cover
         return self.url

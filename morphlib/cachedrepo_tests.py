@@ -17,6 +17,8 @@
 import os
 import unittest
 
+import cliapp
+
 import morphlib
 
 from morphlib import cachedrepo
@@ -36,7 +38,7 @@ class CachedRepoTests(unittest.TestCase):
         try:
             return output[ref]
         except:
-            raise morphlib.execute.CommandFailure('git show-ref %s' % ref, '')
+            raise cliapp.AppException('git show-ref %s' % ref, '')
 
     def rev_list(self, ref):
         output = {
@@ -48,7 +50,7 @@ class CachedRepoTests(unittest.TestCase):
         try:
             return output[ref]
         except:
-            raise morphlib.execute.CommandFailure('git rev-list %s' % ref, '')
+            raise cliapp.AppException('git rev-list %s' % ref, '')
 
     def cat_file(self, ref, filename):
         output = {
@@ -58,7 +60,7 @@ class CachedRepoTests(unittest.TestCase):
         try:
             return output['%s:%s' % (ref, filename)]
         except:
-            raise morphlib.execute.CommandFailure(
+            raise cliapp.AppException(
                     'git cat-file blob %s:%s' % (ref, filename), '')
 
     def copy_repository(self, source_dir, target_dir):
@@ -72,7 +74,7 @@ class CachedRepoTests(unittest.TestCase):
         if ref in bad_refs:
             # simulate a git failure or something similar to
             # trigger a CheckoutError
-            raise morphlib.execute.CommandFailure('git checkout %s' % ref, '')
+            raise cliapp.AppException('git checkout %s' % ref, '')
         else:
             with open(os.path.join(target_dir, 'foo.morph'), 'w') as f:
                 f.write('contents of foo.morph')
@@ -81,13 +83,13 @@ class CachedRepoTests(unittest.TestCase):
         pass
 
     def update_with_failure(self):
-        raise morphlib.execute.CommandFailure('git remote update origin', '')
+        raise cliapp.AppException('git remote update origin', '')
 
     def setUp(self):
         self.repo_name = 'foo'
         self.repo_url = 'git://foo.bar/foo.git'
         self.repo_path = '/tmp/foo'
-        self.repo = cachedrepo.CachedRepo(
+        self.repo = cachedrepo.CachedRepo(object(),
                 self.repo_name, self.repo_url, self.repo_path)
         self.repo._show_ref = self.show_ref
         self.repo._rev_list = self.rev_list

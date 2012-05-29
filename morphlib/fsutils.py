@@ -17,26 +17,26 @@ import os
 import re
 
 
-def create_image(ex, image_name, size):
+def create_image(runcmd, image_name, size):
     # FIXME a pure python implementation may be better
-    ex.runv(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
-             'seek=%d' % size, 'count=0'])
+    runcmd(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
+            'seek=%d' % size, 'count=0'])
 
-def partition_image(ex, image_name):
+def partition_image(runcmd, image_name):
     # FIXME make this more flexible with partitioning options
-    ex.runv(['sfdisk', image_name], feed_stdin='1,,83,*\n')
+    runcmd(['sfdisk', image_name], feed_stdin='1,,83,*\n')
 
-def install_mbr(ex, image_name):
+def install_mbr(runcmd, image_name):
     for path in ['/usr/lib/extlinux/mbr.bin',
                  '/usr/share/syslinux/mbr.bin']:
         if os.path.exists(path):
-            ex.runv(['dd', 'if=' + path, 'of=' + image_name,
-                     'conv=notrunc'])
+            runcmd(['dd', 'if=' + path, 'of=' + image_name,
+                    'conv=notrunc'])
             break
 
-def setup_device_mapping(ex, image_name):
+def setup_device_mapping(runcmd, image_name):
     findstart = re.compile(r"start=\s+(\d+),")
-    out = ex.runv(['sfdisk', '-d', image_name])
+    out = runcmd(['sfdisk', '-d', image_name])
     for line in out.splitlines():
         match = findstart.search(line)
         if match is None:
@@ -45,30 +45,30 @@ def setup_device_mapping(ex, image_name):
         if start != 0:
             break
     
-    ex.runv(['losetup', '-o', str(start), '-f', image_name])
+    runcmd(['losetup', '-o', str(start), '-f', image_name])
     
-    out = ex.runv(['losetup', '-j', image_name])
+    out = runcmd(['losetup', '-j', image_name])
     line = out.strip()
     i = line.find(':')
     return line[:i]
 
-def create_fs(ex, partition):
+def create_fs(runcmd, partition):
     # FIXME: the hardcoded size of 4GB is icky but the default broke
     # when we used mkfs -t ext4
-    ex.runv(['mkfs.btrfs', '-L', 'baserock',
-             '-b', '4294967296', partition])
+    runcmd(['mkfs.btrfs', '-L', 'baserock',
+            '-b', '4294967296', partition])
 
-def mount(ex, partition, mount_point):
+def mount(runcmd, partition, mount_point):
     if not os.path.exists(mount_point):
         os.mkdir(mount_point)
-    ex.runv(['mount', partition, mount_point])
+    runcmd(['mount', partition, mount_point])
 
-def unmount(ex, mount_point):
-    ex.runv(['umount', mount_point])
+def unmount(runcmd, mount_point):
+    runcmd(['umount', mount_point])
 
-def undo_device_mapping(ex, image_name):
-    out = ex.runv(['losetup', '-j', image_name])
+def undo_device_mapping(runcmd, image_name):
+    out = runcmd(['losetup', '-j', image_name])
     for line in out.splitlines():
         i = line.find(':')
         device = line[:i]
-        ex.runv(['losetup', '-d', device])
+        runcmd(['losetup', '-d', device])

@@ -73,7 +73,6 @@ class BinsTest(unittest.TestCase):
 class ChunkTests(BinsTest):
 
     def setUp(self):
-        self.ex = morphlib.execute.Execute('.', lambda s: None)
         self.tempdir = tempfile.mkdtemp()
         self.instdir = os.path.join(self.tempdir, 'inst')
         self.chunk_file = os.path.join(self.tempdir, 'chunk')
@@ -107,8 +106,7 @@ class ChunkTests(BinsTest):
 
     def create_chunk(self, regexps):
         self.populate_instdir()
-        morphlib.bins.create_chunk(self.instdir, self.chunk_f, regexps, 
-                                   self.ex)
+        morphlib.bins.create_chunk(self.instdir, self.chunk_f, regexps)
         self.chunk_f.flush()
 
     def unpack_chunk(self):
@@ -138,7 +136,6 @@ class ChunkTests(BinsTest):
 class StratumTests(BinsTest):
 
     def setUp(self):
-        self.ex = morphlib.execute.Execute('.', lambda s: None)
         self.tempdir = tempfile.mkdtemp()
         self.instdir = os.path.join(self.tempdir, 'inst')
         self.stratum_file = os.path.join(self.tempdir, 'stratum')
@@ -155,7 +152,7 @@ class StratumTests(BinsTest):
 
     def test_creates_and_unpacks_stratum_exactly(self):
         self.populate_instdir()
-        morphlib.bins.create_stratum(self.instdir, self.stratum_f, self.ex)
+        morphlib.bins.create_stratum(self.instdir, self.stratum_f)
         self.stratum_f.flush()
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.stratum_file, self.unpacked)

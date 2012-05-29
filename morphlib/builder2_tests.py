@@ -27,6 +27,9 @@ class FakeBuildSystem(object):
     def __init__(self):
         self.build_commands = ['buildsys-it']
 
+class FakeApp(object):
+    def __init__(self, runcmd=None):
+        self.runcmd = runcmd
 
 class FakeStagingArea(object):
 
@@ -43,7 +46,8 @@ class FakeSource(object):
             'description': 'c',
         }
         
-        self.repo = morphlib.cachedrepo.CachedRepo('repo', 'url', 'path')
+        self.repo = morphlib.cachedrepo.CachedRepo(FakeApp(), 'repo',
+                                                   'url', 'path')
         self.original_ref = 'e'
         self.sha1 = 'f'
         self.filename = 'g'
@@ -131,13 +135,15 @@ class BuilderBaseTests(unittest.TestCase):
 
     def setUp(self):
         self.commands_run = []
+        self.app = FakeApp(self.fake_runcmd)
         self.staging_area = FakeStagingArea(self.fake_runcmd)
         self.artifact_cache = FakeArtifactCache()
         self.artifact = FakeArtifact('le-artifact')
         self.repo_cache = None
         self.build_env = FakeBuildEnv()
         self.max_jobs = 1
-        self.builder = morphlib.builder2.BuilderBase(self.staging_area,
+        self.builder = morphlib.builder2.BuilderBase(self.app,
+                                                     self.staging_area,
                                                      self.artifact_cache,
                                                      None,
                                                      self.artifact,
@@ -206,8 +212,10 @@ class BuilderBaseTests(unittest.TestCase):
 class ChunkBuilderTests(unittest.TestCase):
 
     def setUp(self):
-        self.build = morphlib.builder2.ChunkBuilder(None, None, None, None,
-                                                    None, None, 1, False)
+        self.app = FakeApp()
+        self.build = morphlib.builder2.ChunkBuilder(self.app, None, None,
+                                                    None, None, None, None, 1,
+                                                    False)
 
     def test_uses_morphology_commands_when_given(self):
         m = { 'build-commands': ['build-it'] }
