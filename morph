@@ -260,17 +260,17 @@ class Morph(cliapp.Application):
 
             if self.settings['bootstrap']:
                 staging_root = '/'
-                staging_temp = tempfile.mkdtemp()
+                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
                 install_chunks = True
                 setup_proc = False
             elif self.settings['staging-chroot']:
-                staging_root = tempfile.mkdtemp()
+                staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
                 staging_temp = staging_root
                 install_chunks = True
                 setup_proc = True
             else:
                 staging_root = '/'
-                staging_temp = tempfile.mkdtemp()
+                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
                 install_chunks = False
                 setup_proc = False
 
@@ -531,7 +531,7 @@ class Morph(cliapp.Application):
         
         def setup(path):
             part = morphlib.fsutils.setup_device_mapping(ex, path)
-            mount_point = tempfile.mkdtemp()
+            mount_point = tempfile.mkdtemp(dir=self.settings['tempdir'])
             morphlib.fsutils.mount(ex, part, mount_point)
             return mount_point
 
