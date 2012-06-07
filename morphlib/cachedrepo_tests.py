@@ -38,7 +38,7 @@ class CachedRepoTests(unittest.TestCase):
         try:
             return output[ref]
         except:
-            raise cliapp.AppException('git show-ref %s' % ref, '')
+            raise cliapp.AppException('git show-ref %s' % ref)
 
     def rev_list(self, ref):
         output = {
@@ -50,7 +50,7 @@ class CachedRepoTests(unittest.TestCase):
         try:
             return output[ref]
         except:
-            raise cliapp.AppException('git rev-list %s' % ref, '')
+            raise cliapp.AppException('git rev-list %s' % ref)
 
     def cat_file(self, ref, filename):
         output = {
@@ -61,7 +61,7 @@ class CachedRepoTests(unittest.TestCase):
             return output['%s:%s' % (ref, filename)]
         except:
             raise cliapp.AppException(
-                    'git cat-file blob %s:%s' % (ref, filename), '')
+                    'git cat-file blob %s:%s' % (ref, filename))
 
     def copy_repository(self, source_dir, target_dir):
         pass
@@ -74,7 +74,7 @@ class CachedRepoTests(unittest.TestCase):
         if ref in bad_refs:
             # simulate a git failure or something similar to
             # trigger a CheckoutError
-            raise cliapp.AppException('git checkout %s' % ref, '')
+            raise cliapp.AppException('git checkout %s' % ref)
         else:
             with open(os.path.join(target_dir, 'foo.morph'), 'w') as f:
                 f.write('contents of foo.morph')
@@ -83,7 +83,7 @@ class CachedRepoTests(unittest.TestCase):
         pass
 
     def update_with_failure(self):
-        raise cliapp.AppException('git remote update origin', '')
+        raise cliapp.AppException('git remote update origin')
 
     def setUp(self):
         self.repo_name = 'foo'
