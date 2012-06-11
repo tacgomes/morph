@@ -870,6 +870,10 @@ class Morph(cliapp.Application):
 
         # print the command line
         msg('# %s' % ' | '.join(commands))
+        
+        # Log the environment.
+        for name in kwargs['env']:
+            logging.debug('environment: %s=%s' % (name, kwargs['env'][name]))
 
         # run the command line
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)
