@@ -411,6 +411,19 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._install_boot_files(arch, factory_run_path, mount_point)
                 if arch in ('x86', 'x86_64', None):
                     self._install_extlinux(mount_point)
+                if arch in ('arm',):
+                    # write the kernel as metadata to the cache
+                    # it should probably be a full artifact, but
+                    # that would require altering the artifact
+                    # resolver
+                    lac = self.local_artifact_cache
+                    a = self.artifact
+                    with lac.put_artifact_metadata(a, 'kernel') as dest:
+                        with open(os.path.join(factory_path,
+                                               'boot',
+                                               'zImage')) as kernel:
+                            shutil.copyfileobj(kernel, dest)
+                
                 self._unmount(mount_point)
             except BaseException, e:
                 logging.error('Got error while system image building, '
