@@ -268,14 +268,10 @@ class Morph(cliapp.Application):
             handle = lac.get(chunk_artifact)
             staging_area.install_artifact(handle)
 
-    def build_group(self, group, needed, install_chunks, to_install, builder,
-                    lac, staging_area):
+    def build_group(self, group, needed, builder, lac, staging_area):
         for artifact in group:
             if artifact in needed:
                 self.msg('Building %s' % artifact.name)
-                if install_chunks:
-                    self.install_artifacts(staging_area, lac, to_install)
-                    del to_install[:]
                 builder.build_and_cache(artifact)
             else:
                 self.msg('Using cached %s' % artifact.name)
@@ -332,8 +328,10 @@ class Morph(cliapp.Application):
 
             to_install = []
             for group in order.groups:
-                self.build_group(group, needed, install_chunks, to_install,
-                                 builder, lac, staging_area)
+                if install_chunks:
+                    self.install_artifacts(staging_area, lac, to_install)
+                    del to_install[:]
+                self.build_group(group, needed, builder, lac, staging_area)
                 to_install.extend(
                         x for x in group
                         if x.source.morphology['kind'] == 'chunk')
