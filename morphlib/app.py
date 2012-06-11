@@ -308,17 +308,12 @@ class Morph(cliapp.Application):
 
         for repo_name, ref, filename in self._itertriplets(args):
             self.msg('Building %s %s %s' % (repo_name, ref, filename))
-
             order = self.compute_build_order(repo_name, ref, filename,
                                              ckc, lrc, rrc)
-
             needed = self.find_what_needs_building(order, lac, rac)
-            
             self.get_source_repositories(needed, lrc)
-
             staging_area, install_chunks, setup_proc = \
                 self.create_staging_area()
-
             builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
                     self.settings['max-jobs'])
@@ -326,18 +321,15 @@ class Morph(cliapp.Application):
                 builder.setup_proc = True
 
             to_install = []
-
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
                         logging.debug('Need to build %s' % artifact.name)
                         self.msg('Building %s' % artifact.name)
-
                         if install_chunks:
                             self.install_artifacts(staging_area, lac, 
                                                    to_install)
                             to_install = []
-
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
