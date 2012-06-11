@@ -26,7 +26,7 @@ def partition_image(runcmd, image_name):
     # FIXME make this more flexible with partitioning options
     runcmd(['sfdisk', image_name], feed_stdin='1,,83,*\n')
 
-def install_mbr(runcmd, image_name):
+def install_syslinux_mbr(runcmd, image_name):
     for path in ['/usr/lib/extlinux/mbr.bin',
                  '/usr/share/syslinux/mbr.bin']:
         if os.path.exists(path):

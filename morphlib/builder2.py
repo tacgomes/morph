@@ -383,13 +383,15 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def build_and_cache(self):
         with self.build_watch('overall-build'):
             logging.debug('SystemBuilder.do_build called')
+
+            arch = self.artifact.source.morphology.arch
             
             handle = self.local_artifact_cache.put(self.artifact)
             image_name = handle.name
 
             self._create_image(image_name)
             self._partition_image(image_name)
-            self._install_mbr(image_name)
+            self._install_mbr(arch, image_name)
             partition = self._setup_device_mapping(image_name)
     
             mount_point = None
@@ -401,12 +403,14 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._create_subvolume(factory_path)
                 self._unpack_strata(factory_path)
                 self._create_fstab(factory_path)
-                self._create_extlinux_config(factory_path)
+                if arch in ('x86', 'x86_64', None):
+                    self._create_extlinux_config(factory_path)
                 self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
                 factory_run_path = os.path.join(mount_point, 'factory-run')
                 self._install_boot_files(factory_run_path, mount_point)
-                self._install_extlinux(mount_point)
+                if arch in ('x86', 'x86_64', None):
+                    self._install_extlinux(mount_point)
                 self._unmount(mount_point)
             except BaseException, e:
                 logging.error('Got error while system image building, '
@@ -418,6 +422,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     
             self._undo_device_mapping(image_name)
             handle.close()
+
         self.save_build_times()
 
     def _create_image(self, image_name):
@@ -432,10 +437,12 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         with self.build_watch('partition-image'):
             morphlib.fsutils.partition_image(self.app.runcmd, image_name)
 
-    def _install_mbr(self, image_name):
+    def _install_mbr(self, arch, image_name):
         logging.debug('Installing mbr on disk image %s' % image_name)
+        if arch not in ('x86', 'x86_64', None):
+            return
         with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_mbr(self.app.runcmd, image_name)
+            morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
 
     def _setup_device_mapping(self, image_name):
         logging.debug('Device mapping partitions in %s' % image_name)
@@ -511,16 +518,17 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
                          cwd=path)
 
-    def _install_boot_files(self, sourcefs, targetfs):
+    def _install_boot_files(self, arch, sourcefs, targetfs):
         logging.debug('installing boot files into root volume')
         with self.build_watch('install-boot-files'):
-            shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
-                         os.path.join(targetfs, 'extlinux.conf'))
-            os.mkdir(os.path.join(targetfs, 'boot'))
-            shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
-                         os.path.join(targetfs, 'boot', 'vmlinuz'))
-            shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
-                         os.path.join(targetfs, 'boot', 'System.map'))
+            if arch in ('x86', 'x86_64', None):
+                shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
+                             os.path.join(targetfs, 'extlinux.conf'))
+                os.mkdir(os.path.join(targetfs, 'boot'))
+                shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
+                             os.path.join(targetfs, 'boot', 'vmlinuz'))
+                shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
+                             os.path.join(targetfs, 'boot', 'System.map'))
 
     def _install_extlinux(self, path):
         logging.debug('Installing extlinux to %s' % path)
