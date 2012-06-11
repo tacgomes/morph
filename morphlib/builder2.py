@@ -384,7 +384,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         with self.build_watch('overall-build'):
             logging.debug('SystemBuilder.do_build called')
 
-            arch = self.artifact.source.morphology.arch
+            arch = self.artifact.source.morphology['arch']
             
             handle = self.local_artifact_cache.put(self.artifact)
             image_name = handle.name
