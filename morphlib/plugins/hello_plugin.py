@@ -1,6 +1,4 @@
-#!/usr/bin/python
-#
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +14,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import morphlib
+import cliapp
 
-morphlib.app.Morph().run()
+
+class Hello(cliapp.Plugin):
+
+    def enable(self):
+        print "enable hello"
+

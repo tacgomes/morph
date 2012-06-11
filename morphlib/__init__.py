@@ -52,3 +52,5 @@ import stopwatch
 import tempdir
 import util
 
+import app # this needs to be last
+
