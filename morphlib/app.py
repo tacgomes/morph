@@ -255,6 +255,13 @@ class Morph(cliapp.Application):
             
         return staging_area, install_chunks, setup_proc
 
+    def remove_staging_area(self, staging_area):
+        if staging_area.dirname != '/':
+            staging_area.remove()
+        if (staging_area.tempdir != '/' and 
+            os.path.exists(staging_area.tempdir)):
+            shutil.rmtree(staging_area.tempdir)
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -347,11 +354,7 @@ class Morph(cliapp.Application):
                     handle = lac.get(chunk_artifact)
                     staging_area.install_artifact(handle)
 
-            if staging_area.dirname != '/':
-                staging_area.remove()
-            if (staging_area.tempdir != '/' and 
-                os.path.exists(staging_area.tempdir)):
-                shutil.rmtree(staging_area.tempdir)
+            self.remove_staging_area(staging_area)
 
     def _install_initial_staging(self, staging_area):
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
