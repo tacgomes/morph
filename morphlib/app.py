@@ -333,18 +333,19 @@ class Morph(cliapp.Application):
                         logging.debug('Need to build %s' % artifact.name)
                         self.msg('Building %s' % artifact.name)
 
-                        self.install_artifacts(staging_area, lac, to_install)
-                        to_install = []
+                        if install_chunks:
+                            self.install_artifacts(staging_area, lac, 
+                                                   to_install)
+                            to_install = []
 
                         builder.build_and_cache(artifact)
                     else:
                         logging.debug('No need to build %s' % artifact.name)
                         self.msg('Using cached %s' % artifact.name)
 
-                if install_chunks:
-                    to_install.extend(
-                            [x for x in group
-                             if x.source.morphology['kind'] == 'chunk'])
+                to_install.extend(
+                        x for x in group
+                        if x.source.morphology['kind'] == 'chunk')
 
             # If we are running bootstrap we probably also want the last
             # build group to be installed as well
