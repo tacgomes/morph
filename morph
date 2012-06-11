@@ -857,8 +857,6 @@ class Morph(cliapp.Application):
 
         if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
-        if self.settings['tempdir'] is not None:
-            kwargs['env'].update(TMPDIR=self.settings['tempdir'])
 
         # convert the command line arguments into a string
         commands = [argv] + list(args)
