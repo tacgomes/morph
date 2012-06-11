@@ -142,6 +142,11 @@ class Morph(cliapp.Application):
                               'build things in a staging chroot '
                                 '(require real root to use)')
 
+    def setup_plugin_manager(self):
+        cliapp.Application.setup_plugin_manager(self)
+        s = os.environ.get('MORPH_PLUGIN_PATH', '')
+        self.pluginmgr.locations += s.split(':')
+
     def _itertriplets(self, args):
         '''Generate repo, ref, filename triples from args.'''
         
