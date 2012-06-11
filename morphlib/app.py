@@ -170,19 +170,6 @@ class Morph(cliapp.Application):
                               visit=add_to_pool)
         return pool
 
-    def create_cachedir(self):
-        cachedir = self.settings['cachedir']
-        if not os.path.exists(cachedir):
-            os.mkdir(cachedir)
-        return cachedir
-
-    def create_artifact_cachedir(self):
-        artifact_cachedir = os.path.join(
-                self.settings['cachedir'], 'artifacts')
-        if not os.path.exists(artifact_cachedir):
-            os.mkdir(artifact_cachedir)
-        return artifact_cachedir
-
     def compute_build_order(self, repo_name, ref, filename, ckc, lrc, rrc):
         self.msg('Figuring out the right build order')
 
@@ -273,6 +260,55 @@ class Morph(cliapp.Application):
             self.msg('Building %s' % artifact.name)
             builder.build_and_cache(artifact)
 
+    def new_build_env(self):
+        return morphlib.buildenvironment.BuildEnvironment(self.settings)
+
+    def new_cache_key_computer(self, build_env):
+        return morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+
+    def create_cachedir(self):
+        cachedir = self.settings['cachedir']
+        if not os.path.exists(cachedir):
+            os.mkdir(cachedir)
+        return cachedir
+
+    def create_artifact_cachedir(self):
+        artifact_cachedir = os.path.join(
+                self.settings['cachedir'], 'artifacts')
+        if not os.path.exists(artifact_cachedir):
+            os.mkdir(artifact_cachedir)
+        return artifact_cachedir
+
+    def new_artifact_caches(self):
+        cachedir = self.create_cachedir()
+        artifact_cachedir = self.create_artifact_cachedir()
+
+        lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
+
+        rac_url = self.settings['cache-server']
+        if rac_url:
+            rac = morphlib.remoteartifactcache.RemoteArtifactCache(rac_url)
+        else:
+            rac = None
+        return lac, rac
+
+    def new_repo_caches(self):
+        aliases = self.settings['repo-alias']
+        cachedir = self.create_cachedir()
+        gits_dir = os.path.join(cachedir, 'gits')
+        bundle_base_url = self.settings['bundle-server']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
+        lrc = morphlib.localrepocache.LocalRepoCache(self,
+                gits_dir, repo_resolver, bundle_base_url=bundle_base_url)
+
+        url = self.settings['cache-server']
+        if url:
+            rrc = morphlib.remoterepocache.RemoteRepoCache(url, repo_resolver)
+        else:
+            rrc = None
+
+        return lrc, rrc
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -288,28 +324,10 @@ class Morph(cliapp.Application):
 
         self.msg('Build starts')
 
-        cachedir = self.create_cachedir()
-        artifact_cachedir = self.create_artifact_cachedir()
-
-        build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
-        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        lac = morphlib.localartifactcache.LocalArtifactCache(
-                os.path.join(cachedir, 'artifacts'))
-        if self.settings['cache-server']:
-            rac = morphlib.remoteartifactcache.RemoteArtifactCache(
-                    self.settings['cache-server'])
-        else:
-            rac = None
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-                self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(self,
-                os.path.join(cachedir, 'gits'), repo_resolver,
-                bundle_base_url=self.settings['bundle-server'])
-        if self.settings['cache-server']:
-            rrc = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'], repo_resolver)
-        else:
-            rrc = None
+        build_env = self.new_build_env()
+        ckc = self.new_cache_key_computer(build_env)
+        lac, rac = self.new_artifact_caches()
+        lrc, rrc = self.new_repo_caches()
 
         for repo_name, ref, filename in self._itertriplets(args):
             self.msg('Building %s %s %s' % (repo_name, ref, filename))
