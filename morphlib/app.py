@@ -183,6 +183,53 @@ class Morph(cliapp.Application):
             os.mkdir(artifact_cachedir)
         return artifact_cachedir
 
+    def compute_build_order(self, repo_name, ref, filename, ckc, lrc, rrc):
+        self.msg('Figuring out the right build order')
+
+        logging.debug('creating source pool')
+        srcpool = self._create_source_pool(
+                lrc, rrc, (repo_name, ref, filename))
+
+        logging.debug('creating artifact resolver')
+        ar = morphlib.artifactresolver.ArtifactResolver()
+
+        logging.debug('resolving artifacts')
+        artifacts = ar.resolve_artifacts(srcpool)
+
+        logging.debug('computing cache keys')
+        for artifact in artifacts:
+            artifact.cache_key = ckc.compute_key(artifact)
+            artifact.cache_id = ckc.get_cache_id(artifact)
+
+        logging.debug('computing build order')
+        order = morphlib.buildorder.BuildOrder(artifacts)
+        
+        return order
+
+    def find_what_needs_building(self, order, lac, rac):
+        logging.debug('finding what needs to be built')
+        needed = []
+        for group in order.groups:
+            for artifact in group:
+                if not lac.has(artifact):
+                    if not rac or not rac.has(artifact):
+                        needed.append(artifact)
+        return needed
+
+    def get_source_repositories(self, needed, lrc):
+        logging.debug('cloning/updating cached repos')
+        done = set()
+        for artifact in needed:
+            if self.settings['no-git-update']:
+                artifact.source.repo = lrc.get_repo(artifact.source.repo_name)
+            else:
+                self.msg('Cloning/updating %s' % artifact.source.repo_name)
+                artifact.source.repo = lrc.cache_repo(
+                        artifact.source.repo_name)
+                self._cache_repo_and_submodules(
+                        lrc, artifact.source.repo.url,
+                        artifact.source.sha1, done)
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -222,45 +269,14 @@ class Morph(cliapp.Application):
             rrc = None
 
         for repo_name, ref, filename in self._itertriplets(args):
-            logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
             self.msg('Building %s %s %s' % (repo_name, ref, filename))
 
-            self.msg('Figuring out the right build order')
-            logging.debug('cmd_build: creating source pool')
-            srcpool = self._create_source_pool(
-                    lrc, rrc, (repo_name, ref, filename))
-            logging.debug('cmd_build: creating artifact resolver')
-            ar = morphlib.artifactresolver.ArtifactResolver()
-            logging.debug('cmd_build: resolving artifacts')
-            artifacts = ar.resolve_artifacts(srcpool)
-            logging.debug('cmd_build: computing cache keys')
-            for artifact in artifacts:
-                artifact.cache_key = ckc.compute_key(artifact)
-                artifact.cache_id = ckc.get_cache_id(artifact)
-            logging.debug('cmd_build: computing build order')
-            order = morphlib.buildorder.BuildOrder(artifacts)
+            order = self.compute_build_order(repo_name, ref, filename,
+                                             ckc, lrc, rrc)
 
-            logging.debug('cmd_build: finding what needs to be built')
-            needed = []
-            for group in order.groups:
-                for artifact in group:
-                    if not lac.has(artifact):
-                        if not rac or not rac.has(artifact):
-                            needed.append(artifact)
-
-            logging.debug('cmd_build: cloning/updating cached repos')
-            done = set()
-            for artifact in needed:
-                if self.settings['no-git-update']:
-                    artifact.source.repo = lrc.get_repo(
-                            artifact.source.repo_name)
-                else:
-                    self.msg('Cloning/updating %s' % artifact.source.repo_name)
-                    artifact.source.repo = lrc.cache_repo(
-                            artifact.source.repo_name)
-                    self._cache_repo_and_submodules(
-                            lrc, artifact.source.repo.url,
-                            artifact.source.sha1, done)
+            needed = self.find_what_needs_building(order, lac, rac)
+            
+            self.get_source_repositories(needed, lrc)
 
             if self.settings['bootstrap']:
                 staging_root = '/'
