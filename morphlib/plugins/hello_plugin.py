@@ -20,5 +20,11 @@ import cliapp
 class Hello(cliapp.Plugin):
 
     def enable(self):
-        print "enable hello"
+        self.app.add_subcommand('hello', self.hello)
+
+    def disable(self):
+        pass
+    
+    def hello(self, args):
+        self.app.output.write('hello, world\n')
 
