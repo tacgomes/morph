@@ -53,10 +53,7 @@ def setup_device_mapping(runcmd, image_name):
     return line[:i]
 
 def create_fs(runcmd, partition):
-    # FIXME: the hardcoded size of 4GB is icky but the default broke
-    # when we used mkfs -t ext4
-    runcmd(['mkfs.btrfs', '-L', 'baserock',
-            '-b', '4294967296', partition])
+    runcmd(['mkfs.btrfs', '-L', 'baserock', partition])
 
 def mount(runcmd, partition, mount_point):
     if not os.path.exists(mount_point):
