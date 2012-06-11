@@ -170,6 +170,145 @@ class Morph(cliapp.Application):
                               visit=add_to_pool)
         return pool
 
+    def compute_build_order(self, repo_name, ref, filename, ckc, lrc, rrc):
+        self.msg('Figuring out the right build order')
+
+        logging.debug('creating source pool')
+        srcpool = self._create_source_pool(
+                lrc, rrc, (repo_name, ref, filename))
+
+        logging.debug('creating artifact resolver')
+        ar = morphlib.artifactresolver.ArtifactResolver()
+
+        logging.debug('resolving artifacts')
+        artifacts = ar.resolve_artifacts(srcpool)
+
+        logging.debug('computing cache keys')
+        for artifact in artifacts:
+            artifact.cache_key = ckc.compute_key(artifact)
+            artifact.cache_id = ckc.get_cache_id(artifact)
+
+        logging.debug('computing build order')
+        order = morphlib.buildorder.BuildOrder(artifacts)
+        
+        return order
+
+    def find_what_needs_building(self, order, lac, rac):
+        logging.debug('finding what needs to be built')
+        needed = []
+        for group in order.groups:
+            for artifact in group:
+                if not lac.has(artifact):
+                    if not rac or not rac.has(artifact):
+                        needed.append(artifact)
+        return needed
+
+    def get_source_repositories(self, needed, lrc):
+        logging.debug('cloning/updating cached repos')
+        done = set()
+        for artifact in needed:
+            if self.settings['no-git-update']:
+                artifact.source.repo = lrc.get_repo(artifact.source.repo_name)
+            else:
+                self.msg('Cloning/updating %s' % artifact.source.repo_name)
+                artifact.source.repo = lrc.cache_repo(
+                        artifact.source.repo_name)
+                self._cache_repo_and_submodules(
+                        lrc, artifact.source.repo.url,
+                        artifact.source.sha1, done)
+
+    def create_staging_area(self):
+        if self.settings['bootstrap']:
+            staging_root = '/'
+            staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            install_chunks = True
+            setup_proc = False
+        elif self.settings['staging-chroot']:
+            staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            staging_temp = staging_root
+            install_chunks = True
+            setup_proc = True
+        else:
+            staging_root = '/'
+            staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            install_chunks = False
+            setup_proc = False
+
+        staging_area = morphlib.stagingarea.StagingArea(self,
+                                                        staging_root,
+                                                        staging_temp)
+        if self.settings['staging-chroot']:
+            self._install_initial_staging(staging_area)
+            
+        return staging_area, install_chunks, setup_proc
+
+    def remove_staging_area(self, staging_area):
+        if staging_area.dirname != '/':
+            staging_area.remove()
+        if (staging_area.tempdir != '/' and 
+            os.path.exists(staging_area.tempdir)):
+            shutil.rmtree(staging_area.tempdir)
+
+    def install_artifacts(self, staging_area, lac, chunk_artifacts):
+        for chunk_artifact in chunk_artifacts:
+            self.msg('  Installing %s' % chunk_artifact.name)
+            handle = lac.get(chunk_artifact)
+            staging_area.install_artifact(handle)
+
+    def build_group(self, artifacts, builder, lac, staging_area):
+        for artifact in artifacts:
+            self.msg('Building %s' % artifact.name)
+            builder.build_and_cache(artifact)
+
+    def new_build_env(self):
+        return morphlib.buildenvironment.BuildEnvironment(self.settings)
+
+    def new_cache_key_computer(self, build_env):
+        return morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+
+    def create_cachedir(self):
+        cachedir = self.settings['cachedir']
+        if not os.path.exists(cachedir):
+            os.mkdir(cachedir)
+        return cachedir
+
+    def create_artifact_cachedir(self):
+        artifact_cachedir = os.path.join(
+                self.settings['cachedir'], 'artifacts')
+        if not os.path.exists(artifact_cachedir):
+            os.mkdir(artifact_cachedir)
+        return artifact_cachedir
+
+    def new_artifact_caches(self):
+        cachedir = self.create_cachedir()
+        artifact_cachedir = self.create_artifact_cachedir()
+
+        lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
+
+        rac_url = self.settings['cache-server']
+        if rac_url:
+            rac = morphlib.remoteartifactcache.RemoteArtifactCache(rac_url)
+        else:
+            rac = None
+        return lac, rac
+
+    def new_repo_caches(self):
+        aliases = self.settings['repo-alias']
+        cachedir = self.create_cachedir()
+        gits_dir = os.path.join(cachedir, 'gits')
+        bundle_base_url = self.settings['bundle-server']
+        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
+        lrc = morphlib.localrepocache.LocalRepoCache(self,
+                gits_dir, repo_resolver, bundle_base_url=bundle_base_url)
+
+        url = self.settings['cache-server']
+        if url:
+            rrc = morphlib.remoterepocache.RemoteRepoCache(url, repo_resolver)
+        else:
+            rrc = None
+
+        return lrc, rrc
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -183,146 +322,44 @@ class Morph(cliapp.Application):
         
         '''
 
-        logging.debug('cmd_build starting')
         self.msg('Build starts')
 
-        cachedir = self.settings['cachedir']
-        if not os.path.exists(cachedir):
-            os.mkdir(cachedir)
-
-        artifact_cachedir = os.path.join(
-                self.settings['cachedir'], 'artifacts')
-        if not os.path.exists(artifact_cachedir):
-            os.mkdir(artifact_cachedir)
-
-        build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
-        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        lac = morphlib.localartifactcache.LocalArtifactCache(
-                os.path.join(cachedir, 'artifacts'))
-        if self.settings['cache-server']:
-            rac = morphlib.remoteartifactcache.RemoteArtifactCache(
-                    self.settings['cache-server'])
-        else:
-            rac = None
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-                self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(self,
-                os.path.join(cachedir, 'gits'), repo_resolver,
-                bundle_base_url=self.settings['bundle-server'])
-        if self.settings['cache-server']:
-            rrc = morphlib.remoterepocache.RemoteRepoCache(
-                    self.settings['cache-server'], repo_resolver)
-        else:
-            rrc = None
+        build_env = self.new_build_env()
+        ckc = self.new_cache_key_computer(build_env)
+        lac, rac = self.new_artifact_caches()
+        lrc, rrc = self.new_repo_caches()
 
         for repo_name, ref, filename in self._itertriplets(args):
-            logging.debug('cmd_build: %s %s %s' % (repo_name, ref, filename))
             self.msg('Building %s %s %s' % (repo_name, ref, filename))
-
-            self.msg('Figuring out the right build order')
-            logging.debug('cmd_build: creating source pool')
-            srcpool = self._create_source_pool(
-                    lrc, rrc, (repo_name, ref, filename))
-            logging.debug('cmd_build: creating artifact resolver')
-            ar = morphlib.artifactresolver.ArtifactResolver()
-            logging.debug('cmd_build: resolving artifacts')
-            artifacts = ar.resolve_artifacts(srcpool)
-            logging.debug('cmd_build: computing cache keys')
-            for artifact in artifacts:
-                artifact.cache_key = ckc.compute_key(artifact)
-                artifact.cache_id = ckc.get_cache_id(artifact)
-            logging.debug('cmd_build: computing build order')
-            order = morphlib.buildorder.BuildOrder(artifacts)
-
-            logging.debug('cmd_build: finding what needs to be built')
-            needed = []
-            for group in order.groups:
-                for artifact in group:
-                    if not lac.has(artifact):
-                        if not rac or not rac.has(artifact):
-                            needed.append(artifact)
-
-            logging.debug('cmd_build: cloning/updating cached repos')
-            done = set()
-            for artifact in needed:
-                if self.settings['no-git-update']:
-                    artifact.source.repo = lrc.get_repo(
-                            artifact.source.repo_name)
-                else:
-                    self.msg('Cloning/updating %s' % artifact.source.repo_name)
-                    artifact.source.repo = lrc.cache_repo(
-                            artifact.source.repo_name)
-                    self._cache_repo_and_submodules(
-                            lrc, artifact.source.repo.url,
-                            artifact.source.sha1, done)
-
-            if self.settings['bootstrap']:
-                staging_root = '/'
-                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                install_chunks = True
-                setup_proc = False
-            elif self.settings['staging-chroot']:
-                staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                staging_temp = staging_root
-                install_chunks = True
-                setup_proc = True
-            else:
-                staging_root = '/'
-                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                install_chunks = False
-                setup_proc = False
-
-            staging_area = morphlib.stagingarea.StagingArea(self,
-                                                            staging_root,
-                                                            staging_temp)
-            if self.settings['staging-chroot']:
-                self._install_initial_staging(staging_area)
-
+            order = self.compute_build_order(repo_name, ref, filename,
+                                             ckc, lrc, rrc)
+            needed = self.find_what_needs_building(order, lac, rac)
+            self.get_source_repositories(needed, lrc)
+            staging_area, install_chunks, setup_proc = \
+                self.create_staging_area()
             builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
-                    self.settings['max-jobs'])
-            if setup_proc:
-                builder.setup_proc = True
+                    self.settings['max-jobs'], setup_proc)
 
-            to_be_installed = []
-
+            to_install = []
             for group in order.groups:
-                for artifact in group:
-                    if artifact in needed:
-                        logging.debug('Need to build %s' % artifact.name)
-                        self.msg('Building %s' % artifact.name)
-
-                        for chunk_artifact in to_be_installed:
-                            logging.debug('Installing %s' %
-                                          chunk_artifact.name)
-                            self.msg('  Installing %s' % chunk_artifact.name)
-                            handle = lac.get(chunk_artifact)
-                            staging_area.install_artifact(handle)
-                        to_be_installed = []
-
-                        builder.build_and_cache(artifact)
-                    else:
-                        logging.debug('No need to build %s' % artifact.name)
-                        self.msg('Using cached %s' % artifact.name)
-
                 if install_chunks:
-                    to_be_installed.extend(
-                            [x for x in group
-                             if x.source.morphology['kind'] == 'chunk'])
+                    self.install_artifacts(staging_area, lac, to_install)
+                    del to_install[:]
+                for artfact in set(group).difference(set(needed)):
+                    self.msg('Using cached %s' % artifact.name)
+                wanted = [x for x in group if x in needed]
+                self.build_group(wanted, builder, lac, staging_area)
+                to_install.extend(
+                        x for x in group
+                        if x.source.morphology['kind'] == 'chunk')
 
             # If we are running bootstrap we probably also want the last
             # build group to be installed as well
             if self.settings['bootstrap']:
-                for chunk_artifact in to_be_installed:
-                    logging.debug('Installing %s' % chunk_artifact.name)
-                    self.msg('  Installing %s' % chunk_artifact.name)
-                    handle = lac.get(chunk_artifact)
-                    staging_area.install_artifact(handle)
+                self.install_artifacts(staging_area, lac, to_install)
 
-            if staging_root != '/':
-                staging_area.remove()
-            if staging_temp != '/' and os.path.exists(staging_temp):
-                shutil.rmtree(staging_temp)
+            self.remove_staging_area(staging_area)
 
     def _install_initial_staging(self, staging_area):
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
