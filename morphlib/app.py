@@ -170,6 +170,19 @@ class Morph(cliapp.Application):
                               visit=add_to_pool)
         return pool
 
+    def create_cachedir(self):
+        cachedir = self.settings['cachedir']
+        if not os.path.exists(cachedir):
+            os.mkdir(cachedir)
+        return cachedir
+
+    def create_artifact_cachedir(self):
+        artifact_cachedir = os.path.join(
+                self.settings['cachedir'], 'artifacts')
+        if not os.path.exists(artifact_cachedir):
+            os.mkdir(artifact_cachedir)
+        return artifact_cachedir
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -183,17 +196,10 @@ class Morph(cliapp.Application):
         
         '''
 
-        logging.debug('cmd_build starting')
         self.msg('Build starts')
 
-        cachedir = self.settings['cachedir']
-        if not os.path.exists(cachedir):
-            os.mkdir(cachedir)
-
-        artifact_cachedir = os.path.join(
-                self.settings['cachedir'], 'artifacts')
-        if not os.path.exists(artifact_cachedir):
-            os.mkdir(artifact_cachedir)
+        cachedir = self.create_cachedir()
+        artifact_cachedir = self.create_artifact_cachedir()
 
         build_env = morphlib.buildenvironment.BuildEnvironment(self.settings)
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
