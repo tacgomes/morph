@@ -20,7 +20,7 @@ import cliapp
 class Hello(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('hello', self.hello)
+        self.app.add_subcommand('hello', self.hello, arg_synopsis='')
 
     def disable(self):
         pass
