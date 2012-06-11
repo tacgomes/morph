@@ -408,7 +408,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
                 factory_run_path = os.path.join(mount_point, 'factory-run')
-                self._install_boot_files(factory_run_path, mount_point)
+                self._install_boot_files(arch, factory_run_path, mount_point)
                 if arch in ('x86', 'x86_64', None):
                     self._install_extlinux(mount_point)
                 self._unmount(mount_point)
