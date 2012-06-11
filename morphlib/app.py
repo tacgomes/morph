@@ -328,9 +328,7 @@ class Morph(cliapp.Application):
                 self.create_staging_area()
             builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
-                    self.settings['max-jobs'])
-            if setup_proc:
-                builder.setup_proc = True
+                    self.settings['max-jobs'], setup_proc)
 
             to_install = []
             for group in order.groups:
