@@ -230,6 +230,31 @@ class Morph(cliapp.Application):
                         lrc, artifact.source.repo.url,
                         artifact.source.sha1, done)
 
+    def create_staging_area(self):
+        if self.settings['bootstrap']:
+            staging_root = '/'
+            staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            install_chunks = True
+            setup_proc = False
+        elif self.settings['staging-chroot']:
+            staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            staging_temp = staging_root
+            install_chunks = True
+            setup_proc = True
+        else:
+            staging_root = '/'
+            staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
+            install_chunks = False
+            setup_proc = False
+
+        staging_area = morphlib.stagingarea.StagingArea(self,
+                                                        staging_root,
+                                                        staging_temp)
+        if self.settings['staging-chroot']:
+            self._install_initial_staging(staging_area)
+            
+        return staging_area, install_chunks, setup_proc
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -278,27 +303,8 @@ class Morph(cliapp.Application):
             
             self.get_source_repositories(needed, lrc)
 
-            if self.settings['bootstrap']:
-                staging_root = '/'
-                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                install_chunks = True
-                setup_proc = False
-            elif self.settings['staging-chroot']:
-                staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                staging_temp = staging_root
-                install_chunks = True
-                setup_proc = True
-            else:
-                staging_root = '/'
-                staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
-                install_chunks = False
-                setup_proc = False
-
-            staging_area = morphlib.stagingarea.StagingArea(self,
-                                                            staging_root,
-                                                            staging_temp)
-            if self.settings['staging-chroot']:
-                self._install_initial_staging(staging_area)
+            staging_area, install_chunks, setup_proc = \
+                self.create_staging_area()
 
             builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
@@ -341,10 +347,11 @@ class Morph(cliapp.Application):
                     handle = lac.get(chunk_artifact)
                     staging_area.install_artifact(handle)
 
-            if staging_root != '/':
+            if staging_area.dirname != '/':
                 staging_area.remove()
-            if staging_temp != '/' and os.path.exists(staging_temp):
-                shutil.rmtree(staging_temp)
+            if (staging_area.tempdir != '/' and 
+                os.path.exists(staging_area.tempdir)):
+                shutil.rmtree(staging_area.tempdir)
 
     def _install_initial_staging(self, staging_area):
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
