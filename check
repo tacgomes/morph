@@ -42,6 +42,7 @@ then
         if tr -cd '\t' < "$x" | grep . > /dev/null
         then
             echo "ERROR: $x contains TAB characters" 1>&2
+            grep -n -F "$(printf "\t")" "$x" 1>&2
             errors=1
         fi
 
