@@ -262,6 +262,12 @@ class Morph(cliapp.Application):
             os.path.exists(staging_area.tempdir)):
             shutil.rmtree(staging_area.tempdir)
 
+    def install_artifacts(self, staging_area, lac, chunk_artifacts):
+        for chunk_artifact in chunk_artifacts:
+            self.msg('  Installing %s' % chunk_artifact.name)
+            handle = lac.get(chunk_artifact)
+            staging_area.install_artifact(handle)
+
     def cmd_build(self, args):
         '''Build a binary from a morphology.
         
@@ -319,7 +325,7 @@ class Morph(cliapp.Application):
             if setup_proc:
                 builder.setup_proc = True
 
-            to_be_installed = []
+            to_install = []
 
             for group in order.groups:
                 for artifact in group:
@@ -327,13 +333,8 @@ class Morph(cliapp.Application):
                         logging.debug('Need to build %s' % artifact.name)
                         self.msg('Building %s' % artifact.name)
 
-                        for chunk_artifact in to_be_installed:
-                            logging.debug('Installing %s' %
-                                          chunk_artifact.name)
-                            self.msg('  Installing %s' % chunk_artifact.name)
-                            handle = lac.get(chunk_artifact)
-                            staging_area.install_artifact(handle)
-                        to_be_installed = []
+                        self.install_artifacts(staging_area, lac, to_install)
+                        to_install = []
 
                         builder.build_and_cache(artifact)
                     else:
@@ -341,18 +342,14 @@ class Morph(cliapp.Application):
                         self.msg('Using cached %s' % artifact.name)
 
                 if install_chunks:
-                    to_be_installed.extend(
+                    to_install.extend(
                             [x for x in group
                              if x.source.morphology['kind'] == 'chunk'])
 
             # If we are running bootstrap we probably also want the last
             # build group to be installed as well
             if self.settings['bootstrap']:
-                for chunk_artifact in to_be_installed:
-                    logging.debug('Installing %s' % chunk_artifact.name)
-                    self.msg('  Installing %s' % chunk_artifact.name)
-                    handle = lac.get(chunk_artifact)
-                    staging_area.install_artifact(handle)
+                self.install_artifacts(staging_area, lac, to_install)
 
             self.remove_staging_area(staging_area)
 
