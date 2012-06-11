@@ -324,7 +324,6 @@ class Morph(cliapp.Application):
             for group in order.groups:
                 for artifact in group:
                     if artifact in needed:
-                        logging.debug('Need to build %s' % artifact.name)
                         self.msg('Building %s' % artifact.name)
                         if install_chunks:
                             self.install_artifacts(staging_area, lac, 
@@ -332,7 +331,6 @@ class Morph(cliapp.Application):
                             to_install = []
                         builder.build_and_cache(artifact)
                     else:
-                        logging.debug('No need to build %s' % artifact.name)
                         self.msg('Using cached %s' % artifact.name)
 
                 to_install.extend(
