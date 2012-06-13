@@ -349,7 +349,7 @@ class Morph(cliapp.Application):
                 if install_chunks:
                     self.install_artifacts(staging_area, lac, to_install)
                     del to_install[:]
-                for artfact in set(group).difference(set(needed)):
+                for artifact in set(group).difference(set(needed)):
                     self.msg('Using cached %s' % artifact.name)
                 wanted = [x for x in group if x in needed]
                 self.build_group(wanted, builder, lac, staging_area)
