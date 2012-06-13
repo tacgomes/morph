@@ -26,6 +26,7 @@ class Error(cliapp.AppException):
 
 
 import artifact
+import artifactcachereference
 import artifactresolver
 import bins
 import buildenvironment
