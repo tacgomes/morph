@@ -554,7 +554,8 @@ class Builder(object): # pragma: no cover
     }
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, repo_cache, build_env, max_jobs):
+                 remote_artifact_cache, repo_cache, build_env, max_jobs,
+                 setup_proc):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
@@ -562,7 +563,7 @@ class Builder(object): # pragma: no cover
         self.repo_cache = repo_cache
         self.build_env = build_env
         self.max_jobs = max_jobs
-        self.setup_proc = False
+        self.setup_proc = setup_proc
         
     def build_and_cache(self, artifact):
         kind = artifact.source.morphology['kind']

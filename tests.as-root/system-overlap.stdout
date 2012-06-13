@@ -1,7 +1,7 @@
 WARNING Overlaps in artifact foo-barqux-stratum detected
-WARNING   Artifacts overlap-foobar, overlap-fooqux overlap with files:
-WARNING     bin/foo
+WARNING Artifacts overlap-foobar, overlap-fooqux overlap with files:
+WARNING bin/foo
 WARNING Overlaps in artifact overlap-system detected
-WARNING   Artifacts foo-barqux-stratum, foo-baz-stratum overlap with files:
-WARNING     ./bin/bar
-WARNING     ./bin/foo
+WARNING Artifacts foo-barqux-stratum, foo-baz-stratum overlap with files:
+WARNING bin/bar
+WARNING bin/foo

@@ -108,7 +108,7 @@ class LocalRepoCacheTests(unittest.TestCase):
 
     def test_fails_to_cache_when_remote_does_not_exist(self):
         def fail(args):
-            raise cliapp.AppException('', '')
+            raise cliapp.AppException('')
         self.lrc._git = fail
         self.assertRaises(morphlib.localrepocache.NoRemote, 
                           self.lrc.cache_repo, self.repourl)

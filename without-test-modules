@@ -3,3 +3,5 @@ morphlib/builddependencygraph.py
 morphlib/tester.py
 morphlib/git.py
 morphlib/fsutils.py
+morphlib/app.py
+morphlib/plugins/hello_plugin.py

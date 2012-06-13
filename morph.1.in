@@ -84,6 +84,13 @@ Otherwise,
 .B morph
 sets the environment variable to
 .BR false .
+.TP
+.B MORPH_PLUGIN_PATH
+.B morph
+looks for plugins additionally in the directories given in this variable.
+Syntax is same as for
+.B PATH
+(i.e., colon delimited pathnames).
 .PP
 The
 .BR cliapp (5)
