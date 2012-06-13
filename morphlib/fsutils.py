@@ -44,13 +44,9 @@ def setup_device_mapping(runcmd, image_name):
         start = int(match.group(1)) * 512
         if start != 0:
             break
-    
-    runcmd(['losetup', '-o', str(start), '-f', image_name])
-    
-    out = runcmd(['losetup', '-j', image_name])
-    line = out.strip()
-    i = line.find(':')
-    return line[:i]
+
+    device = runcmd(['losetup', '--show', '-o', str(start), '-f', image_name])
+    return device.strip()
 
 def create_fs(runcmd, partition):
     runcmd(['mkfs.btrfs', '-L', 'baserock', partition])
