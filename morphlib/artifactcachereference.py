@@ -18,26 +18,24 @@ class ArtifactCacheReference(object):
     '''Represent the information needed to retrieve an artifact
 
     The artifact cache doesn't need to know the dependencies or the
-    morphology of an artifact, it just needs to know the cache key,
-    name and kind.
+    morphology of an artifact, it just needs to know the basename
+
+    The basename could be generated, from the name, cache_key and kind,
+    but if the algorithm changes then morph wouldn't be able to find
+    old artifacts with a saved ArtifactCacheReference.
+
+    Conversely if it generated the basename then old strata wouldn't be
+    able to refer to new chunks, but strata change more often than the chunks.
     '''
-    def __init__(self, name, cache_key, kind):
-        self.name = name
-        self.cache_key = cache_key
-        self.kind = kind
+    def __init__(self, basename):
+        self._basename = basename
 
     def basename(self):
-        return '%s.%s.%s' % (self.cache_key,
-                             self.kind,
-                             self.name)
+        return self._basename
 
     def metadata_basename(self, metadata_name):
-        return '%s.%s.%s.%s' % (self.cache_key,
-                                self.kind,
-                                self.name,
-                                metadata_name)
+        return '%s.%s' % (self._basename, metadata_name)
 
     @classmethod
     def from_artifact(klass, artifact):
-        return klass(artifact.name, artifact.cache_key,
-                     artifact.source.morphology['kind'])
+        return klass(artifact.basename())
