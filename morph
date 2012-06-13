@@ -39,6 +39,9 @@ defaults = {
         'gnome='
             'git://git.gnome.org/%s#'
             'ssh://git.gnome.org/git/%s',
+        'github='
+            'git://github.com/%s#'
+            'git@github.com:%s',
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
