@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2011-2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# This is a program to convert the json dump of the overlaps between artifacts
+# in a format more suited to shell programs, or human reading
+
+import json
+
+import cliapp
+
+class ListOverlaps(cliapp.Application):
+
+    @staticmethod
+    def _load_overlap(filename):
+        data = json.load(open(filename))
+	overlaps = dict((frozenset(pair[0]), set(pair[1])) for pair in data)
+	return overlaps
+
+    def cmd_groups(self, args):
+        overlaps = ListOverlaps._load_overlap(args[0])
+	for group in overlaps:
+            print(' '.join(sorted(group)))
+
+    def cmd_list_files(self, args):
+        overlaps = self._load_overlap(args[0])
+	group = frozenset(args[1:])
+	for filename in overlaps[group]:
+            print filename
+
+ListOverlaps().run()

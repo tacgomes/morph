@@ -1,0 +1,4 @@
+overlap-foo-baz overlap-foobar overlap-fooqux
+bin/foo
+overlap-foo-baz overlap-foobar
+bin/bar
