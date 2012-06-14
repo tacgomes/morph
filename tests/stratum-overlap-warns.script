@@ -21,8 +21,18 @@
 set -eu
 
 log="$DATADIR/morph.log"
+warnings="$DATADIR/warnings"
 cache="$DATADIR/cache/artifacts"
+
+warning_mentions(){
+    grep -F "$1" <"$warnings" >/dev/null 2>/dev/null
+}
 
 "$SRCDIR/scripts/test-morph" \
     build --log=$log test:morphs-repo overlap overlap-stratum.morph
-grep WARNING $log | sed 's/^.*WARNING/WARNING/'
+grep WARNING "$log" >"$warnings"
+for str in overlap-stratum \
+           overlap-foo-baz overlap-foobar bin/bar \
+           overlap-fooqux bin/foo; do
+    warning_mentions 'overlap-stratum' || exit $?
+done

@@ -132,30 +132,3 @@ class ChunkTests(BinsTest):
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
 
-
-class StratumTests(BinsTest):
-
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
-        self.instdir = os.path.join(self.tempdir, 'inst')
-        self.stratum_file = os.path.join(self.tempdir, 'stratum')
-        self.stratum_f = open(self.stratum_file, 'wb')
-        self.unpacked = os.path.join(self.tempdir, 'unpacked')
-        
-    def tearDown(self):
-        self.stratum_f.close()
-        shutil.rmtree(self.tempdir)
-
-    def populate_instdir(self):
-        os.mkdir(self.instdir)
-        os.mkdir(os.path.join(self.instdir, 'bin'))
-
-    def test_creates_and_unpacks_stratum_exactly(self):
-        self.populate_instdir()
-        morphlib.bins.create_stratum(self.instdir, self.stratum_f)
-        self.stratum_f.flush()
-        os.mkdir(self.unpacked)
-        morphlib.bins.unpack_binary(self.stratum_file, self.unpacked)
-        self.assertEqual(self.recursive_lstat(self.instdir),
-                         self.recursive_lstat(self.unpacked))
-

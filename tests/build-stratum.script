@@ -20,6 +20,8 @@
 set -eu
 
 "$SRCDIR/scripts/test-morph" build test:morphs-repo master hello-stratum.morph
-tar -tf "$DATADIR/cache/artifacts/"*.stratum.* | LC_ALL=C sort \
-    | sed '/^\.\/./s:^\./::'
+"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
+                                   "$DATADIR/cache/artifacts/"*.hello-stratum \
+                                   "$DATADIR/stratum.tar" hello-stratum
+tar -tf "$DATADIR/stratum.tar" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
 

@@ -40,7 +40,7 @@ cache="$DATADIR/cache/artifacts"
 "$SRCDIR/scripts/test-morph" \
     build test:morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "first build:"
-(cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
+(cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
 
 # Change the chunk.
@@ -52,6 +52,6 @@ echo "first build:"
 "$SRCDIR/scripts/test-morph" \
     build test:morphs-repo rebuild-cached-stratum hello-stratum.morph
 echo "second build:"
-(cd "$cache" && ls *.chunk.*  *.stratum.* | sed 's/^[^.]*\./ /' | 
+(cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
 

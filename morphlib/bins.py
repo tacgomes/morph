@@ -95,14 +95,6 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     dump_memory_profile('after removing in create_chunks')
 
 
-def create_stratum(rootdir, f):
-    '''Create a stratum from the contents of a directory.'''
-    logging.debug('Creating stratum file %s from %s' % (f.name, rootdir))
-    tar = tarfile.open(fileobj=f, mode='w:gz')
-    tar.add(rootdir, arcname='.')
-    tar.close()
-
-
 def unpack_binary_from_file(f, dirname): # pragma: no cover
     '''Unpack a binary into a directory.
     
