@@ -35,7 +35,3 @@ class ArtifactCacheReference(object):
 
     def metadata_basename(self, metadata_name):
         return '%s.%s' % (self._basename, metadata_name)
-
-    @classmethod
-    def from_artifact(klass, artifact):
-        return klass(artifact.basename())
