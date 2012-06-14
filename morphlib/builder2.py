@@ -61,7 +61,7 @@ def ldconfig(runcmd, rootdir): # pragma: no cover
     else:
         logging.debug('No %s, not running ldconfig' % conf)
 
-def download_depends(constituents, lac, rac):
+def download_depends(constituents, lac, rac, metadatas=None):
     for constituent in constituents:
         if not lac.has(constituent):
             source = rac.get(constituent)
@@ -69,6 +69,15 @@ def download_depends(constituents, lac, rac):
             shutil.copyfileobj(source, target)
             target.close()
             source.close()
+        if metadatas is not None:
+            for metadata in metadatas:
+                if (rac.has_artifact_metadata(constituent, metadata) and
+                    not lac.has_artifact_metadata(constituent, metadata)):
+                        src = rac.get_artifact_metadata(constituent, metadata)
+                        dst = lac.put_artifact_metadata(constituent, metadata)
+                        shutil.copyfileobj(src, dst)
+			dst.close()
+			src.close()
 
 def get_chunk_files(f): # pragma: no cover
     tar = tarfile.open(fileobj=f)
@@ -374,8 +383,6 @@ class StratumBuilder(BuilderBase):
 
     def build_and_cache(self): # pragma: no cover
         with self.build_watch('overall-build'):
-            destdir = self.staging_area.destdir(self.artifact.source)
-    
             constituents = [dependency
                             for dependency in self.artifact.dependencies
                             if dependency.source.morphology['kind'] == 'chunk']
@@ -397,9 +404,12 @@ class StratumBuilder(BuilderBase):
                                            self.local_artifact_cache)
 
             with self.build_watch('create-chunk-list'):
+                lac = self.local_artifact_cache
                 artifact_name = self.artifact.source.morphology['name']
-                self.write_metadata(destdir, artifact_name)
                 artifact = self.new_artifact(artifact_name)
+                meta = self.create_metadata(artifact_name)
+                with lac.put_artifact_metadata(artifact, 'meta') as f:
+                    json.dump(meta, f, indent=4, sort_keys=True)
                 with self.local_artifact_cache.put(artifact) as f:
                     json.dump([c.basename() for c in constituents], f)
         self.save_build_times()
@@ -513,7 +523,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             # download the stratum artifacts if necessary
             download_depends(self.artifact.dependencies,
                              self.local_artifact_cache,
-                             self.remote_artifact_cache)
+                             self.remote_artifact_cache,
+                             ('meta',))
 
             # download the chunk artifacts if necessary
             for stratum_artifact in self.artifact.dependencies:
@@ -542,6 +553,15 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                     morphlib.bins.unpack_binary_from_file(chunk_handle, path)
                     chunk_handle.close()
                 f.close()
+                meta = self.local_artifact_cache.get_artifact_metadata(
+		                                      stratum_artifact, 'meta')
+		dst = morphlib.savefile.SaveFile(
+		        os.path.join(path, 'baserock',
+		                     '%s.meta' % stratum_artifact.name), 'w')
+		shutil.copyfileobj(meta, dst)
+		dst.close()
+		meta.close()
+
             ldconfig(self.app.runcmd, path)
 
     def _create_fstab(self, path):

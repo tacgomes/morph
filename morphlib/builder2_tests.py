@@ -217,14 +217,30 @@ class BuilderBaseTests(unittest.TestCase):
 
     def test_downloads_depends(self):
         lac = FakeArtifactCache()
-	rac = FakeArtifactCache()
-	afacts = [FakeArtifact(name) for name in ('a', 'b', 'c')]
-	for a in afacts:
+        rac = FakeArtifactCache()
+        afacts = [FakeArtifact(name) for name in ('a', 'b', 'c')]
+        for a in afacts:
             fh = rac.put(a)
             fh.write(a.name)
             fh.close()
-	morphlib.builder2.download_depends(afacts, lac, rac)
+        morphlib.builder2.download_depends(afacts, lac, rac)
         self.assertTrue(all(lac.has(a) for a in afacts))
+
+    def test_downloads_depends_metadata(self):
+        lac = FakeArtifactCache()
+        rac = FakeArtifactCache()
+        afacts = [FakeArtifact(name) for name in ('a', 'b', 'c')]
+        for a in afacts:
+            fh = rac.put(a)
+            fh.write(a.name)
+            fh.close()
+            fh = rac.put_artifact_metadata(a, 'meta')
+            fh.write('metadata')
+            fh.close()
+        morphlib.builder2.download_depends(afacts, lac, rac, ('meta',))
+        self.assertTrue(all(lac.has(a) for a in afacts))
+        self.assertTrue(all(lac.has_artifact_metadata(a, 'meta')
+                            for a in afacts))
 
 
 class ChunkBuilderTests(unittest.TestCase):
