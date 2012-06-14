@@ -39,6 +39,7 @@ class AssembleStratum(cliapp.Application):
         if self.settings['tarformat'] != "":
             tarformat += self.settings['tarformat']
 	outfile = tarfile.open(args[1], tarformat)
+	# concatenate chunk tarballs
         for chunk in chunklist:
             path = os.path.join(self.settings['cachedir'], 'artifacts', chunk)
 	    chunktar = tarfile.open(path, mode='r:*')
@@ -48,6 +49,10 @@ class AssembleStratum(cliapp.Application):
                 else:
                     outfile.addfile(tarinfo)
             chunktar.close()
+        # add the stratum's metadata
+        if os.path.exists(args[0] + '.meta'):
+            outfile.add(args[0] + '.meta',
+                        os.path.join('baserock', '%s.meta' % args[2]))
 	outfile.close()
 
 AssembleStratum().run()

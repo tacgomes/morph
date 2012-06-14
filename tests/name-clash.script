@@ -58,6 +58,6 @@ INSTDIR="$DATADIR"/unpack
 mkdir -p "$INSTDIR"
 "$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
                                    "$DATADIR/cache/artifacts/"*hello-stratum \
-                                   "$DATADIR/stratum.tar"
+                                   "$DATADIR/stratum.tar" hello-stratum
 tar -C "$INSTDIR" -xhf "$DATADIR/stratum.tar"
 test "$("$INSTDIR"/bin/hello)" = "hello, world"

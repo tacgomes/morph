@@ -28,7 +28,7 @@ mkdir -p "$extracted"
     build test:morphs-repo overlap overlap-stratum.morph
 for f in "$cache"/*.stratum.overlap-stratum; do
     "$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
-                                   "$f" "$DATADIR/stratum.tar"
+                                   "$f" "$DATADIR/stratum.tar" overlap-stratum
     tar -xf "$DATADIR/stratum.tar" -C "$extracted"
 done
 test -f "$extracted/bin/foo"
