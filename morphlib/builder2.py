@@ -78,13 +78,13 @@ def get_chunk_files(f):
     tar.close()
 
 def get_stratum_files(f, lac):
-    for ca in ((ArtifactCacheReference(a) for a in json.load(f)):
+    for ca in (ArtifactCacheReference(a) for a in json.load(f)):
         cf = lac.get(ca)
         for filename in get_chunk_files(cf):
             yield filename
         cf.close()
 
-def check_overlap(artifact, constituents, lac): #pragma: no cover
+def get_overlaps(artifact, constituents, lac): #pragma: no cover
     # check whether strata overlap
     installed = defaultdict(set)
     for dep in constituents:
@@ -100,15 +100,26 @@ def check_overlap(artifact, constituents, lac): #pragma: no cover
     for filename, artifacts in installed.iteritems():
         if len(artifacts) > 1:
             overlaps[frozenset(artifacts)].add(filename)
-    if len(overlaps) > 0:
-        logging.warning('Overlaps in artifact %s detected' % artifact.name)
-        for overlapping, files in sorted(overlaps.iteritems()):
-            logging.warning('  Artifacts %s overlap with files:' %
-                ', '.join(sorted(a.name for a in overlapping))
-            )
-            for filename in sorted(files):
-                logging.warning('    %s' % filename)
+    return overlaps
 
+def log_overlaps(overlaps):
+    for overlapping, files in sorted(overlaps.iteritems()):
+        logging.warning('  Artifacts %s overlap with files:' %
+            ', '.join(sorted(a.name for a in overlapping))
+        )
+        for filename in sorted(files):
+            logging.warning('    %s' % filename)
+
+def write_overlap_metadata(artifact, overlaps, lac):
+    f = lac.put_artifact_metadata(artifact, 'overlaps')
+    # the big list comprehension is because json can't serialize
+    # artifacts, sets or dicts with non-string keys
+    json.dump([
+                [
+                  [a.name for a in afs], list(files)
+                ] for afs, files in overlaps.iteritems()
+              ], f, indent=4)
+    f.close()
 
 class BuilderBase(object):
 
@@ -376,8 +387,14 @@ class StratumBuilder(BuilderBase):
                                  self.local_artifact_cache,
                                  self.remote_artifact_cache)
                 # check for chunk overlaps
-                check_overlap(self.artifact, constituents,
-                              self.local_artifact_cache)
+                overlaps = get_overlaps(self.artifact, constituents,
+                                        self.local_artifact_cache)
+                if len(overlaps) > 0:
+                    logging.warning('Overlaps in stratum artifact %s detected'
+                                    % self.artifact.name)
+                    log_overlaps(overlaps)
+                    write_overlap_metadata(self.artifact, overlaps,
+                                           self.local_artifact_cache)
 
             with self.build_watch('create-chunk-list'):
                 artifact_name = self.artifact.source.morphology['name']
@@ -508,8 +525,14 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.close()
 
             # check whether the strata overlap
-            check_overlap(self.artifact, self.artifact.dependencies,
-                          self.local_artifact_cache)
+            overlaps = get_overlaps(self.artifact, self.artifact.dependencies,
+                                    self.local_artifact_cache)
+            if len(overlaps) > 0:
+                logging.warning('Overlaps in system artifact %s detected' %
+                                self.artifact.name)
+                log_overlaps(overlaps)
+                write_overlap_metadata(self.artifact, overlaps,
+                                       self.local_artifact_cache)
 
             # unpack it from the local artifact cache
             for stratum_artifact in self.artifact.dependencies:
