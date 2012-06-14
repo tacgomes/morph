@@ -44,7 +44,7 @@ EOF
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build test:morphs-repo master hello-system.morph
 img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*')
-stratum1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.stratum.*')
+stratum1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.hello-stratum')
 
 # Modify the chunk, in a new branch.
 "$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet farrokh
@@ -74,7 +74,9 @@ patch="$DATADIR/patch"
 # Unpack the original stratum and run the program.
 mkdir "$DATADIR/unpacked"
 cd "$DATADIR/unpacked"
-tar -xf "$stratum1"
+"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" "$stratum1" \
+                                   "$DATADIR/stratum.tar" hello-stratum
+tar -xf "$DATADIR/stratum.tar"
 echo "old version:"
 ./bin/hello
 
