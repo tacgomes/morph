@@ -70,14 +70,14 @@ def download_depends(constituents, lac, rac):
             target.close()
             source.close()
 
-def get_chunk_files(f):
+def get_chunk_files(f): # pragma: no cover
     tar = tarfile.open(fileobj=f)
     for member in tar.getmembers():
         if member.type is not tarfile.DIRTYPE:
             yield member.name
     tar.close()
 
-def get_stratum_files(f, lac):
+def get_stratum_files(f, lac): # pragma: no cover
     for ca in (ArtifactCacheReference(a) for a in json.load(f)):
         cf = lac.get(ca)
         for filename in get_chunk_files(cf):
@@ -102,7 +102,7 @@ def get_overlaps(artifact, constituents, lac): #pragma: no cover
             overlaps[frozenset(artifacts)].add(filename)
     return overlaps
 
-def log_overlaps(overlaps):
+def log_overlaps(overlaps): #pragma: no cover
     for overlapping, files in sorted(overlaps.iteritems()):
         logging.warning('  Artifacts %s overlap with files:' %
             ', '.join(sorted(a.name for a in overlapping))
@@ -110,7 +110,7 @@ def log_overlaps(overlaps):
         for filename in sorted(files):
             logging.warning('    %s' % filename)
 
-def write_overlap_metadata(artifact, overlaps, lac):
+def write_overlap_metadata(artifact, overlaps, lac): #pragma: no cover
     f = lac.put_artifact_metadata(artifact, 'overlaps')
     # the big list comprehension is because json can't serialize
     # artifacts, sets or dicts with non-string keys
