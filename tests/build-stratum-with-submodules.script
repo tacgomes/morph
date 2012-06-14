@@ -66,7 +66,7 @@ EOF
 
 "$SRCDIR/scripts/test-morph" build test:morphs-repo master submod-stratum.morph
 "$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
-                                   "$DATADIR/cache/artifacts/"*.stratum.* \
+                                   "$DATADIR/cache/artifacts/"*submod-stratum \
                                    "$DATADIR/stratum.tar"
 tar -tf "$DATADIR/stratum.tar" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
 
