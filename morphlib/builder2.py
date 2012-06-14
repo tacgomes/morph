@@ -76,8 +76,8 @@ def download_depends(constituents, lac, rac, metadatas=None):
                         src = rac.get_artifact_metadata(constituent, metadata)
                         dst = lac.put_artifact_metadata(constituent, metadata)
                         shutil.copyfileobj(src, dst)
-			dst.close()
-			src.close()
+                        dst.close()
+                        src.close()
 
 def get_chunk_files(f): # pragma: no cover
     tar = tarfile.open(fileobj=f)
@@ -386,8 +386,8 @@ class StratumBuilder(BuilderBase):
             constituents = [dependency
                             for dependency in self.artifact.dependencies
                             if dependency.source.morphology['kind'] == 'chunk']
-            # the only reason the StratumBuilder has to download chunks is to check
-            # for overlap now that strata are lists of chunks
+            # the only reason the StratumBuilder has to download chunks is to 
+            # check for overlap now that strata are lists of chunks
             with self.build_watch('check-chunks'):
                 # download the chunk artifact if necessary
                 download_depends(constituents,
@@ -554,13 +554,13 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                     chunk_handle.close()
                 f.close()
                 meta = self.local_artifact_cache.get_artifact_metadata(
-		                                      stratum_artifact, 'meta')
-		dst = morphlib.savefile.SaveFile(
-		        os.path.join(path, 'baserock',
-		                     '%s.meta' % stratum_artifact.name), 'w')
-		shutil.copyfileobj(meta, dst)
-		dst.close()
-		meta.close()
+                                                      stratum_artifact, 'meta')
+                dst = morphlib.savefile.SaveFile(
+                        os.path.join(path, 'baserock',
+                                     '%s.meta' % stratum_artifact.name), 'w')
+                shutil.copyfileobj(meta, dst)
+                dst.close()
+                meta.close()
 
             ldconfig(self.app.runcmd, path)
 

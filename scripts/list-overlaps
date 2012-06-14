@@ -27,18 +27,18 @@ class ListOverlaps(cliapp.Application):
     @staticmethod
     def _load_overlap(filename):
         data = json.load(open(filename))
-	overlaps = dict((frozenset(pair[0]), set(pair[1])) for pair in data)
-	return overlaps
+        overlaps = dict((frozenset(pair[0]), set(pair[1])) for pair in data)
+        return overlaps
 
     def cmd_groups(self, args):
         overlaps = ListOverlaps._load_overlap(args[0])
-	for group in overlaps:
+        for group in overlaps:
             print(' '.join(sorted(group)))
 
     def cmd_list_files(self, args):
         overlaps = self._load_overlap(args[0])
-	group = frozenset(args[1:])
-	for filename in overlaps[group]:
+        group = frozenset(args[1:])
+        for filename in overlaps[group]:
             print filename
 
 ListOverlaps().run()

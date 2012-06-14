@@ -35,15 +35,15 @@ class AssembleStratum(cliapp.Application):
 
     def process_args(self, args):
         chunklist = json.load(open(args[0]))
-	tarformat = 'w'
+        tarformat = 'w'
         if self.settings['tarformat'] != "":
             tarformat += self.settings['tarformat']
-	outfile = tarfile.open(args[1], tarformat)
-	# concatenate chunk tarballs
+        outfile = tarfile.open(args[1], tarformat)
+        # concatenate chunk tarballs
         for chunk in chunklist:
             path = os.path.join(self.settings['cachedir'], 'artifacts', chunk)
-	    chunktar = tarfile.open(path, mode='r:*')
-	    for tarinfo in chunktar:
+            chunktar = tarfile.open(path, mode='r:*')
+            for tarinfo in chunktar:
                 if tarinfo.isfile():
                     outfile.addfile(tarinfo, chunktar.extractfile(tarinfo))
                 else:
@@ -53,6 +53,6 @@ class AssembleStratum(cliapp.Application):
         if os.path.exists(args[0] + '.meta'):
             outfile.add(args[0] + '.meta',
                         os.path.join('baserock', '%s.meta' % args[2]))
-	outfile.close()
+        outfile.close()
 
 AssembleStratum().run()
