@@ -71,8 +71,8 @@ def download_depends(constituents, lac, rac, metadatas=None):
             source.close()
         if metadatas is not None:
             for metadata in metadatas:
-                if (rac.has_artifact_metadata(constituent, metadata) and
-                    not lac.has_artifact_metadata(constituent, metadata)):
+                if (not lac.has_artifact_metadata(constituent, metadata)
+                    and rac.has_artifact_metadata(constituent, metadata)):
                         src = rac.get_artifact_metadata(constituent, metadata)
                         dst = lac.put_artifact_metadata(constituent, metadata)
                         shutil.copyfileobj(src, dst)
