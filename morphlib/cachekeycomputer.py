@@ -94,6 +94,8 @@ class CacheKeyComputer(object):
             checksum = hashlib.sha1()
             self._hash_thing(checksum, le_dict)
             keys['morphology-sha1'] = checksum.hexdigest()
+        if kind == 'stratum':
+            keys['stratum-format-version'] = 1
 
         return keys
 
