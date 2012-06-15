@@ -254,9 +254,10 @@ class ChunkBuilder(BuilderBase):
                 self.umount_proc(mounted)
                 raise
             self.umount_proc(mounted)
-            self.assemble_chunk_artifacts(destdir)
+            built_artifacts = self.assemble_chunk_artifacts(destdir)
 
         self.save_build_times()
+        return built_artifacts
 
     def mount_proc(self): # pragma: no cover
         logging.debug('Mounting /proc in staging area')
@@ -352,6 +353,7 @@ class ChunkBuilder(BuilderBase):
                     self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
+        built_artifacts = []
         with self.build_watch('create-chunks'):
             specs = self.artifact.source.morphology['chunks']
             if len(specs) == 0:
@@ -370,11 +372,13 @@ class ChunkBuilder(BuilderBase):
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
                     morphlib.bins.create_chunk(destdir, f, patterns)
+                built_artifacts.append(artifact)
     
             files = os.listdir(destdir)
             if files:
                 raise Exception('DESTDIR %s is not empty: %s' %
                                 (destdir, files))
+        return built_artifacts
 
 
 class StratumBuilder(BuilderBase):
@@ -413,6 +417,7 @@ class StratumBuilder(BuilderBase):
                 with self.local_artifact_cache.put(artifact) as f:
                     json.dump([c.basename() for c in constituents], f)
         self.save_build_times()
+        return [artifact]
 
 
 class SystemBuilder(BuilderBase): # pragma: no cover
@@ -476,6 +481,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             handle.close()
 
         self.save_build_times()
+        return [self.artifact]
 
     def _create_image(self, image_name):
         logging.debug('Creating disk image %s' % image_name)
@@ -658,6 +664,7 @@ class Builder(object): # pragma: no cover
                                self.max_jobs, self.setup_proc)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
-        o.build_and_cache()
+        built_artifacts = o.build_and_cache()
         logging.debug('Builder.build: done')
+        return built_artifacts
 
