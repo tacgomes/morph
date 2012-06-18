@@ -44,18 +44,6 @@ class Source(object):
         self.sha1 = sha1
         self.morphology = morphology
         self.filename = filename
-        self.dependencies = []
-        self.dependents = []
-
-    def add_dependency(self, source):
-        '''Add ``source`` to the dependency list.'''
-        if source not in self.dependencies:
-            self.dependencies.append(source)
-            source.dependents.append(self)
-
-    def depends_on(self, source):
-        '''Do we depend on ``source``?'''
-        return source in self.dependencies
 
     def __str__(self): # pragma: no cover
         return '%s|%s|%s' % (self.repo_name,
