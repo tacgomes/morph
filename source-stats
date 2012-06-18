@@ -36,7 +36,7 @@ class SourceStats(cliapp.Application):
     * lines added over 12 months
     * lines removed over 12 months 
     
-    Usage: ./source-stat $HOME/baserock/gits/*.morph
+    Usage: ./source-stat $HOME/baserock/gits/*
 
     '''
     
@@ -48,20 +48,12 @@ class SourceStats(cliapp.Application):
         self.cols = ['name', 'lines', 'commits', 'added', 'deleted']
         self.writer.writerow(self.cols)
         
-    def process_input(self, filename):
-        with self.open_input(filename) as f:
-            obj = json.load(f)
-
-        if obj['kind'] != 'chunk':
-            return
-
-        gitdir = os.path.dirname(filename)
-        name = obj['name']
-        
+    def process_input(self, gitdir):
+        name = os.path.basename(gitdir)
         stats = self.compute_stats(name, gitdir)
         row = [stats[x] for x in self.cols]
         self.writer.writerow(row)
-        self.output.flush()
+        sys.stdout.flush()
         
     def compute_stats(self, name, gitdir):
         stats = {
