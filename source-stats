@@ -20,6 +20,7 @@ import csv
 import json
 import os
 import shutil
+import sys
 import tarfile
 import tempfile
 import time
@@ -34,6 +35,8 @@ class SourceStats(cliapp.Application):
     * number of commits over last 12 months
     * lines added over 12 months
     * lines removed over 12 months 
+    
+    Usage: ./source-stat $HOME/baserock/gits/*.morph
 
     '''
     
@@ -41,16 +44,19 @@ class SourceStats(cliapp.Application):
         self.settings.string(['gitsdir'], 'base directory for git repos')
         
     def setup(self):
-        self.writer = csv.writer(self.output)
+        self.writer = csv.writer(sys.stdout)
         self.cols = ['name', 'lines', 'commits', 'added', 'deleted']
         self.writer.writerow(self.cols)
         
-    def process_input(self, name):
-        with self.open_input(name) as f:
+    def process_input(self, filename):
+        with self.open_input(filename) as f:
             obj = json.load(f)
-        assert len(obj.keys()) == 1
-        name = obj.keys()[0]
-        gitdir = os.path.join(self.settings['gitsdir'], name)
+
+        if obj['kind'] != 'chunk':
+            return
+
+        gitdir = os.path.dirname(filename)
+        name = obj['name']
         
         stats = self.compute_stats(name, gitdir)
         row = [stats[x] for x in self.cols]
