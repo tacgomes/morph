@@ -104,3 +104,6 @@ class RemoteArtifactCache(object):
             server_url += '/'
         return urlparse.urljoin(
                 server_url, '/1.0/artifacts?filename=%s' % filename)
+                
+    def __str__(self): # pragma: no cover
+        return self.server_url
