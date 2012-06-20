@@ -96,6 +96,7 @@ class RemoteArtifactCache(object):
 
     def _get_file(self, filename): # pragma: no cover
         url = self._request_url(filename)
+        logging.debug('RemoteArtifactCache._get_file: url=%s' % url)
         return urllib2.urlopen(url)
 
     def _request_url(self, filename): # pragma: no cover
