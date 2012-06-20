@@ -225,17 +225,17 @@ class Morph(cliapp.Application):
             staging_root = '/'
             staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
             install_chunks = True
-            setup_proc = False
+            setup_mounts = False
         elif self.settings['staging-chroot']:
             staging_root = tempfile.mkdtemp(dir=self.settings['tempdir'])
             staging_temp = staging_root
             install_chunks = True
-            setup_proc = True
+            setup_mounts = True
         else:
             staging_root = '/'
             staging_temp = tempfile.mkdtemp(dir=self.settings['tempdir'])
             install_chunks = False
-            setup_proc = False
+            setup_mounts = False
 
         staging_area = morphlib.stagingarea.StagingArea(self,
                                                         staging_root,
@@ -243,7 +243,7 @@ class Morph(cliapp.Application):
         if self.settings['staging-chroot']:
             self._install_initial_staging(staging_area)
             
-        return staging_area, install_chunks, setup_proc
+        return staging_area, install_chunks, setup_mounts
 
     def remove_staging_area(self, staging_area):
         if staging_area.dirname != '/':
@@ -338,11 +338,11 @@ class Morph(cliapp.Application):
                                              ckc, lrc, rrc)
             needed = self.find_what_needs_building(order, lac, rac)
             self.get_source_repositories(needed, lrc)
-            staging_area, install_chunks, setup_proc = \
+            staging_area, install_chunks, setup_mounts = \
                 self.create_staging_area()
             builder = morphlib.builder2.Builder(self,
                     staging_area, lac, rac, lrc, build_env,
-                    self.settings['max-jobs'], setup_proc)
+                    self.settings['max-jobs'], setup_mounts)
 
             to_install = []
             for group in order.groups:
