@@ -244,37 +244,42 @@ class ChunkBuilder(BuilderBase):
 
     def build_and_cache(self): # pragma: no cover
         with self.build_watch('overall-build'):
-            mounted = self.mount_proc()
+            mounted = self.do_mounts()
             try:
                 builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
                 destdir = self.staging_area.destdir(self.artifact.source)
                 self.run_commands(builddir, destdir)
             except:
-                self.umount_proc(mounted)
+                self.do_unmounts(mounted)
                 raise
-            self.umount_proc(mounted)
+            self.do_unmounts(mounted)
             built_artifacts = self.assemble_chunk_artifacts(destdir)
 
         self.save_build_times()
         return built_artifacts
 
-    def mount_proc(self): # pragma: no cover
-        logging.debug('Mounting /proc in staging area')
-        path = os.path.join(self.staging_area.dirname, 'proc')
-        if os.path.exists(path) and self.setup_mounts:
-            self.app.runcmd(['mount', '-t', 'proc', 'none', path])
-            return path
-        else:
-            logging.debug('Not mounting /proc after all, %s does not exist' %
-                            path)
-            return None
+    to_mount = (
+        ('proc',    'proc',  'none'),
+        ('dev/shm', 'tmpfs', 'none'),
+    )
+    def do_mounts(self): # pragma: no cover
+        mounted = []
+        if not self.setup_mounts:
+            return mounted
+        for mount_point, mount_type, source in ChunkBuilder.to_mount:
+            logging.debug('Mounting %s in staging area' % mount_point)
+            path = os.path.join(self.staging_area.dirname, mount_point)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self.app.runcmd(['mount', '-t', mount_type, source, path])
+            mounted.append(path)
+        return mounted
 
-    def umount_proc(self, mounted): # pragma: no cover
-        if (mounted and self.setup_mounts and mounted and 
-            os.path.exists(os.path.join(mounted, 'self'))):
-            logging.error('Unmounting /proc in staging area: %s' % mounted)
-            morphlib.fsutils.unmount(self.app.runcmd, mounted)
+    def do_unmounts(self, mounted): # pragma: no cover
+        for path in mounted:
+            logging.debug('Unmounting %s in staging area' % path)
+            morphlib.fsutils.unmount(self.app.runcmd, path)
 
     def get_sources(self, srcdir): # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
