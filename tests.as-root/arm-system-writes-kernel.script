@@ -76,4 +76,4 @@ git commit --quiet -m 'Make the kernel create a dummy zImage'
 
 "$SRCDIR/scripts/test-morph" \
     build test:morphs-repo arm arm-system.morph
-[ -e "$cache"/*system.arm-system.kernel ]
+[ -e "$cache"/*system.arm-system-kernel ] || find "$cache"
