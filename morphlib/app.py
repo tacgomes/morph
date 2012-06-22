@@ -258,7 +258,7 @@ class Morph(cliapp.Application):
             if not lac.has(chunk_artifact) and rac:
                 remote = rac.get(chunk_artifact)
                 local = lac.put(chunk_artifact)
-                local.write(remote.read())
+                shutil.copyfileobj(remote, local)
                 remote.close()
                 local.close()
             handle = lac.get(chunk_artifact)
