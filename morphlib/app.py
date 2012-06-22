@@ -252,9 +252,15 @@ class Morph(cliapp.Application):
             os.path.exists(staging_area.tempdir)):
             shutil.rmtree(staging_area.tempdir)
 
-    def install_artifacts(self, staging_area, lac, chunk_artifacts):
+    def install_artifacts(self, staging_area, lac, rac, chunk_artifacts):
         for chunk_artifact in chunk_artifacts:
             self.msg('  Installing %s' % chunk_artifact.name)
+            if not lac.has(chunk_artifact) and rac:
+                remote = rac.get(chunk_artifact)
+                local = lac.put(chunk_artifact)
+                shutil.copyfileobj(remote, local)
+                remote.close()
+                local.close()
             handle = lac.get(chunk_artifact)
             staging_area.install_artifact(handle)
 
@@ -347,7 +353,7 @@ class Morph(cliapp.Application):
             to_install = []
             for group in order.groups:
                 if install_chunks:
-                    self.install_artifacts(staging_area, lac, to_install)
+                    self.install_artifacts(staging_area, lac, rac, to_install)
                     del to_install[:]
                 for artifact in set(group).difference(set(needed)):
                     self.msg('Using cached %s' % artifact.name)
@@ -360,7 +366,7 @@ class Morph(cliapp.Application):
             # If we are running bootstrap we probably also want the last
             # build group to be installed as well
             if self.settings['bootstrap']:
-                self.install_artifacts(staging_area, lac, to_install)
+                self.install_artifacts(staging_area, lac, rac, to_install)
 
             self.remove_staging_area(staging_area)
 

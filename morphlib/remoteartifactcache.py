@@ -15,6 +15,7 @@
 
 
 import cliapp
+import logging
 import urllib2
 import urlparse
 
@@ -29,8 +30,9 @@ class GetError(cliapp.AppException):
 
     def __init__(self, cache, artifact):
         cliapp.AppException.__init__(
-                self, 'Failed to get the artifact %s from the '
-                'artifact cache %s' % (artifact, cache))
+                self, 'Failed to get the artifact %s with cache key %s '
+                      'from the artifact cache %s' % 
+                        (artifact, artifact.cache_key, cache))
 
 
 class GetArtifactMetadataError(cliapp.AppException):
@@ -68,24 +70,27 @@ class RemoteArtifactCache(object):
     def get(self, artifact):
         try:
             return self._get_file(artifact.basename())
-        except:
+        except urllib2.URLError, e:
+            logging.error(str(e))
             raise GetError(self, artifact)
 
     def get_artifact_metadata(self, artifact, name):
         try:
             return self._get_file(artifact.metadata_basename(name))
-        except:
+        except urllib2.URLError, e:
+            logging.error(str(e))
             raise GetArtifactMetadataError(self, artifact, name)
 
     def get_source_metadata(self, source, cachekey, name):
         filename = '%s.%s' % (cachekey, name)
         try:
             return self._get_file(filename)
-        except:
+        except urllib2.URLError:
             raise GetSourceMetadataError(self, source, cachekey, name)
 
     def _has_file(self, filename): # pragma: no cover
         url = self._request_url(filename)
+        logging.debug('RemoteArtifactCache._has_file: url=%s' % url)
         request = HeadRequest(url)
         try:
             urllib2.urlopen(request)
@@ -95,6 +100,7 @@ class RemoteArtifactCache(object):
 
     def _get_file(self, filename): # pragma: no cover
         url = self._request_url(filename)
+        logging.debug('RemoteArtifactCache._get_file: url=%s' % url)
         return urllib2.urlopen(url)
 
     def _request_url(self, filename): # pragma: no cover
@@ -103,3 +109,6 @@ class RemoteArtifactCache(object):
             server_url += '/'
         return urlparse.urljoin(
                 server_url, '/1.0/artifacts?filename=%s' % filename)
+                
+    def __str__(self): # pragma: no cover
+        return self.server_url

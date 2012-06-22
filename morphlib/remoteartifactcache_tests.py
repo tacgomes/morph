@@ -16,6 +16,7 @@
 
 import StringIO
 import unittest
+import urllib2
 
 import morphlib
 
@@ -76,7 +77,7 @@ class RemoteArtifactCacheTests(unittest.TestCase):
         if filename in self.existing_files:
             return StringIO.StringIO('%s' % filename)
         else:
-            raise Exception('foo')
+            raise urllib2.URLError('foo')
 
     def test_sets_server_url(self):
         self.assertEqual(self.cache.server_url, self.server_url)
