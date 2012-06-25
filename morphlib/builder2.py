@@ -287,7 +287,9 @@ class ChunkBuilder(BuilderBase):
         cache_dir = os.path.dirname(self.artifact.source.repo.path)
 
         def extract_repo(path, sha1, destdir):
-            logging.debug('Extracting %s into %s' % (path, destdir))
+            self.app.status(msg='Extracting %(source)s into %(target)s',
+                            source=path,
+                            target=destdir))
             if not os.path.exists(destdir):
                 os.mkdir(destdir)
             morphlib.git.copy_repository(self.app.runcmd, path, destdir)
@@ -376,6 +378,7 @@ class ChunkBuilder(BuilderBase):
                 with self.local_artifact_cache.put(artifact) as f:
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
+                    self.app.status(msg='Creating chunk')
                     morphlib.bins.create_chunk(destdir, f, patterns)
                 built_artifacts.append(artifact)
     
@@ -409,6 +412,10 @@ class StratumBuilder(BuilderBase):
                     logging.warning('Overlaps in stratum artifact %s detected'
                                     % self.artifact.name)
                     log_overlaps(overlaps)
+                    self.app.status(msg='Overlaps in stratum artifact '
+                                        '%(stratum_name)s detected',
+                                    stratum_name=self.artifact.name,
+                                    error=True)
                     write_overlap_metadata(self.artifact, overlaps,
                                            self.local_artifact_cache)
 
@@ -431,7 +438,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
 
     def build_and_cache(self):
         with self.build_watch('overall-build'):
-            logging.debug('SystemBuilder.do_build called')
+            self.app.status(msg='Building system %(system_name)s',
+                            system_name=self.artifact.name)
 
             arch = self.artifact.source.morphology['arch']
             
@@ -473,8 +481,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 
                 self._unmount(mount_point)
             except BaseException, e:
-                logging.error('Got error while system image building, '
-                                'unmounting and device unmapping')
+                self.app.status(msg='Error while building system',
+                                error=True)
                 self._unmount(mount_point)
                 self._undo_device_mapping(image_name)
                 handle.abort()
@@ -487,47 +495,56 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         return [self.artifact]
 
     def _create_image(self, image_name):
-        logging.debug('Creating disk image %s' % image_name)
+        self.app.status(msg='Creating disk image %(filename)s',
+                        filename=image_name, chatty=True)
         with self.build_watch('create-image'):
             morphlib.fsutils.create_image(
                 self.app.runcmd, image_name,
                 self.artifact.source.morphology['disk-size'])
 
     def _partition_image(self, image_name):
-        logging.debug('Partitioning disk image %s' % image_name)
+        self.app.status(msg='Partitioning disk image %(filename)s',
+                        filename=image_name)
         with self.build_watch('partition-image'):
             morphlib.fsutils.partition_image(self.app.runcmd, image_name)
 
     def _install_mbr(self, arch, image_name):
-        logging.debug('Installing mbr on disk image %s' % image_name)
+        self.app.status(msg='Installing mbr on disk image %(filename)s',
+                        filename=image_name, chatty=True)
         if arch not in ('x86', 'x86_64', None):
             return
         with self.build_watch('install-mbr'):
             morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
 
     def _setup_device_mapping(self, image_name):
-        logging.debug('Device mapping partitions in %s' % image_name)
+        self.app.status(msg='Device mapping partitions in %(filename)s',
+                        filename=image_name, chatty=True)
         with self.build_watch('setup-device-mapper'):
             return morphlib.fsutils.setup_device_mapping(self.app.runcmd,
                                                          image_name)
 
     def _create_fs(self, partition):
-        logging.debug('Creating filesystem on %s' % partition)
+        self.app.status(msg='Creating filesystem on %(filename)s',
+                        filename=image_name, chatty=True)
         with self.build_watch('create-filesystem'):
             morphlib.fsutils.create_fs(self.app.runcmd, partition)
 
     def _mount(self, partition, mount_point):
-        logging.debug('Mounting %s on %s' % (partition, mount_point))
+        self.app.status(msg='Mounting %(partition) on %(mount_point)s',
+                        partition=partition, mount_point=mount_point,
+                        chatty=True)
         with self.build_watch('mount-filesystem'):
             morphlib.fsutils.mount(self.app.runcmd, partition, mount_point)
 
     def _create_subvolume(self, path):
-        logging.debug('Creating subvolume %s' % path)
+        self.app.status(msg='Creating subvolume %(path)s', 
+                        path=path, chatty=True)
         with self.build_watch('create-factory-subvolume'):
             self.app.runcmd(['btrfs', 'subvolume', 'create', path])
 
     def _unpack_strata(self, path):
-        logging.debug('Unpacking strata to %s' % path)
+        self.app.status(msg='Unpacking strata to %(path)s',
+                        path=path, chatty=True)
         with self.build_watch('unpack-strata'):
             # download the stratum artifacts if necessary
             download_depends(self.artifact.dependencies,
@@ -548,8 +565,10 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             overlaps = get_overlaps(self.artifact, self.artifact.dependencies,
                                     self.local_artifact_cache)
             if len(overlaps) > 0:
-                logging.warning('Overlaps in system artifact %s detected' %
-                                self.artifact.name)
+                self.app.status(msg='Overlaps in system artifact '
+                                    '%(artifact_name)detected',
+                                artifact_name=self.artifact.name,
+                                error=True)
                 log_overlaps(overlaps)
                 write_overlap_metadata(self.artifact, overlaps,
                                        self.local_artifact_cache)
@@ -574,7 +593,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             ldconfig(self.app.runcmd, path)
 
     def _create_fstab(self, path):
-        logging.debug('Creating fstab in %s' % path)
+        self.app.status(msg='Creating fstab in %(path)s',
+                        path=path, chatty=True)
         with self.build_watch('create-fstab'):
             fstab = os.path.join(path, 'etc', 'fstab')
             if not os.path.exists(os.path.dirname(fstab)):# FIXME: should exist
@@ -585,7 +605,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.write('/dev/sda1 / btrfs errors=remount-ro 0 1\n')
 
     def _create_extlinux_config(self, path):
-        logging.debug('Creating extlinux.conf in %s' % path)
+        self.app.status(msg='Creating extlinux.conf in %(path)s',
+                        path=path, chatty=True)
         with self.build_watch('create-extlinux-config'):
             config = os.path.join(path, 'extlinux.conf')
             with open(config, 'w') as f:
@@ -597,14 +618,16 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                         'init=/sbin/init rw\n')
     
     def _create_subvolume_snapshot(self, path, source, target):
-        logging.debug('Creating subvolume snapshot %s to %s' % 
-                        (source, target))
+        self.app.status(msg='Creating subvolume snapshot '
+                            '%(source)s to %(target)s',
+                        source=source, target=target, chatty=True)
         with self.build_watch('create-runtime-snapshot'):
             self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
                          cwd=path)
 
     def _install_boot_files(self, arch, sourcefs, targetfs):
-        logging.debug('installing boot files into root volume')
+        self.app.status(msg='Installing boot files into root volume',
+                        chatty=True)
         with self.build_watch('install-boot-files'):
             if arch in ('x86', 'x86_64', None):
                 shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
@@ -616,7 +639,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                              os.path.join(targetfs, 'boot', 'System.map'))
 
     def _install_extlinux(self, path):
-        logging.debug('Installing extlinux to %s' % path)
+        self.app.status(msg='Installing extlinux to %(path)s',
+                        path=path, chatty=True)
         with self.build_watch('install-bootloader'):
             self.app.runcmd(['extlinux', '--install', path])
 
@@ -625,13 +649,15 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             time.sleep(2)
 
     def _unmount(self, mount_point):
-        logging.debug('Unmounting %s' % mount_point)
+        self.app.status(msg='Unmounting %(mount_point)s',
+                        mount_point=mount_point, chatty=True)
         with self.build_watch('unmount-filesystem'):
             if mount_point is not None:
                 morphlib.fsutils.unmount(self.app.runcmd, mount_point)
 
     def _undo_device_mapping(self, image_name):
-        logging.debug('Undoing device mappings for %s' % image_name)
+        self.app.status(msg='Undoing device mappings for %(filename)s',
+                        filename=image_name, chatty=True)
         with self.build_watch('undo-device-mapper'):
             morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
 
