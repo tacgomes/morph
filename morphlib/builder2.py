@@ -348,7 +348,10 @@ class ChunkBuilder(BuilderBase):
                  ('install', False)]
         for step, in_parallel in steps:
             with self.build_watch(step):
-                cmds = self.get_commands('%s-commands' % step, m, bs)
+                key = '%s-commands' % step
+                cmds = self.get_commands(key, m, bs)
+                if cmds:
+                    self.app.status(msg='Running %(key)s', key=key)
                 for cmd in cmds:
                     if in_parallel:
                         max_jobs = self.artifact.source.morphology['max-jobs']
@@ -378,7 +381,8 @@ class ChunkBuilder(BuilderBase):
                 with self.local_artifact_cache.put(artifact) as f:
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
-                    self.app.status(msg='Creating chunk')
+                    self.app.status(msg='Creating chunk artifact %(name)s',
+                                    name=artifact.name)
                     morphlib.bins.create_chunk(destdir, f, patterns)
                 built_artifacts.append(artifact)
     
