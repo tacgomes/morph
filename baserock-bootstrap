@@ -22,7 +22,7 @@ case "$(uname -m)" in
     ;;
 *armv5*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
-    export TARGET_CFLAGS="-march=armv5 -mfloat-abi=softfp -O2"
+    export TARGET_CFLAGS="-march=armv5 -O2"
     export PASS3_STRATUM="imx53-bootstrap-pass3.morph"
     ;;
 *)
