@@ -269,9 +269,8 @@ class Morph(cliapp.Application):
                 remote.close()
                 local.close()
 
-            self.status(msg='Installing %(kind)s %(artifact_name)s',
-                        artifact_name=chunk_artifact.name,
-                        kind=chunk_artifact.source.morphology['kind'])
+            self.status(msg='Installing chunk %(chunk_name)s',
+                        chunk_name=chunk_artifact.name)
             handle = lac.get(chunk_artifact)
             staging_area.install_artifact(handle)
 

@@ -289,7 +289,7 @@ class ChunkBuilder(BuilderBase):
         def extract_repo(path, sha1, destdir):
             self.app.status(msg='Extracting %(source)s into %(target)s',
                             source=path,
-                            target=destdir))
+                            target=destdir)
             if not os.path.exists(destdir):
                 os.mkdir(destdir)
             morphlib.git.copy_repository(self.app.runcmd, path, destdir)
@@ -577,6 +577,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             for stratum_artifact in self.artifact.dependencies:
                 f = self.local_artifact_cache.get(stratum_artifact)
                 for chunk in (ArtifactCacheReference(a) for a in json.load(f)):
+                    self.app.status(msg='Unpacking chunk %(chunk_name)s',
+                                    chunk_name=chunk.name, chatty=True)
                     chunk_handle = self.local_artifact_cache.get(chunk)
                     morphlib.bins.unpack_binary_from_file(chunk_handle, path)
                     chunk_handle.close()
