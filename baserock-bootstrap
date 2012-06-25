@@ -14,15 +14,23 @@ buildwhat="$1"
 
 export LC_ALL=C
 
-if (uname -m | grep arm) >/dev/null; then
+case "$(uname -m)" in
+*armv7*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2"
     export PASS3_STRATUM="imx53-bootstrap-pass3.morph"
-else
+    ;;
+*armv5*)
+    export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
+    export TARGET_CFLAGS="-march=armv5 -mfloat-abi=softfp -O2"
+    export PASS3_STRATUM="imx53-bootstrap-pass3.morph"
+    ;;
+*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
     export TARGET_CFLAGS="-O2"
     export PASS3_STRATUM="x86_64-generic-bootstrap-pass3.morph"
-fi
+    ;;
+esac
 
 HOST_CAT=`which cat`
 HOST_CP=`which cp`
