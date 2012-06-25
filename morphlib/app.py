@@ -568,7 +568,10 @@ class Morph(cliapp.Application):
             for artifact in artifacts:
                 artifact.cache_key = ckc.compute_key(artifact)
                 if the_one(artifact.source, repo_name, ref, filename):
-                    return artifact
+                    a = morphlib.artifact.Artifact(artifact.source,
+                            artifact.source.morphology['name']+'-rootfs')
+                    a.cache_key = artifact.cache_key
+                    return a
 
         artifact1 = get_artifact(repo_name1, ref1, filename1)
         artifact2 = get_artifact(repo_name2, ref2, filename2)

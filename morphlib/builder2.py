@@ -435,7 +435,9 @@ class SystemBuilder(BuilderBase): # pragma: no cover
 
             arch = self.artifact.source.morphology['arch']
             
-            handle = self.local_artifact_cache.put(self.artifact)
+            rootfs_artifact = self.new_artifact(
+                    self.artifact.source.morphology['name'] + '-rootfs')
+            handle = self.local_artifact_cache.put(rootfs_artifact)
             image_name = handle.name
 
             self._create_image(image_name)
@@ -461,13 +463,9 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 if arch in ('x86', 'x86_64', None):
                     self._install_extlinux(mount_point)
                 if arch in ('arm',):
-                    # write the kernel as metadata to the cache
-                    # it should probably be a full artifact, but
-                    # that would require altering the artifact
-                    # resolver
-                    lac = self.local_artifact_cache
-                    a = self.artifact
-                    with lac.put_artifact_metadata(a, 'kernel') as dest:
+                    a = self.new_artifact(
+                            self.artifact.source.morphology['name']+'-kernel')
+                    with self.local_artifact_cache.put(a) as dest:
                         with open(os.path.join(factory_path,
                                                'boot',
                                                'zImage')) as kernel:
