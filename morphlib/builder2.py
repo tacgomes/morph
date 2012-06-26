@@ -570,7 +570,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                                     self.local_artifact_cache)
             if len(overlaps) > 0:
                 self.app.status(msg='Overlaps in system artifact '
-                                    '%(artifact_name)detected',
+                                    '%(artifact_name)s detected',
                                 artifact_name=self.artifact.name,
                                 error=True)
                 log_overlaps(overlaps)
@@ -632,10 +632,10 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                          cwd=path)
 
     def _install_boot_files(self, arch, sourcefs, targetfs):
-        self.app.status(msg='Installing boot files into root volume',
-                        chatty=True)
         with self.build_watch('install-boot-files'):
             if arch in ('x86', 'x86_64', None):
+                self.app.status(msg='Installing boot files into root volume',
+                                chatty=True)
                 shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
                              os.path.join(targetfs, 'extlinux.conf'))
                 os.mkdir(os.path.join(targetfs, 'boot'))

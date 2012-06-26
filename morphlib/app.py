@@ -932,20 +932,13 @@ class Morph(cliapp.Application):
         
         '''
 
-        if 'msg' in kwargs:
-            text = kwargs['msg'] % kwargs
-        else:
-            text = 'Morph tried to say something, but couldn\'t decide what'
-        
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-        text = '%s %s' % (timestamp, text)
-        
+        assert 'msg' in kwargs
+        text = kwargs['msg'] % kwargs
+
         error = kwargs.get('error', False)
         chatty = kwargs.get('chatty', False)
         quiet = self.settings['quiet']
         verbose = self.settings['verbose']
-        
-        ok = verbose or (quiet and error) or (not quiet and not chatty)
 
         if error:
             logging.error(text)
@@ -954,8 +947,10 @@ class Morph(cliapp.Application):
         else:
             logging.info(text)
         
+        ok = verbose or error or (not quiet and not chatty)
         if ok:
-            self.output.write('%s\n' % text)
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            self.output.write('%s %s\n' % (timestamp, text))
             self.output.flush()
 
     def runcmd(self, argv, *args, **kwargs):
