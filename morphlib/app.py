@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) 2011-2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -24,6 +22,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 
 import morphlib
 
@@ -58,7 +57,10 @@ class Morph(cliapp.Application):
     system_repo_name = 'baserock:%s' % system_repo_base
 
     def add_settings(self):
-        self.settings.boolean(['verbose', 'v'], 'show what is happening')
+        self.settings.boolean(['verbose', 'v'], 
+                              'show what is happening in much detail')
+        self.settings.boolean(['quiet', 'q'],
+                              'show no output unless there is an error')
         self.settings.string_list(['repo-alias'],
                             'define URL prefix aliases to allow repository '
                                 'addresses to be shortened; '
@@ -174,46 +176,48 @@ class Morph(cliapp.Application):
         return pool
 
     def compute_build_order(self, repo_name, ref, filename, ckc, lrc, rrc):
-        self.msg('Figuring out the right build order')
+        self.status(msg='Figuring out the right build order')
 
-        logging.debug('creating source pool')
+        self.status(msg='Creating source pool', chatty=True)
         srcpool = self._create_source_pool(
                 lrc, rrc, (repo_name, ref, filename))
 
-        logging.debug('creating artifact resolver')
+        self.status(msg='Creating artifact resolver', chatty=True)
         ar = morphlib.artifactresolver.ArtifactResolver()
 
-        logging.debug('resolving artifacts')
+        self.status(msg='Resolving artifacts', chatty=True)
         artifacts = ar.resolve_artifacts(srcpool)
 
-        logging.debug('computing cache keys')
+        self.status(msg='Computing cache keys', chatty=True)
         for artifact in artifacts:
             artifact.cache_key = ckc.compute_key(artifact)
             artifact.cache_id = ckc.get_cache_id(artifact)
 
-        logging.debug('computing build order')
+        self.status(msg='Computing build order', chatty=True)
         order = morphlib.buildorder.BuildOrder(artifacts)
         
         return order
 
     def find_what_needs_building(self, order, lac, rac):
-        logging.debug('finding what needs to be built')
+        self.status(msg='Finding out what needs to be built', chatty=True)
         needed = []
         for group in order.groups:
             for artifact in group:
                 if not lac.has(artifact):
                     if not rac or not rac.has(artifact):
                         needed.append(artifact)
+        self.status(msg='There are %(count)s artifacts that need building',
+                    count=len(needed))
         return needed
 
     def get_source_repositories(self, needed, lrc):
-        logging.debug('cloning/updating cached repos')
         done = set()
         for artifact in needed:
             if self.settings['no-git-update']:
                 artifact.source.repo = lrc.get_repo(artifact.source.repo_name)
             else:
-                self.msg('Cloning/updating %s' % artifact.source.repo_name)
+                self.status(msg='Cloning/updating %(repo_name)s',
+                            repo_name=artifact.source.repo_name)
                 artifact.source.repo = lrc.cache_repo(
                         artifact.source.repo_name)
                 self._cache_repo_and_submodules(
@@ -237,6 +241,7 @@ class Morph(cliapp.Application):
             install_chunks = False
             setup_mounts = False
 
+        self.status(msg='Creating staging area')
         staging_area = morphlib.stagingarea.StagingArea(self,
                                                         staging_root,
                                                         staging_temp)
@@ -247,26 +252,33 @@ class Morph(cliapp.Application):
 
     def remove_staging_area(self, staging_area):
         if staging_area.dirname != '/':
+            self.status(msg='Removing staging area')
             staging_area.remove()
         if (staging_area.tempdir != '/' and 
             os.path.exists(staging_area.tempdir)):
+            self.status(msg='Removing temporary staging directory')
             shutil.rmtree(staging_area.tempdir)
 
     def install_artifacts(self, staging_area, lac, rac, chunk_artifacts):
         for chunk_artifact in chunk_artifacts:
-            self.msg('  Installing %s' % chunk_artifact.name)
             if not lac.has(chunk_artifact) and rac:
+                self.status(msg='Fetching artifact from remote server')
                 remote = rac.get(chunk_artifact)
                 local = lac.put(chunk_artifact)
                 shutil.copyfileobj(remote, local)
                 remote.close()
                 local.close()
+
+            self.status(msg='Installing chunk %(chunk_name)s',
+                        chunk_name=chunk_artifact.name)
             handle = lac.get(chunk_artifact)
             staging_area.install_artifact(handle)
 
     def build_group(self, artifacts, builder, lac, staging_area):
         for artifact in artifacts:
-            self.msg('Building %s' % artifact.name)
+            self.status(msg='Building %(kind)s %(artifact_name)s',
+                        artifact_name=artifact.name,
+                        kind=artifact.source.morphology['kind'])
             builder.build_and_cache(artifact)
 
     def new_build_env(self):
@@ -331,7 +343,7 @@ class Morph(cliapp.Application):
         
         '''
 
-        self.msg('Build starts')
+        self.status(msg='Build starts')
 
         build_env = self.new_build_env()
         ckc = self.new_cache_key_computer(build_env)
@@ -339,7 +351,8 @@ class Morph(cliapp.Application):
         lrc, rrc = self.new_repo_caches()
 
         for repo_name, ref, filename in self._itertriplets(args):
-            self.msg('Building %s %s %s' % (repo_name, ref, filename))
+            self.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
+                        repo_name=repo_name, ref=ref, filename=filename)
             order = self.compute_build_order(repo_name, ref, filename,
                                              ckc, lrc, rrc)
             needed = self.find_what_needs_building(order, lac, rac)
@@ -356,7 +369,9 @@ class Morph(cliapp.Application):
                     self.install_artifacts(staging_area, lac, rac, to_install)
                     del to_install[:]
                 for artifact in set(group).difference(set(needed)):
-                    self.msg('Using cached %s' % artifact.name)
+                    self.status(msg='Using cached %(artifact_name)s',
+                                artifact_name=artifact.name,
+                                chatty=True)
                 wanted = [x for x in group if x in needed]
                 self.build_group(wanted, builder, lac, staging_area)
                 to_install.extend(
@@ -369,12 +384,14 @@ class Morph(cliapp.Application):
                 self.install_artifacts(staging_area, lac, rac, to_install)
 
             self.remove_staging_area(staging_area)
+            self.status(msg='Build ends successfully')
 
     def _install_initial_staging(self, staging_area):
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
         logging.debug('Fillers: %s' % repr(self.settings['staging-filler']))
         for filename in self.settings['staging-filler']:
             with open(filename, 'rb') as f:
+                self.status(msg='Installing %(filename)s', filename=filename)
                 staging_area.install_artifact(f)
 
     def cmd_show_dependencies(self, args):
@@ -485,7 +502,8 @@ class Morph(cliapp.Application):
         subs_to_process = set()
         
         def visit(reponame, ref, filename, absref, morphology):
-            self.msg('Updating %s|%s|%s' % (reponame, ref, filename))
+            self.status(msg='Updating %(repo_name)s %(ref)s %(filename)s',
+                        repo_name=reponame, ref=ref, filename=filename)
             assert cache.has_repo(reponame)
             cached_repo = cache.get_repo(reponame)
             try:
@@ -880,35 +898,62 @@ class Morph(cliapp.Application):
                 morph = json.load(f)
             
             if morph['kind'] != 'stratum':
-                self.msg('Not a stratum: %s' % filename)
+                self.status(msg='Not a stratum: %(filename)s',
+                            filename=filename)
                 continue
 
-            self.msg('Petrifying %s' % filename)
+            self.status(msg='Petrifying %(filename)s', filename=filename)
 
             for source in morph['sources']:
                 reponame = source.get('repo', source['name'])
                 ref = source['ref']
-                self.msg('.. looking up sha1 for %s %s' % (reponame, ref))
+                self.status(msg='Looking up sha1 for %(repo_name)s %(ref)s',
+                            repo_name=reponame, 
+                            ref=ref)
                 repo = cache.get_repo(reponame)
                 source['ref'] = repo.resolve_ref(ref)
             
             with open(filename, 'w') as f:
                 json.dump(morph, f, indent=2)
 
-    def msg(self, msg):
-        '''Show a message to the user about what is going on.'''
-        logging.debug(msg)
-        if self.settings['verbose']:
-            self.output.write('%s\n' % msg)
+    def status(self, **kwargs):
+        '''Show user a status update.
+        
+        The keyword arguments are formatted and presented to the user in
+        a pleasing manner. Some keywords are special:
+        
+        * ``msg`` is the message text; it can use ``%(foo)s`` to embed the
+          value of keyword argument ``foo``
+        * ``chatty`` should be true when the message is only informative,
+          and only useful for users who want to know everything (--verbose)
+        * ``error`` should be true when it is an error message
+        
+        All other keywords are ignored unless embedded in ``msg``.
+        
+        '''
+
+        assert 'msg' in kwargs
+        text = kwargs['msg'] % kwargs
+
+        error = kwargs.get('error', False)
+        chatty = kwargs.get('chatty', False)
+        quiet = self.settings['quiet']
+        verbose = self.settings['verbose']
+
+        if error:
+            logging.error(text)
+        elif chatty:
+            logging.debug(text)
+        else:
+            logging.info(text)
+        
+        ok = verbose or error or (not quiet and not chatty)
+        if ok:
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            self.output.write('%s %s\n' % (timestamp, text))
             self.output.flush()
 
     def runcmd(self, argv, *args, **kwargs):
-        # check which msg function to use
-        msg = self.msg
-        if 'msg' in kwargs:
-            msg = kwargs['msg']
-            del kwargs['msg']
-
         if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
 
@@ -921,7 +966,9 @@ class Morph(cliapp.Application):
         commands = [' '.join(command) for command in commands]
 
         # print the command line
-        msg('# %s' % ' | '.join(commands))
+        self.status(msg='# %(cmdline)s',
+                    cmdline=' | '.join(commands),
+                    chatty=True)
         
         # Log the environment.
         for name in kwargs['env']:

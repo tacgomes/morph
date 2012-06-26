@@ -60,11 +60,10 @@ class MissingSubmoduleCommitError(cliapp.AppException):
 
 class Submodules(object):
 
-    def __init__(self, app, repo, ref, msg=logging.debug):
+    def __init__(self, app, repo, ref):
         self.app = app
         self.repo = repo
         self.ref = ref
-        self.msg = msg
         self.submodules = []
 
     def load(self):
@@ -120,7 +119,7 @@ class Submodules(object):
                         # add a submodule object to the list
                         self.submodules.append(submodule)
                     else:
-                        self.msg('Skipping submodule "%s" as %s:%s has '
+                        logging.warning('Skipping submodule "%s" as %s:%s has '
                                  'a non-commit object for it' %
                                  (submodule.name, self.repo, self.ref))
                 except cliapp.AppException:

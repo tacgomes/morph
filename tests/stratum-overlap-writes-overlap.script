@@ -24,7 +24,7 @@ cache="$DATADIR/cache/artifacts"
 
 
 "$SRCDIR/scripts/test-morph" \
-    build test:morphs-repo overlap overlap-stratum.morph
+    build test:morphs-repo overlap overlap-stratum.morph > /dev/null
 "$SRCDIR/scripts/list-overlaps" groups \
         "$cache"/*.stratum.overlap-stratum.overlaps |
 while IFS='\n' read overlaps; do
