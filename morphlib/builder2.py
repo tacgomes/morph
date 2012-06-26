@@ -21,6 +21,7 @@ import shutil
 import time
 from collections import defaultdict
 import tarfile
+import traceback
 
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
@@ -485,6 +486,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 
                 self._unmount(mount_point)
             except BaseException, e:
+                logging.error(traceback.format_exc())
                 self.app.status(msg='Error while building system',
                                 error=True)
                 self._unmount(mount_point)
@@ -528,13 +530,13 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                                                          image_name)
 
     def _create_fs(self, partition):
-        self.app.status(msg='Creating filesystem on %(filename)s',
-                        filename=image_name, chatty=True)
+        self.app.status(msg='Creating filesystem on %(partition)s',
+                        partition=partition, chatty=True)
         with self.build_watch('create-filesystem'):
             morphlib.fsutils.create_fs(self.app.runcmd, partition)
 
     def _mount(self, partition, mount_point):
-        self.app.status(msg='Mounting %(partition) on %(mount_point)s',
+        self.app.status(msg='Mounting %(partition)s on %(mount_point)s',
                         partition=partition, mount_point=mount_point,
                         chatty=True)
         with self.build_watch('mount-filesystem'):
@@ -581,8 +583,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             for stratum_artifact in self.artifact.dependencies:
                 f = self.local_artifact_cache.get(stratum_artifact)
                 for chunk in (ArtifactCacheReference(a) for a in json.load(f)):
-                    self.app.status(msg='Unpacking chunk %(chunk_name)s',
-                                    chunk_name=chunk.name, chatty=True)
+                    self.app.status(msg='Unpacking chunk %(basename)s',
+                                    basename=chunk.basename(), chatty=True)
                     chunk_handle = self.local_artifact_cache.get(chunk)
                     morphlib.bins.unpack_binary_from_file(chunk_handle, path)
                     chunk_handle.close()
@@ -655,10 +657,10 @@ class SystemBuilder(BuilderBase): # pragma: no cover
             time.sleep(2)
 
     def _unmount(self, mount_point):
-        self.app.status(msg='Unmounting %(mount_point)s',
-                        mount_point=mount_point, chatty=True)
         with self.build_watch('unmount-filesystem'):
             if mount_point is not None:
+                self.app.status(msg='Unmounting %(mount_point)s',
+                                mount_point=mount_point, chatty=True)
                 morphlib.fsutils.unmount(self.app.runcmd, mount_point)
 
     def _undo_device_mapping(self, image_name):

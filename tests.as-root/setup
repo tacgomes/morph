@@ -142,5 +142,7 @@ cachedir = $DATADIR/cache
 log = $DATADIR/morph.log
 keep-path = true
 no-distcc = true
+quiet = true
+log = /tmp/morph.log
 EOF
 
