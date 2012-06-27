@@ -76,8 +76,8 @@ class BuildCommand(object):
         for repo_name, ref, filename in self.app._itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            order = self.compute_build_order(repo_name, ref, filename)
-            self.build_order(order)
+            order = self.compute_build_in_order(repo_name, ref, filename)
+            self.build_in_order(order)
 
         self.app.status(msg='Build ends successfully', chatty=True)
 
@@ -164,7 +164,7 @@ class BuildCommand(object):
         
         return order
 
-    def build_order(self, order):
+    def build_in_order(self, order):
         '''Build everything specified in a build order.'''
         self.app.status(msg='Building according to build ordering',
                         chatty=True)
