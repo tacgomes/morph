@@ -76,7 +76,7 @@ class BuildCommand(object):
         for repo_name, ref, filename in self.app._itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            order = self.compute_build_in_order(repo_name, ref, filename)
+            order = self.compute_build_order(repo_name, ref, filename)
             self.build_in_order(order)
 
         self.app.status(msg='Build ends successfully', chatty=True)
@@ -195,7 +195,11 @@ class BuildCommand(object):
                         kind=artifact.source.morphology['kind'],
                         name=artifact.name)
 
-        if not self.is_built(artifact):
+        if self.is_built(artifact):
+            self.app.status(msg='The %(kind)s %(name)s is already built',
+                            kind=artifact.source.morphology['kind'],
+                            name=artifact.name)
+        else:
             self.app.status(msg='Building %(kind)s %(name)s',
                             kind=artifact.source.morphology['kind'],
                             name=artifact.name)
@@ -216,19 +220,31 @@ class BuildCommand(object):
     def get_sources(self, artifact):
         '''Update the local git repository cache with the sources.'''
 
+        repo_name = artifact.source.repo_name
         if self.app.settings['no-git-update']:
-            self.app.status(msg='Not updating existing git repository',
-                            chatty=True)
-            artifact.source.repo = self.lrc.get_repo(artifact.source.repo_name)
+            self.app.status(msg='Not updating existing git repository '
+                                '%(repo_name)s'
+                                'because of no-git-update being set',
+                            chatty=True,
+                            repo_name=repo_name)
+            artifact.source.repo = self.lrc.get_repo(repo_name)
+            return
+
+        if self.lrc.has_repo(repo_name):
+            self.app.status(msg='Updating %(repo_name)s',
+                            repo_name=repo_name)
+            artifact.source.repo = self.lrc.get_repo(repo_name)
+            artifact.source.repo.update()
         else:
-            self.app.status(msg='Cloning/updating %(repo_name)s',
-                            repo_name=artifact.source.repo_name)
-            artifact.source.repo = self.lrc.cache_repo(
-                                        artifact.source.repo_name)
-            done = set()
-            self.app._cache_repo_and_submodules(
-                    self.lrc, artifact.source.repo.url,
-                    artifact.source.sha1, done)
+            self.app.status(msg='Cloning %(repo_name)s',
+                            repo_name=repo_name)
+            artifact.source.repo = self.lrc.cache_repo(repo_name)
+
+        # Update submodules.
+        done = set()
+        self.app._cache_repo_and_submodules(
+                self.lrc, artifact.source.repo.url,
+                artifact.source.sha1, done)
 
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
