@@ -92,7 +92,7 @@ class BuildCommand(object):
     def new_artifact_caches(self):
         '''Create new objects for local, remote artifact caches.'''
 
-        cachedir = self.create_cachedir()
+        self.create_cachedir()
         artifact_cachedir = self.create_artifact_cachedir()
 
         lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
