@@ -42,6 +42,12 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     '''
 
     dump_memory_profile = dump_memory_profile or (lambda msg: None )
+    
+    # This timestamp is used to normalize the mtime for every file in
+    # chunk artifact. This is useful to avoid problems from smallish
+    # clock skew. It needs to be recent enough, however, that GNU tar
+    # does not complain about an implausibly old timestamp.
+    normalized_timestamp = (683074800, 683074800)
        
     def mkrel(filename):
         assert filename.startswith(rootdir)
@@ -82,6 +88,9 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     include = sorted(include) # get dirs before contents
     tar = tarfile.open(fileobj=f, mode='w:gz')
     for filename in include:
+        # Normalize mtime for everything.
+        if not os.path.islink(filename):
+            os.utime(filename, normalized_timestamp)
         tar.add(filename, arcname=mkrel(filename), recursive=False)
     tar.close()
 
