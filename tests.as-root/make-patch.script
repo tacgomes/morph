@@ -28,12 +28,14 @@ cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
         {
             "name": "hello",
             "repo": "test:chunk-repo",
-            "ref": "farrokh"
+            "ref": "farrokh",
+            "build-depends": []
         },
         {
             "name": "linux",
             "repo": "test:kernel-repo",
-            "ref": "master"
+            "ref": "master",
+            "build-depends": ["hello"]
         }
     ]
 }

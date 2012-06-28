@@ -33,22 +33,26 @@ cat <<EOF >overlap-stratum.morph
     {
       "name": "dirs",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": []
     },
     {
       "name": "overlap-foobar",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": ["dirs"]
     },
     {
       "name": "overlap-fooqux",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": ["overlap-foobar"]
     },
     {
       "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": ["overlap-fooqux"]
     }
   ]
 }

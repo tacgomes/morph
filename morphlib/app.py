@@ -458,7 +458,18 @@ class Morph(cliapp.Application):
 
     def _create_source_pool(self, lrc, rrc, triplet):
         pool = morphlib.sourcepool.SourcePool()
+
+        def check_stratum(filename, morphology):
+            for source in morphology['sources']:
+                if source.get('build-depends', None) is None:
+                    name = source.get('name', source.get('repo', 'unknown'))
+                    raise morphlib.Error('Add build dependencies to '
+                                         'stratum %s for %s' %
+                                            (filename, name))
+
         def add_to_pool(reponame, ref, filename, absref, morphology):
+            if morphology['kind'] == 'stratum':
+                check_stratum(filename, morphology)
             source = morphlib.source.Source(reponame, ref, absref,
                                             morphology, filename)
             pool.add(source)

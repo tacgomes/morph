@@ -48,7 +48,8 @@ cat << EOF > alfred.morph
         {
             "name": "morphless",
             "repo": "test:morphless",
-            "ref": "master"
+            "ref": "master",
+            "build-depends": []
         }
     ]
 }
