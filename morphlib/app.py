@@ -463,8 +463,10 @@ class Morph(cliapp.Application):
             for source in morphology['sources']:
                 if source.get('build-depends', None) is None:
                     name = source.get('name', source.get('repo', 'unknown'))
-                    raise morphlib.Error('Add build dependencies to '
-                                         'stratum %s for %s' %
+                    raise morphlib.Error('No build dependencies '
+                                         'stratum %s for chunk %s '
+                                         '(build-depends is a mandatory '
+                                         'field)' %
                                             (filename, name))
 
         def add_to_pool(reponame, ref, filename, absref, morphology):
