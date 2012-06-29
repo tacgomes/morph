@@ -53,7 +53,8 @@ cat <<EOF > "$morphs/submod-stratum.morph"
         {
             "name": "parent",
             "repo": "test:parent-repo",
-            "ref": "master"
+            "ref": "master",
+            "build-depends": []
         }
     ]
 }

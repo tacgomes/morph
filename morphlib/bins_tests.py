@@ -56,7 +56,7 @@ class BinsTest(unittest.TestCase):
             if stat.S_ISDIR(st.st_mode):
                 return (st.st_mode, 0, 0)
             else:
-                return (st.st_mode, st.st_size, st.st_mtime)
+                return (st.st_mode, st.st_size, 0)
     
         result = []
         

@@ -63,7 +63,8 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
         {
             "name": "hello",
             "ref": "master",
-            "repo": "baserock:hello"
+            "repo": "baserock:hello",
+            "build-depends": []
         }
     ]
 }

@@ -45,12 +45,14 @@ cat <<EOF >foo-baz-stratum.morph
     {
       "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": []
     },
     {
       "name": "linux",
       "repo": "test:kernel-repo",
-      "ref": "master"
+      "ref": "master",
+      "build-depends": ["overlap-foo-baz"]
     }
   ]
 }
@@ -63,12 +65,14 @@ cat <<EOF >foo-barqux-stratum.morph
     {
       "name": "overlap-foobar",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": []
     },
     {
       "name": "overlap-fooqux",
       "repo": "test:chunk-repo",
-      "ref": "overlap"
+      "ref": "overlap",
+      "build-depends": ["overlap-foobar"]
     }
   ]
 }
