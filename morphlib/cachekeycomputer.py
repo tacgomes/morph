@@ -96,6 +96,8 @@ class CacheKeyComputer(object):
             keys['morphology-sha1'] = checksum.hexdigest()
         if kind == 'stratum':
             keys['stratum-format-version'] = 1
+        elif kind == 'system':
+            keys['system-compatibility-version'] = 1
 
         return keys
 
