@@ -26,6 +26,8 @@ cd  "$DATADIR/morphless"
 
 touch configure
 chmod +x configure
+# FIXME: If we leave the file empty, busybox sh on ARMv7 fails to execute it.
+echo '#!/bin/sh' > configure
 
 cat << EOF > Makefile
 all install:
