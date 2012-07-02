@@ -204,12 +204,13 @@ class BuildCommand(object):
                             kind=artifact.source.morphology['kind'],
                             name=artifact.name)
             self.get_sources(artifact)
-            self.cache_artifacts_locally(artifact.dependencies)
+            deps = self.get_recursive_deps(artifact)
+            self.cache_artifacts_locally(deps)
             staging_area = self.create_staging_area(artifact)
             if self.app.settings['staging-chroot']:
                 self.install_fillers(staging_area)
                 self.install_chunk_artifacts(staging_area, 
-                                             artifact.dependencies)
+                                             deps)
             self.build_and_cache(staging_area, artifact)
             if self.app.settings['bootstrap']:
                 self.install_chunk_artifacts(staging_area,
@@ -219,6 +220,17 @@ class BuildCommand(object):
     def is_built(self, artifact):
         '''Does either cache already have the artifact?'''
         return self.lac.has(artifact) or (self.rac and self.rac.has(artifact))
+
+    def get_recursive_deps(self, artifact):
+        done = set()
+        self._get_recursive_deps(artifact, done)
+        return done
+        
+    def _get_recursive_deps(self, artifact, done):
+        for a in artifact.dependencies:
+            if a not in done:
+                done.add(a)
+                self._get_recursive_deps(a, done)
 
     def get_sources(self, artifact):
         '''Update the local git repository cache with the sources.'''
