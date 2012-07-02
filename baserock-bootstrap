@@ -67,16 +67,13 @@ pass1_get_sources_with_morph()
 {
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
-    while ! python ./morph --verbose update-gits \
+    python ./morph --verbose update-gits \
         baserock:morphs master bootstrap-pass1.morph \
         --cachedir=$LFS/baserock/cache \
         --log=$LFS/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
         --bundle-server="$GIT_BUNDLES"
-    do
-        echo eeekk try again
-    done
 }
 
 pass1_build_with_morph()
@@ -178,17 +175,14 @@ set -x
 cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
-while ! python ./morph --verbose update-gits \
+python ./morph --verbose update-gits \
     baserock:morphs master bootstrap-pass2.morph \
-        --bootstrap \
-        --cachedir=/baserock/cache \
-        --log=/baserock/morph.log \
-        --dump-memory-profile=none \
-        --keep-path \
-        --bundle-server="$GIT_BUNDLES"
-do
-    echo eeekk try again
-done
+    --bootstrap \
+    --cachedir=/baserock/cache \
+    --log=/baserock/morph.log \
+    --dump-memory-profile=none \
+    --keep-path \
+    --bundle-server="$GIT_BUNDLES"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
@@ -334,16 +328,13 @@ set -e
 set -x
 
 cd /baserock/gits/morph
-while ! python ./morph --verbose update-gits \
+python ./morph --verbose update-gits \
     baserock:morphs master $PASS3_STRATUM \
-        --cachedir=/baserock/cache \
-        --log=/baserock/morph.log \
-        --dump-memory-profile=none \
-        --keep-path \
-        --bundle-server="$GIT_BUNDLES"
-do
-    echo eeekk try again
-done
+    --cachedir=/baserock/cache \
+    --log=/baserock/morph.log \
+    --dump-memory-profile=none \
+    --keep-path \
+    --bundle-server="$GIT_BUNDLES"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
