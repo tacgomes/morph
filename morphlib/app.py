@@ -211,6 +211,9 @@ class BuildCommand(object):
                 self.install_chunk_artifacts(staging_area, 
                                              artifact.dependencies)
             self.build_and_cache(staging_area, artifact)
+            if self.app.settings['bootstrap']:
+                self.install_chunk_artifacts(staging_area,
+                                             (artifact,))
             self.remove_staging_area(staging_area)
 
     def is_built(self, artifact):
