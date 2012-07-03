@@ -223,14 +223,13 @@ class BuildCommand(object):
 
     def get_recursive_deps(self, artifact):
         done = set()
-        self._get_recursive_deps(artifact, done)
+        todo = set((artifact,))
+        while todo:
+            for a in todo.pop().dependencies:
+                if a not in done:
+                    done.add(a)
+                    todo.add(a)
         return done
-        
-    def _get_recursive_deps(self, artifact, done):
-        for a in artifact.dependencies:
-            if a not in done:
-                done.add(a)
-                self._get_recursive_deps(a, done)
 
     def get_sources(self, artifact):
         '''Update the local git repository cache with the sources.'''
