@@ -117,7 +117,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         self.ckc._hash_list = inccount(self.ckc._hash_list, 'list')
         self.ckc._hash_tuple = inccount(self.ckc._hash_tuple, 'tuple')
 
-        artifact = self._find_artifact('system')
+        artifact = self._find_artifact('system-rootfs')
         self.ckc.compute_key(artifact)
 
         self.assertNotEqual(runcount['thing'], 0)
@@ -130,12 +130,12 @@ class CacheKeyComputerTests(unittest.TestCase):
         return len(s) == 64 and all([c in validchars for c in s])
 
     def test_compute_key_returns_sha256(self):
-        artifact = self._find_artifact('system')
+        artifact = self._find_artifact('system-rootfs')
         self.assertTrue(self._valid_sha256(
                         self.ckc.compute_key(artifact)))
 
     def test_different_env_gives_different_key(self):
-        artifact = self._find_artifact('system')
+        artifact = self._find_artifact('system-rootfs')
         oldsha = self.ckc.compute_key(artifact)
         build_env = DummyBuildEnvironment({
                 "USER": "foouser",
@@ -150,7 +150,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         self.assertNotEqual(oldsha, ckc.compute_key(artifact))
         
     def test_same_morphology_text_but_changed_sha1_gives_same_cache_key(self):
-        old_artifact = self._find_artifact('system')
+        old_artifact = self._find_artifact('system-rootfs')
         morphology = old_artifact.source.morphology
         new_source = morphlib.source.Source('repo', 'original/ref', 'newsha', 
                                             morphology, 
