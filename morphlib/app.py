@@ -806,11 +806,9 @@ class Morph(cliapp.Application):
         morphlib.git.set_remote(self.runcmd, dirname, 'origin', repo.url)
         
         # Add push url rewrite rule to .git/config.
-        filename = os.path.join(dirname, '.git', 'config')
-        with open(filename, 'a') as f:
-            f.write('\n')
-            f.write('[url "%s"]\n' % repo_resolver.push_url(reponame))
-            f.write('\tpushInsteadOf = %s\n' %repo_resolver.pull_url(reponame))
+        self.runcmd(['git', 'config',
+                     'url.%s.pushInsteadOf'% repo_resolver.push_url(reponame),
+                     repo_resolver.pull_url(reponame)], cwd=dirname)
         
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)
