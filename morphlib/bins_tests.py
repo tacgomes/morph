@@ -18,7 +18,9 @@ import os
 import shutil
 import stat
 import tempfile
+import tarfile
 import unittest
+import StringIO
 
 import morphlib
 
@@ -101,7 +103,7 @@ class ChunkTests(BinsTest):
         with open(filename, 'w'):
             pass
         os.utime(filename, (timestamp, timestamp))
-        
+
         self.instdir_orig_files = self.recursive_lstat(self.instdir)
 
     def create_chunk(self, regexps):
@@ -131,4 +133,75 @@ class ChunkTests(BinsTest):
                          ['.', 'bin', 'bin/foo'])
         self.assertEqual([x for x,y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
+
+class ExtractTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.instdir = os.path.join(self.tempdir, 'inst')
+        self.unpacked = os.path.join(self.tempdir, 'unpacked')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def create_chunk(self, callback):
+        fh = StringIO.StringIO()
+        os.mkdir(self.instdir)
+        patterns = callback(self.instdir)
+        morphlib.bins.create_chunk(self.instdir, fh, patterns)
+        shutil.rmtree(self.instdir)
+        fh.flush()
+        fh.seek(0)
+        return fh
+
+    def test_extracted_files_replace_links(self):
+        def make_linkfile(basedir):
+            with open(os.path.join(basedir, 'babar'), 'w') as f: pass
+            os.symlink('babar', os.path.join(basedir, 'bar'))
+            return ['.']
+	linktar = self.create_chunk(make_linkfile)
+
+        def make_file(basedir):
+            with open(os.path.join(basedir, 'bar'), 'w') as f: pass
+            return ['.']
+        filetar = self.create_chunk(make_file)
+
+        os.mkdir(self.unpacked)
+        morphlib.bins.unpack_binary_from_file(linktar, self.unpacked)
+        morphlib.bins.unpack_binary_from_file(filetar, self.unpacked)
+        mode = os.lstat(os.path.join(self.unpacked, 'bar')).st_mode
+        self.assertTrue(stat.S_ISREG(mode))
+
+    def test_extracted_dirs_keep_links(self):
+        def make_usrlink(basedir):
+            os.symlink('.', os.path.join(basedir, 'usr'))
+            return ['.']
+        linktar = self.create_chunk(make_usrlink)
+        
+	def make_usrdir(basedir):
+            os.mkdir(os.path.join(basedir, 'usr'))
+            return ['.']
+        dirtar = self.create_chunk(make_usrdir)
+
+        morphlib.bins.unpack_binary_from_file(linktar, self.unpacked)
+        morphlib.bins.unpack_binary_from_file(dirtar, self.unpacked)
+        mode = os.lstat(os.path.join(self.unpacked, 'usr')).st_mode
+        self.assertTrue(stat.S_ISLNK(mode))
+
+    def test_extracted_files_follow_links(self):
+        def make_usrlink(basedir):
+            os.symlink('.', os.path.join(basedir, 'usr'))
+            return ['.']
+        linktar = self.create_chunk(make_usrlink)
+
+	def make_usrdir(basedir):
+            os.mkdir(os.path.join(basedir, 'usr'))
+            with open(os.path.join(basedir, 'usr', 'foo'), 'w') as f: pass
+            return ['.']
+        dirtar = self.create_chunk(make_usrdir)
+
+        morphlib.bins.unpack_binary_from_file(linktar, self.unpacked)
+        morphlib.bins.unpack_binary_from_file(dirtar, self.unpacked)
+        mode = os.lstat(os.path.join(self.unpacked, 'foo')).st_mode
+        self.assertTrue(stat.S_ISREG(mode))
 
