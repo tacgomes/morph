@@ -106,6 +106,7 @@ cat <<EOF > hello-system.morph
 {
     "name": "hello-system",
     "kind": "system",
+    "arch": "$(uname -m)",
     "disk-size": "1G",
     "strata": [
         "hello-stratum"

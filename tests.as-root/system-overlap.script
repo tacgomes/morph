@@ -20,18 +20,6 @@
 
 set -eu
 
-# FIXME: This test currently only runs on x86 systems, because morph requires
-# extlinux.
-case "$(uname -m)" in
-    x86*) 
-        ;;
-    *)
-        cat "$SRCDIR/tests.as-root/system-overlap.stdout"
-        exit 0
-        ;;
-esac
-
-
 cache="$DATADIR/cache/artifacts"
 chunkrepo="$DATADIR/chunk-repo"
 morphsrepo="$DATADIR/morphs-repo"
