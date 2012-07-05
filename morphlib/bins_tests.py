@@ -159,7 +159,7 @@ class ExtractTests(unittest.TestCase):
             with open(os.path.join(basedir, 'babar'), 'w') as f: pass
             os.symlink('babar', os.path.join(basedir, 'bar'))
             return ['.']
-	linktar = self.create_chunk(make_linkfile)
+        linktar = self.create_chunk(make_linkfile)
 
         def make_file(basedir):
             with open(os.path.join(basedir, 'bar'), 'w') as f: pass
@@ -178,7 +178,7 @@ class ExtractTests(unittest.TestCase):
             return ['.']
         linktar = self.create_chunk(make_usrlink)
         
-	def make_usrdir(basedir):
+        def make_usrdir(basedir):
             os.mkdir(os.path.join(basedir, 'usr'))
             return ['.']
         dirtar = self.create_chunk(make_usrdir)
@@ -194,7 +194,7 @@ class ExtractTests(unittest.TestCase):
             return ['.']
         linktar = self.create_chunk(make_usrlink)
 
-	def make_usrdir(basedir):
+        def make_usrdir(basedir):
             os.mkdir(os.path.join(basedir, 'usr'))
             with open(os.path.join(basedir, 'usr', 'foo'), 'w') as f: pass
             return ['.']
