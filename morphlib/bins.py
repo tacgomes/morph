@@ -66,7 +66,7 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
             yield filename
 
     logging.debug('Creating chunk file %s from %s with regexps %s' % 
-                    (f.name, rootdir, regexps))
+                    (getattr(f, 'name', 'UNNAMED'), rootdir, regexps))
     dump_memory_profile('at beginning of create_chunk')
 
     compiled = [re.compile(x) for x in regexps]
