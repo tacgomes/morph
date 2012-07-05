@@ -30,6 +30,7 @@ cat <<EOF >overlap-system.morph
 {
   "name": "overlap-system",
   "kind": "system",
+  "arch": "$(uname -m)",
   "disk-size": "1G",
   "strata": [
     "foo-baz-stratum",
