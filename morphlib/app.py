@@ -458,6 +458,9 @@ class Morph(cliapp.Application):
         cliapp.Application.setup_plugin_manager(self)
         s = os.environ.get('MORPH_PLUGIN_PATH', '')
         self.pluginmgr.locations += s.split(':')
+        
+        self.hookmgr = cliapp.HookManager()
+        self.hookmgr.new('new-build-command', cliapp.FilterHook())
 
     def _itertriplets(self, args):
         '''Generate repo, ref, filename triples from args.'''
@@ -509,6 +512,7 @@ class Morph(cliapp.Application):
         '''
         
         build_command = BuildCommand(self)
+        build_command = self.hookmgr.call('new-build-command', build_command)
         build_command.build(args)
 
     def cmd_show_dependencies(self, args):
