@@ -93,15 +93,20 @@ class ArtifactResolver(object):
             source = queue.popleft()
 
             if source.morphology['kind'] == 'system':
-                artifact = self._get_artifact(
-                        source, source.morphology['name'])
+                if source.morphology['arch'] == 'arm':
+                    systems = [self._get_artifact(
+                                 source, source.morphology['name'] + name)
+                               for name in ('-rootfs', '-kernel')]
+                else:
+                    systems = [self._get_artifact(
+                                 source, source.morphology['name']+'-rootfs')]
 
-                if not artifact in self._added_artifacts:
-                    artifacts.append(artifact)
-                    self._added_artifacts.add(artifact)
+                if any(a not in self._added_artifacts for a in systems):
+                    artifacts.extend(systems)
+                    self._added_artifacts.update(systems)
 
                 resolved_artifacts = self._resolve_system_dependencies(
-                        artifact, queue)
+                        systems, source, queue)
 
                 for artifact in resolved_artifacts:
                     if not artifact in self._added_artifacts:
@@ -149,22 +154,23 @@ class ArtifactResolver(object):
             self._cached_artifacts[info] = artifact
             return artifact
 
-    def _resolve_system_dependencies(self, system, queue):
+    def _resolve_system_dependencies(self, systems, source, queue):
         artifacts = []
 
-        for stratum_name in system.source.morphology['strata']:
-            source = self._source_pool.lookup(
-                    system.source.repo_name,
-                    system.source.original_ref,
+        for stratum_name in source.morphology['strata']:
+            stratum_source = self._source_pool.lookup(
+                    source.repo_name,
+                    source.original_ref,
                     '%s.morph' % stratum_name)
 
-            stratum = self._get_artifact(source, stratum_name)
+            stratum = self._get_artifact(stratum_source, stratum_name)
 
-            system.add_dependency(stratum)
-            queue.append(source)
+            for system in systems:
+                system.add_dependency(stratum)
+            queue.append(stratum_source)
 
             artifacts.append(stratum)
-        
+
         return artifacts
 
     def _resolve_stratum_dependencies(self, stratum, queue):

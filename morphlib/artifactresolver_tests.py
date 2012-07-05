@@ -187,9 +187,33 @@ class ArtifactResolverTests(unittest.TestCase):
         artifacts = self.resolver.resolve_artifacts(pool)
 
         self.assertEqual(artifacts[0].source, system)
-        self.assertEqual(artifacts[0].name, 'foo')
+        self.assertEqual(artifacts[0].name, 'foo-rootfs')
         self.assertEqual(artifacts[0].dependencies, [])
         self.assertEqual(artifacts[0].dependents, [])
+
+    def test_resolve_a_single_empty_arm_system(self):
+        pool = morphlib.sourcepool.SourcePool()
+
+        morph = morphlib.morph2.Morphology(
+                '''
+                {
+                    "name": "foo",
+                    "kind": "system",
+                    "arch": "arm"
+                }
+                ''')
+        system = morphlib.source.Source(
+                'repo', 'original/ref', 'sha1', morph, 'foo.morph')
+        pool.add(system)
+
+        artifacts = self.resolver.resolve_artifacts(pool)
+
+        self.assertTrue(any((a.source == system and a.name == 'foo-rootfs' and
+                             a.dependencies == [] and a.dependents == [])
+                             for a in artifacts))
+        self.assertTrue(any((a.source == system and a.name == 'foo-kernel' and
+                             a.dependencies == [] and a.dependents == [])
+                             for a in artifacts))
 
     def test_resolve_stratum_and_chunk_with_no_subartifacts(self):
         pool = morphlib.sourcepool.SourcePool()
@@ -447,7 +471,7 @@ class ArtifactResolverTests(unittest.TestCase):
         self.assertEqual(artifacts[0].dependents, [artifacts[1], artifacts[2]])
 
         self.assertEqual(artifacts[1].source, system)
-        self.assertEqual(artifacts[1].name, 'system')
+        self.assertEqual(artifacts[1].name, 'system-rootfs')
         self.assertEqual(artifacts[1].dependencies,
                          [artifacts[0], artifacts[2]])
         self.assertEqual(artifacts[1].dependents, [])
