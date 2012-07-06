@@ -1,0 +1,8 @@
+build failed
+# configure
+# # echo dummy configure
+dummy configure
+# build
+# # echo The next command will fail
+The next command will fail
+# # false
