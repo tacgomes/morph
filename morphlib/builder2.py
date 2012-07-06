@@ -23,6 +23,8 @@ from collections import defaultdict
 import tarfile
 import traceback
 
+import cliapp
+
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
 
@@ -356,6 +358,7 @@ class ChunkBuilder(BuilderBase):
                 cmds = self.get_commands(key, m, bs)
                 if cmds:
                     self.app.status(msg='Running %(key)s', key=key)
+                    logfile.write('# %s\n' % step)
                 for cmd in cmds:
                     if in_parallel:
                         max_jobs = self.artifact.source.morphology['max-jobs']
@@ -364,10 +367,23 @@ class ChunkBuilder(BuilderBase):
                         self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
                     else:
                         self.build_env.env['MAKEFLAGS'] = '-j1'
-                    self.runcmd(['sh', '-c', cmd],
-                                cwd=relative_builddir,
-                                stdout=logfile,
-                                stderr=logfile)
+                    try:
+                        # flushing is needed because writes from python and
+                        # writes from being the output in Popen have different
+                        # buffers, but flush handles both
+                        logfile.write('# # %s\n' % cmd)
+                        logfile.flush()
+                        self.runcmd(['sh', '-c', cmd],
+                                    cwd=relative_builddir,
+                                    stdout=logfile,
+                                    stderr=logfile)
+                        logfile.flush()
+                    except cliapp.AppException, e:
+                        logfile.flush()
+                        with open(logfile.name, 'r') as readlog:
+                            self.app.output.write("%s failed\n" % step)
+                            shutil.copyfileobj(readlog, self.app.output)
+                        raise e
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
         built_artifacts = []
