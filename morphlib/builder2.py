@@ -22,6 +22,9 @@ import time
 from collections import defaultdict
 import tarfile
 import traceback
+import subprocess
+
+import cliapp
 
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
@@ -250,7 +253,10 @@ class ChunkBuilder(BuilderBase):
                 builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
                 destdir = self.staging_area.destdir(self.artifact.source)
-                self.run_commands(builddir, destdir)
+                with self.local_artifact_cache.put_source_metadata(
+                        self.artifact.source, self.artifact.cache_key,
+                        'build-log') as log:
+                    self.run_commands(builddir, destdir, log)
             except:
                 self.do_unmounts(mounted)
                 raise
@@ -335,7 +341,7 @@ class ChunkBuilder(BuilderBase):
                     os.utime(pathname, (now, now))
             os.utime(dirname, (now, now))
 
-    def run_commands(self, builddir, destdir): # pragma: no cover
+    def run_commands(self, builddir, destdir, logfile): # pragma: no cover
         m = self.artifact.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
@@ -353,6 +359,7 @@ class ChunkBuilder(BuilderBase):
                 cmds = self.get_commands(key, m, bs)
                 if cmds:
                     self.app.status(msg='Running %(key)s', key=key)
+                    logfile.write('# %s\n' % step)
                 for cmd in cmds:
                     if in_parallel:
                         max_jobs = self.artifact.source.morphology['max-jobs']
@@ -361,7 +368,23 @@ class ChunkBuilder(BuilderBase):
                         self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
                     else:
                         self.build_env.env['MAKEFLAGS'] = '-j1'
-                    self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
+                    try:
+                        # flushing is needed because writes from python and
+                        # writes from being the output in Popen have different
+                        # buffers, but flush handles both
+                        logfile.write('# # %s\n' % cmd)
+                        logfile.flush()
+                        self.runcmd(['sh', '-c', cmd],
+                                    cwd=relative_builddir,
+                                    stdout=logfile,
+                                    stderr=subprocess.STDOUT)
+                        logfile.flush()
+                    except cliapp.AppException, e:
+                        logfile.flush()
+                        with open(logfile.name, 'r') as readlog:
+                            self.app.output.write("%s failed\n" % step)
+                            shutil.copyfileobj(readlog, self.app.output)
+                        raise e
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
         built_artifacts = []

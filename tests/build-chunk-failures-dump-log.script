@@ -1,9 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 #
-# Test that the autotools build system fails if it runs autogen.sh and that
-# fails.
+# Test building a chunk.
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2011, 2012  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,21 +17,24 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 set -eu
 
-x="$DATADIR/autogen-chunk"
-mkdir "$x"
-cat <<EOF > "$x/autogen.sh"
-#!/bin/sh
-echo "in failing autogen.sh"
-exit 1
+chunkrepo="$DATADIR/chunk-repo"
+cd "$chunkrepo"
+git checkout --quiet master
+cat <<EOF >false.morph
+{
+    "name": "false",
+    "kind": "chunk",
+    "build-system": "dummy",
+    "build-commands": [
+        "echo The next command will fail",
+        "false"
+    ]
+}
 EOF
-chmod a+x "$x/autogen.sh"
-"$SRCDIR/scripts/run-git-in" "$x" init --quiet
-"$SRCDIR/scripts/run-git-in" "$x" add .
-"$SRCDIR/scripts/run-git-in" "$x" commit --quiet -m initial
+git add false.morph
+git commit --quiet -m "Make a morphology that fails." 
 
-"$SRCDIR/scripts/test-morph" build test:autogen-chunk master detected.morph \
-   >/dev/null 2> /dev/null
-
+"$SRCDIR/scripts/test-morph" build test:chunk-repo master false.morph \
+    2>/dev/null
