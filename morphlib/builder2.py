@@ -250,7 +250,10 @@ class ChunkBuilder(BuilderBase):
                 builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
                 destdir = self.staging_area.destdir(self.artifact.source)
-                self.run_commands(builddir, destdir)
+                with self.local_artifact_cache.put_source_metadata(
+                        self.artifact.source, self.artifact.cache_key,
+                        'build-log') as log:
+                    self.run_commands(builddir, destdir, log)
             except:
                 self.do_unmounts(mounted)
                 raise
@@ -335,7 +338,7 @@ class ChunkBuilder(BuilderBase):
                     os.utime(pathname, (now, now))
             os.utime(dirname, (now, now))
 
-    def run_commands(self, builddir, destdir): # pragma: no cover
+    def run_commands(self, builddir, destdir, logfile): # pragma: no cover
         m = self.artifact.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
@@ -361,7 +364,10 @@ class ChunkBuilder(BuilderBase):
                         self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
                     else:
                         self.build_env.env['MAKEFLAGS'] = '-j1'
-                    self.runcmd(['sh', '-c', cmd], cwd=relative_builddir)
+                    self.runcmd(['sh', '-c', cmd],
+                                cwd=relative_builddir,
+                                stdout=logfile,
+                                stderr=logfile)
 
     def assemble_chunk_artifacts(self, destdir): # pragma: no cover
         built_artifacts = []
