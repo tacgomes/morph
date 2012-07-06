@@ -22,6 +22,7 @@ import time
 from collections import defaultdict
 import tarfile
 import traceback
+import subprocess
 
 import cliapp
 
@@ -376,7 +377,7 @@ class ChunkBuilder(BuilderBase):
                         self.runcmd(['sh', '-c', cmd],
                                     cwd=relative_builddir,
                                     stdout=logfile,
-                                    stderr=logfile)
+                                    stderr=subprocess.STDOUT)
                         logfile.flush()
                     except cliapp.AppException, e:
                         logfile.flush()
