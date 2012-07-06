@@ -34,5 +34,5 @@ chmod a+x "$x/autogen.sh"
 "$SRCDIR/scripts/run-git-in" "$x" commit --quiet -m initial
 
 "$SRCDIR/scripts/test-morph" build test:autogen-chunk master detected.morph \
-    2> /dev/null
+   >/dev/null 2> /dev/null
 
