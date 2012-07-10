@@ -47,6 +47,11 @@ class MorphologyFactory(object):
             text = self._autodetect_text(reponame, sha1, filename)
 
         morphology = morphlib.morph2.Morphology(text)
+        if morphology['kind'] == 'system' and \
+           morphology['arch'] is None: #pragma: no cover
+            raise morphlib.Error('No arch specified in system %s '
+                                 '(arch is a mandatory field)' %
+                                     filename)
         if morphology['kind'] == 'stratum': #pragma: no cover
             for source in morphology['sources']:
                 if source.get('build-depends', None) is None:
