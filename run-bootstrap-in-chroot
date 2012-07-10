@@ -135,18 +135,12 @@ EOF
         # create the directory for cached ccache object files
         mkdir -p "$dir/var/tmp/ccache"
     
-        # We need a backport of tar 1.26. On ARM, older versions (possibly
-        # prior to 1.25) have a bug unpacking things onto an NFS filesystem.
-        # We have a custom apt repository, so we'll add that to apt's
-        # sources.list and install tar manually.
-        # cliapp comes from code.liw.fi, so that needs to be added as well
-        cat <<EOF >> "$dir/etc/apt/sources.list"
-deb http://code.liw.fi/debian squeeze main
-deb http://roadtrain.codethink.co.uk/debrock/ squeeze main
-EOF
-        "./do-squeeze-chroot" apt-get update
-        "./do-squeeze-chroot" apt-get install --allow-unauthenticated \
-            --no-remove --yes python-cliapp
+        # manually build and install cliapp
+        "./do-squeeze-chroot" mkdir -p /src
+        "./do-squeeze-chroot" git clone git://roadtrain.codethink.co.uk/delta/cliapp /src/cliapp
+        "./do-squeeze-chroot" sh -c 'cd /src/cliapp && "$@"' -- python setup.py build
+        "./do-squeeze-chroot" sh -c 'cd /src/cliapp && "$@"' -- python setup.py install
+        
     
         if "$snapshot"
         then
