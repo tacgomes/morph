@@ -45,7 +45,18 @@ class MorphologyFactory(object):
             text = self._cat_text(reponame, sha1, filename)
         except:
             text = self._autodetect_text(reponame, sha1, filename)
-        return morphlib.morph2.Morphology(text)
+
+        morphology = morphlib.morph2.Morphology(text)
+        if morphology['kind'] == 'stratum': #pragma: no cover
+            for source in morphology['sources']:
+                if source.get('build-depends', None) is None:
+                    name = source.get('name', source.get('repo', 'unknown'))
+                    raise morphlib.Error('No build dependencies '
+                                         'stratum %s for chunk %s '
+                                         '(build-depends is a mandatory '
+                                         'field)' %
+                                            (filename, name))
+        return morphology
 
     def _cat_text(self, reponame, sha1, filename):
         if self._lrc.has_repo(reponame):
