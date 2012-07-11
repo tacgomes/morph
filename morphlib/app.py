@@ -208,9 +208,10 @@ class BuildCommand(object):
             self.cache_artifacts_locally(deps)
             staging_area = self.create_staging_area(artifact)
             if self.app.settings['staging-chroot']:
-                self.install_fillers(staging_area)
-                self.install_chunk_artifacts(staging_area, 
-                                             deps)
+                if artifact.source.morphology['kind'] != 'stratum':
+                    self.install_fillers(staging_area)
+                    self.install_chunk_artifacts(staging_area, 
+                                                 deps)
             self.build_and_cache(staging_area, artifact)
             if self.app.settings['bootstrap']:
                 self.install_chunk_artifacts(staging_area,
