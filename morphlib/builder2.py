@@ -490,13 +490,13 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 self._create_subvolume(factory_path)
                 self._unpack_strata(factory_path)
                 self._create_fstab(factory_path)
-                if arch in ('x86', 'x86_64', None):
+                if arch in ('x86', 'x86_64'):
                     self._create_extlinux_config(factory_path)
                 self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
                 factory_run_path = os.path.join(mount_point, 'factory-run')
                 self._install_boot_files(arch, factory_run_path, mount_point)
-                if arch in ('x86', 'x86_64', None):
+                if arch in ('x86', 'x86_64'):
                     self._install_extlinux(mount_point)
                 if arch in ('arm',):
                     a = self.new_artifact(
@@ -540,7 +540,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
     def _install_mbr(self, arch, image_name):
         self.app.status(msg='Installing mbr on disk image %(filename)s',
                         filename=image_name, chatty=True)
-        if arch not in ('x86', 'x86_64', None):
+        if arch not in ('x86', 'x86_64'):
             return
         with self.build_watch('install-mbr'):
             morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
@@ -658,7 +658,7 @@ class SystemBuilder(BuilderBase): # pragma: no cover
 
     def _install_boot_files(self, arch, sourcefs, targetfs):
         with self.build_watch('install-boot-files'):
-            if arch in ('x86', 'x86_64', None):
+            if arch in ('x86', 'x86_64'):
                 self.app.status(msg='Installing boot files into root volume',
                                 chatty=True)
                 shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
