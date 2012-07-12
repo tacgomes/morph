@@ -35,6 +35,9 @@ defaults = {
         'baserock='
             'git://roadtrain.codethink.co.uk/baserock/#'
             'gitano@roadtrain.codethink.co.uk:baserock/',
+        'freedesktop='
+            'git://anongit.freedesktop.org/#'
+            'ssh://git.freedesktop.org/',
         'gnome='
             'git://git.gnome.org/%s#'
             'ssh://git.gnome.org/git/%s',
