@@ -60,7 +60,8 @@ class GraphingPlugin(cliapp.Plugin):
                         for dep in artifact.dependencies:
                             if artifact.source.morphology['kind'] == 'stratum':
                                 if dep.dependents == [artifact]:
-                                    f.write(dep_fmt % (artifact.name, dep.name))
+                                    f.write(dep_fmt % 
+                                            (artifact.name, dep.name))
                             else:
                                 f.write(dep_fmt % (artifact.name, dep.name))
                 f.write('}\n')
