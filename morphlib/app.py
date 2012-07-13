@@ -238,7 +238,7 @@ class BuildCommand(object):
         repo_name = artifact.source.repo_name
         if self.app.settings['no-git-update']:
             self.app.status(msg='Not updating existing git repository '
-                                '%(repo_name)s'
+                                '%(repo_name)s '
                                 'because of no-git-update being set',
                             chatty=True,
                             repo_name=repo_name)
@@ -246,10 +246,19 @@ class BuildCommand(object):
             return
 
         if self.lrc.has_repo(repo_name):
-            self.app.status(msg='Updating %(repo_name)s',
-                            repo_name=repo_name)
             artifact.source.repo = self.lrc.get_repo(repo_name)
-            artifact.source.repo.update()
+            try:
+                sha1 = artifact.source.sha1
+                artifact.source.repo.resolve_ref(sha1)
+                self.app.status(msg='Not updating git repository '
+                                    '%(repo_name)s because it '
+                                    'already contains sha1 %(sha1)s',
+                                chatty=True, repo_name=repo_name,
+                                sha1=sha1)
+            except morphlib.cachedrepo.InvalidReferenceError:
+                self.app.status(msg='Updating %(repo_name)s',
+                                repo_name=repo_name)
+                artifact.source.repo.update()
         else:
             self.app.status(msg='Cloning %(repo_name)s',
                             repo_name=repo_name)
