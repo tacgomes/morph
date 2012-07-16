@@ -566,6 +566,8 @@ class Morph(cliapp.Application):
         if lrc.has_repo(reponame):
             repo = lrc.get_repo(reponame)
             if update:
+                self.status(msg='Updating cached git repository %(reponame)s',
+                            reponame=reponame)
                 repo.update()
             absref = repo.resolve_ref(ref)
         elif rrc != None:
@@ -575,6 +577,8 @@ class Morph(cliapp.Application):
                 pass
         if absref == None:
             if update:
+                self.status(msg='Caching git repository %(reponame)s',
+                            reponame=reponame)
                 repo = lrc.cache_repo(reponame)
                 repo.update()
             else:
