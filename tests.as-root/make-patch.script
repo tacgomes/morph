@@ -46,7 +46,6 @@ EOF
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build test:morphs-repo master hello-system.morph
 img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*')
-stratum1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.hello-stratum')
 
 # Modify the chunk, in a new branch.
 "$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet farrokh
@@ -73,12 +72,28 @@ patch="$DATADIR/patch"
     test:morphs-repo master hello-system.morph \
     test:morphs-repo alfred hello-system.morph
 
-# Unpack the original stratum and run the program.
+# find out the offset of the partition in the disk image
+# udevadm settle is used to wait until devices have appeared
+loop=$(losetup -f --show "$img1")
+udevadm settle
+offset=$(sfdisk -d "$loop" |
+             sed -n '/start=/s/^.*start=\s*\([0-9]\+\)[^0-9].*$/\1/p' |
+             head -n 1)
+ssz=`cat "/sys/devices/virtual/block/$(basename "$loop")/queue/hw_sector_size"`
+losetup -d "$loop"
+udevadm settle
+
+# mount the disk
 mkdir "$DATADIR/unpacked"
+# this has to be done by losetup then mount, because busybox mount doesn't
+# accept the -o offset= option
+loop=$(losetup -o "$(expr "$offset" '*' "$ssz")" -f --show "$img1")
+udevadm settle
+trap 'losetup -d "$loop"' INT TERM EXIT
+mount -o subvol=factory-run -t btrfs "$loop" "$DATADIR/unpacked"
+trap 'umount "$DATADIR/unpacked"; losetup -d "$loop"' INT TERM EXIT
+
 cd "$DATADIR/unpacked"
-"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" "$stratum1" \
-                                   "$DATADIR/stratum.tar" hello-stratum
-tar -xf "$DATADIR/stratum.tar"
 echo "old version:"
 ./bin/hello
 
@@ -89,4 +104,5 @@ echo "new version:"
 
 # Done.
 echo "Done."
-
+# chdir out of mounted folder, so it can be unmounted
+cd /
