@@ -257,7 +257,7 @@ class ChunkBuilder(BuilderBase):
                 with self.local_artifact_cache.put_source_metadata(
                         self.artifact.source, self.artifact.cache_key,
                         'build-log') as log:
-                    log_name = log._savefile_filename
+                    log_name = log.real_filename
                     self.run_commands(builddir, destdir, log)
             except:
                 self.do_unmounts(mounted)

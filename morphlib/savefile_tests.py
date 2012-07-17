@@ -43,6 +43,14 @@ class SaveFileTests(unittest.TestCase):
     def test_there_are_no_files_initially(self):
         self.assertEqual(os.listdir(self.tempdir), [])
 
+    def test_sets_real_filename(self):
+        f = savefile.SaveFile(self.filename, 'w')
+        self.assertEqual(f.real_filename, self.filename)
+
+    def test_sets_name_to_temporary_name(self):
+        f = savefile.SaveFile(self.filename, 'w')
+        self.assertNotEqual(f.name, self.filename)
+
     def test_saves_new_file(self):
         f = savefile.SaveFile(self.filename, 'w')
         f.write('foo')

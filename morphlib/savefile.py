@@ -44,7 +44,7 @@ class SaveFile(file):
     '''
 
     def __init__(self, filename, *args, **kwargs):
-        self._savefile_filename = filename
+        self.real_filename = filename
         dirname = os.path.dirname(filename)
         fd, self._savefile_tempname = tempfile.mkstemp(dir=dirname)
         os.close(fd)
@@ -64,7 +64,7 @@ class SaveFile(file):
     def close(self):
         ret = file.close(self)
         logging.debug('Rename temporary file %s to %s' %
-                        (self._savefile_tempname, self._savefile_filename))
-        os.rename(self._savefile_tempname, self._savefile_filename)
+                        (self._savefile_tempname, self.real_filename))
+        os.rename(self._savefile_tempname, self.real_filename)
         return ret
 
