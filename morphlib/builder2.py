@@ -249,6 +249,7 @@ class ChunkBuilder(BuilderBase):
     def build_and_cache(self): # pragma: no cover
         with self.build_watch('overall-build'):
             mounted = self.do_mounts()
+            log_name = None
             try:
                 builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
@@ -256,9 +257,15 @@ class ChunkBuilder(BuilderBase):
                 with self.local_artifact_cache.put_source_metadata(
                         self.artifact.source, self.artifact.cache_key,
                         'build-log') as log:
+                    log_name = log._savefile_filename
                     self.run_commands(builddir, destdir, log)
             except:
                 self.do_unmounts(mounted)
+                if log_name:
+                    with open(log_name) as f:
+                        for line in f:
+                            logging.error('OUTPUT FROM FAILED BUILD: %s' % 
+                                            line.rstrip('\n'))
                 raise
             self.do_unmounts(mounted)
             built_artifacts = self.assemble_chunk_artifacts(destdir)
