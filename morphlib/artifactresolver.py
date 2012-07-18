@@ -93,13 +93,9 @@ class ArtifactResolver(object):
             source = queue.popleft()
 
             if source.morphology['kind'] == 'system':
-                if source.morphology['arch'] == 'arm':
-                    systems = [self._get_artifact(
-                                 source, source.morphology['name'] + name)
-                               for name in ('-rootfs', '-kernel')]
-                else:
-                    systems = [self._get_artifact(
-                                 source, source.morphology['name']+'-rootfs')]
+                systems = [self._get_artifact(source, a)
+                           for a in source.morphology.builds_artifacts]
+                
 
                 if any(a not in self._added_artifacts for a in systems):
                     artifacts.extend(systems)
@@ -113,8 +109,9 @@ class ArtifactResolver(object):
                         artifacts.append(artifact)
                         self._added_artifacts.add(artifact)
             elif source.morphology['kind'] == 'stratum':
-                artifact = self._get_artifact(
-                        source, source.morphology['name'])
+                assert len(source.morphology.builds_artifacts) == 1
+                artifact = self._get_artifact(source,
+                                source.morphology.builds_artifacts[0])
 
                 if not artifact in self._added_artifacts:
                     artifacts.append(artifact)
@@ -128,7 +125,7 @@ class ArtifactResolver(object):
                         artifacts.append(artifact)
                         self._added_artifacts.add(artifact)
             elif source.morphology['kind'] == 'chunk':
-                names = self._chunk_artifact_names(source)
+                names = source.morphology.builds_artifacts
                 for name in names:
                     artifact = self._get_artifact(source, name)
                     if not artifact in self._added_artifacts:
@@ -207,7 +204,7 @@ class ArtifactResolver(object):
                     info['ref'],
                     '%s.morph' % info['morph'])
 
-            possible_names = self._chunk_artifact_names(chunk_source)
+            possible_names = chunk_source.morphology.builds_artifacts
             if not info['name'] in possible_names:
                 raise UndefinedChunkArtifactError(stratum.source, info['name'])
 
@@ -248,8 +245,3 @@ class ArtifactResolver(object):
 
         return artifacts
 
-    def _chunk_artifact_names(self, source):
-        if len(source.morphology['chunks']) > 0:
-            return sorted(source.morphology['chunks'].keys())
-        else:
-            return [source.morphology['name']]

@@ -37,6 +37,7 @@ class FakeChunkMorphology(morphlib.morph2.Morphology):
                         "chunks": %s
                     }
                     ''' % (name, json.dumps(artifacts)))
+            self.builds_artifacts = artifact_names
         else:
             text = ('''
                     {
@@ -44,8 +45,9 @@ class FakeChunkMorphology(morphlib.morph2.Morphology):
                         "kind": "chunk"
                     }
                     ''' % name)
+            self.builds_artifacts = [name]
         morphlib.morph2.Morphology.__init__(self, text)
-
+        
 
 class FakeStratumMorphology(morphlib.morph2.Morphology):
 
@@ -81,6 +83,7 @@ class FakeStratumMorphology(morphlib.morph2.Morphology):
                     }
                     ''' % (name,
                            json.dumps(build_depends)))
+        self.builds_artifacts = [name]
         morphlib.morph2.Morphology.__init__(self, text)
 
 
@@ -136,6 +139,7 @@ class ArtifactResolverTests(unittest.TestCase):
         pool.add(source)
 
         artifacts = self.resolver.resolve_artifacts(pool)
+        artifacts.sort(key=lambda a: a.name)
 
         self.assertEqual(len(artifacts), 2)
 
@@ -159,6 +163,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     "kind": "stratum"
                 }
                 ''')
+        morph.builds_artifacts = ['foo']
         stratum = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(stratum)
@@ -180,6 +185,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     "kind": "system"
                 }
                 ''')
+        morph.builds_artifacts = ['foo-rootfs']
         system = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(system)
@@ -202,6 +208,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     "arch": "arm"
                 }
                 ''')
+        morph.builds_artifacts = ['foo-rootfs', 'foo-kernel']
         system = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'foo.morph')
         pool.add(system)
@@ -452,6 +459,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     ]
                 }
                 ''')
+        morph.builds_artifacts = ['system-rootfs']
         system = morphlib.source.Source(
                 'repo', 'ref', 'sha1', morph, 'system.morph')
         pool.add(system)
@@ -514,6 +522,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     ]
                 }
                 ''')
+        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
@@ -660,6 +669,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     ]
                 }
                 ''')
+        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
@@ -708,6 +718,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     ]
                 }
                 ''')
+        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)
@@ -743,6 +754,7 @@ class ArtifactResolverTests(unittest.TestCase):
                     ]
                 }
                 ''')
+        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
                 'repo', 'original/ref', 'sha1', morph, 'stratum.morph')
         pool.add(stratum)

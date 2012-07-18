@@ -37,8 +37,42 @@ class FakeRemoteRepoCache(object):
 
 class FakeLocalRepo(object):
 
+    morphologies = {
+        'chunk.morph': '''{
+                "name": "local-foo",
+                "kind": "chunk",
+                "build-system": "bar"
+            }''',
+        'chunk-split.morph': '''{
+                "name": "local-foo",
+                "kind": "chunk",
+                "build-system": "bar",
+                "chunks": {
+                    "local-foo-runtime": [],
+                    "local-foo-devel": []
+                }
+            }''',
+        'stratum.morph': '''{
+                "name": "foo-stratum",
+                "kind": "stratum"
+            }''',
+        'system.morph': '''{
+                "name": "foo-system",
+                "kind": "system",
+                "arch": "%(arch)s"
+            }''',
+    }
+
+    def __init__(self):
+        self.arch = 'unknown'
+
     def cat(self, sha1, filename):
-        if filename.endswith('.morph'):
+        if filename in self.morphologies:
+            values = {
+                'arch': self.arch,
+            }
+            return self.morphologies[filename] % values
+        elif filename.endswith('.morph'):
             return '''{
                 "name": "local-foo",
                 "kind": "chunk",
@@ -138,3 +172,28 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lrc.has_repo = self.doesnothaverepo
         self.assertRaises(NotcachedError, self.lmf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
+
+    def test_sets_builds_artifacts_for_simple_chunk(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
+        self.assertEqual(morph.builds_artifacts, ['local-foo'])
+
+    def test_sets_builds_artifacts_for_split_chunk(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk-split.morph')
+        self.assertEqual(morph.builds_artifacts, 
+                         ['local-foo-runtime', 'local-foo-devel'])
+
+    def test_sets_builds_artifacts_for_artifact(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
+        self.assertEqual(morph.builds_artifacts, ['foo-stratum'])
+
+    def test_sets_builds_artifacts_for_x86_64_system(self):
+        self.lr.arch = 'x86_64'
+        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
+        self.assertEqual(morph.builds_artifacts, ['foo-system-rootfs'])
+
+    def test_sets_builds_artifacts_for_arm_system(self):
+        self.lr.arch = 'arm'
+        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
+        self.assertEqual(sorted(morph.builds_artifacts),
+                         sorted(['foo-system-rootfs', 'foo-system-kernel']))
+

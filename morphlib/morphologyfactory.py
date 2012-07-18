@@ -50,20 +50,12 @@ class MorphologyFactory(object):
             text = self._autodetect_text(reponame, sha1, filename)
 
         morphology = morphlib.morph2.Morphology(text)
-        if morphology['kind'] == 'system' and \
-           morphology['arch'] is None: #pragma: no cover
-            raise morphlib.Error('No arch specified in system %s '
-                                 '(arch is a mandatory field)' %
-                                     filename)
-        if morphology['kind'] == 'stratum': #pragma: no cover
-            for source in morphology['sources']:
-                if source.get('build-depends', None) is None:
-                    name = source.get('name', source.get('repo', 'unknown'))
-                    raise morphlib.Error('No build dependencies '
-                                         'stratum %s for chunk %s '
-                                         '(build-depends is a mandatory '
-                                         'field)' %
-                                            (filename, name))
+        
+        method_name = '_check_and_tweak_%s' % morphology['kind']
+        if hasattr(self, method_name):
+            method = getattr(self, method_name)
+            method(morphology, reponame, sha1, filename)
+
         return morphology
 
     def _cat_text(self, reponame, sha1, filename):
@@ -106,3 +98,42 @@ class MorphologyFactory(object):
         morph_name = filename[:-len('.morph')]
         morph_text = bs.get_morphology_text(morph_name)
         return morph_text
+        
+    def _check_and_tweak_system(self, morphology, reponame, sha1, filename):
+        '''Check and tweak a system morphology.'''
+
+        if morphology['arch'] is None: #pragma: no cover
+            raise morphlib.Error('No arch specified in system %s '
+                                 '(arch is a mandatory field)' %
+                                     filename)
+
+        name = morphology['name']
+        if morphology['arch'] == 'arm':
+            morphology.builds_artifacts = [name + '-kernel', name + '-rootfs']
+        else:
+            # FIXME: -rootfs is a misnomer, should be -disk, but can't
+            # change this during refactoring.
+            morphology.builds_artifacts = [name + '-rootfs']
+        
+    def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
+        '''Check and tweak a stratum morphology.'''
+
+        for source in morphology['sources']: # pragma: no cover
+            if source.get('build-depends', None) is None:
+                name = source.get('name', source.get('repo', 'unknown'))
+                raise morphlib.Error('No build dependencies '
+                                     'stratum %s for chunk %s '
+                                     '(build-depends is a mandatory '
+                                     'field)' %
+                                        (filename, name))
+        
+        morphology.builds_artifacts = [morphology['name']]
+        
+    def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
+        '''Check and tweak a chunk morphology.'''
+
+        if 'chunks' in morphology and len(morphology['chunks']) > 1:
+            morphology.builds_artifacts = morphology['chunks'].keys()
+        else:
+            morphology.builds_artifacts = [morphology['name']]
+
