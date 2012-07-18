@@ -99,6 +99,7 @@ class AutotoolsBuildSystem(BuildSystem):
     
     def __init__(self):
         self.configure_commands = [
+            'export NOCONFIGURE=1; ' +
             'if [ -e autogen.sh ]; then ./autogen.sh; ' +
             'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
             './configure --prefix="$PREFIX"',
