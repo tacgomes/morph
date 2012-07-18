@@ -469,6 +469,10 @@ class Morph(cliapp.Application):
 
     def setup_plugin_manager(self):
         cliapp.Application.setup_plugin_manager(self)
+
+        self.pluginmgr.locations += os.path.join(
+                os.path.dirname(morphlib.__file__), 'plugins')
+
         s = os.environ.get('MORPH_PLUGIN_PATH', '')
         self.pluginmgr.locations += s.split(':')
         
