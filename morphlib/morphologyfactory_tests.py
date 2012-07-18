@@ -22,7 +22,9 @@ from morphlib.morphologyfactory import (MorphologyFactory,
                                         NotcachedError)
 from morphlib.remoterepocache import CatFileError
 
+
 class FakeRemoteRepoCache(object):
+
     def cat_file(self, reponame, sha1, filename):
         if filename.endswith('.morph'):
            return '''{
@@ -32,7 +34,9 @@ class FakeRemoteRepoCache(object):
             }'''
         return 'text'
 
+
 class FakeLocalRepo(object):
+
     def cat(self, sha1, filename):
         if filename.endswith('.morph'):
             return '''{
@@ -42,15 +46,21 @@ class FakeLocalRepo(object):
             }'''
         return 'text'
 
+
 class FakeLocalRepoCache(object):
+
     def __init__(self, lr):
         self.lr = lr
+
     def has_repo(self, reponame):
         return True
+
     def get_repo(self, reponame):
         return self.lr
 
+
 class MorphologyFactoryTests(unittest.TestCase):
+
     def setUp(self):
         self.lr = FakeLocalRepo()
         self.lrc = FakeLocalRepoCache(self.lr)
@@ -60,12 +70,15 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def nolocalfile(self, *args):
         raise IOError('File not found')
+
     def noremotefile(self, *args):
         raise CatFileError('reponame', 'ref', 'filename')
+
     def nolocalmorph(self, *args):
         if args[-1].endswith('.morph'):
             raise IOError('File not found')
         return 'text'
+
     def noremotemorph(self, *args):
         if args[-1].endswith('.morph'):
             raise CatFileError('reponame', 'ref', 'filename')

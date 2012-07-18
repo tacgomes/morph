@@ -18,8 +18,10 @@
 import morphlib
 import cliapp
 
+
 class MorphologyFactoryError(cliapp.AppException):
     pass
+
 
 class AutodetectError(MorphologyFactoryError):
     def __init__(self, repo_name, ref):
@@ -27,13 +29,16 @@ class AutodetectError(MorphologyFactoryError):
                 "Failed to determine the build system of repo %s at "
                 "ref %s" % (repo_name, ref))
 
+
 class NotcachedError(MorphologyFactoryError):
     def __init__(self, repo_name):
         MorphologyFactoryError.__init__(self,
                 "Repository %s is not cached locally and there is no "
                 "remote cache specified" % repo_name)
 
+
 class MorphologyFactory(object):
+
     '''An way of creating morphologies which will provide a default'''
 
     def __init__(self, local_repo_cache, remote_repo_cache=None):
