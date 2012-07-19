@@ -7,3 +7,4 @@ morphlib/fsutils.py
 morphlib/app.py
 morphlib/plugins/hello_plugin.py
 morphlib/plugins/graphing_plugin.py
+morphlib/plugins/syslinux-disk-builder_plugin.py
