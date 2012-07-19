@@ -16,6 +16,7 @@
 
 import unittest
 
+import morphlib
 from morphlib.morph2 import Morphology
 from morphlib.morphologyfactory import (MorphologyFactory,
                                         AutodetectError,
@@ -59,17 +60,20 @@ class FakeLocalRepo(object):
         'system.morph': '''{
                 "name": "foo-system",
                 "kind": "system",
+                "system-kind": "%(system_kind)s",
                 "arch": "%(arch)s"
             }''',
     }
 
     def __init__(self):
         self.arch = 'unknown'
+        self.system_kind = 'unknown'
 
     def cat(self, sha1, filename):
         if filename in self.morphologies:
             values = {
                 'arch': self.arch,
+                'system_kind': self.system_kind,
             }
             return self.morphologies[filename] % values
         elif filename.endswith('.morph'):
@@ -220,4 +224,9 @@ class MorphologyFactoryTests(unittest.TestCase):
     def test_does_not_set_artifact_metadata_cached_for_system(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph.needs_artifact_metadata_cached, False)
+
+    def test_fails_if_system_does_not_define_system_kind(self):
+        self.lr.system_kind = ''
+        self.assertRaises(morphlib.Error, self.mf.get_morphology,
+                          'reponame', 'sha1', 'system.morph')
 

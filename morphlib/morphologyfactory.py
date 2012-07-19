@@ -107,6 +107,10 @@ class MorphologyFactory(object):
                                  '(arch is a mandatory field)' %
                                      filename)
 
+        if not morphology['system-kind']:
+            raise morphlib.Error('No system-kind defined in system %s '
+                                 '(it is a mandatory field)' % filename)
+
         name = morphology['name']
         if morphology['arch'] == 'arm':
             morphology.builds_artifacts = [name + '-kernel', name + '-rootfs']
