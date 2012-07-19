@@ -288,9 +288,7 @@ class BuildCommand(object):
                                 name=artifact.name)
                 copy(self.rac.get(artifact), self.lac.put(artifact))
                 
-            # For strata we also need the metadata in the local cache.
-            # FIXME: why do we need it and can we fix things so we don't?
-            if artifact.source.morphology['kind'] == 'stratum':
+            if artifact.source.morphology.needs_artifact_metadata_cached:
                 if not self.lac.has_artifact_metadata(artifact, 'meta'):
                     self.app.status(msg='Fetching to local cache: '
                                         'artifact metadata %(name)s',

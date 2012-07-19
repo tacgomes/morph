@@ -116,6 +116,7 @@ class MorphologyFactory(object):
             morphology.builds_artifacts = [name + '-rootfs']
 
         morphology.needs_staging_area = False
+        morphology.needs_artifact_metadata_cached = False
         
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
@@ -131,6 +132,7 @@ class MorphologyFactory(object):
         
         morphology.builds_artifacts = [morphology['name']]
         morphology.needs_staging_area = False
+        morphology.needs_artifact_metadata_cached = True
         
     def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
         '''Check and tweak a chunk morphology.'''
@@ -141,4 +143,5 @@ class MorphologyFactory(object):
             morphology.builds_artifacts = [morphology['name']]
 
         morphology.needs_staging_area = True
+        morphology.needs_artifact_metadata_cached = False
 
