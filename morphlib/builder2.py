@@ -467,9 +467,19 @@ class StratumBuilder(BuilderBase):
         return [artifact]
 
 
-class SystemBuilder(BuilderBase): # pragma: no cover
+class SystemKindBuilder(BuilderBase): # pragma: no cover
 
-    '''Build system image artifacts.'''
+    '''Build a specific kind of a system.
+    
+    Subclasses should set the ``system_kind`` attribute to the kind of
+    system they build.
+    
+    '''
+
+
+class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
+
+    system_kind = 'syslinux-disk'
 
     def build_and_cache(self):
         with self.build_watch('overall-build'):
@@ -698,6 +708,44 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                         filename=image_name, chatty=True)
         with self.build_watch('undo-device-mapper'):
             morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
+
+
+
+class SystemKindBuilderFactory(object): # pragma: no cover
+
+    '''A factory class for SystemKindBuilder objects.'''
+
+    def __init__(self):
+        self.system_kinds = [
+            SyslinuxDiskBuilder,
+        ]
+
+    def register(self, klass):
+        self.system_kinds.append(klass)
+        
+    def new(self, system_kind, args, kwargs):
+        for klass in self.system_kinds:
+            if klass.system_kind == system_kind:
+                return klass(*args, **kwargs)
+        raise morphlib.Error("Don't know how to build system kind %s" %
+                                system_kind)
+
+
+class SystemBuilder(BuilderBase): # pragma: no cover
+
+    '''Build system image artifacts.'''
+
+    def __init__(self, *args, **kwargs):
+        BuilderBase.__init__(self, *args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
+    
+    def build_and_cache(self):
+        system_kind = self.artifact.source.morphology['system-kind']
+        builder = self.app.system_kind_builder_factory.new(
+                    system_kind, self.args, self.kwargs)
+        logging.debug('Building system with %s' % repr(builder))
+        return builder.build_and_cache()
 
 
 class Builder(object): # pragma: no cover

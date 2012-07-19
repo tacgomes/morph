@@ -48,7 +48,7 @@ cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "dummy",
+    "system-kind": "syslinux-disk",
     "disk-size": "1G",
     "strata": [
         "hello-stratum"

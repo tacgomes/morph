@@ -30,7 +30,7 @@ cat <<EOF >arm-system.morph
 {
   "name": "arm-system",
   "kind": "system",
-  "system-kind": "dummy",
+  "system-kind": "syslinux-disk",
   "arch": "arm",
   "disk-size": "1G",
   "strata": [

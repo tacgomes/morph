@@ -476,6 +476,8 @@ class Morph(cliapp.Application):
         
         self.hookmgr = cliapp.HookManager()
         self.hookmgr.new('new-build-command', cliapp.FilterHook())
+        self.system_kind_builder_factory = \
+            morphlib.builder2.SystemKindBuilderFactory()
 
     def _itertriplets(self, args):
         '''Generate repo, ref, filename triples from args.'''
