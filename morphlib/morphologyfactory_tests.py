@@ -182,7 +182,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertEqual(morph.builds_artifacts, 
                          ['local-foo-runtime', 'local-foo-devel'])
 
-    def test_sets_builds_artifacts_for_artifact(self):
+    def test_sets_builds_artifacts_for_stratum(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
         self.assertEqual(morph.builds_artifacts, ['foo-stratum'])
 
@@ -196,4 +196,16 @@ class MorphologyFactoryTests(unittest.TestCase):
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(sorted(morph.builds_artifacts),
                          sorted(['foo-system-rootfs', 'foo-system-kernel']))
+
+    def test_sets_needs_staging_for_chunk(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
+        self.assertEqual(morph.needs_staging_area, True)
+
+    def test_does_not_set_needs_staging_for_stratum(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
+        self.assertEqual(morph.needs_staging_area, False)
+
+    def test_does_not_set_needs_staging_for_system(self):
+        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
+        self.assertEqual(morph.needs_staging_area, False)
 

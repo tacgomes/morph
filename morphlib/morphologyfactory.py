@@ -114,6 +114,8 @@ class MorphologyFactory(object):
             # FIXME: -rootfs is a misnomer, should be -disk, but can't
             # change this during refactoring.
             morphology.builds_artifacts = [name + '-rootfs']
+
+        morphology.needs_staging_area = False
         
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
@@ -128,6 +130,7 @@ class MorphologyFactory(object):
                                         (filename, name))
         
         morphology.builds_artifacts = [morphology['name']]
+        morphology.needs_staging_area = False
         
     def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
         '''Check and tweak a chunk morphology.'''
@@ -136,4 +139,6 @@ class MorphologyFactory(object):
             morphology.builds_artifacts = morphology['chunks'].keys()
         else:
             morphology.builds_artifacts = [morphology['name']]
+
+        morphology.needs_staging_area = True
 
