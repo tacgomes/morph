@@ -269,7 +269,10 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
 class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
+        # Only provide this system builder on architectures that are
+        # supported by syslinux.
+        if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
+            self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
     
     def disable(self):
         pass
