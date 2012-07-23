@@ -211,7 +211,7 @@ class BuildCommand(object):
             self.cache_artifacts_locally(deps)
             staging_area = self.create_staging_area(artifact)
             if self.app.settings['staging-chroot']:
-                if artifact.source.morphology['kind'] != 'stratum':
+                if artifact.source.morphology.needs_staging_area:
                     self.install_fillers(staging_area)
                     self.install_chunk_artifacts(staging_area, 
                                                  deps)
@@ -288,9 +288,7 @@ class BuildCommand(object):
                                 name=artifact.name)
                 copy(self.rac.get(artifact), self.lac.put(artifact))
                 
-            # For strata we also need the metadata in the local cache.
-            # FIXME: why do we need it and can we fix things so we don't?
-            if artifact.source.morphology['kind'] == 'stratum':
+            if artifact.source.morphology.needs_artifact_metadata_cached:
                 if not self.lac.has_artifact_metadata(artifact, 'meta'):
                     self.app.status(msg='Fetching to local cache: '
                                         'artifact metadata %(name)s',

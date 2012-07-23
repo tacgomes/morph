@@ -85,6 +85,14 @@ class CacheKeyComputerTests(unittest.TestCase):
             source = morphlib.source.Source('repo', 'original/ref', 'sha',
                                    morphlib.morph2.Morphology(text), name)
             self.source_pool.add(source)
+            # FIXME: This should use MorphologyFactory
+            m = source.morphology
+            if m['kind'] == 'system':
+                m.builds_artifacts = [m['name'] + '-rootfs']
+            elif m['kind'] == 'stratum':
+                m.builds_artifacts = [m['name']]
+            elif m['kind'] == 'chunk':
+                m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
                 "USER": "foouser",
                 "USERNAME": "foouser",

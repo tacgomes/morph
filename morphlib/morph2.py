@@ -39,6 +39,7 @@ class Morphology(object):
         ('build-depends', None),
         ('build-system', 'manual'),
         ('arch', None),
+        ('system-kind', None),
     ]
     
     def __init__(self, text):
