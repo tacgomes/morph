@@ -509,6 +509,8 @@ class SystemBuilder(BuilderBase): # pragma: no cover
         builder = self.app.system_kind_builder_factory.new(
                     system_kind, self.args, self.kwargs)
         logging.debug('Building system with %s' % repr(builder))
+        self.app.status(msg='Building system %(system_name)s',
+                        system_name=self.artifact.name)
         return builder.build_and_cache()
 
 

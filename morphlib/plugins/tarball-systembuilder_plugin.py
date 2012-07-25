@@ -33,15 +33,12 @@ from morphlib.builder2 import (SystemKindBuilder, download_depends,
                                write_overlap_metadata)
 
 
-class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
+class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
 
-    system_kind = 'syslinux-disk'
+    system_kind = 'rootfs-tarball'
 
     def build_and_cache(self):
         with self.build_watch('overall-build'):
-            self.app.status(msg='Building system %(system_name)s',
-                            system_name=self.artifact.name)
-
             arch = self.artifact.source.morphology['arch']
             
             rootfs_artifact = self.new_artifact(
@@ -49,28 +46,13 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
             handle = self.local_artifact_cache.put(rootfs_artifact)
             image_name = handle.name
 
-            self._create_image(image_name)
-            self._partition_image(image_name)
-            self._install_mbr(arch, image_name)
-            partition = self._setup_device_mapping(image_name)
-    
-            mount_point = None
             try:
-                self._create_fs(partition)
                 mount_point = self.staging_area.destdir(self.artifact.source)
-                self._mount(partition, mount_point)
-                factory_path = os.path.join(mount_point, 'factory')
-                self._create_subvolume(factory_path)
+                factory_path = mount_point
                 self._unpack_strata(factory_path)
                 self._create_fstab(factory_path)
                 if arch in ('x86', 'x86_64'):
                     self._create_extlinux_config(factory_path)
-                self._create_subvolume_snapshot(
-                        mount_point, 'factory', 'factory-run')
-                factory_run_path = os.path.join(mount_point, 'factory-run')
-                self._install_boot_files(arch, factory_run_path, mount_point)
-                if arch in ('x86', 'x86_64'):
-                    self._install_extlinux(mount_point)
                 if arch in ('arm',):
                     a = self.new_artifact(
                             self.artifact.source.morphology['name']+'-kernel')
@@ -79,70 +61,17 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                                                'boot',
                                                'zImage')) as kernel:
                             shutil.copyfileobj(kernel, dest)
-                
-                self._unmount(mount_point)
             except BaseException, e:
                 logging.error(traceback.format_exc())
                 self.app.status(msg='Error while building system',
                                 error=True)
-                self._unmount(mount_point)
-                self._undo_device_mapping(image_name)
                 handle.abort()
                 raise
     
-            self._undo_device_mapping(image_name)
             handle.close()
 
         self.save_build_times()
         return [self.artifact]
-
-    def _create_image(self, image_name):
-        self.app.status(msg='Creating disk image %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('create-image'):
-            morphlib.fsutils.create_image(
-                self.app.runcmd, image_name,
-                self.artifact.source.morphology['disk-size'])
-
-    def _partition_image(self, image_name):
-        self.app.status(msg='Partitioning disk image %(filename)s',
-                        filename=image_name)
-        with self.build_watch('partition-image'):
-            morphlib.fsutils.partition_image(self.app.runcmd, image_name)
-
-    def _install_mbr(self, arch, image_name):
-        self.app.status(msg='Installing mbr on disk image %(filename)s',
-                        filename=image_name, chatty=True)
-        if arch not in ('x86', 'x86_64'):
-            return
-        with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
-
-    def _setup_device_mapping(self, image_name):
-        self.app.status(msg='Device mapping partitions in %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('setup-device-mapper'):
-            return morphlib.fsutils.setup_device_mapping(self.app.runcmd,
-                                                         image_name)
-
-    def _create_fs(self, partition):
-        self.app.status(msg='Creating filesystem on %(partition)s',
-                        partition=partition, chatty=True)
-        with self.build_watch('create-filesystem'):
-            morphlib.fsutils.create_fs(self.app.runcmd, partition)
-
-    def _mount(self, partition, mount_point):
-        self.app.status(msg='Mounting %(partition)s on %(mount_point)s',
-                        partition=partition, mount_point=mount_point,
-                        chatty=True)
-        with self.build_watch('mount-filesystem'):
-            morphlib.fsutils.mount(self.app.runcmd, partition, mount_point)
-
-    def _create_subvolume(self, path):
-        self.app.status(msg='Creating subvolume %(path)s', 
-                        path=path, chatty=True)
-        with self.build_watch('create-factory-subvolume'):
-            self.app.runcmd(['btrfs', 'subvolume', 'create', path])
 
     def _unpack_strata(self, path):
         self.app.status(msg='Unpacking strata to %(path)s',
@@ -221,58 +150,11 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
                         'init=/sbin/init rw\n')
     
-    def _create_subvolume_snapshot(self, path, source, target):
-        self.app.status(msg='Creating subvolume snapshot '
-                            '%(source)s to %(target)s',
-                        source=source, target=target, chatty=True)
-        with self.build_watch('create-runtime-snapshot'):
-            self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
-                         cwd=path)
 
-    def _install_boot_files(self, arch, sourcefs, targetfs):
-        with self.build_watch('install-boot-files'):
-            if arch in ('x86', 'x86_64'):
-                self.app.status(msg='Installing boot files into root volume',
-                                chatty=True)
-                shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
-                             os.path.join(targetfs, 'extlinux.conf'))
-                os.mkdir(os.path.join(targetfs, 'boot'))
-                shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
-                             os.path.join(targetfs, 'boot', 'vmlinuz'))
-                shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
-                             os.path.join(targetfs, 'boot', 'System.map'))
-
-    def _install_extlinux(self, path):
-        self.app.status(msg='Installing extlinux to %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('install-bootloader'):
-            self.app.runcmd(['extlinux', '--install', path])
-
-            # FIXME this hack seems to be necessary to let extlinux finish
-            self.app.runcmd(['sync'])
-            time.sleep(2)
-
-    def _unmount(self, mount_point):
-        with self.build_watch('unmount-filesystem'):
-            if mount_point is not None:
-                self.app.status(msg='Unmounting %(mount_point)s',
-                                mount_point=mount_point, chatty=True)
-                morphlib.fsutils.unmount(self.app.runcmd, mount_point)
-
-    def _undo_device_mapping(self, image_name):
-        self.app.status(msg='Undoing device mappings for %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('undo-device-mapper'):
-            morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
-
-
-class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
+class RootfsTarballBuilderPlugin(cliapp.Plugin):
 
     def enable(self):
-        # Only provide this system builder on architectures that are
-        # supported by syslinux.
-        if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
-            self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
+        self.app.system_kind_builder_factory.register(RootfsTarballBuilder)
     
     def disable(self):
         pass
