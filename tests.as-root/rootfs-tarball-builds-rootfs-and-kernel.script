@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# If the system's arch is arm, it should write the kernel to the cache
+# A system-kind of rootfs-tarball should build both kernel image and
+# a tarball with the root filesystem.
 #
 # Copyright (C) 2011, 2012  Codethink Limited
 # 
@@ -30,7 +31,7 @@ cat <<EOF >arm-system.morph
 {
   "name": "arm-system",
   "kind": "system",
-  "system-kind": "syslinux-disk",
+  "system-kind": "rootfs-tarball",
   "arch": "arm",
   "disk-size": "1G",
   "strata": [
@@ -80,3 +81,5 @@ git commit --quiet -m 'Make the kernel create a dummy zImage'
 "$SRCDIR/scripts/test-morph" \
     build test:morphs-repo arm arm-system.morph > /dev/null
 [ -e "$cache"/*system.arm-system-kernel ] || find "$cache"
+[ -e "$cache"/*system.arm-system-rootfs ] || find "$cache"
+
