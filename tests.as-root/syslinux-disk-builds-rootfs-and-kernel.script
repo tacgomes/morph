@@ -20,6 +20,13 @@
 
 set -eu
 
+# We only support x86 systems with syslinux-disk.
+arch=$(uname -m)
+case "$arch" in
+    x86*) ;;
+    *) exit 0 ;;
+esac
+
 cache="$DATADIR/cache/artifacts"
 kernelrepo="$DATADIR/kernel-repo"
 morphsrepo="$DATADIR/morphs-repo"
@@ -29,10 +36,10 @@ cd "$morphsrepo"
 git checkout --quiet -b custom master
 cat <<EOF >system.morph
 {
-  "name": "x86_64-system",
+  "name": "system",
   "kind": "system",
   "system-kind": "syslinux-disk",
-  "arch": "x86_64",
+  "arch": "$(arch)",
   "disk-size": "1G",
   "strata": [
     "stratum"

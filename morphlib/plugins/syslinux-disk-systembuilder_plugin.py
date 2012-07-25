@@ -60,22 +60,20 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 self._create_subvolume(factory_path)
                 self._unpack_strata(factory_path)
                 self._create_fstab(factory_path)
-                if arch in ('x86', 'x86_64'):
-                    self._create_extlinux_config(factory_path)
+                self._create_extlinux_config(factory_path)
                 self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
                 factory_run_path = os.path.join(mount_point, 'factory-run')
                 self._install_boot_files(arch, factory_run_path, mount_point)
-                if arch in ('x86', 'x86_64'):
-                    self._install_extlinux(mount_point)
-                if arch in ('arm',):
-                    a = self.new_artifact(
-                            self.artifact.source.morphology['name']+'-kernel')
-                    with self.local_artifact_cache.put(a) as dest:
-                        with open(os.path.join(factory_path,
-                                               'boot',
-                                               'zImage')) as kernel:
-                            shutil.copyfileobj(kernel, dest)
+                self._install_extlinux(mount_point)
+
+                a = self.new_artifact(
+                        self.artifact.source.morphology['name']+'-kernel')
+                with self.local_artifact_cache.put(a) as dest:
+                    with open(os.path.join(factory_path,
+                                           'boot',
+                                           'vmlinuz')) as kernel:
+                        shutil.copyfileobj(kernel, dest)
                 
                 self._unmount(mount_point)
             except BaseException, e:
