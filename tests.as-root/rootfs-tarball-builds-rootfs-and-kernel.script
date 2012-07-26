@@ -25,23 +25,25 @@ kernelrepo="$DATADIR/kernel-repo"
 morphsrepo="$DATADIR/morphs-repo"
 log="$DATADIR/morph.log"
 
+arch=$(uname -m)
+
 cd "$morphsrepo"
-git checkout --quiet -b arm master
-cat <<EOF >arm-system.morph
+git checkout --quiet -b custom master
+cat <<EOF >system.morph
 {
-  "name": "arm-system",
+  "name": "system",
   "kind": "system",
   "system-kind": "rootfs-tarball",
-  "arch": "arm",
+  "arch": "$(arch)",
   "disk-size": "1G",
   "strata": [
-    "arm-stratum"
+    "stratum"
   ]
 }
 EOF
-cat <<EOF >arm-stratum.morph
+cat <<EOF >stratum.morph
 {
-  "name": "arm-stratum",
+  "name": "stratum",
   "kind": "stratum",
   "sources": [
     {
@@ -53,17 +55,17 @@ cat <<EOF >arm-stratum.morph
     {
       "name": "linux",
       "repo": "test:kernel-repo",
-      "ref": "arm",
+      "ref": "custom",
       "build-depends": ["hello"]
     }
   ]
 }
 EOF
-git add arm-system.morph arm-stratum.morph
-git commit --quiet -m "add arm system"
+git add system.morph stratum.morph
+git commit --quiet -m "add custom system"
 
 cd "$kernelrepo"
-git checkout --quiet -b arm master
+git checkout --quiet -b custom master
 cat <<EOF >linux.morph
 {
   "name": "linux",
@@ -79,7 +81,15 @@ git add linux.morph
 git commit --quiet -m 'Make the kernel create a dummy zImage'
 
 "$SRCDIR/scripts/test-morph" \
-    build test:morphs-repo arm arm-system.morph > /dev/null
-[ -e "$cache"/*system.arm-system-kernel ] || find "$cache"
-[ -e "$cache"/*system.arm-system-rootfs ] || find "$cache"
+    build test:morphs-repo custom system.morph > /dev/null
+
+for suffix in kernel rootfs
+do
+    if [ ! -e "$cache"/*system.system-$suffix ]
+    then
+        echo "can't find $cache/*system.system-$suffix" 1>&2
+        find "$cache" 1>&2
+        exit 1
+    fi
+done
 
