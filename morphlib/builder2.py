@@ -467,118 +467,18 @@ class StratumBuilder(BuilderBase):
         return [artifact]
 
 
-class SystemBuilder(BuilderBase): # pragma: no cover
+class SystemKindBuilder(BuilderBase): # pragma: no cover
 
-    '''Build system image artifacts.'''
-
-    def build_and_cache(self):
-        with self.build_watch('overall-build'):
-            self.app.status(msg='Building system %(system_name)s',
-                            system_name=self.artifact.name)
-
-            arch = self.artifact.source.morphology['arch']
-            
-            rootfs_artifact = self.new_artifact(
-                    self.artifact.source.morphology['name'] + '-rootfs')
-            handle = self.local_artifact_cache.put(rootfs_artifact)
-            image_name = handle.name
-
-            self._create_image(image_name)
-            self._partition_image(image_name)
-            self._install_mbr(arch, image_name)
-            partition = self._setup_device_mapping(image_name)
+    '''Build a specific kind of a system.
     
-            mount_point = None
-            try:
-                self._create_fs(partition)
-                mount_point = self.staging_area.destdir(self.artifact.source)
-                self._mount(partition, mount_point)
-                factory_path = os.path.join(mount_point, 'factory')
-                self._create_subvolume(factory_path)
-                self._unpack_strata(factory_path)
-                self._create_fstab(factory_path)
-                if arch in ('x86', 'x86_64'):
-                    self._create_extlinux_config(factory_path)
-                self._create_subvolume_snapshot(
-                        mount_point, 'factory', 'factory-run')
-                factory_run_path = os.path.join(mount_point, 'factory-run')
-                self._install_boot_files(arch, factory_run_path, mount_point)
-                if arch in ('x86', 'x86_64'):
-                    self._install_extlinux(mount_point)
-                if arch in ('arm',):
-                    a = self.new_artifact(
-                            self.artifact.source.morphology['name']+'-kernel')
-                    with self.local_artifact_cache.put(a) as dest:
-                        with open(os.path.join(factory_path,
-                                               'boot',
-                                               'zImage')) as kernel:
-                            shutil.copyfileobj(kernel, dest)
-                
-                self._unmount(mount_point)
-            except BaseException, e:
-                logging.error(traceback.format_exc())
-                self.app.status(msg='Error while building system',
-                                error=True)
-                self._unmount(mount_point)
-                self._undo_device_mapping(image_name)
-                handle.abort()
-                raise
+    Subclasses should set the ``system_kind`` attribute to the kind of
+    system they build.
     
-            self._undo_device_mapping(image_name)
-            handle.close()
+    '''
 
-        self.save_build_times()
-        return [self.artifact]
+    def unpack_strata(self, path):
+        '''Unpack strata into a directory.'''
 
-    def _create_image(self, image_name):
-        self.app.status(msg='Creating disk image %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('create-image'):
-            morphlib.fsutils.create_image(
-                self.app.runcmd, image_name,
-                self.artifact.source.morphology['disk-size'])
-
-    def _partition_image(self, image_name):
-        self.app.status(msg='Partitioning disk image %(filename)s',
-                        filename=image_name)
-        with self.build_watch('partition-image'):
-            morphlib.fsutils.partition_image(self.app.runcmd, image_name)
-
-    def _install_mbr(self, arch, image_name):
-        self.app.status(msg='Installing mbr on disk image %(filename)s',
-                        filename=image_name, chatty=True)
-        if arch not in ('x86', 'x86_64'):
-            return
-        with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
-
-    def _setup_device_mapping(self, image_name):
-        self.app.status(msg='Device mapping partitions in %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('setup-device-mapper'):
-            return morphlib.fsutils.setup_device_mapping(self.app.runcmd,
-                                                         image_name)
-
-    def _create_fs(self, partition):
-        self.app.status(msg='Creating filesystem on %(partition)s',
-                        partition=partition, chatty=True)
-        with self.build_watch('create-filesystem'):
-            morphlib.fsutils.create_fs(self.app.runcmd, partition)
-
-    def _mount(self, partition, mount_point):
-        self.app.status(msg='Mounting %(partition)s on %(mount_point)s',
-                        partition=partition, mount_point=mount_point,
-                        chatty=True)
-        with self.build_watch('mount-filesystem'):
-            morphlib.fsutils.mount(self.app.runcmd, partition, mount_point)
-
-    def _create_subvolume(self, path):
-        self.app.status(msg='Creating subvolume %(path)s', 
-                        path=path, chatty=True)
-        with self.build_watch('create-factory-subvolume'):
-            self.app.runcmd(['btrfs', 'subvolume', 'create', path])
-
-    def _unpack_strata(self, path):
         self.app.status(msg='Unpacking strata to %(path)s',
                         path=path, chatty=True)
         with self.build_watch('unpack-strata'):
@@ -630,7 +530,15 @@ class SystemBuilder(BuilderBase): # pragma: no cover
 
             ldconfig(self.app.runcmd, path)
 
-    def _create_fstab(self, path):
+    def create_fstab(self, path):
+        '''Create an /etc/fstab inside a system tree.
+        
+        The fstab is created using assumptions of the disk layout.
+        If the assumptions are wrong, extend this code so it can deal
+        with other cases.
+        
+        '''
+
         self.app.status(msg='Creating fstab in %(path)s',
                         path=path, chatty=True)
         with self.build_watch('create-fstab'):
@@ -642,62 +550,61 @@ class SystemBuilder(BuilderBase): # pragma: no cover
                 f.write('sysfs     /sys  sysfs defaults          0 0\n')
                 f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
 
-    def _create_extlinux_config(self, path):
-        self.app.status(msg='Creating extlinux.conf in %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('create-extlinux-config'):
-            config = os.path.join(path, 'extlinux.conf')
-            with open(config, 'w') as f:
-                f.write('default linux\n')
-                f.write('timeout 1\n')
-                f.write('label linux\n')
-                f.write('kernel /boot/vmlinuz\n')
-                f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
-                        'init=/sbin/init rw\n')
+    def copy_kernel_into_artifact_cache(self, path):
+        '''Copy the installed kernel image into the local artifact cache.
+
+        The kernel image will be a separate artifact from the root
+        filesystem/disk image/whatever. This is sometimes useful with
+        funky bootloaders or virtualisation.        
+        
+        '''
+
+        name = self.artifact.source.morphology['name']+'-kernel'
+        a = self.new_artifact(name)
+        with self.local_artifact_cache.put(a) as dest:
+            for basename in ['zImage', 'vmlinuz']:
+                installed_path = os.path.join(path, 'boot', basename)
+                if os.path.exists(installed_path):
+                    with open(installed_path) as kernel:
+                        shutil.copyfileobj(kernel, dest)
+                    break
+
+
+class SystemKindBuilderFactory(object): # pragma: no cover
+
+    '''A factory class for SystemKindBuilder objects.'''
+
+    def __init__(self):
+        self.system_kinds = []
+
+    def register(self, klass):
+        self.system_kinds.append(klass)
+        
+    def new(self, system_kind, args, kwargs):
+        for klass in self.system_kinds:
+            if klass.system_kind == system_kind:
+                return klass(*args, **kwargs)
+        raise morphlib.Error("Don't know how to build system kind %s" %
+                                system_kind)
+
+
+class SystemBuilder(BuilderBase): # pragma: no cover
+
+    '''Build system image artifacts.'''
+
+    def __init__(self, *args, **kwargs):
+        BuilderBase.__init__(self, *args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
     
-    def _create_subvolume_snapshot(self, path, source, target):
-        self.app.status(msg='Creating subvolume snapshot '
-                            '%(source)s to %(target)s',
-                        source=source, target=target, chatty=True)
-        with self.build_watch('create-runtime-snapshot'):
-            self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
-                         cwd=path)
-
-    def _install_boot_files(self, arch, sourcefs, targetfs):
-        with self.build_watch('install-boot-files'):
-            if arch in ('x86', 'x86_64'):
-                self.app.status(msg='Installing boot files into root volume',
-                                chatty=True)
-                shutil.copy2(os.path.join(sourcefs, 'extlinux.conf'),
-                             os.path.join(targetfs, 'extlinux.conf'))
-                os.mkdir(os.path.join(targetfs, 'boot'))
-                shutil.copy2(os.path.join(sourcefs, 'boot', 'vmlinuz'),
-                             os.path.join(targetfs, 'boot', 'vmlinuz'))
-                shutil.copy2(os.path.join(sourcefs, 'boot', 'System.map'),
-                             os.path.join(targetfs, 'boot', 'System.map'))
-
-    def _install_extlinux(self, path):
-        self.app.status(msg='Installing extlinux to %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('install-bootloader'):
-            self.app.runcmd(['extlinux', '--install', path])
-
-            # FIXME this hack seems to be necessary to let extlinux finish
-            self.app.runcmd(['sync'])
-            time.sleep(2)
-
-    def _unmount(self, mount_point):
-        with self.build_watch('unmount-filesystem'):
-            if mount_point is not None:
-                self.app.status(msg='Unmounting %(mount_point)s',
-                                mount_point=mount_point, chatty=True)
-                morphlib.fsutils.unmount(self.app.runcmd, mount_point)
-
-    def _undo_device_mapping(self, image_name):
-        self.app.status(msg='Undoing device mappings for %(filename)s',
-                        filename=image_name, chatty=True)
-        with self.build_watch('undo-device-mapper'):
-            morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
+    def build_and_cache(self):
+        system_kind = self.artifact.source.morphology['system-kind']
+        builder = self.app.system_kind_builder_factory.new(
+                    system_kind, self.args, self.kwargs)
+        logging.debug('Building system with %s' % repr(builder))
+        self.app.status(msg='Building system %(system_name)s',
+                        system_name=self.artifact.name)
+        return builder.build_and_cache()
 
 
 class Builder(object): # pragma: no cover
