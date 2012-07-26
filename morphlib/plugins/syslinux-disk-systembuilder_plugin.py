@@ -59,7 +59,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 factory_path = os.path.join(mount_point, 'factory')
                 self._create_subvolume(factory_path)
                 self.unpack_strata(factory_path)
-                self._create_fstab(factory_path)
+                self.create_fstab(factory_path)
                 self._create_extlinux_config(factory_path)
                 self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
@@ -138,18 +138,6 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                         path=path, chatty=True)
         with self.build_watch('create-factory-subvolume'):
             self.app.runcmd(['btrfs', 'subvolume', 'create', path])
-
-    def _create_fstab(self, path):
-        self.app.status(msg='Creating fstab in %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('create-fstab'):
-            fstab = os.path.join(path, 'etc', 'fstab')
-            if not os.path.exists(os.path.dirname(fstab)):# FIXME: should exist
-                os.makedirs(os.path.dirname(fstab))
-            with open(fstab, 'w') as f:
-                f.write('proc      /proc proc  defaults          0 0\n')
-                f.write('sysfs     /sys  sysfs defaults          0 0\n')
-                f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
 
     def _create_extlinux_config(self, path):
         self.app.status(msg='Creating extlinux.conf in %(path)s',

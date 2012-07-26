@@ -530,6 +530,26 @@ class SystemKindBuilder(BuilderBase): # pragma: no cover
 
             ldconfig(self.app.runcmd, path)
 
+    def create_fstab(self, path):
+        '''Create an /etc/fstab inside a system tree.
+        
+        The fstab is created using assumptions of the disk layout.
+        If the assumptions are wrong, extend this code so it can deal
+        with other cases.
+        
+        '''
+
+        self.app.status(msg='Creating fstab in %(path)s',
+                        path=path, chatty=True)
+        with self.build_watch('create-fstab'):
+            fstab = os.path.join(path, 'etc', 'fstab')
+            if not os.path.exists(os.path.dirname(fstab)):# FIXME: should exist
+                os.makedirs(os.path.dirname(fstab))
+            with open(fstab, 'w') as f:
+                f.write('proc      /proc proc  defaults          0 0\n')
+                f.write('sysfs     /sys  sysfs defaults          0 0\n')
+                f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
+
 
 class SystemKindBuilderFactory(object): # pragma: no cover
 

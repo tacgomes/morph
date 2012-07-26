@@ -50,7 +50,7 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
                 mount_point = self.staging_area.destdir(self.artifact.source)
                 factory_path = mount_point
                 self.unpack_strata(factory_path)
-                self._create_fstab(factory_path)
+                self.create_fstab(factory_path)
                 if arch in ('x86', 'x86_64'):
                     self._create_extlinux_config(factory_path)
                 if arch in ('arm',):
@@ -72,18 +72,6 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
 
         self.save_build_times()
         return [self.artifact]
-
-    def _create_fstab(self, path):
-        self.app.status(msg='Creating fstab in %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('create-fstab'):
-            fstab = os.path.join(path, 'etc', 'fstab')
-            if not os.path.exists(os.path.dirname(fstab)):# FIXME: should exist
-                os.makedirs(os.path.dirname(fstab))
-            with open(fstab, 'w') as f:
-                f.write('proc      /proc proc  defaults          0 0\n')
-                f.write('sysfs     /sys  sysfs defaults          0 0\n')
-                f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
 
     def _create_extlinux_config(self, path):
         self.app.status(msg='Creating extlinux.conf in %(path)s',
