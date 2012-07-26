@@ -41,8 +41,8 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
         with self.build_watch('overall-build'):
             arch = self.artifact.source.morphology['arch']
             
-            rootfs_artifact = self.new_artifact(
-                    self.artifact.source.morphology['name'] + '-rootfs')
+            rootfs_name = self.artifact.source.morphology['name'] + '-rootfs'
+            rootfs_artifact = self.new_artifact(rootfs_name)
             handle = self.local_artifact_cache.put(rootfs_artifact)
 
             try:
