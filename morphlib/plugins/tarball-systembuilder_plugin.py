@@ -51,13 +51,7 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
                 factory_path = mount_point
                 self.unpack_strata(factory_path)
                 self.create_fstab(factory_path)
-                a = self.new_artifact(
-                        self.artifact.source.morphology['name']+'-kernel')
-                with self.local_artifact_cache.put(a) as dest:
-                    with open(os.path.join(factory_path,
-                                           'boot',
-                                           'zImage')) as kernel:
-                        shutil.copyfileobj(kernel, dest)
+                self.copy_kernel_into_artifact_cache(factory_path)
             except BaseException, e:
                 logging.error(traceback.format_exc())
                 self.app.status(msg='Error while building system',

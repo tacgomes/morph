@@ -550,6 +550,25 @@ class SystemKindBuilder(BuilderBase): # pragma: no cover
                 f.write('sysfs     /sys  sysfs defaults          0 0\n')
                 f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
 
+    def copy_kernel_into_artifact_cache(self, path):
+        '''Copy the installed kernel image into the local artifact cache.
+
+        The kernel image will be a separate artifact from the root
+        filesystem/disk image/whatever. This is sometimes useful with
+        funky bootloaders or virtualisation.        
+        
+        '''
+
+        name = self.artifact.source.morphology['name']+'-kernel'
+        a = self.new_artifact(name)
+        with self.local_artifact_cache.put(a) as dest:
+            for basename in ['zImage', 'vmlinuz']:
+                installed_path = os.path.join(path, 'boot', basename)
+                if os.path.exists(installed_path):
+                    with open(installed_path) as kernel:
+                        shutil.copyfileobj(kernel, dest)
+                    break
+
 
 class SystemKindBuilderFactory(object): # pragma: no cover
 

@@ -66,15 +66,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 factory_run_path = os.path.join(mount_point, 'factory-run')
                 self._install_boot_files(arch, factory_run_path, mount_point)
                 self._install_extlinux(mount_point)
-
-                a = self.new_artifact(
-                        self.artifact.source.morphology['name']+'-kernel')
-                with self.local_artifact_cache.put(a) as dest:
-                    with open(os.path.join(factory_path,
-                                           'boot',
-                                           'vmlinuz')) as kernel:
-                        shutil.copyfileobj(kernel, dest)
-                
+                self.copy_kernel_into_artifact_cache(factory_path)
                 self._unmount(mount_point)
             except BaseException, e:
                 logging.error(traceback.format_exc())
