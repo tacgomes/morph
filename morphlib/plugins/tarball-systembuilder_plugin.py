@@ -51,8 +51,6 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
                 factory_path = mount_point
                 self.unpack_strata(factory_path)
                 self.create_fstab(factory_path)
-                if arch in ('x86', 'x86_64'):
-                    self._create_extlinux_config(factory_path)
                 if arch in ('arm',):
                     a = self.new_artifact(
                             self.artifact.source.morphology['name']+'-kernel')
@@ -72,19 +70,6 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
 
         self.save_build_times()
         return [self.artifact]
-
-    def _create_extlinux_config(self, path):
-        self.app.status(msg='Creating extlinux.conf in %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('create-extlinux-config'):
-            config = os.path.join(path, 'extlinux.conf')
-            with open(config, 'w') as f:
-                f.write('default linux\n')
-                f.write('timeout 1\n')
-                f.write('label linux\n')
-                f.write('kernel /boot/vmlinuz\n')
-                f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
-                        'init=/sbin/init rw\n')
     
 
 class RootfsTarballBuilderPlugin(cliapp.Plugin):
