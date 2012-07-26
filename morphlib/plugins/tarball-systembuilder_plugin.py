@@ -49,7 +49,7 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
             try:
                 mount_point = self.staging_area.destdir(self.artifact.source)
                 factory_path = mount_point
-                self._unpack_strata(factory_path)
+                self.unpack_strata(factory_path)
                 self._create_fstab(factory_path)
                 if arch in ('x86', 'x86_64'):
                     self._create_extlinux_config(factory_path)
@@ -72,58 +72,6 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
 
         self.save_build_times()
         return [self.artifact]
-
-    def _unpack_strata(self, path):
-        self.app.status(msg='Unpacking strata to %(path)s',
-                        path=path, chatty=True)
-        with self.build_watch('unpack-strata'):
-            # download the stratum artifacts if necessary
-            download_depends(self.artifact.dependencies,
-                             self.local_artifact_cache,
-                             self.remote_artifact_cache,
-                             ('meta',))
-
-            # download the chunk artifacts if necessary
-            for stratum_artifact in self.artifact.dependencies:
-                f = self.local_artifact_cache.get(stratum_artifact)
-                chunks = [ArtifactCacheReference(a) for a in json.load(f)]
-                download_depends(chunks,
-                                 self.local_artifact_cache,
-                                 self.remote_artifact_cache)
-                f.close()
-
-            # check whether the strata overlap
-            overlaps = get_overlaps(self.artifact, self.artifact.dependencies,
-                                    self.local_artifact_cache)
-            if len(overlaps) > 0:
-                self.app.status(msg='Overlaps in system artifact '
-                                    '%(artifact_name)s detected',
-                                artifact_name=self.artifact.name,
-                                error=True)
-                log_overlaps(overlaps)
-                write_overlap_metadata(self.artifact, overlaps,
-                                       self.local_artifact_cache)
-
-            # unpack it from the local artifact cache
-            for stratum_artifact in self.artifact.dependencies:
-                f = self.local_artifact_cache.get(stratum_artifact)
-                for chunk in (ArtifactCacheReference(a) for a in json.load(f)):
-                    self.app.status(msg='Unpacking chunk %(basename)s',
-                                    basename=chunk.basename(), chatty=True)
-                    chunk_handle = self.local_artifact_cache.get(chunk)
-                    morphlib.bins.unpack_binary_from_file(chunk_handle, path)
-                    chunk_handle.close()
-                f.close()
-                meta = self.local_artifact_cache.get_artifact_metadata(
-                                                      stratum_artifact, 'meta')
-                dst = morphlib.savefile.SaveFile(
-                        os.path.join(path, 'baserock',
-                                     '%s.meta' % stratum_artifact.name), 'w')
-                shutil.copyfileobj(meta, dst)
-                dst.close()
-                meta.close()
-
-            ldconfig(self.app.runcmd, path)
 
     def _create_fstab(self, path):
         self.app.status(msg='Creating fstab in %(path)s',
