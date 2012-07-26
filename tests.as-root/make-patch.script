@@ -45,7 +45,7 @@ EOF
 
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build test:morphs-repo master hello-system.morph
-img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*')
+img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*-rootfs')
 
 # Modify the chunk, in a new branch.
 "$SRCDIR/scripts/run-git-in" "$DATADIR/chunk-repo" checkout --quiet farrokh
