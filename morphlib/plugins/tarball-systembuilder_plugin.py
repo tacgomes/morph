@@ -44,14 +44,12 @@ class RootfsTarballBuilder(SystemKindBuilder): # pragma: no cover
             rootfs_artifact = self.new_artifact(
                     self.artifact.source.morphology['name'] + '-rootfs')
             handle = self.local_artifact_cache.put(rootfs_artifact)
-            image_name = handle.name
 
             try:
-                mount_point = self.staging_area.destdir(self.artifact.source)
-                factory_path = mount_point
-                self.unpack_strata(factory_path)
-                self.create_fstab(factory_path)
-                self.copy_kernel_into_artifact_cache(factory_path)
+                fs_root = self.staging_area.destdir(self.artifact.source)
+                self.unpack_strata(fs_root)
+                self.create_fstab(fs_root)
+                self.copy_kernel_into_artifact_cache(fs_root)
             except BaseException, e:
                 logging.error(traceback.format_exc())
                 self.app.status(msg='Error while building system',
