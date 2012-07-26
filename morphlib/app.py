@@ -734,10 +734,11 @@ class Morph(cliapp.Application):
             return mount_point
 
         def cleanup(path, mount_point):
-            try:
-                morphlib.fsutils.unmount(self.runcmd, mount_point)
-            except:
-                pass
+            if mount_point is not None:
+                try:
+                    morphlib.fsutils.unmount(self.runcmd, mount_point)
+                except:
+                    pass
             try:
                 morphlib.fsutils.undo_device_mapping(self.runcmd, path)
             except:
@@ -747,6 +748,8 @@ class Morph(cliapp.Application):
             except:
                 pass
 
+        mount_point_1 = None
+        mount_point_2 = None
         try:
             mount_point_1 = setup(image_path_1)
             mount_point_2 = setup(image_path_2)
