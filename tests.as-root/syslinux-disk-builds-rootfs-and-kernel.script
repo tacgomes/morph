@@ -39,7 +39,7 @@ cat <<EOF >system.morph
   "name": "system",
   "kind": "system",
   "system-kind": "syslinux-disk",
-  "arch": "$(arch)",
+  "arch": "$arch",
   "disk-size": "1G",
   "strata": [
     "stratum"
