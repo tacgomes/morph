@@ -49,8 +49,11 @@ class MorphologyFactory(object):
         except:
             text = self._autodetect_text(reponame, sha1, filename)
 
-        morphology = morphlib.morph2.Morphology(text)
-        
+        try:
+            morphology = morphlib.morph2.Morphology(text)
+        except ValueError as e:
+            raise morphlib.Error("Error parsing %s: %s" % (filename, e.message))
+
         method_name = '_check_and_tweak_%s' % morphology['kind']
         if hasattr(self, method_name):
             method = getattr(self, method_name)

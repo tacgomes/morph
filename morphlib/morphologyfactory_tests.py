@@ -63,6 +63,9 @@ class FakeLocalRepo(object):
                 "system-kind": "%(system_kind)s",
                 "arch": "%(arch)s"
             }''',
+        'parse-error.morph': '''{
+                "name"
+            }''',
     }
 
     def __init__(self):
@@ -229,4 +232,8 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lr.system_kind = ''
         self.assertRaises(morphlib.Error, self.mf.get_morphology,
                           'reponame', 'sha1', 'system.morph')
+
+    def test_fails_on_parse_error(self):
+        self.assertRaises(morphlib.Error, self.mf.get_morphology,
+                          'reponame', 'sha1', 'parse-error.morph')
 
