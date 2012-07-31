@@ -16,6 +16,7 @@
 
 import cliapp
 import os
+import json
 
 import morphlib
 
@@ -26,6 +27,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
     system_repo_name = 'baserock:%s' % system_repo_base
 
     def enable(self):
+        self.app.add_subcommand('petrify', self.petrify,
+                                arg_synopsis='STRATUM...')
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
         self.app.add_subcommand('minedir', self.minedir, arg_synopsis='')
         self.app.add_subcommand('branch', self.branch,
@@ -94,6 +97,36 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     resolver.pull_url(reponame)], cwd=dirname)
 
         app.runcmd(['git', 'remote', 'update'], cwd=dirname)
+
+    def petrify(self, args):
+        '''Make refs to chunks be absolute SHA-1s.'''
+
+        app = self.app
+        cache = morphlib.util.new_repo_caches(self.app)[0]
+
+        for filename in args:
+            with open(filename) as f:
+                morph = json.load(f)
+
+            if morph['kind'] != 'stratum':
+                app.status(msg='Not a stratum: %(filename)s',
+                           filename=filename)
+                continue
+
+            app.status(msg='Petrifying %(filename)s', filename=filename)
+
+            for source in morph['sources']:
+                reponame = source.get('repo', source['name'])
+                ref = source['ref']
+                app.status(msg='Looking up sha1 for %(repo_name)s %(ref)s',
+                           repo_name=reponame,
+                           ref=ref)
+                assert cache.has_repo(reponame)
+                repo = cache.get_repo(reponame)
+                source['ref'] = repo.resolve_ref(ref)
+
+            with open(filename, 'w') as f:
+                json.dump(morph, f, indent=4, sort_keys=True)
 
     def init(self, args):
         '''Initialize a mine.'''

@@ -748,41 +748,6 @@ class Morph(cliapp.Application):
             repo_dir = os.path.join(mine, this_branch, basename)
             self.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
 
-    def cmd_petrify(self, args):
-        '''Make refs to chunks be absolute SHA-1s.'''
-
-        if not os.path.exists(self.settings['cachedir']):
-            os.mkdir(self.settings['cachedir'])
-        cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            self.settings['repo-alias'])
-        bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
-            self, cachedir, repo_resolver, bundle_base_url)
-
-        for filename in args:
-            with open(filename) as f:
-                morph = json.load(f)
-
-            if morph['kind'] != 'stratum':
-                self.status(msg='Not a stratum: %(filename)s',
-                            filename=filename)
-                continue
-
-            self.status(msg='Petrifying %(filename)s', filename=filename)
-
-            for source in morph['sources']:
-                reponame = source.get('repo', source['name'])
-                ref = source['ref']
-                self.status(msg='Looking up sha1 for %(repo_name)s %(ref)s',
-                            repo_name=reponame,
-                            ref=ref)
-                repo = cache.get_repo(reponame)
-                source['ref'] = repo.resolve_ref(ref)
-
-            with open(filename, 'w') as f:
-                json.dump(morph, f, indent=2)
-
     def status(self, **kwargs):
         '''Show user a status update.
 
