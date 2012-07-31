@@ -23,6 +23,7 @@ import os
 import shutil
 import tempfile
 import time
+import warnings
 
 import morphlib
 
@@ -76,7 +77,7 @@ class BuildCommand(object):
 
         self.app.status(msg='Build starts', chatty=True)
 
-        for repo_name, ref, filename in self.app._itertriplets(args):
+        for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
             order = self.compute_build_order(repo_name, ref, filename)
@@ -148,7 +149,7 @@ class BuildCommand(object):
         self.app.status(msg='Figuring out the right build order')
 
         self.app.status(msg='Creating source pool', chatty=True)
-        srcpool = self.app._create_source_pool(
+        srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
 
         self.app.status(msg='Creating artifact resolver', chatty=True)
@@ -480,7 +481,7 @@ class Morph(cliapp.Application):
         self.system_kind_builder_factory = \
             morphlib.builder2.SystemKindBuilderFactory()
 
-    def _itertriplets(self, args):
+    def itertriplets(self, args):
         '''Generate repo, ref, filename triples from args.'''
 
         if (len(args) % 3) != 0:
@@ -491,7 +492,13 @@ class Morph(cliapp.Application):
             yield args[0], args[1], args[2]
             args = args[3:]
 
-    def _create_source_pool(self, lrc, rrc, triplet):
+    def _itertriplets(self, *args):
+        warnings.warn('_itertriplets is deprecated, '
+                      'use itertriplets instead', stacklevel=1,
+                      category=DeprecationWarning)
+        return self.itertriplets(*args)
+
+    def create_source_pool(self, lrc, rrc, triplet):
         pool = morphlib.sourcepool.SourcePool()
 
         def add_to_pool(reponame, ref, filename, absref, morphology):
@@ -503,6 +510,12 @@ class Morph(cliapp.Application):
                               update=not self.settings['no-git-update'],
                               visit=add_to_pool)
         return pool
+
+    def _create_source_pool(self, *args):
+        warnings.warn('_create_source_pool is deprecated, '
+                      'use create_source_pool instead', stacklevel=1,
+                      category=DeprecationWarning)
+        return self.create_source_pool(*args)
 
     def cmd_build(self, args):
         '''Build a binary from a morphology.
@@ -608,7 +621,7 @@ class Morph(cliapp.Application):
                 for submod in submodules:
                     subs_to_process.add((submod.url, submod.commit))
 
-        self._traverse_morphs(self._itertriplets(args), cache, None,
+        self._traverse_morphs(self.itertriplets(args), cache, None,
                               update=True, visit=visit)
 
         done = set()
@@ -671,7 +684,7 @@ class Morph(cliapp.Application):
                     source.filename == filename)
 
         def get_artifact(repo_name, ref, filename):
-            srcpool = self._create_source_pool(
+            srcpool = self.create_source_pool(
                 lrc, rrc, (repo_name, ref, filename))
             ar = morphlib.artifactresolver.ArtifactResolver()
             artifacts = ar.resolve_artifacts(srcpool)

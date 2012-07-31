@@ -31,7 +31,7 @@ class GraphingPlugin(cliapp.Plugin):
         pass
 
     def graph_build_depends(self, args):
-        for repo_name, ref, filename in self.app._itertriplets(args):
+        for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Creating build order for '
                                 '%(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)

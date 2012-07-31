@@ -48,8 +48,8 @@ class ShowDependenciesPlugin(cliapp.Plugin):
             rrc = None
 
         # traverse the morphs to list all the sources
-        for repo, ref, filename in self.app._itertriplets(args):
-            pool = self.app._create_source_pool(
+        for repo, ref, filename in self.app.itertriplets(args):
+            pool = self.app.create_source_pool(
                 lrc, rrc, (repo, ref, filename))
 
             resolver = morphlib.artifactresolver.ArtifactResolver()
