@@ -270,7 +270,7 @@ class BuildCommand(object):
 
         # Update submodules.
         done = set()
-        self.app._cache_repo_and_submodules(
+        self.app.cache_repo_and_submodules(
             self.lrc, artifact.source.repo.url,
             artifact.source.sha1, done)
 
@@ -506,9 +506,9 @@ class Morph(cliapp.Application):
                                             morphology, filename)
             pool.add(source)
 
-        self._traverse_morphs([triplet], lrc, rrc,
-                              update=not self.settings['no-git-update'],
-                              visit=add_to_pool)
+        self.traverse_morphs([triplet], lrc, rrc,
+                             update=not self.settings['no-git-update'],
+                             visit=add_to_pool)
         return pool
 
     def _create_source_pool(self, *args):
@@ -565,8 +565,8 @@ class Morph(cliapp.Application):
             absref = repo.resolve_ref(ref)
         return absref
 
-    def _traverse_morphs(self, triplets, lrc, rrc, update=True,
-                         visit=lambda rn, rf, fn, arf, m: None):
+    def traverse_morphs(self, triplets, lrc, rrc, update=True,
+                        visit=lambda rn, rf, fn, arf, m: None):
         morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc)
         queue = collections.deque(triplets)
 
@@ -586,49 +586,13 @@ class Morph(cliapp.Application):
                 queue.extend((c['repo'], c['ref'], '%s.morph' % c['morph'])
                              for c in morphology['sources'])
 
-    def cmd_update_gits(self, args):
-        '''Update cached git repositories.
+    def _traverse_morphs(self, *args):
+        warnings.warn('_traverse_morphs is deprecated, '
+                      'use traverse_morphs instead', stacklevel=1,
+                      category=DeprecationWarning)
+        return self.traverse_morphs(*args)
 
-        Parse the given morphologies, and their dependencies, and
-        update all the git repositories referred to by them in the
-        morph cache directory.
-
-        '''
-
-        if not os.path.exists(self.settings['cachedir']):
-            os.mkdir(self.settings['cachedir'])
-        cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            self.settings['repo-alias'])
-        bundle_base_url = self.settings['bundle-server']
-        cache = morphlib.localrepocache.LocalRepoCache(
-            self, cachedir, repo_resolver, bundle_base_url)
-
-        subs_to_process = set()
-
-        def visit(reponame, ref, filename, absref, morphology):
-            self.status(msg='Updating %(repo_name)s %(ref)s %(filename)s',
-                        repo_name=reponame, ref=ref, filename=filename)
-            assert cache.has_repo(reponame)
-            cached_repo = cache.get_repo(reponame)
-            try:
-                submodules = morphlib.git.Submodules(self, cached_repo.path,
-                                                     absref)
-                submodules.load()
-            except morphlib.git.NoModulesFileError:
-                pass
-            else:
-                for submod in submodules:
-                    subs_to_process.add((submod.url, submod.commit))
-
-        self._traverse_morphs(self.itertriplets(args), cache, None,
-                              update=True, visit=visit)
-
-        done = set()
-        for url, ref in subs_to_process:
-            self._cache_repo_and_submodules(cache, url, ref, done)
-
-    def _cache_repo_and_submodules(self, cache, url, ref, done):
+    def cache_repo_and_submodules(self, cache, url, ref, done):
         subs_to_process = set()
         subs_to_process.add((url, ref))
         while subs_to_process:
@@ -647,6 +611,12 @@ class Morph(cliapp.Application):
                 for submod in submodules:
                     if (submod.url, submod.commit) not in done:
                         subs_to_process.add((submod.url, submod.commit))
+
+    def _cache_repo_and_submodules(self, *args):
+        warnings.warn('_cache_repo_and_submodules is deprecated, '
+                      'use cache_repo_and_submodules instead', stacklevel=1,
+                      category=DeprecationWarning)
+        return self.cache_repo_and_submodules(*args)
 
     def cmd_make_patch(self, args):
         '''Create a Trebuchet patch between two system images.'''
