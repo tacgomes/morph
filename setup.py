@@ -106,6 +106,7 @@ FIXME
       url='http://www.baserock.org/',
       scripts=['morph'],
       packages=['morphlib'],
+      package_data={'morphlib': ['plugins/*_plugin.py']},
       data_files=[('share/man/man1', glob.glob('*.[1-8]'))],
       cmdclass={
         'build': GenerateManpage,
