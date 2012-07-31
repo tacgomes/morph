@@ -94,55 +94,16 @@ class BuildCommand(object):
         return morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
     def new_artifact_caches(self):
-        '''Create new objects for local, remote artifact caches.'''
-
-        self.create_cachedir()
-        artifact_cachedir = self.create_artifact_cachedir()
-
-        lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
-
-        rac_url = self.app.settings['cache-server']
-        if rac_url:
-            rac = morphlib.remoteartifactcache.RemoteArtifactCache(rac_url)
-        else:
-            rac = None
-        return lac, rac
+        return morphlib.util.new_artifact_caches(self.app.settings)
 
     def create_artifact_cachedir(self):
-        '''Create a new directory for the local artifact cache.'''
-
-        artifact_cachedir = os.path.join(
-            self.app.settings['cachedir'], 'artifacts')
-        if not os.path.exists(artifact_cachedir):
-            os.mkdir(artifact_cachedir)
-        return artifact_cachedir
+        return morphlib.util.create_artifact_cachedir(self.app.settings)
 
     def new_repo_caches(self):
-        '''Create new objects for local, remote git repository caches.'''
-
-        aliases = self.app.settings['repo-alias']
-        cachedir = self.create_cachedir()
-        gits_dir = os.path.join(cachedir, 'gits')
-        bundle_base_url = self.app.settings['bundle-server']
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
-        lrc = morphlib.localrepocache.LocalRepoCache(
-            self.app, gits_dir, repo_resolver, bundle_base_url=bundle_base_url)
-
-        url = self.app.settings['cache-server']
-        if url:
-            rrc = morphlib.remoterepocache.RemoteRepoCache(url, repo_resolver)
-        else:
-            rrc = None
-
-        return lrc, rrc
+        return morphlib.util.new_repo_caches(self.app)
 
     def create_cachedir(self):
-        '''Create a new cache directory.'''
-
-        cachedir = self.app.settings['cachedir']
-        if not os.path.exists(cachedir):
-            os.mkdir(cachedir)
-        return cachedir
+        return morphlib.util.create_cachedir(self.app.settings)
 
     def compute_build_order(self, repo_name, ref, filename):
         '''Compute build order for a triplet.'''
