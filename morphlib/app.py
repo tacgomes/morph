@@ -333,9 +333,6 @@ class BuildCommand(object):
 
 class Morph(cliapp.Application):
 
-    system_repo_base = 'morphs'
-    system_repo_name = 'baserock:%s' % system_repo_base
-
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'],
                               'show what is happening in much detail')
@@ -631,44 +628,6 @@ class Morph(cliapp.Application):
 
         # Update remotes.
         self.runcmd(['git', 'remote', 'update'], cwd=dirname)
-
-    def cmd_branch(self, args):
-        '''Branch the whole system.'''
-
-        if len(args) not in [1, 2]:
-            raise cliapp.AppException('morph branch needs name of branch '
-                                      'as parameter')
-
-        new_branch = args[0]
-        commit = 'master' if len(args) == 1 else args[1]
-
-        # Create the system branch directory.
-        os.makedirs(new_branch)
-
-        # Clone into system branch directory.
-        new_repo = os.path.join(new_branch, self.system_repo_base)
-        self._clone_to_directory(new_repo, self.system_repo_name, commit)
-
-        # Create a new branch in the local morphs repository.
-        self.runcmd(['git', 'checkout', '-b', new_branch, commit],
-                    cwd=new_repo)
-
-    def cmd_checkout(self, args):
-        '''Check out an existing system branch.'''
-
-        if len(args) != 1:
-            raise cliapp.AppException('morph checkout needs name of '
-                                      'branch as parameter')
-
-        system_branch = args[0]
-
-        # Create the system branch directory.
-        os.makedirs(system_branch)
-
-        # Clone into system branch directory.
-        new_repo = os.path.join(system_branch, self.system_repo_base)
-        self._clone_to_directory(
-            new_repo, self.system_repo_name, system_branch)
 
     def _deduce_system_branch(self):
         minedir = self._deduce_mine_directory()

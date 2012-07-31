@@ -22,9 +22,16 @@ import morphlib
 
 class BranchAndMergePlugin(cliapp.Plugin):
 
+    system_repo_base = 'morphs'
+    system_repo_name = 'baserock:%s' % system_repo_base
+
     def enable(self):
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
         self.app.add_subcommand('minedir', self.minedir, arg_synopsis='')
+        self.app.add_subcommand('branch', self.branch,
+                                arg_synopsis='NEW [OLD]')
+        self.app.add_subcommand('checkout', self.checkout,
+                                arg_synopsis='BRANCH')
 
     def disable(self):
         pass
@@ -38,6 +45,39 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 return dirname
             dirname = os.path.dirname(dirname)
         return None
+
+    @staticmethod
+    def clone_to_directory(app, dirname, reponame, ref):
+        '''Clone a repository below a directory.
+
+        As a side effect, clone it into the local repo cache.
+
+        '''
+
+        # Setup.
+        cache = morphlib.util.new_repo_caches(app)[0]
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            app.settings['repo-alias'])
+
+        # Get the repository into the cache; make sure it is up to date.
+        repo = cache.cache_repo(reponame)
+        if not app.settings['no-git-update']:
+            repo.update()
+
+        # Clone it from cache to target directory.
+        repo.checkout(ref, os.path.abspath(dirname))
+
+        # Set the origin to point at the original repository.
+        morphlib.git.set_remote(app.runcmd, dirname, 'origin', repo.url)
+
+        # Add push url rewrite rule to .git/config.
+        app.runcmd(['git', 'config',
+                    ('url.%s.pushInsteadOf' %
+                     resolver.push_url(reponame)),
+                    resolver.pull_url(reponame)], cwd=dirname)
+
+        # Update remotes.
+        app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
     def init(self, args):
         '''Initialize a mine.'''
@@ -67,3 +107,42 @@ class BranchAndMergePlugin(cliapp.Plugin):
         if dirname is None:
             raise cliapp.AppException("Can't find the mine directory")
         self.app.output.write('%s\n' % dirname)
+
+    def branch(self, args):
+        '''Branch the whole system.'''
+
+        if len(args) not in [1, 2]:
+            raise cliapp.AppException('morph branch needs name of branch '
+                                      'as parameter')
+
+        new_branch = args[0]
+        commit = 'master' if len(args) == 1 else args[1]
+
+        # Create the system branch directory.
+        os.makedirs(new_branch)
+
+        # Clone into system branch directory.
+        new_repo = os.path.join(new_branch, self.system_repo_base)
+        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
+                                commit)
+
+        # Create a new branch in the local morphs repository.
+        self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
+                        cwd=new_repo)
+
+    def checkout(self, args):
+        '''Check out an existing system branch.'''
+
+        if len(args) != 1:
+            raise cliapp.AppException('morph checkout needs name of '
+                                      'branch as parameter')
+
+        system_branch = args[0]
+
+        # Create the system branch directory.
+        os.makedirs(system_branch)
+
+        # Clone into system branch directory.
+        new_repo = os.path.join(system_branch, self.system_repo_base)
+        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
+                                system_branch)
