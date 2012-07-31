@@ -58,6 +58,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'empty directory: %s' % dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
+        self.app.status(msg='Initialized morph mine', chatty=True)
 
     def minedir(self, args):
         '''Find morph mine directory from current working directory.'''
