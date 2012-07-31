@@ -32,6 +32,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
                                 arg_synopsis='BRANCH')
+        self.app.add_subcommand('show-system-branch', self.show_system_branch,
+                                arg_synopsis='')
 
     def disable(self):
         pass
@@ -45,6 +47,21 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 return dirname
             dirname = os.path.dirname(dirname)
         return None
+
+    @classmethod
+    def deduce_system_branch(cls):
+        minedir = cls.deduce_mine_directory()
+        if minedir is None:
+            return None
+
+        if not minedir.endswith('/'):
+            minedir += '/'
+
+        cwd = os.getcwd()
+        if not cwd.startswith(minedir):
+            return None
+
+        return os.path.dirname(cwd[len(minedir):])
 
     @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
@@ -76,7 +93,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                      resolver.push_url(reponame)),
                     resolver.pull_url(reponame)], cwd=dirname)
 
-        # Update remotes.
         app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
     def init(self, args):
@@ -146,3 +162,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
         new_repo = os.path.join(system_branch, self.system_repo_base)
         self.clone_to_directory(self.app, new_repo, self.system_repo_name,
                                 system_branch)
+
+    def show_system_branch(self, args):
+        '''Print name of current system branch.
+
+        This must be run in the system branch's ``morphs`` repository.
+
+        '''
+
+        system_branch = self.deduce_system_branch()
+        if system_branch is None:
+            raise cliapp.AppException("Can't determine system branch")
+        self.app.output.write('%s\n' % system_branch)

@@ -643,18 +643,6 @@ class Morph(cliapp.Application):
 
         return os.path.dirname(cwd[len(minedir):])
 
-    def cmd_show_system_branch(self, args):
-        '''Print name of current system branch.
-
-        This must be run in the system branch's ``morphs`` repository.
-
-        '''
-
-        system_branch = self._deduce_system_branch()
-        if system_branch is None:
-            raise cliapp.AppException("Can't determine system branch")
-        self.output.write('%s\n' % system_branch)
-
     def cmd_edit(self, args):
         '''Edit a component in a system branch.'''
 
