@@ -521,45 +521,6 @@ class Morph(cliapp.Application):
         build_command = self.hookmgr.call('new-build-command', build_command)
         build_command.build(args)
 
-    def cmd_show_dependencies(self, args):
-        '''Dumps the dependency tree of all input morphologies.'''
-
-        if not os.path.exists(self.settings['cachedir']):
-            os.mkdir(self.settings['cachedir'])
-        cachedir = os.path.join(self.settings['cachedir'], 'gits')
-        bundle_base_url = self.settings['bundle-server']
-        repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            self.settings['repo-alias'])
-        lrc = morphlib.localrepocache.LocalRepoCache(
-            self, cachedir, repo_resolver, bundle_base_url)
-        if self.settings['cache-server']:
-            rrc = morphlib.remoterepocache.RemoteRepoCache(
-                self.settings['cache-server'], repo_resolver)
-        else:
-            rrc = None
-
-        # traverse the morphs to list all the sources
-        for repo, ref, filename in self._itertriplets(args):
-            pool = self._create_source_pool(lrc, rrc, (repo, ref, filename))
-
-            resolver = morphlib.artifactresolver.ArtifactResolver()
-            artifacts = resolver.resolve_artifacts(pool)
-
-            self.output.write('dependency graph for %s|%s|%s:\n' %
-                              (repo, ref, filename))
-            for artifact in sorted(artifacts, key=str):
-                self.output.write('  %s\n' % artifact)
-                for dependency in sorted(artifact.dependencies, key=str):
-                    self.output.write('    -> %s\n' % dependency)
-
-            order = morphlib.buildorder.BuildOrder(artifacts)
-            self.output.write('build order for %s|%s|%s:\n' %
-                              (repo, ref, filename))
-            for group in order.groups:
-                self.output.write('  group:\n')
-                for artifact in group:
-                    self.output.write('    %s\n' % artifact)
-
     def _resolveref(self, lrc, rrc, reponame, ref, update=True):
         '''Resolves the sha1 of the ref in reponame and returns it.
 
