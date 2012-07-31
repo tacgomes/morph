@@ -579,26 +579,6 @@ class Morph(cliapp.Application):
                       category=DeprecationWarning)
         return self.cache_repo_and_submodules(*args)
 
-    def cmd_init(self, args):
-        '''Initialize a mine.'''
-
-        if not args:
-            args = ['.']
-        elif len(args) > 1:
-            raise cliapp.AppException('init must get at most one argument')
-
-        dirname = args[0]
-
-        if os.path.exists(dirname):
-            if os.listdir(dirname) != []:
-                raise cliapp.AppException('can only initialize empty '
-                                          'directory: %s' % dirname)
-        else:
-            raise cliapp.AppException('can only initialize an existing '
-                                      'empty directory: %s' % dirname)
-
-        os.mkdir(os.path.join(dirname, '.morph'))
-
     def _deduce_mine_directory(self):
         dirname = os.getcwd()
         while dirname != '/':
@@ -607,14 +587,6 @@ class Morph(cliapp.Application):
                 return dirname
             dirname = os.path.dirname(dirname)
         return None
-
-    def cmd_minedir(self, args):
-        '''Find morph mine directory from current working directory.'''
-
-        dirname = self._deduce_mine_directory()
-        if dirname is None:
-            raise cliapp.AppException("Can't find the mine directory")
-        self.output.write('%s\n' % dirname)
 
     def _resolve_reponame(self, reponame):
         '''Return the full pull URL of a reponame.'''
