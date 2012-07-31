@@ -1,0 +1,12 @@
+{
+    "kind": "stratum", 
+    "name": "hello-stratum", 
+    "sources": [
+        {
+            "build-depends": [], 
+            "name": "hello", 
+            "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7", 
+            "repo": "baserock:hello"
+        }
+    ]
+}
