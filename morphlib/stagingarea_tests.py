@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -42,7 +42,7 @@ class StagingAreaTests(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
-        
+
     def create_chunk(self):
         chunkdir = os.path.join(self.tempdir, 'chunk')
         os.mkdir(chunkdir)
@@ -52,9 +52,9 @@ class StagingAreaTests(unittest.TestCase):
         tf = tarfile.TarFile(name=chunk_tar, mode='w')
         tf.add(chunkdir, arcname='.')
         tf.close()
-        
+
         return chunk_tar
-        
+
     def list_tree(self, root):
         files = []
         for dirname, subdirs, basenames in os.walk(root):
@@ -72,25 +72,25 @@ class StagingAreaTests(unittest.TestCase):
     def test_accepts_root_directory(self):
         sa = morphlib.stagingarea.StagingArea(object(), '/', '/tmp')
         self.assertEqual(sa.dirname, '/')
-    
+
     def test_creates_build_directory(self):
         source = FakeSource()
         self.sa._mkdir = self.fake_mkdir
         dirname = self.sa.builddir(source)
         self.assertEqual(self.created_dirs, [dirname])
         self.assertTrue(dirname.startswith(self.staging))
-    
+
     def test_creates_install_directory(self):
         source = FakeSource()
         self.sa._mkdir = self.fake_mkdir
         dirname = self.sa.destdir(source)
         self.assertEqual(self.created_dirs, [dirname])
         self.assertTrue(dirname.startswith(self.staging))
-    
+
     def test_makes_relative_name(self):
         filename = os.path.join(self.staging, 'foobar')
         self.assertEqual(self.sa.relative(filename), '/foobar')
-    
+
     def test_installs_artifact(self):
         chunk_tar = self.create_chunk()
         with open(chunk_tar, 'rb') as f:
@@ -103,4 +103,3 @@ class StagingAreaTests(unittest.TestCase):
             self.sa.install_artifact(f)
         self.sa.remove()
         self.assertFalse(os.path.exists(self.staging))
-

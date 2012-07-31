@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -34,8 +34,8 @@ class CacheKeyComputer(object):
     def compute_key(self, artifact):
         logging.debug('computing cache key for artifact %s from source '
                       'repo %s, sha1 %s, filename %s' %
-                        (artifact.name, artifact.source.repo_name,
-                         artifact.source.sha1, artifact.source.filename))
+                      (artifact.name, artifact.source.repo_name,
+                       artifact.source.sha1, artifact.source.filename))
         return self._hash_id(self.get_cache_id(artifact))
 
     def _hash_id(self, cache_id):
@@ -68,8 +68,8 @@ class CacheKeyComputer(object):
     def get_cache_id(self, artifact):
         logging.debug('computing cache id for artifact %s from source '
                       'repo %s, sha1 %s, filename %s' %
-                        (artifact.name, artifact.source.repo_name,
-                         artifact.source.sha1, artifact.source.filename))
+                      (artifact.name, artifact.source.repo_name,
+                       artifact.source.sha1, artifact.source.filename))
         try:
             return self._calculated[artifact]
         except KeyError:
@@ -84,13 +84,13 @@ class CacheKeyComputer(object):
             'filename': artifact.source.filename,
             'kids': [self.compute_key(x) for x in artifact.dependencies]
         }
-        
+
         kind = artifact.source.morphology['kind']
         if kind == 'chunk':
             keys['ref'] = artifact.source.sha1
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
-            le_dict = dict((k,morphology[k]) for k in morphology.keys())
+            le_dict = dict((k, morphology[k]) for k in morphology.keys())
             checksum = hashlib.sha1()
             self._hash_thing(checksum, le_dict)
             keys['morphology-sha1'] = checksum.hexdigest()
@@ -100,4 +100,3 @@ class CacheKeyComputer(object):
             keys['system-compatibility-version'] = "1~ (temporary, root rw)"
 
         return keys
-

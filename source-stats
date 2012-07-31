@@ -1,15 +1,15 @@
 #!/usr/bin/python
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -29,77 +29,77 @@ import time
 class SourceStats(cliapp.Application):
 
     '''Compute some basic statistics about Baserock components.
-    
+
     * name of component
     * total source lines, excluding blank lines
     * number of commits over last 12 months
     * lines added over 12 months
-    * lines removed over 12 months 
-    
+    * lines removed over 12 months
+
     Usage: ./source-stat $HOME/baserock/gits/*
 
     '''
-    
+
     def add_settings(self):
         self.settings.string(['gitsdir'], 'base directory for git repos')
-        
+
     def setup(self):
         self.writer = csv.writer(sys.stdout)
         self.cols = ['name', 'lines', 'commits', 'added', 'deleted']
         self.writer.writerow(self.cols)
-        
+
     def process_input(self, gitdir):
         name = os.path.basename(gitdir)
         stats = self.compute_stats(name, gitdir)
         row = [stats[x] for x in self.cols]
         self.writer.writerow(row)
         sys.stdout.flush()
-        
+
     def compute_stats(self, name, gitdir):
         stats = {
             'name': name,
         }
-        
+
         t = time.time() - 365 * 86400
         tt = time.localtime(t)
         start_date = time.strftime('%Y-%m-%d', tt)
-        
+
         stats['branch'] = self.pick_branch(gitdir)
 
         self.get_sources(gitdir, stats['branch'])
 
         stats['lines'] = self.count_source_lines(gitdir)
-        
+
         start, end = self.find_commit_range(gitdir, start_date)
         stats['commits'] = self.count_commits(gitdir, start, end)
         stats['added'], stats['deleted'] = self.diffstat(gitdir, start, end)
 
         return stats
-        
+
     def pick_branch(self, gitdir):
         out = self.runcmd(['git', 'branch', '-r'], cwd=gitdir)
         lines = [x.split()[-1] for x in out.splitlines()]
-        
+
         candidates = [
             'origin/master',
             'origin/trunk',
             'origin/blead',
         ]
-        
+
         for x in candidates:
             if x in lines:
                 return x
         raise Exception('Cannot decide on branch in %s' % gitdir)
-        
+
     def get_sources(self, gitdir, branch):
         self.runcmd(['git', 'checkout', branch], cwd=gitdir)
-    
+
     def count_source_lines(self, tempdir):
         numlines = 0
         for dirname, subdirs, basenames in os.walk(tempdir):
             if '.git' in subdirs:
                 subdirs.remove('.git')
-            
+
             for basename in basenames:
                 filename = os.path.join(dirname, basename)
                 if os.path.isfile(filename) and not os.path.islink(filename):
@@ -107,9 +107,9 @@ class SourceStats(cliapp.Application):
                         for line in f:
                             if line.strip():
                                 numlines += 1
-        
+
         return numlines
-        
+
     def find_commit_range(self, gitdir, start_date):
         out = self.runcmd(['git', 'log', '--format=oneline',
                            '--since=%s' % start_date],
@@ -120,17 +120,18 @@ class SourceStats(cliapp.Application):
         end = lines[0].split()[0]
         start = lines[-1].split()[0]
         return start, end
-        
+
     def count_commits(self, gitdir, start, end):
-        out = self.runcmd(['git', 'log', '--format=oneline', 
+        out = self.runcmd(['git', 'log', '--format=oneline',
                            '%s..%s' % (start, end)],
                           cwd=gitdir)
         return len(out.splitlines())
-        
+
     def diffstat(self, gitdir, start, end):
-        out = self.runcmd(['git', 'diff', '--numstat', start, end], 
+        out = self.runcmd(['git', 'diff', '--numstat', start, end],
                           cwd=gitdir)
         tuples = [line.split() for line in out.splitlines()]
+
         def toint(s):
             try:
                 return int(s)

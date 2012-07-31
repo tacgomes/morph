@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -33,16 +33,16 @@ from morphlib.builder2 import (SystemKindBuilder, download_depends,
                                write_overlap_metadata)
 
 
-class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
+class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
 
     system_kind = 'syslinux-disk'
 
     def build_and_cache(self):
         with self.build_watch('overall-build'):
             arch = self.artifact.source.morphology['arch']
-            
+
             rootfs_artifact = self.new_artifact(
-                    self.artifact.source.morphology['name'] + '-rootfs')
+                self.artifact.source.morphology['name'] + '-rootfs')
             handle = self.local_artifact_cache.put(rootfs_artifact)
             image_name = handle.name
 
@@ -50,7 +50,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
             self._partition_image(image_name)
             self._install_mbr(arch, image_name)
             partition = self._setup_device_mapping(image_name)
-    
+
             mount_point = None
             try:
                 self._create_fs(partition)
@@ -62,7 +62,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 self.create_fstab(factory_path)
                 self._create_extlinux_config(factory_path)
                 self._create_subvolume_snapshot(
-                        mount_point, 'factory', 'factory-run')
+                    mount_point, 'factory', 'factory-run')
                 factory_run_path = os.path.join(mount_point, 'factory-run')
                 self._install_boot_files(arch, factory_run_path, mount_point)
                 self._install_extlinux(mount_point)
@@ -76,7 +76,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 self._undo_device_mapping(image_name)
                 handle.abort()
                 raise
-    
+
             self._undo_device_mapping(image_name)
             handle.close()
 
@@ -126,7 +126,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
             morphlib.fsutils.mount(self.app.runcmd, partition, mount_point)
 
     def _create_subvolume(self, path):
-        self.app.status(msg='Creating subvolume %(path)s', 
+        self.app.status(msg='Creating subvolume %(path)s',
                         path=path, chatty=True)
         with self.build_watch('create-factory-subvolume'):
             self.app.runcmd(['btrfs', 'subvolume', 'create', path])
@@ -143,14 +143,14 @@ class SyslinuxDiskBuilder(SystemKindBuilder): # pragma: no cover
                 f.write('kernel /boot/vmlinuz\n')
                 f.write('append root=/dev/sda1 rootflags=subvol=factory-run '
                         'init=/sbin/init rw\n')
-    
+
     def _create_subvolume_snapshot(self, path, source, target):
         self.app.status(msg='Creating subvolume snapshot '
                             '%(source)s to %(target)s',
                         source=source, target=target, chatty=True)
         with self.build_watch('create-runtime-snapshot'):
             self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
-                         cwd=path)
+                            cwd=path)
 
     def _install_boot_files(self, arch, sourcefs, targetfs):
         with self.build_watch('install-boot-files'):
@@ -196,7 +196,6 @@ class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
         # supported by syslinux.
         if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
             self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
-    
+
     def disable(self):
         pass
-

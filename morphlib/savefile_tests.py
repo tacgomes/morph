@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -36,10 +36,10 @@ class SaveFileTests(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.basename = 'filename'
         self.filename = os.path.join(self.tempdir, self.basename)
-        
+
     def tearDown(self):
         shutil.rmtree(self.tempdir)
-    
+
     def test_there_are_no_files_initially(self):
         self.assertEqual(os.listdir(self.tempdir), [])
 
@@ -95,4 +95,3 @@ class SaveFileTests(unittest.TestCase):
             pass
         self.assertEqual(os.listdir(self.tempdir), [self.basename])
         self.assertEqual(self.cat(self.filename), 'foo')
-

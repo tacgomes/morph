@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -26,7 +26,7 @@ class RemoteRepoCacheTests(unittest.TestCase):
 
     def _cat_file_for_repo_url(self, repo_url, sha1, filename):
         return self.files[repo_url][sha1][filename]
-    
+
     def setUp(self):
         self.sha1s = {
             'git://gitorious.org/baserock/morph': {
@@ -47,7 +47,7 @@ class RemoteRepoCacheTests(unittest.TestCase):
         ]
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
         self.cache = morphlib.remoterepocache.RemoteRepoCache(
-                self.server_url, resolver)
+            self.server_url, resolver)
         self.cache._resolve_ref_for_repo_url = self._resolve_ref_for_repo_url
         self.cache._cat_file_for_repo_url = self._cat_file_for_repo_url
 
@@ -57,8 +57,8 @@ class RemoteRepoCacheTests(unittest.TestCase):
     def test_resolve_existing_ref_for_existing_repo(self):
         sha1 = self.cache.resolve_ref('baserock:morph', 'master')
         self.assertEqual(
-                sha1,
-                self.sha1s['git://gitorious.org/baserock/morph']['master'])
+            sha1,
+            self.sha1s['git://gitorious.org/baserock/morph']['master'])
 
     def test_fail_resolving_existing_ref_for_non_existent_repo(self):
         self.assertRaises(morphlib.remoterepocache.ResolveRefError,
@@ -77,10 +77,10 @@ class RemoteRepoCacheTests(unittest.TestCase):
 
     def test_cat_existing_file_in_existing_repo_and_ref(self):
         content = self.cache.cat_file(
-                'upstream:linux', 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
-                'linux.morph')
+            'upstream:linux', 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+            'linux.morph')
         self.assertEqual(content, 'linux morphology')
-    
+
     def test_fail_cat_file_using_invalid_sha1(self):
         self.assertRaises(morphlib.remoterepocache.CatFileError,
                           self.cache.cat_file, 'upstream:linux', 'blablabla',
@@ -103,4 +103,3 @@ class RemoteRepoCacheTests(unittest.TestCase):
                           self.cache.cat_file, 'non-existent-repo',
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           'some-file')
-

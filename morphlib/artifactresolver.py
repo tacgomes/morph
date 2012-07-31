@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -24,50 +24,50 @@ class MutualDependencyError(cliapp.AppException):
 
     def __init__(self, a, b):
         cliapp.AppException.__init__(
-                self, 'Cyclic dependency between %s and %s detected' % (a, b))
+            self, 'Cyclic dependency between %s and %s detected' % (a, b))
 
 
 class DependencyOrderError(cliapp.AppException):
 
     def __init__(self, stratum, chunk, dependency_name):
         cliapp.AppException.__init__(
-                self, 'In stratum %s, chunk %s references its dependency %s '
-                'before it is defined' %
-                (stratum.source, chunk, dependency_name))
+            self, 'In stratum %s, chunk %s references its dependency %s '
+            'before it is defined' %
+            (stratum.source, chunk, dependency_name))
 
 
 class DependencyFormatError(cliapp.AppException):
 
     def __init__(self, stratum, chunk):
         cliapp.AppException.__init__(
-                self, 'In stratum %s, chunk %s uses an invalid '
-                'build-depends format' % (stratum.source, chunk))
+            self, 'In stratum %s, chunk %s uses an invalid '
+            'build-depends format' % (stratum.source, chunk))
 
 
 class UndefinedChunkArtifactError(cliapp.AppException):
 
     '''Exception raised when non-existent artifacts are referenced.
-    
+
     Usually, this will only occur when a stratum refers to a chunk
     artifact that is not defined in a chunk.
-    
+
     '''
 
     def __init__(self, parent, reference):
         cliapp.AppException.__init__(
-                self, 'Undefined chunk artifact "%s" referenced in ' 
-                'stratum %s' % (reference, parent))
+            self, 'Undefined chunk artifact "%s" referenced in '
+            'stratum %s' % (reference, parent))
 
 
 class ArtifactResolver(object):
 
     '''Resolves sources into artifacts that would be build from the sources.
-    
+
     This class takes a CacheKeyComputer and a SourcePool, analyses the
     sources and their dependencies and creates a list of artifacts
     (represented by Artifact objects) that are involved in building the
     sources in the pool.
-    
+
     '''
 
     def __init__(self):
@@ -95,14 +95,13 @@ class ArtifactResolver(object):
             if source.morphology['kind'] == 'system':
                 systems = [self._get_artifact(source, a)
                            for a in source.morphology.builds_artifacts]
-                
 
                 if any(a not in self._added_artifacts for a in systems):
                     artifacts.extend(systems)
                     self._added_artifacts.update(systems)
 
                 resolved_artifacts = self._resolve_system_dependencies(
-                        systems, source, queue)
+                    systems, source, queue)
 
                 for artifact in resolved_artifacts:
                     if not artifact in self._added_artifacts:
@@ -110,15 +109,15 @@ class ArtifactResolver(object):
                         self._added_artifacts.add(artifact)
             elif source.morphology['kind'] == 'stratum':
                 assert len(source.morphology.builds_artifacts) == 1
-                artifact = self._get_artifact(source,
-                                source.morphology.builds_artifacts[0])
+                artifact = self._get_artifact(
+                    source, source.morphology.builds_artifacts[0])
 
                 if not artifact in self._added_artifacts:
                     artifacts.append(artifact)
                     self._added_artifacts.add(artifact)
 
                 resolved_artifacts = self._resolve_stratum_dependencies(
-                        artifact, queue)
+                    artifact, queue)
 
                 for artifact in resolved_artifacts:
                     if not artifact in self._added_artifacts:
@@ -156,9 +155,9 @@ class ArtifactResolver(object):
 
         for stratum_name in source.morphology['strata']:
             stratum_source = self._source_pool.lookup(
-                    source.repo_name,
-                    source.original_ref,
-                    '%s.morph' % stratum_name)
+                source.repo_name,
+                source.original_ref,
+                '%s.morph' % stratum_name)
 
             stratum = self._get_artifact(stratum_source, stratum_name)
 
@@ -178,9 +177,9 @@ class ArtifactResolver(object):
         if stratum.source.morphology['build-depends']:
             for stratum_name in stratum.source.morphology['build-depends']:
                 other_source = self._source_pool.lookup(
-                        stratum.source.repo_name,
-                        stratum.source.original_ref,
-                        '%s.morph' % stratum_name)
+                    stratum.source.repo_name,
+                    stratum.source.original_ref,
+                    '%s.morph' % stratum_name)
 
                 other_stratum = self._get_artifact(other_source, stratum_name)
 
@@ -200,9 +199,9 @@ class ArtifactResolver(object):
 
         for info in stratum.source.morphology['sources']:
             chunk_source = self._source_pool.lookup(
-                    info['repo'],
-                    info['ref'],
-                    '%s.morph' % info['morph'])
+                info['repo'],
+                info['ref'],
+                '%s.morph' % info['morph'])
 
             possible_names = chunk_source.morphology.builds_artifacts
             if not info['name'] in possible_names:
@@ -226,7 +225,7 @@ class ArtifactResolver(object):
                         continue
                     if earlier_artifact.depends_on(chunk_artifact):
                         raise MutualDependencyError(
-                                chunk_artifact, earlier_artifact)
+                            chunk_artifact, earlier_artifact)
                     chunk_artifact.add_dependency(earlier_artifact)
             elif isinstance(build_depends, list):
                 for name in build_depends:
@@ -237,11 +236,10 @@ class ArtifactResolver(object):
                         chunk_artifact.add_dependency(other_artifact)
                     else:
                         raise DependencyOrderError(
-                                stratum, info['name'], name)
+                            stratum, info['name'], name)
             else:
                 raise DependencyFormatError(stratum, info['name'])
             processed_artifacts.append(chunk_artifact)
             name_to_processed_artifact[info['name']] = chunk_artifact
 
         return artifacts
-

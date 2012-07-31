@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -38,14 +38,14 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.remotes = {}
         self.fetched = []
         self.removed = []
-        self.lrc = morphlib.localrepocache.LocalRepoCache(object(),
-                self.cachedir, repo_resolver, bundle_base_url)
+        self.lrc = morphlib.localrepocache.LocalRepoCache(
+            object(), self.cachedir, repo_resolver, bundle_base_url)
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
         self.lrc._fetch = self.not_found
         self.lrc._mkdir = self.fake_mkdir
         self.lrc._remove = self.fake_remove
-        
+
     def fake_git(self, args, cwd=None):
         if args[0] == 'clone':
             self.assertEqual(len(args), 4)
@@ -61,7 +61,7 @@ class LocalRepoCacheTests(unittest.TestCase):
             self.remotes[remote]['url'] = url
         else:
             raise NotImplementedError()
-        
+
     def fake_exists(self, filename):
         return filename in self.cache
 
@@ -110,7 +110,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         def fail(args):
             raise cliapp.AppException('')
         self.lrc._git = fail
-        self.assertRaises(morphlib.localrepocache.NoRemote, 
+        self.assertRaises(morphlib.localrepocache.NoRemote,
                           self.lrc.cache_repo, self.repourl)
 
     def test_does_not_mind_a_missing_bundle(self):
@@ -144,4 +144,3 @@ class LocalRepoCacheTests(unittest.TestCase):
     def test_noremote_error_message_contains_repo_name(self):
         e = morphlib.localrepocache.NoRemote(self.repourl, [])
         self.assertTrue(self.repourl in str(e))
-

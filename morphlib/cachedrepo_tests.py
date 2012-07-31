@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -28,12 +28,12 @@ class CachedRepoTests(unittest.TestCase):
 
     def show_ref(self, ref):
         output = {
-            'master': 
-                'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9'
-                ' refs/remotes/origin/master',
+            'master':
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9'
+            ' refs/remotes/origin/master',
             'baserock/morph':
-                '8b780e2e6f102fcf400ff973396566d36d730501'
-                ' refs/remotes/origin/baserock/morph',
+            '8b780e2e6f102fcf400ff973396566d36d730501'
+            ' refs/remotes/origin/baserock/morph',
         }
         try:
             return output[ref]
@@ -42,10 +42,10 @@ class CachedRepoTests(unittest.TestCase):
 
     def rev_list(self, ref):
         output = {
-            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9': 
-                'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
             'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
-                'a4da32f5a81c8bc6d660404724cedc3bc0914a75'
+            'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
         }
         try:
             return output[ref]
@@ -55,13 +55,13 @@ class CachedRepoTests(unittest.TestCase):
     def cat_file(self, ref, filename):
         output = {
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9:foo.morph':
-                'contents of foo.morph'
+            'contents of foo.morph'
         }
         try:
             return output['%s:%s' % (ref, filename)]
         except:
             raise cliapp.AppException(
-                    'git cat-file blob %s:%s' % (ref, filename))
+                'git cat-file blob %s:%s' % (ref, filename))
 
     def copy_repository(self, source_dir, target_dir):
         pass
@@ -89,8 +89,8 @@ class CachedRepoTests(unittest.TestCase):
         self.repo_name = 'foo'
         self.repo_url = 'git://foo.bar/foo.git'
         self.repo_path = '/tmp/foo'
-        self.repo = cachedrepo.CachedRepo(object(),
-                self.repo_name, self.repo_url, self.repo_path)
+        self.repo = cachedrepo.CachedRepo(
+            object(), self.repo_name, self.repo_url, self.repo_path)
         self.repo._show_ref = self.show_ref
         self.repo._rev_list = self.rev_list
         self.repo._cat_file = self.cat_file
@@ -120,7 +120,7 @@ class CachedRepoTests(unittest.TestCase):
 
     def test_resolve_sha1_ref(self):
         sha1 = self.repo.resolve_ref(
-                'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEqual(sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
 
     def test_fail_resolving_an_invalid_sha1_ref(self):

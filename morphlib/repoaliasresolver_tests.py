@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -22,18 +22,18 @@ class RepoAliasResolverTests(unittest.TestCase):
 
     def setUp(self):
         self.aliases = [
-            'upstream='
+            ('upstream='
                 'git://gitorious.org/baserock-morphs/%s#'
-                'git@gitorious.org:baserock-morphs/%s.git',
-            'baserock='
+                'git@gitorious.org:baserock-morphs/%s.git'),
+            ('baserock='
                 'git://gitorious.org/baserock/%s#'
-                'git@gitorious.org:baserock/%s.git',
-            'append='
+                'git@gitorious.org:baserock/%s.git'),
+            ('append='
                 'git://append/#'
-                'git@append/',
+                'git@append/'),
         ]
         self.resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-                self.aliases)
+            self.aliases)
 
     def test_resolve_urls_without_alias_prefix(self):
         self.assertEqual(self.resolver.pull_url('bar'), 'bar')
@@ -41,7 +41,7 @@ class RepoAliasResolverTests(unittest.TestCase):
 
         self.assertEqual(self.resolver.pull_url('foo'), 'foo')
         self.assertEqual(self.resolver.push_url('foo'), 'foo')
-        
+
     def test_resolve_urls_for_repos_of_one_alias(self):
         url = self.resolver.pull_url('upstream:foo')
         self.assertEqual(url, 'git://gitorious.org/baserock-morphs/foo')

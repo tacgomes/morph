@@ -1,14 +1,14 @@
 # Copyright (C) 2011-2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -30,7 +30,7 @@ import morphlib
 class NoModulesFileError(cliapp.AppException):
 
     def __init__(self, repo, ref):
-        Exception.__init__(self, 
+        Exception.__init__(self,
                            '%s:%s has no .gitmodules file.' % (repo, ref))
 
 
@@ -79,8 +79,8 @@ class Submodules(object):
         try:
             # try to read the .gitmodules file from the repo/ref
             content = self.app.runcmd(
-                    ['git', 'cat-file', 'blob', '%s:.gitmodules' % self.ref],
-                    cwd=self.repo)
+                ['git', 'cat-file', 'blob', '%s:.gitmodules' % self.ref],
+                cwd=self.repo)
 
             # drop indentation in sections, as RawConfigParser cannot handle it
             return '\n'.join([line.strip() for line in content.splitlines()])
@@ -120,8 +120,8 @@ class Submodules(object):
                         self.submodules.append(submodule)
                     else:
                         logging.warning('Skipping submodule "%s" as %s:%s has '
-                                 'a non-commit object for it' %
-                                 (submodule.name, self.repo, self.ref))
+                                        'a non-commit object for it' %
+                                        (submodule.name, self.repo, self.ref))
                 except cliapp.AppException:
                     raise MissingSubmoduleCommitError(self.repo, self.ref,
                                                       submodule.name)
@@ -140,13 +140,16 @@ def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
     return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)
 
+
 def copy_repository(runcmd, repo, destdir):
     '''Copies a cached repository into a directory using cp.'''
     return runcmd(['cp', '-a', os.path.join(repo, '.git'), destdir])
 
+
 def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     runcmd(['git', 'checkout', ref], cwd=gitdir)
+
 
 def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
