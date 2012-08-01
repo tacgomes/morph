@@ -155,11 +155,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         '''Make refs to chunks be absolute SHA-1s.'''
 
         app = self.app
-        cache = morphlib.util.new_repo_caches(self.app)[0]
+        cache = morphlib.util.new_repo_caches(app)[0]
 
         for filename in args:
             with open(filename) as f:
-                morph = json.load(f)
+                morph = morphlib.morph2.Morphology(f.read())
 
             if morph['kind'] != 'stratum':
                 app.status(msg='Not a stratum: %(filename)s',
@@ -178,8 +178,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 repo = cache.get_repo(reponame)
                 source['ref'] = repo.resolve_ref(ref)
 
-            with open(filename, 'w') as f:
-                json.dump(morph, f, indent=4, sort_keys=True)
+            self.write_morphology(filename, morph)
 
     def init(self, args):
         '''Initialize a mine.'''
