@@ -730,24 +730,6 @@ class Morph(cliapp.Application):
             f.write('\n')
         os.rename(tempname, filename)
 
-    def cmd_merge(self, args):
-        '''Merge specified repositories from another system branch.'''
-
-        if len(args) == 0:
-            raise cliapp.AppException('morph merge must get a branch name '
-                                      'and some repo names as arguments')
-
-        other_branch = args[0]
-        mine = self._deduce_mine_directory()
-        this_branch = self._deduce_system_branch()
-
-        for repo in args[1:]:
-            repo = self._resolve_reponame(repo)
-            basename = os.path.basename(repo)
-            pull_from = os.path.join(mine, other_branch, basename)
-            repo_dir = os.path.join(mine, this_branch, basename)
-            self.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
-
     def status(self, **kwargs):
         '''Show user a status update.
 

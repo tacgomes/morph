@@ -37,6 +37,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('show-system-branch', self.show_system_branch,
                                 arg_synopsis='')
+        self.app.add_subcommand('merge', self.merge,
+                                arg_synopsis='BRANCH REPO...')
 
     def disable(self):
         pass
@@ -97,6 +99,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     resolver.pull_url(reponame)], cwd=dirname)
 
         app.runcmd(['git', 'remote', 'update'], cwd=dirname)
+
+    @staticmethod
+    def resolve_reponame(app, reponame):
+        '''Return the full pull URL of a reponame.'''
+
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            app.settings['repo-alias'])
+        return resolver.pull_url(reponame)
 
     def petrify(self, args):
         '''Make refs to chunks be absolute SHA-1s.'''
@@ -207,3 +217,22 @@ class BranchAndMergePlugin(cliapp.Plugin):
         if system_branch is None:
             raise cliapp.AppException("Can't determine system branch")
         self.app.output.write('%s\n' % system_branch)
+
+    def merge(self, args):
+        '''Merge specified repositories from another system branch.'''
+
+        if len(args) == 0:
+            raise cliapp.AppException('morph merge must get a branch name '
+                                      'and some repo names as arguments')
+
+        app = self.app
+        other_branch = args[0]
+        mine = self.deduce_mine_directory()
+        this_branch = self.deduce_system_branch()
+
+        for repo in args[1:]:
+            repo = self.resolve_reponame(app, repo)
+            basename = os.path.basename(repo)
+            pull_from = os.path.join(mine, other_branch, basename)
+            repo_dir = os.path.join(mine, this_branch, basename)
+            app.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
