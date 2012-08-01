@@ -17,6 +17,8 @@
 import cliapp
 import os
 import json
+import glob
+import tempfile
 
 import morphlib
 
@@ -39,6 +41,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH REPO...')
+        self.app.add_subcommand('edit', self.edit,
+                                arg_synopsis='REPO [REF]')
 
     def disable(self):
         pass
@@ -107,6 +111,45 @@ class BranchAndMergePlugin(cliapp.Plugin):
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             app.settings['repo-alias'])
         return resolver.pull_url(reponame)
+
+    @staticmethod
+    def load_morphologies(dirname):
+        pattern = os.path.join(dirname, '*.morph')
+        for filename in glob.iglob(pattern):
+            with open(filename) as f:
+                text = f.read()
+            morphology = morphlib.morph2.Morphology(text)
+            yield filename, morphology
+
+    @classmethod
+    def morphs_for_repo(cls, app, morphs_dirname, repo):
+        for filename, morph in cls.load_morphologies(morphs_dirname):
+            if morph['kind'] == 'stratum':
+                for spec in morph['sources']:
+                    spec_repo = cls.resolve_reponame(app, spec['repo'])
+                    if spec_repo == repo:
+                        yield filename, morph
+                        break
+
+    @classmethod
+    def find_edit_ref(cls, app, morphs_dirname, repo):
+        for filename, morph in cls.morphs_for_repo(app, morphs_dirname, repo):
+            for spec in morph['sources']:
+                spec_repo = cls.resolve_reponame(app, spec['repo'])
+                if spec_repo == repo:
+                    return spec['ref']
+        return None
+
+    @staticmethod
+    def write_morphology(filename, morphology):
+        as_dict = {}
+        for key in morphology.keys():
+            value = morphology[key]
+            if value:
+                as_dict[key] = value
+        with morphlib.savefile.SaveFile(filename, 'w') as f:
+            json.dump(as_dict, fp=f, indent=4, sort_keys=True)
+            f.write('\n')
 
     def petrify(self, args):
         '''Make refs to chunks be absolute SHA-1s.'''
@@ -236,3 +279,54 @@ class BranchAndMergePlugin(cliapp.Plugin):
             pull_from = os.path.join(mine, other_branch, basename)
             repo_dir = os.path.join(mine, this_branch, basename)
             app.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
+
+    def edit(self, args):
+        '''Edit a component in a system branch.'''
+
+        if len(args) not in (1, 2):
+            raise cliapp.AppException('morph edit must get a repository name '
+                                      'and commit ref as argument')
+
+        app = self.app
+        mine_directory = self.deduce_mine_directory()
+        system_branch = self.deduce_system_branch()
+        if system_branch is None:
+            raise morphlib.Error('Cannot deduce system branch')
+
+        morphs_dirname = os.path.join(mine_directory, system_branch, 'morphs')
+        if morphs_dirname is None:
+            raise morphlib.Error('Can not find morphs directory')
+
+        repo = self.resolve_reponame(app, args[0])
+
+        if len(args) == 2:
+            ref = args[1]
+        else:
+            ref = self.find_edit_ref(app, morphs_dirname, repo)
+            if ref is None:
+                raise morphlib.Error('Cannot deduce commit to start edit from')
+
+        new_repo = os.path.join(mine_directory, system_branch,
+                                os.path.basename(repo))
+        self.clone_to_directory(app, new_repo, args[0], ref)
+
+        if system_branch == ref:
+            app.runcmd(['git', 'checkout', system_branch],
+                       cwd=new_repo)
+        else:
+            app.runcmd(['git', 'checkout', '-b', system_branch, ref],
+                       cwd=new_repo)
+
+        for filename, morph in self.morphs_for_repo(app, morphs_dirname, repo):
+            changed = False
+            for spec in morph['sources']:
+                spec_repo = self.resolve_reponame(app, spec['repo'])
+                if spec_repo == repo and spec['ref'] != system_branch:
+                    app.status(msg='Replacing ref "%(ref)s" with "%(branch)s"'
+                                   'in %(filename)s',
+                               ref=spec['ref'], branch=system_branch,
+                               filename=filename, chatty=True)
+                    spec['ref'] = system_branch
+                    changed = True
+            if changed:
+                self.write_morphology(filename, morph)
