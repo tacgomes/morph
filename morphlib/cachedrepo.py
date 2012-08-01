@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -19,6 +19,7 @@ import logging
 import os
 
 import morphlib
+
 
 class InvalidReferenceError(cliapp.AppException):
 
@@ -38,16 +39,16 @@ class CheckoutDirectoryExistsError(cliapp.AppException):
 
     def __init__(self, repo, target_dir):
         cliapp.AppException.__init__(
-            self, 
-            'Checkout directory %s for repo %s already exists' % 
-                (target_dir, repo))
+            self,
+            'Checkout directory %s for repo %s already exists' %
+            (target_dir, repo))
 
 
 class CheckoutError(cliapp.AppException):
 
     def __init__(self, repo, ref, target_dir):
         cliapp.AppException.__init__(
-            self, 
+            self,
             'Failed to check out %s:%s into %s' % (repo, ref, target_dir))
 
 
@@ -61,7 +62,7 @@ class UpdateError(cliapp.AppException):
 class CachedRepo(object):
 
     '''A locally cached Git repository with an origin remote set up.
-    
+
     On instance of this class represents a locally cached version of a
     remote Git repository. This remote repository is set up as the
     'origin' remote.
@@ -148,9 +149,9 @@ class CachedRepo(object):
 
         if os.path.exists(target_dir):
             raise CheckoutDirectoryExistsError(self, target_dir)
-            
+
         os.mkdir(target_dir)
-        
+
         try:
             self._copy_repository(self.path, target_dir)
             self._checkout_ref(ref, target_dir)
@@ -159,10 +160,10 @@ class CachedRepo(object):
 
     def update(self):
         '''Updates the cached repository using its origin remote.
-        
+
         Raises an UpdateError if anything goes wrong while performing
         the update.
-        
+
         '''
 
         try:
@@ -170,29 +171,29 @@ class CachedRepo(object):
         except cliapp.AppException, e:
             raise UpdateError(self)
 
-    def _runcmd(self, *args, **kwargs): # pragma: no cover
+    def _runcmd(self, *args, **kwargs):  # pragma: no cover
         if not 'cwd' in kwargs:
             kwargs['cwd'] = self.path
         return self.app.runcmd(*args, **kwargs)
 
-    def _show_ref(self, ref): # pragma: no cover
+    def _show_ref(self, ref):  # pragma: no cover
         return self._runcmd(['git', 'show-ref', ref])
 
-    def _rev_list(self, ref): # pragma: no cover
+    def _rev_list(self, ref):  # pragma: no cover
         return self._runcmd(['git', 'rev-list', '--no-walk', ref])
 
-    def _cat_file(self, ref, filename): # pragma: no cover
+    def _cat_file(self, ref, filename):  # pragma: no cover
         return self._runcmd(['git', 'cat-file', 'blob',
                              '%s:%s' % (ref, filename)])
 
-    def _copy_repository(self, source_dir, target_dir): # pragma: no cover
+    def _copy_repository(self, source_dir, target_dir):  # pragma: no cover
         morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
 
-    def _checkout_ref(self, ref, target_dir): # pragma: no cover
+    def _checkout_ref(self, ref, target_dir):  # pragma: no cover
         morphlib.git.checkout_ref(self._runcmd, target_dir, ref)
 
-    def _update(self): # pragma: no cover
+    def _update(self):  # pragma: no cover
         self._runcmd(['git', 'remote', 'update', 'origin'])
 
-    def __str__(self): # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return self.url

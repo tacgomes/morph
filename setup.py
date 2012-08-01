@@ -1,15 +1,15 @@
 #!/usr/bin/python
 # Copyright (C) 2011, 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -55,7 +55,7 @@ class Clean(clean):
 
     def run(self):
         clean.run(self)
-        itemses = ([self.clean_files] + 
+        itemses = ([self.clean_files] +
                    [glob.glob(x) for x in self.clean_globs])
         for items in itemses:
             for filename in items:
@@ -83,23 +83,22 @@ class Check(Command):
         os.remove('.coverage')
 
 
-
 setup(name='morph',
       description='FIXME',
       long_description='''\
 FIXME
 ''',
       classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Environment :: Console',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python',
-        'Topic :: Software Development :: Build Tools',
-        'Topic :: Software Development :: Embedded Systems',
-        'Topic :: System :: Archiving :: Packaging',
-        'Topic :: System :: Software Distribution',
+          'Development Status :: 2 - Pre-Alpha',
+          'Environment :: Console',
+          'Intended Audience :: Developers',
+          'License :: OSI Approved :: GNU General Public License (GPL)',
+          'Operating System :: POSIX :: Linux',
+          'Programming Language :: Python',
+          'Topic :: Software Development :: Build Tools',
+          'Topic :: Software Development :: Embedded Systems',
+          'Topic :: System :: Archiving :: Packaging',
+          'Topic :: System :: Software Distribution',
       ],
       author='Lars Wirzenius',
       author_email='lars.wirzenius@codethink.co.uk',
@@ -109,9 +108,7 @@ FIXME
       package_data={'morphlib': ['plugins/*_plugin.py']},
       data_files=[('share/man/man1', glob.glob('*.[1-8]'))],
       cmdclass={
-        'build': GenerateManpage,
-        'check': Check,
-        'clean': Clean,
-      },
-     )
-
+          'build': GenerateManpage,
+          'check': Check,
+          'clean': Clean,
+      })

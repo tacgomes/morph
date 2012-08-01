@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -27,9 +27,11 @@ class FakeBuildSystem(object):
     def __init__(self):
         self.build_commands = ['buildsys-it']
 
+
 class FakeApp(object):
     def __init__(self, runcmd=None):
         self.runcmd = runcmd
+
 
 class FakeStagingArea(object):
 
@@ -38,14 +40,14 @@ class FakeStagingArea(object):
 
 
 class FakeSource(object):
-    
+
     def __init__(self):
         self.morphology = {
             'name': 'a',
             'kind': 'b',
             'description': 'c',
         }
-        
+
         self.repo = morphlib.cachedrepo.CachedRepo(FakeApp(), 'repo',
                                                    'url', 'path')
         self.original_ref = 'e'
@@ -70,6 +72,7 @@ class FakeBuildEnv(object):
             'PATH': '/le-bin:/le-bon:/le-bin-bon',
         }
 
+
 class FakeFileHandle(object):
 
     def __init__(self, cache, key):
@@ -92,6 +95,7 @@ class FakeFileHandle(object):
     def write(self, string):
         self._string += string
 
+
 class FakeArtifactCache(object):
 
     def __init__(self):
@@ -108,15 +112,14 @@ class FakeArtifactCache(object):
 
     def get(self, artifact):
         return StringIO.StringIO(
-                self._cached[(artifact.cache_key, artifact.name)])
+            self._cached[(artifact.cache_key, artifact.name)])
 
     def get_artifact_metadata(self, artifact, name):
         return StringIO.StringIO(
-                self._cached[(artifact.cache_key, artifact.name, name)])
+            self._cached[(artifact.cache_key, artifact.name, name)])
 
     def get_source_metadata(self, source, cachekey, name):
-        return StringIO.StringIO(
-                self._cached[(cachekey, name)])
+        return StringIO.StringIO(self._cached[(cachekey, name)])
 
     def has(self, artifact):
         return (artifact.cache_key, artifact.name) in self._cached
@@ -183,17 +186,17 @@ class BuilderBaseTests(unittest.TestCase):
     def test_writes_metadata(self):
         artifact_name = 'le-artifact'
         orig_meta = self.builder.create_metadata(artifact_name)
- 
+
         instdir = '/inst/dir'
 
         self.builder._open = self.fake_open
         self.builder.write_metadata(instdir, artifact_name)
 
         self.assertTrue(self.open_filename.startswith(
-                         os.path.join(instdir, 'baserock', 
-                                      artifact_name + '.')))
+                        os.path.join(instdir, 'baserock',
+                                     artifact_name + '.')))
         self.assertTrue(self.open_filename.endswith('.meta'))
-        
+
         meta = json.loads(self.open_handle.getvalue())
         self.assertEqual(meta, orig_meta)
 
@@ -202,7 +205,7 @@ class BuilderBaseTests(unittest.TestCase):
             pass
         self.builder.save_build_times()
         self.assertTrue(self.artifact_cache.has_source_metadata(
-                self.artifact.source, self.artifact.cache_key, 'meta'))
+            self.artifact.source, self.artifact.cache_key, 'meta'))
 
     def test_watched_events_in_cache(self):
         events = ["configure", "build", "install"]
@@ -211,7 +214,7 @@ class BuilderBaseTests(unittest.TestCase):
                 pass
         self.builder.save_build_times()
         meta = json.load(self.artifact_cache.get_source_metadata(
-                self.artifact.source, self.artifact.cache_key, 'meta'))
+            self.artifact.source, self.artifact.cache_key, 'meta'))
         self.assertEqual(sorted(events),
                          sorted(meta['build-times'].keys()))
 
@@ -252,20 +255,19 @@ class ChunkBuilderTests(unittest.TestCase):
                                                     False)
 
     def test_uses_morphology_commands_when_given(self):
-        m = { 'build-commands': ['build-it'] }
+        m = {'build-commands': ['build-it']}
         bs = FakeBuildSystem()
         cmds = self.build.get_commands('build-commands', m, bs)
         self.assertEqual(cmds, ['build-it'])
 
     def test_uses_build_system_commands_when_morphology_doesnt(self):
-        m = { 'build-commands': None }
+        m = {'build-commands': None}
         bs = FakeBuildSystem()
         cmds = self.build.get_commands('build-commands', m, bs)
         self.assertEqual(cmds, ['buildsys-it'])
 
     def test_uses_morphology_commands_when_morphology_has_empty_list(self):
-        m = { 'build-commands': [] }
+        m = {'build-commands': []}
         bs = FakeBuildSystem()
         cmds = self.build.get_commands('build-commands', m, bs)
         self.assertEqual(cmds, [])
-

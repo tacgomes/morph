@@ -19,6 +19,7 @@ import unittest
 import morphlib
 from morphlib import buildenvironment
 
+
 class BuildEnvironmentTests(unittest.TestCase):
 
     def setUp(self):

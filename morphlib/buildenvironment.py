@@ -17,10 +17,11 @@ import os
 
 import morphlib
 
+
 class BuildEnvironment():
 
     def __init__(self, settings, arch=None):
-        self.arch = morphlib.util.arch() if arch == None else arch
+        self.arch = morphlib.util.arch() if arch is None else arch
         self.env = self._clean_env(settings)
 
     _osenv = os.environ

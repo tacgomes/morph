@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -25,7 +25,7 @@ class DummyBuildEnvironment:
        a dict representing it
     '''
     def __init__(self, env, arch=None):
-        self.arch = morphlib.util.arch() if arch == None else arch
+        self.arch = morphlib.util.arch() if arch is None else arch
         self.env = env
 
 
@@ -82,8 +82,9 @@ class CacheKeyComputerTests(unittest.TestCase):
                 ]
             }''',
         }.iteritems():
-            source = morphlib.source.Source('repo', 'original/ref', 'sha',
-                                   morphlib.morph2.Morphology(text), name)
+            source = morphlib.source.Source(
+                'repo', 'original/ref', 'sha',
+                morphlib.morph2.Morphology(text), name)
             self.source_pool.add(source)
             # FIXME: This should use MorphologyFactory
             m = source.morphology
@@ -94,16 +95,16 @@ class CacheKeyComputerTests(unittest.TestCase):
             elif m['kind'] == 'chunk':
                 m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
-                "USER": "foouser",
-                "USERNAME": "foouser",
-                "LOGNAME": "foouser",
-                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-                "PREFIX": "/baserock",
-                "BOOTSTRAP": "false",
-                "CFLAGS": "-O4"})
+            "USER": "foouser",
+            "USERNAME": "foouser",
+            "LOGNAME": "foouser",
+            "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
+            "PREFIX": "/baserock",
+            "BOOTSTRAP": "false",
+            "CFLAGS": "-O4"})
         self.artifact_resolver = morphlib.artifactresolver.ArtifactResolver()
         self.artifacts = self.artifact_resolver.resolve_artifacts(
-                self.source_pool)
+            self.source_pool)
         self.ckc = morphlib.cachekeycomputer.CacheKeyComputer(self.build_env)
 
     def _find_artifact(self, name):
@@ -114,6 +115,7 @@ class CacheKeyComputerTests(unittest.TestCase):
 
     def test_compute_key_hashes_all_types(self):
         runcount = {'thing': 0, 'dict': 0, 'list': 0, 'tuple': 0}
+
         def inccount(func, name):
             def f(sha, item):
                 runcount[name] = runcount[name] + 1
@@ -146,22 +148,22 @@ class CacheKeyComputerTests(unittest.TestCase):
         artifact = self._find_artifact('system-rootfs')
         oldsha = self.ckc.compute_key(artifact)
         build_env = DummyBuildEnvironment({
-                "USER": "foouser",
-                "USERNAME": "foouser",
-                "LOGNAME": "foouser",
-                "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-                "PREFIX": "/baserock",
-                "BOOTSTRAP": "false",
-                "CFLAGS": "-Os"})
+            "USER": "foouser",
+            "USERNAME": "foouser",
+            "LOGNAME": "foouser",
+            "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
+            "PREFIX": "/baserock",
+            "BOOTSTRAP": "false",
+            "CFLAGS": "-Os"})
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         self.assertNotEqual(oldsha, ckc.compute_key(artifact))
-        
+
     def test_same_morphology_text_but_changed_sha1_gives_same_cache_key(self):
         old_artifact = self._find_artifact('system-rootfs')
         morphology = old_artifact.source.morphology
-        new_source = morphlib.source.Source('repo', 'original/ref', 'newsha', 
-                                            morphology, 
+        new_source = morphlib.source.Source('repo', 'original/ref', 'newsha',
+                                            morphology,
                                             old_artifact.source.filename)
         self.source_pool.add(new_source)
         artifacts = self.artifact_resolver.resolve_artifacts(self.source_pool)
@@ -174,4 +176,3 @@ class CacheKeyComputerTests(unittest.TestCase):
         old_sha = self.ckc.compute_key(old_artifact)
         new_sha = self.ckc.compute_key(new_artifact)
         self.assertEqual(old_sha, new_sha)
-

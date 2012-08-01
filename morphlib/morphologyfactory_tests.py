@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -28,11 +28,11 @@ class FakeRemoteRepoCache(object):
 
     def cat_file(self, reponame, sha1, filename):
         if filename.endswith('.morph'):
-           return '''{
-                "name": "remote-foo",
-                "kind": "chunk",
-                "build-system": "bar"
-            }'''
+            return '''{
+                 "name": "remote-foo",
+                 "kind": "chunk",
+                 "build-system": "bar"
+             }'''
         return 'text'
 
 
@@ -138,7 +138,7 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def test_autodetects_local_morphology(self):
         self.lr.cat = self.nolocalmorph
-        morph = self.mf.get_morphology('reponame', 'sha1', 
+        morph = self.mf.get_morphology('reponame', 'sha1',
                                        'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
 
@@ -162,7 +162,7 @@ class MorphologyFactoryTests(unittest.TestCase):
                           'reponame', 'sha1', 'unreached.morph')
 
     def test_looks_locally_with_no_remote(self):
-        morph = self.lmf.get_morphology('reponame', 'sha1', 
+        morph = self.lmf.get_morphology('reponame', 'sha1',
                                         'foo.morph')
         self.assertEqual('local-foo', morph['name'])
 
@@ -183,7 +183,7 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def test_sets_builds_artifacts_for_split_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk-split.morph')
-        self.assertEqual(morph.builds_artifacts, 
+        self.assertEqual(morph.builds_artifacts,
                          ['local-foo-runtime', 'local-foo-devel'])
 
     def test_sets_builds_artifacts_for_stratum(self):
@@ -229,4 +229,3 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lr.system_kind = ''
         self.assertRaises(morphlib.Error, self.mf.get_morphology,
                           'reponame', 'sha1', 'system.morph')
-

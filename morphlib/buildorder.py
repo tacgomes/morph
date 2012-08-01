@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -22,7 +22,7 @@ class CyclicDependencyChainError(cliapp.AppException):
 
     def __init__(self):
         cliapp.AppException.__init__(
-                self, 'Cyclic dependency chain detected')
+            self, 'Cyclic dependency chain detected')
 
 
 class BuildOrder:
@@ -37,8 +37,8 @@ class BuildOrder:
             self.groups = []
 
     def _compute_reverse_topological_sorting(self, artifacts):
-        '''Computes a reverse topological sorting of the build graph. 
-        
+        '''Computes a reverse topological sorting of the build graph.
+
         A reverse topological sorting basically is the result of a series of
         breadth-first searches starting at each leaf node (artifacts with no
         dependents). Artifacts are added to the sorting as soon as all their
@@ -46,7 +46,7 @@ class BuildOrder:
 
         For more information, see
         http://en.wikipedia.org/wiki/Topological_sorting.
-        
+
         '''
 
         # map artifacts to sets of satisfied dependents. this is to detect

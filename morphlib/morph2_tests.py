@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -29,7 +29,7 @@ class MorphologyTests(unittest.TestCase):
                 "build-system": "manual"
             }
         ''')
-        
+
         self.assertEqual(m['name'], 'foo')
         self.assertEqual(m['kind'], 'chunk')
         self.assertEqual(m['build-system'], 'manual')
@@ -48,7 +48,7 @@ class MorphologyTests(unittest.TestCase):
                 "max-jobs": "42"
             }
         ''')
-        
+
         self.assertEqual(m['max-jobs'], 42)
 
     def test_sets_stratum_sources_repo_and_morph_from_name(self):
@@ -77,7 +77,7 @@ class MorphologyTests(unittest.TestCase):
             }
         ''')
 
-        self.assertEqual(m['disk-size'], 1024**3)
+        self.assertEqual(m['disk-size'], 1024 ** 3)
 
     def test_returns_dict_keys(self):
         m = Morphology('''
@@ -91,4 +91,3 @@ class MorphologyTests(unittest.TestCase):
         self.assertTrue('name' in m.keys())
         self.assertTrue('kind' in m.keys())
         self.assertTrue('disk-size' in m.keys())
-

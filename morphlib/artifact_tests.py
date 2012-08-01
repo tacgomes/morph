@@ -1,14 +1,14 @@
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -23,30 +23,30 @@ class ArtifactTests(unittest.TestCase):
 
     def setUp(self):
         morph = morphlib.morph2.Morphology(
-                '''
-                {
-                    "chunk": "chunk",
-                    "kind": "chunk",
-                    "chunks": {
-                        "chunk-runtime": [
-                            "usr/bin",
-                            "usr/sbin",
-                            "usr/lib",
-                            "usr/libexec"
-                        ],
-                        "chunk-devel": [
-                            "usr/include"
-                        ]
-                    }
+            '''
+            {
+                "chunk": "chunk",
+                "kind": "chunk",
+                "chunks": {
+                    "chunk-runtime": [
+                        "usr/bin",
+                        "usr/sbin",
+                        "usr/lib",
+                        "usr/libexec"
+                    ],
+                    "chunk-devel": [
+                        "usr/include"
+                    ]
                 }
-                ''')
+            }
+            ''')
         self.source = morphlib.source.Source(
-                'repo', 'ref', 'sha1', morph, 'chunk.morph')
+            'repo', 'ref', 'sha1', morph, 'chunk.morph')
         self.artifact_name = 'chunk-runtime'
         self.artifact = morphlib.artifact.Artifact(
-                self.source, self.artifact_name)
+            self.source, self.artifact_name)
         self.other = morphlib.artifact.Artifact(
-                self.source, self.artifact_name)
+            self.source, self.artifact_name)
 
     def test_constructor_sets_source(self):
         self.assertEqual(self.artifact.source, self.source)
@@ -59,7 +59,7 @@ class ArtifactTests(unittest.TestCase):
 
     def test_sets_dependencies_to_empty(self):
         self.assertEqual(self.artifact.dependencies, [])
-                                             
+
     def test_sets_dependents_to_empty(self):
         self.assertEqual(self.artifact.dependents, [])
 
@@ -78,4 +78,3 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(self.artifact.dependencies, [self.other])
         self.assertEqual(self.other.dependents, [self.artifact])
         self.assertTrue(self.artifact.depends_on(self.other))
-

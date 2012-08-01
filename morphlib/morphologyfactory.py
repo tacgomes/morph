@@ -8,7 +8,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -23,16 +23,16 @@ class MorphologyFactoryError(cliapp.AppException):
 
 class AutodetectError(MorphologyFactoryError):
     def __init__(self, repo_name, ref):
-        MorphologyFactoryError.__init__(self, 
-                "Failed to determine the build system of repo %s at "
-                "ref %s" % (repo_name, ref))
+        MorphologyFactoryError.__init__(
+            self, "Failed to determine the build system of repo %s at "
+                  "ref %s" % (repo_name, ref))
 
 
 class NotcachedError(MorphologyFactoryError):
     def __init__(self, repo_name):
-        MorphologyFactoryError.__init__(self,
-                "Repository %s is not cached locally and there is no "
-                "remote cache specified" % repo_name)
+        MorphologyFactoryError.__init__(
+            self, "Repository %s is not cached locally and there is no "
+                  "remote cache specified" % repo_name)
 
 
 class MorphologyFactory(object):
@@ -50,7 +50,7 @@ class MorphologyFactory(object):
             text = self._autodetect_text(reponame, sha1, filename)
 
         morphology = morphlib.morph2.Morphology(text)
-        
+
         method_name = '_check_and_tweak_%s' % morphology['kind']
         if hasattr(self, method_name):
             method = getattr(self, method_name)
@@ -71,6 +71,7 @@ class MorphologyFactory(object):
         # TODO get lists of files from the cache to reduce round trips
         if self._lrc.has_repo(reponame):
             repo = self._lrc.get_repo(reponame)
+
             def has_file(filename):
                 try:
                     repo.cat(sha1, filename)
@@ -98,14 +99,14 @@ class MorphologyFactory(object):
         morph_name = filename[:-len('.morph')]
         morph_text = bs.get_morphology_text(morph_name)
         return morph_text
-        
+
     def _check_and_tweak_system(self, morphology, reponame, sha1, filename):
         '''Check and tweak a system morphology.'''
 
-        if morphology['arch'] is None: #pragma: no cover
+        if morphology['arch'] is None:  # pragma: no cover
             raise morphlib.Error('No arch specified in system %s '
                                  '(arch is a mandatory field)' %
-                                     filename)
+                                 filename)
 
         if not morphology['system-kind']:
             raise morphlib.Error('No system-kind defined in system %s '
@@ -121,23 +122,23 @@ class MorphologyFactory(object):
 
         morphology.needs_staging_area = False
         morphology.needs_artifact_metadata_cached = False
-        
+
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
 
-        for source in morphology['sources']: # pragma: no cover
+        for source in morphology['sources']:  # pragma: no cover
             if source.get('build-depends', None) is None:
                 name = source.get('name', source.get('repo', 'unknown'))
                 raise morphlib.Error('No build dependencies '
                                      'stratum %s for chunk %s '
                                      '(build-depends is a mandatory '
                                      'field)' %
-                                        (filename, name))
-        
+                                     (filename, name))
+
         morphology.builds_artifacts = [morphology['name']]
         morphology.needs_staging_area = False
         morphology.needs_artifact_metadata_cached = True
-        
+
     def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
         '''Check and tweak a chunk morphology.'''
 
@@ -148,4 +149,3 @@ class MorphologyFactory(object):
 
         morphology.needs_staging_area = True
         morphology.needs_artifact_metadata_cached = False
-
