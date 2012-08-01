@@ -35,7 +35,7 @@ class GraphingPlugin(cliapp.Plugin):
             self.app.status(msg='Creating build order for '
                                 '%(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            builder = morphlib.app.BuildCommand(self.app)
+            builder = morphlib.buildcommand.BuildCommand(self.app)
             order = builder.compute_build_order(repo_name, ref, filename)
 
             basename, ext = os.path.splitext(filename)

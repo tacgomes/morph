@@ -29,6 +29,7 @@ import artifact
 import artifactcachereference
 import artifactresolver
 import bins
+import buildcommand
 import buildenvironment
 import buildorder
 import buildsystem

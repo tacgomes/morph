@@ -13,4 +13,5 @@ morphlib/plugins/show_dependencies_plugin.py
 morphlib/plugins/update_gits_plugin.py
 morphlib/plugins/trebuchet_plugin.py
 morphlib/plugins/branch_and_merge_plugin.py
+morphlib/buildcommand.py
 
