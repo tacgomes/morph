@@ -195,23 +195,6 @@ class Morph(cliapp.Application):
                       category=DeprecationWarning)
         return self.create_source_pool(*args)
 
-    def cmd_build(self, args):
-        '''Build a binary from a morphology.
-
-        Command line arguments are the repository, git tree-ish reference,
-        and morphology filename. Morph takes care of building all dependencies
-        before building the morphology. All generated binaries are put into the
-        cache.
-
-        (The triplet of command line arguments may be repeated as many
-        times as necessary.)
-
-        '''
-
-        build_command = morphlib.buildcommand.BuildCommand(self)
-        build_command = self.hookmgr.call('new-build-command', build_command)
-        build_command.build(args)
-
     def _resolveref(self, lrc, rrc, reponame, ref, update=True):
         '''Resolves the sha1 of the ref in reponame and returns it.
 
