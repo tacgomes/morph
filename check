@@ -58,6 +58,16 @@ then
                 fi
                 ;;
         esac
+
+        case "$x" in
+            *.py)
+                if head -1 "$x" | grep '^#!' > /dev/null
+                then
+                    echo "ERROR: $x has a hashbang" 1>&2
+                    errors=1
+                fi
+                ;;
+        esac
     done
 fi
 exit $errors
