@@ -28,15 +28,6 @@ def partition_image(runcmd, image_name):
     runcmd(['sfdisk', image_name], feed_stdin='1,,83,*\n')
 
 
-def install_syslinux_mbr(runcmd, image_name):
-    for path in ['/usr/lib/extlinux/mbr.bin',
-                 '/usr/share/syslinux/mbr.bin']:
-        if os.path.exists(path):
-            runcmd(['dd', 'if=' + path, 'of=' + image_name,
-                    'conv=notrunc'])
-            break
-
-
 def setup_device_mapping(runcmd, image_name):
     findstart = re.compile(r"start=\s+(\d+),")
     out = runcmd(['sfdisk', '-d', image_name])

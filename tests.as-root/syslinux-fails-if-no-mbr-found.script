@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# A system kind of syslinux-disk should create the disk image, plus a kernel
+# file.
+#
+# Copyright (C) 2011, 2012  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+set -eu
+
+# We only support x86 systems with syslinux-disk.
+arch=$(uname -m)
+case "$arch" in
+    x86*) ;;
+    *) exit 0 ;;
+esac
+
+cache="$DATADIR/cache/artifacts"
+kernelrepo="$DATADIR/kernel-repo"
+morphsrepo="$DATADIR/morphs-repo"
+log="$DATADIR/morph.log"
+
+cd "$morphsrepo"
+git checkout --quiet -b custom master
+cat <<EOF >system.morph
+{
+  "name": "system",
+  "kind": "system",
+  "system-kind": "syslinux-disk",
+  "arch": "$arch",
+  "disk-size": "1G",
+  "strata": [
+    "stratum"
+  ]
+}
+EOF
+cat <<EOF >stratum.morph
+{
+  "name": "stratum",
+  "kind": "stratum",
+  "sources": [
+    {
+      "name": "hello",
+      "repo": "test:chunk-repo",
+      "ref": "farrokh",
+      "build-depends": []
+    },
+    {
+      "name": "linux",
+      "repo": "test:kernel-repo",
+      "ref": "custom",
+      "build-depends": ["hello"]
+    }
+  ]
+}
+EOF
+git add system.morph stratum.morph
+git commit --quiet -m "foo"
+
+cd "$kernelrepo"
+git checkout --quiet -b custom master
+cat <<EOF >linux.morph
+{
+  "name": "linux",
+  "kind": "chunk",
+  "install-commands": [
+      "mkdir -p \"\$DESTDIR/boot\"",
+      "touch \"\$DESTDIR\"/boot/vmlinuz",
+      "touch \"\$DESTDIR\"/boot/System.map"
+  ]
+}
+EOF
+git add linux.morph
+
+git commit --quiet -m 'Make the kernel create a dummy zImage'
+
+"$SRCDIR/scripts/test-morph" --syslinux-mbr-search-path=nosuchfile.bin \
+    build test:morphs-repo custom system.morph > /dev/null

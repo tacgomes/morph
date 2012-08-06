@@ -103,7 +103,19 @@ class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
         if arch not in ('x86', 'x86_64'):
             return
         with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
+            mbr_installed = False
+            for path in self.app.settings['syslinux-mbr-search-paths']:
+                if os.path.exists(path):
+                    self.app.runcmd(['dd', 'if=' + path, 'of=' + image_name,
+                                     'conv=notrunc'])
+                    mbr_installed = True
+                    break
+            # A flag, rather than an else statement is used, since it must
+            # fail if the search path is empty as well
+            if not mbr_installed:
+                raise morphlib.Error(
+                    "No syslinux mbr found in search paths: %s" %
+                    repr(self.app.settings['syslinux-mbr-search-paths']))
 
     def _setup_device_mapping(self, image_name):
         self.app.status(msg='Device mapping partitions in %(filename)s',
@@ -195,6 +207,11 @@ class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
         # Only provide this system builder on architectures that are
         # supported by syslinux.
         if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
+            self.app.settings.string_list(
+                ['syslinux-mbr-search-paths'],
+                'A list of files to search for to use as the syslinux mbr',
+                default=['/usr/lib/extlinux/mbr.bin',
+                         '/usr/share/syslinux/mbr.bin'])
             self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
 
     def disable(self):
