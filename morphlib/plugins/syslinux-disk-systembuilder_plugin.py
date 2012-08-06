@@ -103,7 +103,12 @@ class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
         if arch not in ('x86', 'x86_64'):
             return
         with self.build_watch('install-mbr'):
-            morphlib.fsutils.install_syslinux_mbr(self.app.runcmd, image_name)
+            for path in ['/usr/lib/extlinux/mbr.bin',
+                         '/usr/share/syslinux/mbr.bin']:
+                if os.path.exists(path):
+                    self.app.runcmd(['dd', 'if=' + path, 'of=' + image_name,
+                                     'conv=notrunc'])
+                    break
 
     def _setup_device_mapping(self, image_name):
         self.app.status(msg='Device mapping partitions in %(filename)s',
