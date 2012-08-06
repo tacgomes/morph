@@ -103,11 +103,19 @@ class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
         if arch not in ('x86', 'x86_64'):
             return
         with self.build_watch('install-mbr'):
+            mbr_installed = False
             for path in self.app.settings['syslinux-mbr-search-paths']:
                 if os.path.exists(path):
                     self.app.runcmd(['dd', 'if=' + path, 'of=' + image_name,
                                      'conv=notrunc'])
+                    mbr_installed = True
                     break
+            # A flag, rather than an else statement is used, since it must
+            # fail if the search path is empty as well
+            if not mbr_installed:
+                raise morphlib.Error(
+                    "No syslinux mbr found in search paths: %s" %
+                    repr(self.app.settings['syslinux-mbr-search-paths']))
 
     def _setup_device_mapping(self, image_name):
         self.app.status(msg='Device mapping partitions in %(filename)s',
