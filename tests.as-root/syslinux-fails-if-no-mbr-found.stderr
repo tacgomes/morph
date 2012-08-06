@@ -1,0 +1,1 @@
+ERROR: No syslinux mbr found in search paths: ['nosuchfile.bin']
