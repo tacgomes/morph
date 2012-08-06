@@ -103,8 +103,7 @@ class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
         if arch not in ('x86', 'x86_64'):
             return
         with self.build_watch('install-mbr'):
-            for path in ['/usr/lib/extlinux/mbr.bin',
-                         '/usr/share/syslinux/mbr.bin']:
+            for path in self.app.settings['syslinux-mbr-search-paths']:
                 if os.path.exists(path):
                     self.app.runcmd(['dd', 'if=' + path, 'of=' + image_name,
                                      'conv=notrunc'])
@@ -200,6 +199,11 @@ class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
         # Only provide this system builder on architectures that are
         # supported by syslinux.
         if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
+            self.app.settings.string_list(
+                ['syslinux-mbr-search-paths'],
+                'A list of files to search for to use as the syslinux mbr',
+                default=['/usr/lib/extlinux/mbr.bin',
+                         '/usr/share/syslinux/mbr.bin'])
             self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
 
     def disable(self):
