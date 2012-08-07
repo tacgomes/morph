@@ -53,7 +53,7 @@ class MorphologyFactory(object):
             morphology = morphlib.morph2.Morphology(text)
         except ValueError as e:
             raise morphlib.Error("Error parsing %s: %s" %
-                                 (filename, e.message))
+                                 (filename, str(e)))
 
         method_name = '_check_and_tweak_%s' % morphology['kind']
         if hasattr(self, method_name):
