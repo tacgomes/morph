@@ -161,6 +161,9 @@ class SyslinuxDiskBuilder(SystemKindBuilder):  # pragma: no cover
                             '%(source)s to %(target)s',
                         source=source, target=target, chatty=True)
         with self.build_watch('create-runtime-snapshot'):
+            # sync needed for older versions of btrfs where files aren't
+            # flushed to disk before they have their contents snapshotted
+            self.app.runcmd(['sync'])
             self.app.runcmd(['btrfs', 'subvolume', 'snapshot', source, target],
                             cwd=path)
 
