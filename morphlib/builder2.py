@@ -716,7 +716,7 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
             morphlib.fsutils.partition_image(self.app.runcmd, image_name)
 
     def _install_mbr(self, arch, image_name):
-        pass
+        '''Placeholder method.'''
 
     def _setup_device_mapping(self, image_name):
         self.app.status(msg='Device mapping partitions in %(filename)s',
@@ -745,7 +745,7 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
             self.app.runcmd(['btrfs', 'subvolume', 'create', path])
 
     def _create_bootloader_config(self, path):
-        pass
+        '''Placeholder method.'''
 
     def _create_subvolume_snapshot(self, path, source, target):
         self.app.status(msg='Creating subvolume snapshot '
@@ -770,7 +770,7 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                              os.path.join(targetfs, 'boot', 'System.map'))
 
     def _install_bootloader(self, path):
-        pass
+        '''Placeholder method.'''
 
     def _unmount(self, mount_point):
         with self.build_watch('unmount-filesystem'):
