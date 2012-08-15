@@ -27,11 +27,11 @@ import morphlib
 defaults = {
     'repo-alias': [
         ('upstream='
-            'git://roadtrain.codethink.co.uk/delta/#'
-            'gitano@roadtrain.codethink.co.uk:delta/'),
+            'git://git.baserock.org/delta/#'
+            'ssh://gitano@git.baserock.org/delta/'),
         ('baserock='
-            'git://roadtrain.codethink.co.uk/baserock/#'
-            'gitano@roadtrain.codethink.co.uk:baserock/'),
+            'git://git.baserock.org/baserock/#'
+            'ssh://gitano@git.baserock.org/baserock/'),
         ('freedesktop='
             'git://anongit.freedesktop.org/#'
             'ssh://git.freedesktop.org/'),
@@ -40,7 +40,7 @@ defaults = {
             'ssh://git.gnome.org/git/%s'),
         ('github='
             'git://github.com/%s#'
-            'git@github.com:%s'),
+            'ssh://git@github.com/%s'),
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
