@@ -104,6 +104,11 @@ then
     exit 1
 fi
 
+if ! which dpkg 2> /dev/null; then
+    echo "Warning: dpkg not found -- should debootstrap fail to autodetect "
+    echo "your architecture, set ARCH in the environment (probably to amd64)"
+fi
+
 # prepare the ccache directory in the chroot, if necessary
 if [ "x$CCACHE_HOST_DIR" = "x" ]; then
     # print a warning if the CCACHE_HOST_DIR is not set
@@ -123,7 +128,14 @@ if ! "$snapshot" || ! has_pass pass1a; then
         EXTRAPACKAGES="build-essential,gawk,bison,flex,python,autoconf"
         EXTRAPACKAGES="$EXTRAPACKAGES,autopoint,automake,gettext,libtool"
         EXTRAPACKAGES="$EXTRAPACKAGES,help2man,texinfo,sudo,ccache,gperf"
-        debootstrap --include="$EXTRAPACKAGES" squeeze "$dir" "$DEBIAN_MIRROR"
+
+        EXTRAARGS=
+        if [ -n $ARCH]; then
+            EXTRAARGS=$ARCH
+        fi
+
+        debootstrap $EXTRAARGS --include="$EXTRAPACKAGES" squeeze \
+                    "$dir" "$DEBIAN_MIRROR"
 
         mkdir -p "$dir/etc"
         hostname > "$dir/etc/hostname"
