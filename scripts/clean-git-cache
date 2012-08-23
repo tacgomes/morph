@@ -155,7 +155,9 @@ class CleanGitCache(cliapp.Application):
                                             morphs_branch,
                                             git_cache_dir)
 
-        if self.settings['remove']:
+        if unused_gits == []:
+            print "No unused git repos found."
+        elif self.settings['remove']:
             print "Removing unused git repositories ..."
 
             for git in unused_gits:
@@ -181,7 +183,7 @@ class CleanGitCache(cliapp.Application):
         refs = [x.split() for x in refs if 'origin' in x]
         morphs_ref = refs[0][0]
 
-        gits_in_use_list = [morphs_repo]
+        gits_in_use_list = [quote_url(morphs_repo)]
 
         for filename in self._ls_tree(morphs_dir, morphs_ref):
             if not filename.endswith('.morph'):
