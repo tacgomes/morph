@@ -35,6 +35,8 @@ class FakeRemoteRepoCache(object):
              }'''
         return 'text'
 
+    def ls_tree(self, reponame, sha1):
+        return []
 
 class FakeLocalRepo(object):
 
@@ -87,6 +89,8 @@ class FakeLocalRepo(object):
             }'''
         return 'text'
 
+    def ls_tree(self, sha1):
+        return []
 
 class FakeLocalRepoCache(object):
 
@@ -120,6 +124,9 @@ class MorphologyFactoryTests(unittest.TestCase):
             raise IOError('File not found')
         return 'text'
 
+    def autotoolsbuildsystem(self, *args):
+        return ['configure.in']
+
     def noremotemorph(self, *args):
         if args[-1].endswith('.morph'):
             raise CatFileError('reponame', 'ref', 'filename')
@@ -141,13 +148,15 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def test_autodetects_local_morphology(self):
         self.lr.cat = self.nolocalmorph
+        self.lr.ls_tree = self.autotoolsbuildsystem
         morph = self.mf.get_morphology('reponame', 'sha1',
-                                       'assumed-local.morph')
+                                        'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
 
     def test_autodetects_remote_morphology(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.rrc.cat_file = self.noremotemorph
+        self.rrc.ls_tree = self.autotoolsbuildsystem
         morph = self.mf.get_morphology('reponame', 'sha1',
                                        'assumed-remote.morph')
         self.assertEqual('assumed-remote', morph['name'])
@@ -171,7 +180,8 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def test_autodetects_locally_with_no_remote(self):
         self.lr.cat = self.nolocalmorph
-        morph = self.lmf.get_morphology('reponame', 'sha1',
+        self.lr.ls_tree = self.autotoolsbuildsystem
+        morph = self.mf.get_morphology('reponame', 'sha1',
                                         'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
 

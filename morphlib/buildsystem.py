@@ -195,13 +195,15 @@ build_systems = [
 ]
 
 
-def detect_build_system(exists):
+def detect_build_system(file_list):
     '''Automatically detect the build system, if possible.
 
     If the build system cannot be detected automatically, return None.
     For ``exists`` see the ``BuildSystem.exists`` method.
 
     '''
+    def exists(filename):
+        return filename in file_list
 
     for bs in build_systems:
         if bs.used_by_project(exists):
