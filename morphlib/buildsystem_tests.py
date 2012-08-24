@@ -59,14 +59,10 @@ class ManualBuildSystemTests(unittest.TestCase):
         self.bs = morphlib.buildsystem.ManualBuildSystem()
 
     def test_does_not_autodetect_empty(self):
-        def exists(filename):
-            return filename in manual_project
-        self.assertFalse(self.bs.used_by_project(exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_does_not_autodetect_autotools(self):
-        def exists(filename):
-            return filename in autotools_project
-        self.assertFalse(self.bs.used_by_project(exists))
+        self.assertFalse(self.bs.used_by_project(autotools_project))
 
 
 class DummyBuildSystemTests(unittest.TestCase):
@@ -75,14 +71,10 @@ class DummyBuildSystemTests(unittest.TestCase):
         self.bs = morphlib.buildsystem.DummyBuildSystem()
 
     def test_does_not_autodetect_empty(self):
-        def exists(filename):
-            return filename in manual_project
-        self.assertFalse(self.bs.used_by_project(exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_does_not_autodetect_autotools(self):
-        def exists(filename):
-            return filename in autotools_project
-        self.assertFalse(self.bs.used_by_project(exists))
+        self.assertFalse(self.bs.used_by_project(autotools_project))
 
 
 class AutotoolsBuildSystemTests(unittest.TestCase):
@@ -91,14 +83,10 @@ class AutotoolsBuildSystemTests(unittest.TestCase):
         self.bs = morphlib.buildsystem.AutotoolsBuildSystem()
 
     def test_does_not_autodetect_empty(self):
-        def exists(filename):
-            return filename in manual_project
-        self.assertFalse(self.bs.used_by_project(exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_autodetects_autotools(self):
-        def exists(filename):
-            return filename in autotools_project
-        self.assertTrue(self.bs.used_by_project(exists))
+        self.assertTrue(self.bs.used_by_project(autotools_project))
 
 
 class DetectBuildSystemTests(unittest.TestCase):
