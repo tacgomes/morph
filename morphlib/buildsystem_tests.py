@@ -103,7 +103,7 @@ class DummyBuildSystemTests(unittest.TestCase):
 class AutotoolsBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
-        self.bs = morphlib.buildsystem.ManualBuildSystem()
+        self.bs = morphlib.buildsystem.AutotoolsBuildSystem()
         self.tempdir = tempfile.mkdtemp()
 
     def tearDown(self):
@@ -118,7 +118,7 @@ class AutotoolsBuildSystemTests(unittest.TestCase):
 
     def test_autodetects_autotools(self):
         create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertTrue(self.bs.used_by_project(self.exists))
 
 
 class DetectBuildSystemTests(unittest.TestCase):
