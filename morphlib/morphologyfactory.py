@@ -44,10 +44,31 @@ class MorphologyFactory(object):
         self._rrc = remote_repo_cache
 
     def get_morphology(self, reponame, sha1, filename):
-        try:
-            text = self._cat_text(reponame, sha1, filename)
-        except:
-            text = self._autodetect_text(reponame, sha1, filename)
+
+        text = None
+        if self._lrc.has_repo(reponame):
+            repo = self._lrc.get_repo(reponame)
+            file_list = repo.ls_tree(sha1)
+            if filename in file_list:
+                text = repo.cat(sha1, filename)
+        elif self._rrc is not None:
+            file_list = self._rrc.ls_tree(reponame, sha1)
+            if filename in file_list:
+                text = self._rrc.cat_file(reponame, sha1, filename)
+        else:
+            raise NotcachedError(reponame)
+
+        if text is None:
+            bs = morphlib.buildsystem.detect_build_system(file_list)
+            if bs is None:
+                raise AutodetectError(reponame, sha1)
+            # TODO consider changing how morphs are located to be by morph
+            #      name rather than filename, it would save creating a
+            #      filename only to strip it back to its morph name again
+            #      and would allow future changes like morphologies being
+            #      stored as git metadata instead of as a file in the repo
+            morph_name = filename[:-len('.morph')]
+            text = bs.get_morphology_text(morph_name)
 
         try:
             morphology = morphlib.morph2.Morphology(text)
@@ -61,37 +82,6 @@ class MorphologyFactory(object):
             method(morphology, reponame, sha1, filename)
 
         return morphology
-
-    def _cat_text(self, reponame, sha1, filename):
-        if self._lrc.has_repo(reponame):
-            repo = self._lrc.get_repo(reponame)
-            return repo.cat(sha1, filename)
-        elif self._rrc is not None:
-            return self._rrc.cat_file(reponame, sha1, filename)
-        else:
-            raise NotcachedError(reponame)
-
-    def _autodetect_text(self, reponame, sha1, filename):
-        if self._lrc.has_repo(reponame):
-            repo = self._lrc.get_repo(reponame)
-            file_list = repo.ls_tree(sha1)
-        elif self._rrc is not None:
-            file_list = self._rrc.ls_tree(reponame, sha1)
-        else:
-            raise NotcachedError(reponame)
-
-        bs = morphlib.buildsystem.detect_build_system(file_list)
-        if bs is None:
-            raise AutodetectError(reponame, sha1)
-        # TODO consider changing how morphs are located to be by morph
-        #      name rather than filename, it would save creating a
-        #      filename only to strip it back to its morph name again
-        #      and would allow future changes like morphologies being
-        #      stored as git metadata instead of as a file in the repo
-        assert filename.endswith('.morph')
-        morph_name = filename[:-len('.morph')]
-        morph_text = bs.get_morphology_text(morph_name)
-        return morph_text
 
     def _check_and_tweak_system(self, morphology, reponame, sha1, filename):
         '''Check and tweak a system morphology.'''
