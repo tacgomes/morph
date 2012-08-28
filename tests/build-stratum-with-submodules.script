@@ -49,7 +49,7 @@ cat <<EOF > "$morphs/submod-stratum.morph"
 {
     "name": "submod-stratum",
     "kind": "stratum",
-    "sources": [
+    "chunks": [
         {
             "name": "parent",
             "repo": "test:parent-repo",

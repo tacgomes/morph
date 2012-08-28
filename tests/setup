@@ -90,7 +90,7 @@ cat <<EOF > hello-stratum.morph
 {
     "name": "hello-stratum",
     "kind": "stratum",
-    "sources": [
+    "chunks": [
         {
             "name": "hello",
             "repo": "test:chunk-repo",

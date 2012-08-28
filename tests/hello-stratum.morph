@@ -1,7 +1,7 @@
 {
     "name": "hello",
     "kind": "stratum",
-    "sources": {
+    "chunks": {
         "hello": {
             "repo": "hello",
             "ref": "master"

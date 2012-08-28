@@ -56,9 +56,9 @@ class FakeStratumMorphology(morphlib.morph2.Morphology):
         assert(isinstance(build_depends, list))
 
         if source_list:
-            sources = []
+            chunks = []
             for source_name, morph, repo, ref in source_list:
-                sources.append({
+                chunks.append({
                     'name': source_name,
                     'morph': morph,
                     'repo': repo,
@@ -69,11 +69,11 @@ class FakeStratumMorphology(morphlib.morph2.Morphology):
                         "name": "%s",
                         "kind": "stratum",
                         "build-depends": %s,
-                        "sources": %s
+                        "chunks": %s
                     }
                     ''' % (name,
                            json.dumps(build_depends),
-                           json.dumps(sources)))
+                           json.dumps(chunks)))
         else:
             text = ('''
                     {
@@ -497,7 +497,7 @@ class ArtifactResolverTests(unittest.TestCase):
             {
                 "name": "stratum",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk1",
                         "repo": "repo",
@@ -647,7 +647,7 @@ class ArtifactResolverTests(unittest.TestCase):
             {
                 "name": "stratum",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk",
                         "repo": "repo",
@@ -701,7 +701,7 @@ class ArtifactResolverTests(unittest.TestCase):
             {
                 "name": "stratum",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk1",
                         "repo": "repo",
@@ -744,7 +744,7 @@ class ArtifactResolverTests(unittest.TestCase):
             {
                 "name": "stratum",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk",
                         "repo": "repo",

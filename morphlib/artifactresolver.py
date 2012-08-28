@@ -197,7 +197,7 @@ class ArtifactResolver(object):
         processed_artifacts = []
         name_to_processed_artifact = {}
 
-        for info in stratum.source.morphology['sources']:
+        for info in stratum.source.morphology['chunks']:
             chunk_source = self._source_pool.lookup(
                 info['repo'],
                 info['ref'],

@@ -1,5 +1,5 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 77fb1d0..c5ed672 100644
+index 06ae459..ad8c08b 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
 @@ -1,12 +1,14 @@
@@ -7,9 +7,7 @@ index 77fb1d0..c5ed672 100644
 -    "name": "hello-stratum",
 -    "kind": "stratum",
 +    "build-system": "manual", 
-+    "kind": "stratum", 
-+    "name": "hello-stratum", 
-     "sources": [
+     "chunks": [
          {
 -            "name": "hello",
 -            "ref": "master",
@@ -21,5 +19,8 @@ index 77fb1d0..c5ed672 100644
 +            "ref": "newbranch", 
 +            "repo": "baserock:hello"
          }
-     ]
+-    ]
++    ], 
++    "kind": "stratum", 
++    "name": "hello-stratum"
  }

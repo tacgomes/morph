@@ -1,8 +1,6 @@
 {
     "build-system": "manual", 
-    "kind": "stratum", 
-    "name": "hello-stratum", 
-    "sources": [
+    "chunks": [
         {
             "build-depends": [], 
             "morph": "hello", 
@@ -10,5 +8,7 @@
             "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7", 
             "repo": "baserock:hello"
         }
-    ]
+    ], 
+    "kind": "stratum", 
+    "name": "hello-stratum"
 }

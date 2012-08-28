@@ -50,7 +50,7 @@ cat <<EOF >stratum.morph
 {
   "name": "stratum",
   "kind": "stratum",
-  "sources": [
+  "chunks": [
     {
       "name": "hello",
       "repo": "test:chunk-repo",

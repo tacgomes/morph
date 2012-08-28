@@ -31,8 +31,7 @@ class Morphology(object):
         ('build-commands', None),
         ('test-commands', None),
         ('install-commands', None),
-        ('chunks', {}),
-        ('sources', []),
+        ('chunks', []),
         ('strata', []),
         ('max-jobs', None),
         ('description', ''),
@@ -80,7 +79,7 @@ class Morphology(object):
             self._set_stratum_defaults()
 
     def _set_stratum_defaults(self):
-        for source in self['sources']:
+        for source in self['chunks']:
             if 'repo' not in source:
                 source['repo'] = source['name']
             if 'morph' not in source:

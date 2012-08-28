@@ -43,7 +43,7 @@ cat <<EOF >foo-baz-stratum.morph
 {
   "name": "foo-baz-stratum",
   "kind": "stratum",
-  "sources": [
+  "chunks": [
     {
       "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
@@ -63,7 +63,7 @@ cat <<EOF >foo-barqux-stratum.morph
 {
   "name": "foo-barqux-stratum",
   "kind": "stratum",
-  "sources": [
+  "chunks": [
     {
       "name": "overlap-foobar",
       "repo": "test:chunk-repo",

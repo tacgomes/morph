@@ -112,7 +112,7 @@ For strata, use the following fields:
 * `build-depends`: a list of strings, each of which refers to another
   stratum that the current stratum depends on. This list may be omitted
   or empty if the stratum does not depend on anything else.
-* `sources`: a list of key/value mappings, where each mapping corresponds
+* `chunks`: a list of key/value mappings, where each mapping corresponds
   to a chunk to be included in the stratum; the mappings may use the
   following keys: `name` is the chunk's name (may be different from the
   morphology name), `repo` is the repository in which to find (defaults to
@@ -121,13 +121,13 @@ For strata, use the following fields:
   of the morphology to use and is optional. In addition to these keys,
   each of the sources MUST specify a list of build dependencies using the
   `build-depends` field. This field may be omitted to make the source
-  depend on all other chunks that are listed earlier in the `sources`
+  depend on all other chunks that are listed earlier in the `chunks`
   list. The field may be an empty list to indicate that the chunk does 
   not depend on anything else in the same stratum. To specify one ore 
   more chunk dependencies, `build-depends` needs to be set to a list
   that contains the names of chunks that the source depends on in the 
   same stratum. These names correspond to the values of the `name` 
-  fields of the other sources.
+  fields of the other chunks.
 
 For systems, use the following fields:
 
@@ -158,7 +158,7 @@ Example stratum:
     {
         "name": "foundation",
         "kind": "stratum",
-        "sources": [
+        "chunks": [
             {
                 "name": "fhs-dirs",
                 "ref": "baserock/bootstrap",

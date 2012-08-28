@@ -191,10 +191,10 @@ class CleanGitCache(cliapp.Application):
 
             tree = json.loads(self._cat_file(morphs_dir, morphs_ref, filename))
 
-            if tree['kind'] != 'stratum' or 'sources' not in tree:
+            if tree['kind'] != 'stratum' or 'chunks' not in tree:
                 continue
 
-            for chunk in tree['sources']:
+            for chunk in tree['chunks']:
                 repo = chunk['repo']
                 directory = quote_url(self.resolver.pull_url(repo))
                 gits_in_use_list.append(directory)

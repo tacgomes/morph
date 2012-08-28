@@ -49,7 +49,7 @@ class CacheKeyComputerTests(unittest.TestCase):
             'stratum.morph': '''{
                 "name": "stratum",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk",
                         "repo": "repo",
@@ -60,7 +60,7 @@ class CacheKeyComputerTests(unittest.TestCase):
             'stratum2.morph': '''{
                 "name": "stratum2",
                 "kind": "stratum",
-                "sources": [
+                "chunks": [
                     {
                         "name": "chunk2",
                         "repo": "repo",

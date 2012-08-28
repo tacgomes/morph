@@ -245,7 +245,7 @@ class Morph(cliapp.Application):
                     queue.extend((reponame, ref, '%s.morph' % s)
                                  for s in morphology['build-depends'])
                 queue.extend((c['repo'], c['ref'], '%s.morph' % c['morph'])
-                             for c in morphology['sources'])
+                             for c in morphology['chunks'])
 
     def _traverse_morphs(self, *args):
         warnings.warn('_traverse_morphs is deprecated, '

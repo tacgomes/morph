@@ -78,7 +78,7 @@ cat <<EOF > gtk-stack.morph
   "kind": "stratum",
   "build-depends": [
   ],
-  "sources": [
+  "chunks": [
     {
       "name": "freetype",
       "repo": "test:test-repo",
@@ -200,7 +200,7 @@ cat <<EOF > xfce-core.morph
   "build-depends": [
     "gtk-stack"
   ],
-  "sources": [
+  "chunks": [
     {
       "name": "libxfce4util",
       "repo": "test:test-repo",

@@ -125,7 +125,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def morphs_for_repo(cls, app, morphs_dirname, repo):
         for filename, morph in cls.load_morphologies(morphs_dirname):
             if morph['kind'] == 'stratum':
-                for spec in morph['sources']:
+                for spec in morph['chunks']:
                     spec_repo = cls.resolve_reponame(app, spec['repo'])
                     if spec_repo == repo:
                         yield filename, morph
@@ -134,7 +134,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
     @classmethod
     def find_edit_ref(cls, app, morphs_dirname, repo):
         for filename, morph in cls.morphs_for_repo(app, morphs_dirname, repo):
-            for spec in morph['sources']:
+            for spec in morph['chunks']:
                 spec_repo = cls.resolve_reponame(app, spec['repo'])
                 if spec_repo == repo:
                     return spec['ref']
@@ -168,7 +168,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             app.status(msg='Petrifying %(filename)s', filename=filename)
 
-            for source in morph['sources']:
+            for source in morph['chunks']:
                 reponame = source.get('repo', source['name'])
                 ref = source['ref']
                 app.status(msg='Looking up sha1 for %(repo_name)s %(ref)s',
@@ -318,7 +318,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         for filename, morph in self.morphs_for_repo(app, morphs_dirname, repo):
             changed = False
-            for spec in morph['sources']:
+            for spec in morph['chunks']:
                 spec_repo = self.resolve_reponame(app, spec['repo'])
                 if spec_repo == repo and spec['ref'] != system_branch:
                     app.status(msg='Replacing ref "%(ref)s" with "%(branch)s"'

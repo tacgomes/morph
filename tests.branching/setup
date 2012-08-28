@@ -72,7 +72,7 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
 {
     "name": "hello-stratum",
     "kind": "stratum",
-    "sources": [
+    "chunks": [
         {
             "name": "hello",
             "ref": "master",

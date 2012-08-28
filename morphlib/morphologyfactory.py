@@ -109,7 +109,7 @@ class MorphologyFactory(object):
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
 
-        for source in morphology['sources']:  # pragma: no cover
+        for source in morphology['chunks']:  # pragma: no cover
             if source.get('build-depends', None) is None:
                 name = source.get('name', source.get('repo', 'unknown'))
                 raise morphlib.Error('No build dependencies '

@@ -46,7 +46,7 @@ cat << EOF > alfred.morph
 {
     "name": "alfred",
     "kind": "stratum",
-    "sources": [
+    "chunks": [
         {
             "name": "morphless",
             "repo": "test:morphless",

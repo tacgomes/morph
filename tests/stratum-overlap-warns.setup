@@ -29,7 +29,7 @@ cat <<EOF >overlap-stratum.morph
 {
   "name": "overlap-stratum",
   "kind": "stratum",
-  "sources": [
+  "chunks": [
     {
       "name": "dirs",
       "repo": "test:chunk-repo",
