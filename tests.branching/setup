@@ -63,7 +63,11 @@ cat <<EOF > "$DATADIR/morphs/hello-system.morph"
     "system-kind": "syslinux-disk",
     "disk-size": "1G",
     "strata": [
-        "hello-stratum"
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:hello",
+            "ref": "master"
+        }
     ]
 }
 EOF
@@ -75,8 +79,8 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
     "chunks": [
         {
             "name": "hello",
-            "ref": "master",
             "repo": "baserock:hello",
+            "ref": "master",
             "build-depends": []
         }
     ]

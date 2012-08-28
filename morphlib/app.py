@@ -238,11 +238,11 @@ class Morph(cliapp.Application):
                 reponame, absref, filename)
             visit(reponame, ref, filename, absref, morphology)
             if morphology['kind'] == 'system':
-                queue.extend((reponame, ref, '%s.morph' % s)
+                queue.extend((s['repo'], s['ref'], '%s.morph' % s['morph'])
                              for s in morphology['strata'])
             elif morphology['kind'] == 'stratum':
                 if morphology['build-depends']:
-                    queue.extend((reponame, ref, '%s.morph' % s)
+                    queue.extend((s['repo'], s['ref'], '%s.morph' % s['morph'])
                                  for s in morphology['build-depends'])
                 queue.extend((c['repo'], c['ref'], '%s.morph' % c['morph'])
                              for c in morphology['chunks'])

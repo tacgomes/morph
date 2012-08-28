@@ -109,7 +109,11 @@ cat <<EOF > hello-system.morph
     "system-kind": "syslinux-disk",
     "disk-size": "1G",
     "strata": [
-        "hello-stratum"
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs-repo",
+            "ref": "master"
+        }
     ]
 }
 EOF

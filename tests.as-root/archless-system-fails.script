@@ -31,7 +31,11 @@ cat <<EOF >archless-system.morph
   "kind": "system",
   "disk-size": "1G",
   "strata": [
-    "hello-stratum"
+    {
+      "morph": "hello-stratum",
+      "repo": "tests:morphs-repo",
+      "ref": "archless"
+    }
   ]
 }
 EOF

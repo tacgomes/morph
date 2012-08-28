@@ -198,7 +198,11 @@ cat <<EOF > xfce-core.morph
   "name": "xfce-core",
   "kind": "stratum",
   "build-depends": [
-    "gtk-stack"
+    {
+      "morph": "gtk-stack",
+      "repo": "test:test-repo",
+      "ref": "master"
+    }
   ],
   "chunks": [
     {

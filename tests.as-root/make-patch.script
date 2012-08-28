@@ -58,6 +58,7 @@ sed -i s/hello/goodbye/ "$DATADIR/chunk-repo/hello.c"
 # branch for the morphs repo.
 "$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" checkout --quiet -b alfred
 sed -i 's/farrokh/alfred/' "$DATADIR/morphs-repo/hello-stratum.morph"
+sed -i 's/master/alfred/' "$DATADIR/morphs-repo/hello-system.morph"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" commit -am goodbye \
     > /dev/null
 

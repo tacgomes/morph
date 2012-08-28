@@ -77,8 +77,16 @@ class CacheKeyComputerTests(unittest.TestCase):
                 "name": "system",
                 "kind": "system",
                 "strata": [
-                    "stratum",
-                    "stratum2"
+                    {
+                        "morph": "stratum",
+                        "repo": "repo",
+                        "ref": "original/ref"
+                    },
+                    {
+                        "morph": "stratum2",
+                        "repo": "repo",
+                        "ref": "original/ref"
+                    }
                 ]
             }''',
         }.iteritems():

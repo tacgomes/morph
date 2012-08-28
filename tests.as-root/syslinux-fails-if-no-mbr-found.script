@@ -42,7 +42,11 @@ cat <<EOF >system.morph
   "arch": "$arch",
   "disk-size": "1G",
   "strata": [
-    "stratum"
+    {
+      "morph": "stratum",
+      "repo": "test:morphs-repo",
+      "ref": "custom"
+    }
   ]
 }
 EOF

@@ -153,12 +153,13 @@ class ArtifactResolver(object):
     def _resolve_system_dependencies(self, systems, source, queue):
         artifacts = []
 
-        for stratum_name in source.morphology['strata']:
+        for info in source.morphology['strata']:
             stratum_source = self._source_pool.lookup(
-                source.repo_name,
-                source.original_ref,
-                '%s.morph' % stratum_name)
+                info['repo'],
+                info['ref'],
+                '%s.morph' % info['morph'])
 
+            stratum_name = stratum_source.morphology.builds_artifacts[0]
             stratum = self._get_artifact(stratum_source, stratum_name)
 
             for system in systems:
@@ -175,13 +176,14 @@ class ArtifactResolver(object):
         strata = []
 
         if stratum.source.morphology['build-depends']:
-            for stratum_name in stratum.source.morphology['build-depends']:
+            for stratum_info in stratum.source.morphology['build-depends']:
                 other_source = self._source_pool.lookup(
-                    stratum.source.repo_name,
-                    stratum.source.original_ref,
-                    '%s.morph' % stratum_name)
+                    stratum_info['repo'],
+                    stratum_info['ref'],
+                    '%s.morph' % stratum_info['morph'])
 
-                other_stratum = self._get_artifact(other_source, stratum_name)
+                other_stratum = self._get_artifact(
+                    other_source, other_source.morphology.builds_artifacts[0])
 
                 strata.append(other_stratum)
 
