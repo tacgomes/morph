@@ -85,7 +85,8 @@ if [ "$CHUNK" = "*" ]; then
                 clean_chunk $chunk
         done
 else
-        echo "Removing out of date artifacts for chunk $CHUNK in $ARTIFACT_CACHE"
+        echo "Removing out of date artifacts for chunk $CHUNK in" \
+            "$ARTIFACT_CACHE"
         clean_chunk $CHUNK
 fi
 
