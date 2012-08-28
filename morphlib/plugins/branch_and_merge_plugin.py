@@ -190,13 +190,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         dirname = args[0]
 
+        # verify the mine directory is empty (and thus, can be used) or
+        # create it if it doesn't exist yet
         if os.path.exists(dirname):
             if os.listdir(dirname) != []:
                 raise cliapp.AppException('can only initialize empty '
                                           'directory: %s' % dirname)
         else:
-            raise cliapp.AppException('can only initialize an existing '
-                                      'empty directory: %s' % dirname)
+            try:
+                os.makedirs(dirname)
+            except:
+                raise cliapp.AppException('failed to create mine '
+                                          'directory: %s' % dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
         self.app.status(msg='Initialized morph mine', chatty=True)

@@ -17,8 +17,8 @@
 
 set -eu
 
-# Test that "morph init" gives an error when given the name of a
-# directory that does not exist yet.
+# Test that "morph init" works if given a directory that
+# does not exist yet.
 
 "$SRCDIR/scripts/test-morph" init "$DATADIR/foo"
-
+"$SRCDIR/scripts/list-tree" "$DATADIR/foo"
