@@ -21,7 +21,7 @@
 set -eu
 
 # Checkout the master system branch.
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" checkout alfred
 
@@ -30,10 +30,10 @@ cd alfred/morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello alfred
 
 echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/morphs" branch
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/morphs" branch
 
 echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/alfred/hello" branch
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/hello" branch
 
 echo "Files in hello:"
-ls "$DATADIR/mine/alfred/hello"
+ls "$DATADIR/workspace/alfred/hello"

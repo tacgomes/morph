@@ -20,5 +20,5 @@ set -eu
 # Test that "morph init" fails when given the name of an existing,
 # non-empty directory.
 
-touch "$DATADIR/mine/foo"
-"$SRCDIR/scripts/test-morph" init "$DATADIR/mine"
+touch "$DATADIR/workspace/foo"
+"$SRCDIR/scripts/test-morph" init "$DATADIR/workspace"

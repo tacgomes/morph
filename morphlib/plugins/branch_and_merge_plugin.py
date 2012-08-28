@@ -32,7 +32,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('petrify', self.petrify,
                                 arg_synopsis='STRATUM...')
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
-        self.app.add_subcommand('minedir', self.minedir, arg_synopsis='')
+        self.app.add_subcommand('workspace', self.workspace,
+                                arg_synopsis='')
         self.app.add_subcommand('branch', self.branch,
                                 arg_synopsis='NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
@@ -48,7 +49,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         pass
 
     @staticmethod
-    def deduce_mine_directory():
+    def deduce_workspace():
         dirname = os.getcwd()
         while dirname != '/':
             dot_morph = os.path.join(dirname, '.morph')
@@ -59,18 +60,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @classmethod
     def deduce_system_branch(cls):
-        minedir = cls.deduce_mine_directory()
-        if minedir is None:
+        workspace = cls.deduce_workspace()
+        if workspace is None:
             return None
 
-        if not minedir.endswith('/'):
-            minedir += '/'
+        if not workspace.endswith('/'):
+            workspace += '/'
 
         cwd = os.getcwd()
-        if not cwd.startswith(minedir):
+        if not cwd.startswith(workspace):
             return None
 
-        return os.path.dirname(cwd[len(minedir):])
+        return os.path.dirname(cwd[len(workspace):])
 
     @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
@@ -181,7 +182,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.write_morphology(filename, morph)
 
     def init(self, args):
-        '''Initialize a mine.'''
+        '''Initialize a workspace directory.'''
 
         if not args:
             args = ['.']
@@ -190,28 +191,29 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         dirname = args[0]
 
-        # verify the mine directory is empty (and thus, can be used) or
+        # verify the workspace is empty (and thus, can be used) or
         # create it if it doesn't exist yet
         if os.path.exists(dirname):
             if os.listdir(dirname) != []:
                 raise cliapp.AppException('can only initialize empty '
-                                          'directory: %s' % dirname)
+                                          'directory as a workspace: %s' %
+                                          dirname)
         else:
             try:
                 os.makedirs(dirname)
             except:
-                raise cliapp.AppException('failed to create mine '
-                                          'directory: %s' % dirname)
+                raise cliapp.AppException('failed to create workspace: %s' %
+                                          dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
-        self.app.status(msg='Initialized morph mine', chatty=True)
+        self.app.status(msg='Initialized morph workspace', chatty=True)
 
-    def minedir(self, args):
-        '''Find morph mine directory from current working directory.'''
+    def workspace(self, args):
+        '''Find morph workspace directory from current working directory.'''
 
-        dirname = self.deduce_mine_directory()
+        dirname = self.deduce_workspace()
         if dirname is None:
-            raise cliapp.AppException("Can't find the mine directory")
+            raise cliapp.AppException("Can't find the workspace directory")
         self.app.output.write('%s\n' % dirname)
 
     def branch(self, args):
@@ -274,14 +276,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         app = self.app
         other_branch = args[0]
-        mine = self.deduce_mine_directory()
+        workspace = self.deduce_workspace()
         this_branch = self.deduce_system_branch()
 
         for repo in args[1:]:
             repo = self.resolve_reponame(app, repo)
             basename = os.path.basename(repo)
-            pull_from = os.path.join(mine, other_branch, basename)
-            repo_dir = os.path.join(mine, this_branch, basename)
+            pull_from = os.path.join(workspace, other_branch, basename)
+            repo_dir = os.path.join(workspace, this_branch, basename)
             app.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
 
     def edit(self, args):
@@ -292,12 +294,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'and commit ref as argument')
 
         app = self.app
-        mine_directory = self.deduce_mine_directory()
+        workspace = self.deduce_workspace()
         system_branch = self.deduce_system_branch()
         if system_branch is None:
             raise morphlib.Error('Cannot deduce system branch')
 
-        morphs_dirname = os.path.join(mine_directory, system_branch, 'morphs')
+        morphs_dirname = os.path.join(workspace, system_branch, 'morphs')
         if morphs_dirname is None:
             raise morphlib.Error('Can not find morphs directory')
 
@@ -310,7 +312,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if ref is None:
                 raise morphlib.Error('Cannot deduce commit to start edit from')
 
-        new_repo = os.path.join(mine_directory, system_branch,
+        new_repo = os.path.join(workspace, system_branch,
                                 os.path.basename(repo))
         self.clone_to_directory(app, new_repo, args[0], ref)
 

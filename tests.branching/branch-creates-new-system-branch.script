@@ -18,7 +18,7 @@
 
 set -eu
 
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 "$SRCDIR/scripts/test-morph" branch newbranch
@@ -32,4 +32,4 @@ echo "Current branches:"
 
 echo "Current origin:"
 "$SRCDIR/scripts/run-git-in" newbranch/morphs remote show origin |
-    sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'
+    sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'

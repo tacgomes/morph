@@ -14,7 +14,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-scripts/test-morph init "$DATADIR/mine"
-mkdir -p "$DATADIR/mine/a/b/c"
-cd "$DATADIR/mine/a/b/c"
-"$SRCDIR/scripts/test-morph" minedir
+scripts/test-morph init "$DATADIR/workspace"
+mkdir -p "$DATADIR/workspace/a/b/c"
+cd "$DATADIR/workspace/a/b/c"
+"$SRCDIR/scripts/test-morph" workspace

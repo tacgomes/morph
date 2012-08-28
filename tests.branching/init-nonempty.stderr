@@ -1,1 +1,1 @@
-ERROR: can only initialize empty directory: TMP/mine
+ERROR: can only initialize empty directory as a workspace: TMP/workspace

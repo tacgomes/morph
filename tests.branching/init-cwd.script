@@ -19,7 +19,7 @@ set -eu
 
 # Test that "morph init" works for the current working directory.
 
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init .
-"$SRCDIR/scripts/list-tree" "$DATADIR/mine"
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace"
 

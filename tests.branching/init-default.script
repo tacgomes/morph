@@ -19,6 +19,6 @@ set -eu
 
 # Test that "morph init" works without an explicit argument.
 
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/list-tree" "$DATADIR/mine"
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace"

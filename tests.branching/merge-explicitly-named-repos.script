@@ -22,7 +22,7 @@ set -eu
 
 
 # Create system branch.
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch newbranch
 
@@ -35,7 +35,7 @@ git add newfile.txt
 git commit -m foo --quiet
 
 # Merge changes to a new system branch.
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch otherbranch
 cd otherbranch/morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello master

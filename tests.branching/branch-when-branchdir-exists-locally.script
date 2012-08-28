@@ -19,7 +19,7 @@
 
 set -eu
 
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 mkdir newbranch

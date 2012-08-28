@@ -22,7 +22,7 @@
 set -eu
 
 # Create system branch.
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch newbranch
 

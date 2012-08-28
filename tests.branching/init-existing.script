@@ -20,5 +20,5 @@ set -eu
 # Test that "morph init" works when given the name of an existing,
 # empty directory.
 
-"$SRCDIR/scripts/test-morph" init "$DATADIR/mine"
-"$SRCDIR/scripts/list-tree" "$DATADIR/mine"
+"$SRCDIR/scripts/test-morph" init "$DATADIR/workspace"
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace"
