@@ -56,22 +56,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if os.path.isdir(dot_morph):
                 return dirname
             dirname = os.path.dirname(dirname)
-        return None
+        raise cliapp.AppException("Can't find the workspace directory")
 
     @classmethod
     def deduce_system_branch(cls):
         workspace = cls.deduce_workspace()
-        if workspace is None:
-            return None
 
-        if not workspace.endswith('/'):
-            workspace += '/'
+        dirname = os.getcwd()
+        while dirname != workspace and dirname != '/':
+            system_branch_dir = os.path.join(dirname, '.morph-system-branch')
+            if os.path.isdir(system_branch_dir):
+                return os.path.dirname(system_branch_dir[len(workspace)+1:])
+            dirname = os.path.dirname(dirname)
 
-        cwd = os.getcwd()
-        if not cwd.startswith(workspace):
-            return None
-
-        return os.path.dirname(cwd[len(workspace):])
+        raise cliapp.AppException("Can't find the system branch directory")
 
     @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
@@ -211,10 +209,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def workspace(self, args):
         '''Find morph workspace directory from current working directory.'''
 
-        dirname = self.deduce_workspace()
-        if dirname is None:
-            raise cliapp.AppException("Can't find the workspace directory")
-        self.app.output.write('%s\n' % dirname)
+        self.app.output.write('%s\n' % self.deduce_workspace())
 
     def branch(self, args):
         '''Branch the whole system.'''
@@ -228,6 +223,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Create the system branch directory.
         os.makedirs(new_branch)
+
+        # Create a .morph-system-branch directory to clearly identify
+        # this directory as a morph system branch.
+        os.mkdir(os.path.join(new_branch, '.morph-system-branch'))
 
         # Clone into system branch directory.
         new_repo = os.path.join(new_branch, self.system_repo_base)
@@ -250,22 +249,19 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Create the system branch directory.
         os.makedirs(system_branch)
 
+        # Create a .morph-system-branch directory to clearly identify
+        # this directory as a morph system branch.
+        os.mkdir(os.path.join(system_branch, '.morph-system-branch'))
+
         # Clone into system branch directory.
         new_repo = os.path.join(system_branch, self.system_repo_base)
         self.clone_to_directory(self.app, new_repo, self.system_repo_name,
                                 system_branch)
 
     def show_system_branch(self, args):
-        '''Print name of current system branch.
+        '''Print name of current system branch.'''
 
-        This must be run in the system branch's ``morphs`` repository.
-
-        '''
-
-        system_branch = self.deduce_system_branch()
-        if system_branch is None:
-            raise cliapp.AppException("Can't determine system branch")
-        self.app.output.write('%s\n' % system_branch)
+        self.app.output.write('%s\n' % self.deduce_system_branch())
 
     def merge(self, args):
         '''Merge specified repositories from another system branch.'''
@@ -296,8 +292,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         app = self.app
         workspace = self.deduce_workspace()
         system_branch = self.deduce_system_branch()
-        if system_branch is None:
-            raise morphlib.Error('Cannot deduce system branch')
 
         morphs_dirname = os.path.join(workspace, system_branch, 'morphs')
         if morphs_dirname is None:
