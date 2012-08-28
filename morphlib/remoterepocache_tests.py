@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import json
 import unittest
 
 import morphlib
@@ -26,6 +27,13 @@ class RemoteRepoCacheTests(unittest.TestCase):
 
     def _cat_file_for_repo_url(self, repo_url, sha1, filename):
         return self.files[repo_url][sha1][filename]
+
+    def _ls_tree_for_repo_url(self, repo_url, sha1):
+        return json.dumps({
+            'repo': repo_url,
+            'ref': sha1,
+            'tree': self.files[repo_url][sha1]
+        })
 
     def setUp(self):
         self.sha1s = {
@@ -50,6 +58,7 @@ class RemoteRepoCacheTests(unittest.TestCase):
             self.server_url, resolver)
         self.cache._resolve_ref_for_repo_url = self._resolve_ref_for_repo_url
         self.cache._cat_file_for_repo_url = self._cat_file_for_repo_url
+        self.cache._ls_tree_for_repo_url = self._ls_tree_for_repo_url
 
     def test_sets_server_url(self):
         self.assertEqual(self.cache.server_url, self.server_url)
@@ -103,3 +112,22 @@ class RemoteRepoCacheTests(unittest.TestCase):
                           self.cache.cat_file, 'non-existent-repo',
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           'some-file')
+
+    def test_ls_tree_in_existing_repo_and_ref(self):
+        content = self.cache.ls_tree(
+            'upstream:linux', 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEqual(content, ['linux.morph'])
+
+    def test_fail_ls_tree_using_invalid_sha1(self):
+        self.assertRaises(morphlib.remoterepocache.LsTreeError,
+                          self.cache.ls_tree, 'upstream:linux', 'blablabla')
+
+    def test_fail_ls_file_in_non_existent_ref_in_existing_repo(self):
+        self.assertRaises(morphlib.remoterepocache.LsTreeError,
+                          self.cache.ls_tree, 'upstream:linux',
+                          'ecd7a325095a0d19b8c3d76f578d85b979461d41')
+
+    def test_fail_ls_tree_in_non_existent_repo(self):
+        self.assertRaises(morphlib.remoterepocache.LsTreeError,
+                          self.cache.ls_tree, 'non-existent-repo',
+                          'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')

@@ -158,6 +158,24 @@ class CachedRepo(object):
         except cliapp.AppException:
             raise CheckoutError(self, ref, target_dir)
 
+    def ls_tree(self, ref):
+        '''Return file names found in root tree. Does not recurse to subtrees.
+
+        Raises an UnresolvedNamedReferenceError if the ref is not a SHA1
+        ref. Raises an InvalidReferenceError if the SHA1 ref is not found
+        in the repository.
+
+        '''
+
+        if not self.is_valid_sha1(ref):
+            raise UnresolvedNamedReferenceError(self, ref)
+        try:
+            sha1 = self._rev_list(ref).strip()
+        except cliapp.AppException:
+            raise InvalidReferenceError(self, ref)
+
+        return self._ls_tree(sha1)
+
     def update(self):
         '''Updates the cached repository using its origin remote.
 
@@ -181,6 +199,10 @@ class CachedRepo(object):
 
     def _rev_list(self, ref):  # pragma: no cover
         return self._runcmd(['git', 'rev-list', '--no-walk', ref])
+
+    def _ls_tree(self, ref):  # pragma: no cover
+        result = self._runcmd(['git', 'ls-tree', '--name-only', ref])
+        return result.split('\n')
 
     def _cat_file(self, ref, filename):  # pragma: no cover
         return self._runcmd(['git', 'cat-file', 'blob',

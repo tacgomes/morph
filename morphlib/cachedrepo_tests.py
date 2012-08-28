@@ -79,6 +79,16 @@ class CachedRepoTests(unittest.TestCase):
             with open(os.path.join(target_dir, 'foo.morph'), 'w') as f:
                 f.write('contents of foo.morph')
 
+    def ls_tree(self, ref):
+        output = {
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
+            ['foo.morph']
+        }
+        try:
+            return output[ref]
+        except:
+            raise cliapp.AppException('git ls-tree --name-only %s' % (ref))
+
     def update_successfully(self):
         pass
 
@@ -96,6 +106,7 @@ class CachedRepoTests(unittest.TestCase):
         self.repo._cat_file = self.cat_file
         self.repo._copy_repository = self.copy_repository
         self.repo._checkout_ref = self.checkout_ref
+        self.repo._ls_tree = self.ls_tree
         self.tempdir = morphlib.tempdir.Tempdir()
 
     def tearDown(self):
@@ -176,6 +187,18 @@ class CachedRepoTests(unittest.TestCase):
         self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
                           'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
                           self.tempdir.join('failed-checkout'))
+
+    def test_ls_tree_in_existing_ref(self):
+        data = self.repo.ls_tree('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEqual(data, ['foo.morph'])
+
+    def test_fail_ls_tree_in_invalid_ref(self):
+        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.ls_tree,
+                          '079bbfd447c8534e464ce5d40b80114c2022ebf4')
+
+    def test_fail_because_ls_tree_in_named_ref_is_not_allowed(self):
+        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
+                          self.repo.ls_tree, 'master')
 
     def test_successful_update(self):
         self.repo._update = self.update_successfully

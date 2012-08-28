@@ -35,6 +35,13 @@ class CatFileError(cliapp.AppException):
             self, 'Failed to cat file %s in ref %s of repo %s' %
             (filename, ref, repo_name))
 
+class LsTreeError(cliapp.AppException):
+
+    def __init__(self, repo_name, ref):
+        cliapp.AppException.__init__(
+            self, 'Failed to list tree in ref %s of repo %s' %
+            (ref, repo_name))
+
 
 class RemoteRepoCache(object):
 
@@ -56,6 +63,14 @@ class RemoteRepoCache(object):
         except:
             raise CatFileError(repo_name, ref, filename)
 
+    def ls_tree(self, repo_name, ref):
+        repo_url = self._resolver.pull_url(repo_name)
+        try:
+            info = json.loads(self._ls_tree_for_repo_url(repo_url, ref))
+            return info['tree'].keys()
+        except:
+            raise LsTreeError(repo_name, ref)
+
     def _resolve_ref_for_repo_url(self, repo_url, ref):  # pragma: no cover
         data = self._make_request('sha1s?repo=%s&ref=%s' % (repo_url, ref))
         info = json.loads(data)
@@ -65,6 +80,9 @@ class RemoteRepoCache(object):
                                filename):  # pragma: no cover
         return self._make_request(
             'files?repo=%s&ref=%s&filename=%s' % (repo_url, ref, filename))
+
+    def _ls_tree_for_repo_url(self, repo_url, ref):  # pragma: no cover
+        return self._make_request('trees?repo=%s&ref=%s' % (repo_url, ref))
 
     def _make_request(self, path):  # pragma: no cover
         server_url = self.server_url

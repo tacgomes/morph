@@ -26,13 +26,8 @@ def touch(pathname):
     with open(pathname, 'w'):
         pass
 
-
-def create_manual_project(srcdir):
-    pass
-
-
-def create_autotools_project(srcdir):
-    touch(os.path.join(srcdir, 'configure.in'))
+manual_project = []
+autotools_project = ['configure.in']
 
 
 class BuildSystemTests(unittest.TestCase):
@@ -62,85 +57,46 @@ class ManualBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
         self.bs = morphlib.buildsystem.ManualBuildSystem()
-        self.tempdir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    def exists(self, filename):
-        return os.path.exists(os.path.join(self.tempdir, filename))
 
     def test_does_not_autodetect_empty(self):
-        create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_does_not_autodetect_autotools(self):
-        create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertFalse(self.bs.used_by_project(autotools_project))
 
 
 class DummyBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
         self.bs = morphlib.buildsystem.DummyBuildSystem()
-        self.tempdir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    def exists(self, filename):
-        return os.path.exists(os.path.join(self.tempdir, filename))
 
     def test_does_not_autodetect_empty(self):
-        create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_does_not_autodetect_autotools(self):
-        create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertFalse(self.bs.used_by_project(autotools_project))
 
 
 class AutotoolsBuildSystemTests(unittest.TestCase):
 
     def setUp(self):
-        self.bs = morphlib.buildsystem.ManualBuildSystem()
-        self.tempdir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    def exists(self, filename):
-        return os.path.exists(os.path.join(self.tempdir, filename))
+        self.bs = morphlib.buildsystem.AutotoolsBuildSystem()
 
     def test_does_not_autodetect_empty(self):
-        create_manual_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertFalse(self.bs.used_by_project(manual_project))
 
     def test_autodetects_autotools(self):
-        create_autotools_project(self.tempdir)
-        self.assertFalse(self.bs.used_by_project(self.exists))
+        self.assertTrue(self.bs.used_by_project(autotools_project))
 
 
 class DetectBuildSystemTests(unittest.TestCase):
 
-    def setUp(self):
-        self.bs = morphlib.buildsystem.ManualBuildSystem()
-        self.tempdir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-
-    def exists(self, filename):
-        return os.path.exists(os.path.join(self.tempdir, filename))
-
     def test_does_not_autodetect_manual(self):
-        create_manual_project(self.tempdir)
-        bs = morphlib.buildsystem.detect_build_system(self.exists)
+        bs = morphlib.buildsystem.detect_build_system(manual_project)
         self.assertEqual(bs, None)
 
     def test_autodetects_autotools(self):
-        create_autotools_project(self.tempdir)
-        bs = morphlib.buildsystem.detect_build_system(self.exists)
+        bs = morphlib.buildsystem.detect_build_system(autotools_project)
         self.assertEqual(type(bs), morphlib.buildsystem.AutotoolsBuildSystem)
 
 

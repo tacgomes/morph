@@ -55,7 +55,7 @@ class BuildSystem(object):
             'bs': self.name,
         }
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         '''Does a project use this build system?
 
         ``exists`` is a function that returns a boolean telling if a
@@ -71,7 +71,7 @@ class ManualBuildSystem(BuildSystem):
 
     name = 'manual'
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         return False
 
 
@@ -87,7 +87,7 @@ class DummyBuildSystem(BuildSystem):
         self.test_commands = ['echo dummy test']
         self.install_commands = ['echo dummy install']
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         return False
 
 
@@ -114,7 +114,7 @@ class AutotoolsBuildSystem(BuildSystem):
             'make DESTDIR="$DESTDIR" install',
         ]
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         indicators = [
             'autogen',
             'autogen.sh',
@@ -124,7 +124,7 @@ class AutotoolsBuildSystem(BuildSystem):
             'configure.in.in',
         ]
 
-        return any(exists(x) for x in indicators)
+        return any(x in file_list for x in indicators)
 
 
 class PythonDistutilsBuildSystem(BuildSystem):
@@ -145,12 +145,12 @@ class PythonDistutilsBuildSystem(BuildSystem):
             'python setup.py install --prefix "$PREFIX" --root "$DESTDIR"',
         ]
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         indicators = [
             'setup.py',
         ]
 
-        return any(exists(x) for x in indicators)
+        return any(x in file_list for x in indicators)
 
 
 class CPANBuildSystem(BuildSystem):
@@ -178,12 +178,12 @@ class CPANBuildSystem(BuildSystem):
             'make DESTDIR="$DESTDIR" install',
         ]
 
-    def used_by_project(self, exists):
+    def used_by_project(self, file_list):
         indicators = [
             'Makefile.PL',
         ]
 
-        return any(exists(x) for x in indicators)
+        return any(x in file_list for x in indicators)
 
 
 build_systems = [
@@ -195,16 +195,15 @@ build_systems = [
 ]
 
 
-def detect_build_system(exists):
+def detect_build_system(file_list):
     '''Automatically detect the build system, if possible.
 
     If the build system cannot be detected automatically, return None.
     For ``exists`` see the ``BuildSystem.exists`` method.
 
     '''
-
     for bs in build_systems:
-        if bs.used_by_project(exists):
+        if bs.used_by_project(file_list):
             return bs
     return None
 
