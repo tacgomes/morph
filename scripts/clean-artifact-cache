@@ -22,52 +22,52 @@
 set -e
 
 usage() {
-	echo "Usage: clean-artifact-cache [--all] [CHUNK_NAME]"
-	echo
-	echo "WARNING: this script removes all but the chunks with the latest"
-	echo "mtimes. This is usually what you want, but you should try the"
-	echo "script on a small chunk first and trigger a rebuild to make sure"
-	echo "that you are not removing artifacts that you still want."
+        echo "Usage: clean-artifact-cache [--all] [CHUNK_NAME]"
+        echo
+        echo "WARNING: this script removes all but the chunks with the latest"
+        echo "mtimes. This is usually what you want, but you should try the"
+        echo "script on a small chunk first and trigger a rebuild to make sure"
+        echo "that you are not removing artifacts that you still want."
 }
 
 if [ -z $1 ]; then
-	usage
-	exit 0
+        usage
+        exit 0
 fi
 
 CHUNK=
 case $1 in
-	--all)
-		CHUNK=*
-		;;
-	-*)
-		usage
-		exit 0
-		;;
-	*)
-		CHUNK=$1
+        --all)
+                CHUNK=*
+                ;;
+        -*)
+                usage
+                exit 0
+                ;;
+        *)
+                CHUNK=$1
 esac
 
 
 clean_chunk() {
-	ARTIFACT_COUNT=$(ls *.chunk.$1 | wc -l)
+        ARTIFACT_COUNT=$(ls *.chunk.$1 | wc -l)
 
-	if [ $ARTIFACT_COUNT -lt 2 ]; then
-		return
-	fi
+        if [ $ARTIFACT_COUNT -lt 2 ]; then
+                return
+        fi
 
-	echo "$1: $(expr $ARTIFACT_COUNT - 1) stale artifact(s)"
+        echo "$1: $(expr $ARTIFACT_COUNT - 1) stale artifact(s)"
 
-	SKIPPED_LATEST=
-	for f in $(ls -1t *.chunk.$1); do
-		if [ -z "$SKIPPED_LATEST" ]; then
-			SKIPPED_LATEST=yes
-		else
-			rm $(echo $f | cut -c -64).build-log
-			rm $(echo $f | cut -c -64).meta
-			rm $(echo $f | cut -c -64).chunk.$1
-		fi
-	done
+        SKIPPED_LATEST=
+        for f in $(ls -1t *.chunk.$1); do
+                if [ -z "$SKIPPED_LATEST" ]; then
+                        SKIPPED_LATEST=yes
+                else
+                        rm $(echo $f | cut -c -64).build-log
+                        rm $(echo $f | cut -c -64).meta
+                        rm $(echo $f | cut -c -64).chunk.$1
+                fi
+        done
 }
 
 test "x$MORPH" = "x" && MORPH=morph
@@ -79,14 +79,14 @@ cd $ARTIFACT_CACHE
 SIZE_BEFORE=$(du -sh . | cut -f 1)
 
 if [ "$CHUNK" = "*" ]; then
-	echo "Removing ALL out-of-date chunk artifacts in $ARTIFACT_CACHE"
+        echo "Removing ALL out-of-date chunk artifacts in $ARTIFACT_CACHE"
 
-	for chunk in $(ls *.chunk.* | cut -d '.' -f 3-); do
-		clean_chunk $chunk
-	done
+        for chunk in $(ls *.chunk.* | cut -d '.' -f 3-); do
+                clean_chunk $chunk
+        done
 else
-	echo "Removing out of date artifacts for chunk $CHUNK in $ARTIFACT_CACHE"
-	clean_chunk $CHUNK
+        echo "Removing out of date artifacts for chunk $CHUNK in $ARTIFACT_CACHE"
+        clean_chunk $CHUNK
 fi
 
 SIZE_AFTER=$(du -sh . | cut -f 1)
