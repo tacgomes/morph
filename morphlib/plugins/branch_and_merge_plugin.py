@@ -19,6 +19,7 @@ import os
 import json
 import glob
 import tempfile
+import urlparse
 
 import morphlib
 
@@ -113,6 +114,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         repo = cache.cache_repo(reponame)
         if not app.settings['no-git-update']:
             repo.update()
+
+        # Make sure the parent directories needed for the repo dir exist.
+        parent_dir = os.path.dirname(dirname)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
         # Clone it from cache to target directory.
         repo.checkout(ref, os.path.abspath(dirname))
@@ -262,14 +268,31 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
                         cwd=new_repo)
 
+    def _convert_uri_to_path(self, uri):
+        parts = urlparse.urlparse(uri)
+
+        # If the URI path is relative, assume it is an aliased repo (e.g.
+        # baserock:morphs). Otherwise assume it is a full URI where we need
+        # to strip off the scheme and .git suffix.
+        if not os.path.isabs(parts.path):
+            return uri
+        else:
+            path = parts.netloc
+            if parts.path.endswith('.git'):
+                path = os.path.join(path, parts.path[1:-len('.git')])
+            else:
+                path = os.path.join(path, parts.path[1:])
+            return path
+
     def checkout(self, args):
         '''Check out an existing system branch.'''
 
-        if len(args) != 1:
-            raise cliapp.AppException('morph checkout needs name of '
-                                      'branch as parameter')
+        if len(args) != 2:
+            raise cliapp.AppException('morph checkout needs a repo and the '
+                                      'name of a branch as parameters')
 
-        system_branch = args[0]
+        repo = args[0]
+        system_branch = args[1]
 
         # Create the system branch directory.
         os.makedirs(system_branch)
@@ -279,9 +302,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         os.mkdir(os.path.join(system_branch, '.morph-system-branch'))
 
         # Clone into system branch directory.
-        new_repo = os.path.join(system_branch, self.system_repo_base)
-        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
-                                system_branch)
+        repo_dir = os.path.join(system_branch, self._convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, system_branch)
 
     def show_system_branch(self, args):
         '''Print name of current system branch.'''

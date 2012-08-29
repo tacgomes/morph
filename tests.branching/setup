@@ -56,6 +56,9 @@ mkdir "$DATADIR/workspace"
 # Create a fake morphs repository
 mkdir "$DATADIR/morphs"
 
+## Create a link to this repo that has a .git suffix
+ln -s "$DATADIR/morphs" "$DATADIR/morphs.git"
+
 cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 {
     "name": "hello-system",

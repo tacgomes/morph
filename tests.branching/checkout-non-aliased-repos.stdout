@@ -1,0 +1,36 @@
+File tree of repo with suffix:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_git
+d ./.morph/cache/gits/file_git/.git
+d ./master
+d ./master/.morph-system-branch
+d ./master/tmp
+d ./master/TEMP_DIR
+d ./master/DATADIR
+d ./master/DATADIR/morphs
+d ./master/DATADIR/morphs/.git
+f ./master/DATADIR/morphs/hello-stratum.morph
+f ./master/DATADIR/morphs/hello-system.morph
+Current branches of repo with suffix:
+* master
+File tree of repo without suffix:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_morphs
+d ./.morph/cache/gits/file_morphs/.git
+d ./master
+d ./master/.morph-system-branch
+d ./master/tmp
+d ./master/TEMP_DIR
+d ./master/DATADIR
+d ./master/DATADIR/morphs
+d ./master/DATADIR/morphs/.git
+f ./master/DATADIR/morphs/hello-stratum.morph
+f ./master/DATADIR/morphs/hello-system.morph
+Current branches of repo without suffix:
+* master
