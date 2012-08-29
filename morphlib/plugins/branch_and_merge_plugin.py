@@ -275,14 +275,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.write_branch_root(new_branch, repo)
 
         # Clone into system branch directory.
-        repo_dir = os.path.join(new_branch, self._convert_uri_to_path(repo))
+        repo_dir = os.path.join(new_branch, self.convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, commit)
 
         # Create a new branch in the local morphs repository.
         self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
                         cwd=repo_dir)
 
-    def _convert_uri_to_path(self, uri):
+    def convert_uri_to_path(self, uri):
         parts = urlparse.urlparse(uri)
 
         # If the URI path is relative, assume it is an aliased repo (e.g.
@@ -319,7 +319,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.write_branch_root(system_branch, repo)
 
         # Clone into system branch directory.
-        repo_dir = os.path.join(system_branch, self._convert_uri_to_path(repo))
+        repo_dir = os.path.join(system_branch, self.convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, system_branch)
 
     def show_system_branch(self, args):
@@ -340,7 +340,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         for repo in args[1:]:
             repo_url = self.resolve_reponame(self.app, repo)
-            repo_path = self._convert_uri_to_path(repo)
+            repo_path = self.convert_uri_to_path(repo)
             pull_from = 'file://' + os.path.join(workspace, other_branch,
                                                  repo_path)
             repo_dir = os.path.join(workspace, this_branch, repo_path)
@@ -362,7 +362,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch_root = self.read_branch_root(branch_dir)
 
         # Convert it to a local directory in the branch.
-        branch_root_path = self._convert_uri_to_path(branch_root)
+        branch_root_path = self.convert_uri_to_path(branch_root)
         branch_root_dir = os.path.join(branch_dir, branch_root_path)
 
         # Find out which repository to edit.
@@ -377,7 +377,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise morphlib.Error('Cannot deduce commit to start edit from')
 
         # Clone the repository to be edited.
-        repo_dir = os.path.join(branch_dir, self._convert_uri_to_path(repo))
+        repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, ref)
 
         if system_branch == ref:
