@@ -15,11 +15,18 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+# Check that 'morph show-system-branch' fails when the system branch
+# is not obvious.
+
+
 set -eu
 
-# Test that "morph init" works for the current working directory.
-
+# Create a workspace and two system branches
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init .
-"$SRCDIR/scripts/list-tree" "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch first/branch
+"$SRCDIR/scripts/test-morph" branch second/branch
 
+# Try to find out the branch from the workspace directory.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" show-system-branch

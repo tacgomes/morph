@@ -58,16 +58,41 @@ class BranchAndMergePlugin(cliapp.Plugin):
             dirname = os.path.dirname(dirname)
         raise cliapp.AppException("Can't find the workspace directory")
 
+    @staticmethod
+    def is_system_branch_directory(dirname):
+        return os.path.isdir(os.path.join(dirname, '.morph-system-branch'))
+
     @classmethod
     def deduce_system_branch(cls):
+        # 1. Deduce the workspace. If this fails, we're not inside a workspace.
         workspace = cls.deduce_workspace()
 
+        # 2. We're in a workspace. Check if we're inside a system branch.
+        #    If we are, return its name.
         dirname = os.getcwd()
         while dirname != workspace and dirname != '/':
-            system_branch_dir = os.path.join(dirname, '.morph-system-branch')
-            if os.path.isdir(system_branch_dir):
-                return os.path.dirname(system_branch_dir[len(workspace)+1:])
+            if cls.is_system_branch_directory(dirname):
+                return os.path.relpath(dirname, workspace)
             dirname = os.path.dirname(dirname)
+
+        # 3. We're in a workspace but not inside a branch. Try to find a
+        #    branch directory in the directories below the current working
+        #    directory. Avoid ambiguousity by only recursing deeper if there
+        #    is only one subdirectory.
+        visited = set()
+        for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
+            # Avoid infinite recursion.
+            if dirname in visited:
+                break
+            visited.add(dirname)
+
+            if cls.is_system_branch_directory(dirname):
+                return os.path.relpath(dirname, workspace)
+
+            # Do not recurse deeper if we have more than one
+            # non-hidden directory.
+            if len([x for x in subdirs if not x.startswith('.')]) > 1:
+                break
 
         raise cliapp.AppException("Can't find the system branch directory")
 
