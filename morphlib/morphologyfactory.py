@@ -22,10 +22,10 @@ class MorphologyFactoryError(cliapp.AppException):
 
 
 class AutodetectError(MorphologyFactoryError):
-    def __init__(self, repo_name, ref):
+    def __init__(self, repo_name, ref, filename):
         MorphologyFactoryError.__init__(
             self, "Failed to determine the build system of repo %s at "
-                  "ref %s" % (repo_name, ref))
+                  "ref %s: was looking for %s" % (repo_name, ref, filename))
 
 
 class NotcachedError(MorphologyFactoryError):
@@ -61,7 +61,7 @@ class MorphologyFactory(object):
         if text is None:
             bs = morphlib.buildsystem.detect_build_system(file_list)
             if bs is None:
-                raise AutodetectError(reponame, sha1)
+                raise AutodetectError(reponame, sha1, filename)
             # TODO consider changing how morphs are located to be by morph
             #      name rather than filename, it would save creating a
             #      filename only to strip it back to its morph name again
