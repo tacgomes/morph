@@ -23,17 +23,19 @@ set -eu
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch newbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
 
 # Edit chunk.
-cd newbranch/morphs
+cd newbranch/baserock:morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello master
 
 echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/morphs" branch
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:morphs" branch
 
 echo "Current origin, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/morphs" \
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:morphs" \
     remote show origin | \
         sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'
 

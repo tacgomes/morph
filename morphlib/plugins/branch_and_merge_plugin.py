@@ -26,9 +26,6 @@ import morphlib
 
 class BranchAndMergePlugin(cliapp.Plugin):
 
-    system_repo_base = 'morphs'
-    system_repo_name = 'baserock:%s' % system_repo_base
-
     def enable(self):
         self.app.add_subcommand('petrify', self.petrify,
                                 arg_synopsis='STRATUM...')
@@ -259,12 +256,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def branch(self, args):
         '''Branch the whole system.'''
 
-        if len(args) not in [1, 2]:
+        if len(args) not in [2, 3]:
             raise cliapp.AppException('morph branch needs name of branch '
                                       'as parameter')
 
-        new_branch = args[0]
-        commit = 'master' if len(args) == 1 else args[1]
+        repo = args[0]
+        new_branch = args[1]
+        commit = 'master' if len(args) == 2 else args[2]
 
         # Create the system branch directory.
         os.makedirs(new_branch)
@@ -274,16 +272,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
         os.mkdir(os.path.join(new_branch, '.morph-system-branch'))
 
         # Remember the repository we branched off from.
-        self.write_branch_root(new_branch, self.system_repo_base)
+        self.write_branch_root(new_branch, repo)
 
         # Clone into system branch directory.
-        new_repo = os.path.join(new_branch, self.system_repo_base)
-        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
-                                commit)
+        repo_dir = os.path.join(new_branch, self._convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, commit)
 
         # Create a new branch in the local morphs repository.
         self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
-                        cwd=new_repo)
+                        cwd=repo_dir)
 
     def _convert_uri_to_path(self, uri):
         parts = urlparse.urlparse(uri)

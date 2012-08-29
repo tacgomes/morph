@@ -15,8 +15,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Check that 'morph show-system-branch' shows the name of the current system
-# branch correctly.
+# Check that 'morph show-system-branch' fails when being run
+# outside a workspace.
 
 
 set -eu
@@ -24,7 +24,7 @@ set -eu
 # Create a workspace and branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch testbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs testbranch
 
 # Leave the workspace.
 cd ..

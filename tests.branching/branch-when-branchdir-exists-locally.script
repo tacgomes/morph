@@ -23,5 +23,5 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 mkdir newbranch
-"$SRCDIR/scripts/test-morph" branch newbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
 
