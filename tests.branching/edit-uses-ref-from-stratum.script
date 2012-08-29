@@ -29,5 +29,5 @@ cd "$DATADIR/workspace"
 cd newbranch/morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello
 
-cd ../hello
+cd ../baserock:hello
 git branch

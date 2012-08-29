@@ -12,6 +12,7 @@ d ./master/TEMP_DIR
 d ./master/DATADIR
 d ./master/DATADIR/morphs
 d ./master/DATADIR/morphs/.git
+f ./master/.morph-system-branch/branch-root
 f ./master/DATADIR/morphs/hello-stratum.morph
 f ./master/DATADIR/morphs/hello-system.morph
 Current branches of repo with suffix:
@@ -30,6 +31,7 @@ d ./master/TEMP_DIR
 d ./master/DATADIR
 d ./master/DATADIR/morphs
 d ./master/DATADIR/morphs/.git
+f ./master/.morph-system-branch/branch-root
 f ./master/DATADIR/morphs/hello-stratum.morph
 f ./master/DATADIR/morphs/hello-system.morph
 Current branches of repo without suffix:

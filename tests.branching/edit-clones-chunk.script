@@ -38,9 +38,10 @@ echo "Current origin, morphs:"
         sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'
 
 echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/hello" branch
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:hello" branch
 
 echo "Current origin, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/hello" \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/baserock:hello" \
     remote show origin | \
         sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'

@@ -33,7 +33,7 @@ echo "Current branches, morphs:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/baserock:morphs" branch
 
 echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/hello" branch
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/baserock:hello" branch
 
 echo "Files in hello:"
-ls "$DATADIR/workspace/alfred/hello"
+ls "$DATADIR/workspace/alfred/baserock:hello"

@@ -29,7 +29,7 @@ cd "$DATADIR/workspace"
 # Make a change to a chunk.
 cd newbranch/morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello master
-cd ../hello
+cd ../baserock:hello
 touch newfile.txt
 git add newfile.txt
 git commit -m foo --quiet
@@ -42,7 +42,7 @@ cd otherbranch/morphs
 "$SRCDIR/scripts/test-morph" merge newbranch baserock:hello
 
 # Check results.
-cd ../hello
+cd ../baserock:hello
 git status --short # make sure all changes are committed
 ls newfile.txt # make sure the new file is there
 

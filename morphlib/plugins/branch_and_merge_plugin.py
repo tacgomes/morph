@@ -98,6 +98,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
         raise cliapp.AppException("Can't find the system branch directory")
 
     @staticmethod
+    def write_branch_root(branch_dir, repo):
+        filename = os.path.join(branch_dir, '.morph-system-branch',
+                                'branch-root')
+        with open(filename, 'w') as f:
+            f.write('%s\n' % repo)
+
+    @staticmethod
+    def read_branch_root(branch_dir):
+        filename = os.path.join(branch_dir, '.morph-system-branch',
+                                'branch-root')
+        with open(filename, 'r') as f:
+            return f.read().strip()
+
+    @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
         '''Clone a repository below a directory.
 
@@ -259,6 +273,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # this directory as a morph system branch.
         os.mkdir(os.path.join(new_branch, '.morph-system-branch'))
 
+        # Remember the repository we branched off from.
+        self.write_branch_root(new_branch, self.system_repo_base)
+
         # Clone into system branch directory.
         new_repo = os.path.join(new_branch, self.system_repo_base)
         self.clone_to_directory(self.app, new_repo, self.system_repo_name,
@@ -301,6 +318,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # this directory as a morph system branch.
         os.mkdir(os.path.join(system_branch, '.morph-system-branch'))
 
+        # Remember the repository we branched off from.
+        self.write_branch_root(system_branch, repo)
+
         # Clone into system branch directory.
         repo_dir = os.path.join(system_branch, self._convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, system_branch)
@@ -313,21 +333,22 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def merge(self, args):
         '''Merge specified repositories from another system branch.'''
 
-        if len(args) == 0:
+        if len(args) < 2:
             raise cliapp.AppException('morph merge must get a branch name '
                                       'and some repo names as arguments')
 
-        app = self.app
         other_branch = args[0]
         workspace = self.deduce_workspace()
         this_branch = self.deduce_system_branch()
 
         for repo in args[1:]:
-            repo = self.resolve_reponame(app, repo)
-            basename = os.path.basename(repo)
-            pull_from = os.path.join(workspace, other_branch, basename)
-            repo_dir = os.path.join(workspace, this_branch, basename)
-            app.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
+            repo_url = self.resolve_reponame(self.app, repo)
+            repo_path = self._convert_uri_to_path(repo)
+            pull_from = 'file://' + os.path.join(workspace, other_branch,
+                                                 repo_path)
+            repo_dir = os.path.join(workspace, this_branch, repo_path)
+            self.app.runcmd(['git', 'pull', pull_from, other_branch],
+                            cwd=repo_dir)
 
     def edit(self, args):
         '''Edit a component in a system branch.'''
@@ -336,43 +357,49 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('morph edit must get a repository name '
                                       'and commit ref as argument')
 
-        app = self.app
         workspace = self.deduce_workspace()
         system_branch = self.deduce_system_branch()
 
-        morphs_dirname = os.path.join(workspace, system_branch, 'morphs')
-        if morphs_dirname is None:
-            raise morphlib.Error('Can not find morphs directory')
+        # Find out which repository we branched off from.
+        branch_dir = os.path.join(workspace, system_branch)
+        branch_root = self.read_branch_root(branch_dir)
 
-        repo = self.resolve_reponame(app, args[0])
+        # Convert it to a local directory in the branch.
+        branch_root_path = self._convert_uri_to_path(branch_root)
+        branch_root_dir = os.path.join(branch_dir, branch_root_path)
 
+        # Find out which repository to edit.
+        repo, repo_url = args[0], self.resolve_reponame(self.app, args[0])
+
+        # Find out which ref of the edit repo to check out.
         if len(args) == 2:
             ref = args[1]
         else:
-            ref = self.find_edit_ref(app, morphs_dirname, repo)
+            ref = self.find_edit_ref(self.app, branch_root_dir, repo_url)
             if ref is None:
                 raise morphlib.Error('Cannot deduce commit to start edit from')
 
-        new_repo = os.path.join(workspace, system_branch,
-                                os.path.basename(repo))
-        self.clone_to_directory(app, new_repo, args[0], ref)
+        # Clone the repository to be edited.
+        repo_dir = os.path.join(branch_dir, self._convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, ref)
 
         if system_branch == ref:
-            app.runcmd(['git', 'checkout', system_branch],
-                       cwd=new_repo)
+            self.app.runcmd(['git', 'checkout', system_branch],
+                            cwd=repo_dir)
         else:
-            app.runcmd(['git', 'checkout', '-b', system_branch, ref],
-                       cwd=new_repo)
+            self.app.runcmd(['git', 'checkout', '-b', system_branch, ref],
+                            cwd=repo_dir)
 
-        for filename, morph in self.morphs_for_repo(app, morphs_dirname, repo):
+        for filename, morph in \
+                self.morphs_for_repo(self.app, branch_root_dir, repo_url):
             changed = False
             for spec in morph['sources']:
-                spec_repo = self.resolve_reponame(app, spec['repo'])
-                if spec_repo == repo and spec['ref'] != system_branch:
-                    app.status(msg='Replacing ref "%(ref)s" with "%(branch)s"'
-                                   'in %(filename)s',
-                               ref=spec['ref'], branch=system_branch,
-                               filename=filename, chatty=True)
+                spec_repo = self.resolve_reponame(self.app, spec['repo'])
+                if spec_repo == repo_url and spec['ref'] != system_branch:
+                    self.app.status(msg='Replacing ref "%(ref)s" with '
+                                    '"%(branch)s" in %(filename)s',
+                                    ref=spec['ref'], branch=system_branch,
+                                    filename=filename, chatty=True)
                     spec['ref'] = system_branch
                     changed = True
             if changed:
