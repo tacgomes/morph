@@ -75,7 +75,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # 3. We're in a workspace but not inside a branch. Try to find a
         #    branch directory in the directories below the current working
-        #    directory. Avoid ambiguousity by only recursing deeper if there
+        #    directory. Avoid ambiguity by only recursing deeper if there
         #    is only one subdirectory.
         visited = set()
         for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
