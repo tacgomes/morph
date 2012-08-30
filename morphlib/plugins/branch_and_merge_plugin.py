@@ -39,6 +39,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('show-system-branch', self.show_system_branch,
                                 arg_synopsis='')
+        self.app.add_subcommand('show-branch-root', self.show_branch_root,
+                                arg_synopsis='')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH REPO...')
         self.app.add_subcommand('edit', self.edit,
@@ -269,17 +271,19 @@ class BranchAndMergePlugin(cliapp.Plugin):
         commit = 'master' if len(args) == 2 else args[2]
 
         # Create the system branch directory.
-        os.makedirs(new_branch)
+        workspace = self.deduce_workspace()
+        branch_dir = os.path.join(workspace, new_branch)
+        os.makedirs(branch_dir)
 
         # Create a .morph-system-branch directory to clearly identify
         # this directory as a morph system branch.
-        os.mkdir(os.path.join(new_branch, '.morph-system-branch'))
+        os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
         # Remember the repository we branched off from.
-        self.write_branch_root(new_branch, repo)
+        self.write_branch_root(branch_dir, repo)
 
         # Clone into system branch directory.
-        repo_dir = os.path.join(new_branch, self.convert_uri_to_path(repo))
+        repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, commit)
 
         # Create a new branch in the local morphs repository.
@@ -313,23 +317,34 @@ class BranchAndMergePlugin(cliapp.Plugin):
         system_branch = args[1]
 
         # Create the system branch directory.
-        os.makedirs(system_branch)
+        workspace = self.deduce_workspace()
+        branch_dir = os.path.join(workspace, system_branch)
+        os.makedirs(branch_dir)
 
         # Create a .morph-system-branch directory to clearly identify
         # this directory as a morph system branch.
-        os.mkdir(os.path.join(system_branch, '.morph-system-branch'))
+        os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
         # Remember the repository we branched off from.
-        self.write_branch_root(system_branch, repo)
+        self.write_branch_root(branch_dir, repo)
 
         # Clone into system branch directory.
-        repo_dir = os.path.join(system_branch, self.convert_uri_to_path(repo))
+        repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
         self.clone_to_directory(self.app, repo_dir, repo, system_branch)
 
     def show_system_branch(self, args):
         '''Print name of current system branch.'''
 
         self.app.output.write('%s\n' % self.deduce_system_branch())
+
+    def show_branch_root(self, args):
+        '''Print name of the repository that was branched off from.'''
+
+        workspace = self.deduce_workspace()
+        system_branch = self.deduce_system_branch()
+        branch_dir = os.path.join(workspace, system_branch)
+        branch_root = self.read_branch_root(branch_dir)
+        self.app.output.write('%s\n' % branch_root)
 
     def merge(self, args):
         '''Merge specified repositories from another system branch.'''
@@ -345,8 +360,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         for repo in args[1:]:
             repo_url = self.resolve_reponame(self.app, repo)
             repo_path = self.convert_uri_to_path(repo)
-            pull_from = 'file://' + os.path.join(workspace, other_branch,
-                                                 repo_path)
+            pull_from = urlparse.urljoin(
+                'file://', os.path.join(workspace, other_branch, repo_path))
             repo_dir = os.path.join(workspace, this_branch, repo_path)
             self.app.runcmd(['git', 'pull', pull_from, other_branch],
                             cwd=repo_dir)

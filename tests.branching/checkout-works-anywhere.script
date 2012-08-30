@@ -1,0 +1,46 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Make sure "morph checkout" works anywhere in a workspace or system branch.
+
+set -eu
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# First, check out the master branch from the workspace directory.
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+
+echo "Workspace after checking out master from the workspace directory:"
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+
+# Reset the workspace.
+cd "$DATADIR"
+rm -rf workspace
+mkdir workspace
+cd workspace
+"$SRCDIR/scripts/test-morph" init
+
+# This time, create a new branch and check out the master branch
+# from within that branch.
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+cd newbranch/baserock:morphs
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+
+echo "Workspace after checking out master from within a new branch:"
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'

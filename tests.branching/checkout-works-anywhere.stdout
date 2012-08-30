@@ -1,0 +1,35 @@
+Workspace after checking out master from the workspace directory:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_morphs
+d ./.morph/cache/gits/file_morphs/.git
+d ./master
+d ./master/.morph-system-branch
+d ./master/baserock:morphs
+d ./master/baserock:morphs/.git
+f ./master/.morph-system-branch/branch-root
+f ./master/baserock:morphs/hello-stratum.morph
+f ./master/baserock:morphs/hello-system.morph
+Workspace after checking out master from within a new branch:
+d .
+d ./.morph
+d ./.morph/cache
+d ./.morph/cache/gits
+d ./.morph/cache/gits/file_morphs
+d ./.morph/cache/gits/file_morphs/.git
+d ./master
+d ./master/.morph-system-branch
+d ./master/baserock:morphs
+d ./master/baserock:morphs/.git
+d ./newbranch
+d ./newbranch/.morph-system-branch
+d ./newbranch/baserock:morphs
+d ./newbranch/baserock:morphs/.git
+f ./master/.morph-system-branch/branch-root
+f ./master/baserock:morphs/hello-stratum.morph
+f ./master/baserock:morphs/hello-system.morph
+f ./newbranch/.morph-system-branch/branch-root
+f ./newbranch/baserock:morphs/hello-stratum.morph
+f ./newbranch/baserock:morphs/hello-system.morph
