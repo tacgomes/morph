@@ -15,6 +15,7 @@
 
 
 import cliapp
+import copy
 import os
 import json
 import glob
@@ -89,7 +90,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             # Do not recurse deeper if we have more than one
             # non-hidden directory.
-            for d in subdirs:
+            for d in copy.copy(subdirs):
                 if d.startswith('.'):
                     subdirs.remove(d)
             if len(subdirs) > 1:
