@@ -39,6 +39,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('show-system-branch', self.show_system_branch,
                                 arg_synopsis='')
+        self.app.add_subcommand('show-branch-root', self.show_branch_root,
+                                arg_synopsis='')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH REPO...')
         self.app.add_subcommand('edit', self.edit,
@@ -330,6 +332,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
         '''Print name of current system branch.'''
 
         self.app.output.write('%s\n' % self.deduce_system_branch())
+
+    def show_branch_root(self, args):
+        '''Print name of the repository that was branched off from.'''
+
+        workspace = self.deduce_workspace()
+        system_branch = self.deduce_system_branch()
+        branch_dir = os.path.join(workspace, system_branch)
+        branch_root = self.read_branch_root(branch_dir)
+        self.app.output.write('%s\n' % branch_root)
 
     def merge(self, args):
         '''Merge specified repositories from another system branch.'''
