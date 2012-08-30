@@ -6,11 +6,13 @@ d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
 d ./.morph/cache/gits/file_morphs/.git
 d ./newbranch
-d ./newbranch/morphs
-d ./newbranch/morphs/.git
-f ./newbranch/morphs/hello-stratum.morph
-f ./newbranch/morphs/hello-system.morph
-f ./newbranch/morphs/this.is.alfred
+d ./newbranch/.morph-system-branch
+d ./newbranch/baserock:morphs
+d ./newbranch/baserock:morphs/.git
+f ./newbranch/.morph-system-branch/branch-root
+f ./newbranch/baserock:morphs/hello-stratum.morph
+f ./newbranch/baserock:morphs/hello-system.morph
+f ./newbranch/baserock:morphs/this.is.alfred
 Current branches:
   master
 * newbranch

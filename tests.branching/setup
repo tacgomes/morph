@@ -18,7 +18,7 @@
 # Set up $DATADIR.
 #
 # - a morph.conf configuration file
-# - an empty morph mine directory
+# - an empty morph workspace directory
 # - a git repository called "morphs" for fake system, stratum morphologies
 # - a git repository calle "hello" for a dummy chunk
 
@@ -41,7 +41,7 @@ GIT_COMMITTER_DATE="1343753514 +0000"
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
 repo-alias = baserock=file://$DATADIR/%s#file://$DATADIR/%s
-cachedir = $DATADIR/mine/.morph/cache
+cachedir = $DATADIR/workspace/.morph/cache
 log = $DATADIR/morph.log
 keep-path = true
 no-distcc = true
@@ -49,12 +49,15 @@ quiet = true
 EOF
 
 
-# Create an empty directory to be used as a morph mine
-mkdir "$DATADIR/mine"
+# Create an empty directory to be used as a morph workspace
+mkdir "$DATADIR/workspace"
 
 
 # Create a fake morphs repository
 mkdir "$DATADIR/morphs"
+
+## Create a link to this repo that has a .git suffix
+ln -s "$DATADIR/morphs" "$DATADIR/morphs.git"
 
 cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 {

@@ -15,18 +15,19 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Verify that "morph edit" clones a chunk repository into a system branch.
+# Check that 'morph show-system-branch' fails when being run
+# outside a workspace.
 
 
 set -eu
 
-# Create system branch.
+# Create a workspace and branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs testbranch
 
-# Edit chunk.
-"$SRCDIR/scripts/test-morph" edit baserock:hello
+# Leave the workspace.
+cd ..
 
-cd newbranch/baserock:hello
-git branch
+# Try to show the current branch.
+"$SRCDIR/scripts/test-morph" show-system-branch

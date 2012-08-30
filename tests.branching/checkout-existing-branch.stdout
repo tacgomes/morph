@@ -6,9 +6,11 @@ d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
 d ./.morph/cache/gits/file_morphs/.git
 d ./master
-d ./master/morphs
-d ./master/morphs/.git
-f ./master/morphs/hello-stratum.morph
-f ./master/morphs/hello-system.morph
+d ./master/.morph-system-branch
+d ./master/baserock:morphs
+d ./master/baserock:morphs/.git
+f ./master/.morph-system-branch/branch-root
+f ./master/baserock:morphs/hello-stratum.morph
+f ./master/baserock:morphs/hello-system.morph
 Current branches:
 * master

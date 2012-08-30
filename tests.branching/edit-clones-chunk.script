@@ -1,15 +1,15 @@
 #!/bin/sh
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -21,24 +21,29 @@
 set -eu
 
 # Create system branch.
-cd "$DATADIR/mine"
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch newbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
 
 # Edit chunk.
-cd newbranch/morphs
+cd newbranch/baserock:morphs
 "$SRCDIR/scripts/test-morph" edit baserock:hello master
 
 echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/morphs" branch
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:morphs" branch
 
 echo "Current origin, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/morphs" \
-    remote show origin | sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:morphs" \
+    remote show origin | \
+        sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'
 
 echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/hello" branch
+"$SRCDIR/scripts/run-git-in" \
+    "$DATADIR/workspace/newbranch/baserock:hello" branch
 
 echo "Current origin, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/mine/newbranch/hello" \
-    remote show origin | sed 's,\(TMP/mine/\.morph/cache/gits/file_\).*_,\1,g'
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/baserock:hello" \
+    remote show origin | \
+        sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'

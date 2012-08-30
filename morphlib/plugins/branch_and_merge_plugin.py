@@ -19,20 +19,19 @@ import os
 import json
 import glob
 import tempfile
+import urlparse
 
 import morphlib
 
 
 class BranchAndMergePlugin(cliapp.Plugin):
 
-    system_repo_base = 'morphs'
-    system_repo_name = 'baserock:%s' % system_repo_base
-
     def enable(self):
         self.app.add_subcommand('petrify', self.petrify,
                                 arg_synopsis='STRATUM...')
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
-        self.app.add_subcommand('minedir', self.minedir, arg_synopsis='')
+        self.app.add_subcommand('workspace', self.workspace,
+                                arg_synopsis='')
         self.app.add_subcommand('branch', self.branch,
                                 arg_synopsis='NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
@@ -48,29 +47,66 @@ class BranchAndMergePlugin(cliapp.Plugin):
         pass
 
     @staticmethod
-    def deduce_mine_directory():
+    def deduce_workspace():
         dirname = os.getcwd()
         while dirname != '/':
             dot_morph = os.path.join(dirname, '.morph')
             if os.path.isdir(dot_morph):
                 return dirname
             dirname = os.path.dirname(dirname)
-        return None
+        raise cliapp.AppException("Can't find the workspace directory")
+
+    @staticmethod
+    def is_system_branch_directory(dirname):
+        return os.path.isdir(os.path.join(dirname, '.morph-system-branch'))
 
     @classmethod
     def deduce_system_branch(cls):
-        minedir = cls.deduce_mine_directory()
-        if minedir is None:
-            return None
+        # 1. Deduce the workspace. If this fails, we're not inside a workspace.
+        workspace = cls.deduce_workspace()
 
-        if not minedir.endswith('/'):
-            minedir += '/'
+        # 2. We're in a workspace. Check if we're inside a system branch.
+        #    If we are, return its name.
+        dirname = os.getcwd()
+        while dirname != workspace and dirname != '/':
+            if cls.is_system_branch_directory(dirname):
+                return os.path.relpath(dirname, workspace)
+            dirname = os.path.dirname(dirname)
 
-        cwd = os.getcwd()
-        if not cwd.startswith(minedir):
-            return None
+        # 3. We're in a workspace but not inside a branch. Try to find a
+        #    branch directory in the directories below the current working
+        #    directory. Avoid ambiguousity by only recursing deeper if there
+        #    is only one subdirectory.
+        visited = set()
+        for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
+            # Avoid infinite recursion.
+            if dirname in visited:
+                break
+            visited.add(dirname)
 
-        return os.path.dirname(cwd[len(minedir):])
+            if cls.is_system_branch_directory(dirname):
+                return os.path.relpath(dirname, workspace)
+
+            # Do not recurse deeper if we have more than one
+            # non-hidden directory.
+            if len([x for x in subdirs if not x.startswith('.')]) > 1:
+                break
+
+        raise cliapp.AppException("Can't find the system branch directory")
+
+    @staticmethod
+    def write_branch_root(branch_dir, repo):
+        filename = os.path.join(branch_dir, '.morph-system-branch',
+                                'branch-root')
+        with open(filename, 'w') as f:
+            f.write('%s\n' % repo)
+
+    @staticmethod
+    def read_branch_root(branch_dir):
+        filename = os.path.join(branch_dir, '.morph-system-branch',
+                                'branch-root')
+        with open(filename, 'r') as f:
+            return f.read().strip()
 
     @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
@@ -89,6 +125,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         repo = cache.cache_repo(reponame)
         if not app.settings['no-git-update']:
             repo.update()
+
+        # Make sure the parent directories needed for the repo dir exist.
+        parent_dir = os.path.dirname(dirname)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
         # Clone it from cache to target directory.
         repo.checkout(ref, os.path.abspath(dirname))
@@ -181,7 +222,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.write_morphology(filename, morph)
 
     def init(self, args):
-        '''Initialize a mine.'''
+        '''Initialize a workspace directory.'''
 
         if not args:
             args = ['.']
@@ -190,94 +231,121 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         dirname = args[0]
 
+        # verify the workspace is empty (and thus, can be used) or
+        # create it if it doesn't exist yet
         if os.path.exists(dirname):
             if os.listdir(dirname) != []:
                 raise cliapp.AppException('can only initialize empty '
-                                          'directory: %s' % dirname)
+                                          'directory as a workspace: %s' %
+                                          dirname)
         else:
-            raise cliapp.AppException('can only initialize an existing '
-                                      'empty directory: %s' % dirname)
+            try:
+                os.makedirs(dirname)
+            except:
+                raise cliapp.AppException('failed to create workspace: %s' %
+                                          dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
-        self.app.status(msg='Initialized morph mine', chatty=True)
+        self.app.status(msg='Initialized morph workspace', chatty=True)
 
-    def minedir(self, args):
-        '''Find morph mine directory from current working directory.'''
+    def workspace(self, args):
+        '''Find morph workspace directory from current working directory.'''
 
-        dirname = self.deduce_mine_directory()
-        if dirname is None:
-            raise cliapp.AppException("Can't find the mine directory")
-        self.app.output.write('%s\n' % dirname)
+        self.app.output.write('%s\n' % self.deduce_workspace())
 
     def branch(self, args):
         '''Branch the whole system.'''
 
-        if len(args) not in [1, 2]:
+        if len(args) not in [2, 3]:
             raise cliapp.AppException('morph branch needs name of branch '
                                       'as parameter')
 
-        new_branch = args[0]
-        commit = 'master' if len(args) == 1 else args[1]
+        repo = args[0]
+        new_branch = args[1]
+        commit = 'master' if len(args) == 2 else args[2]
 
         # Create the system branch directory.
         os.makedirs(new_branch)
 
+        # Create a .morph-system-branch directory to clearly identify
+        # this directory as a morph system branch.
+        os.mkdir(os.path.join(new_branch, '.morph-system-branch'))
+
+        # Remember the repository we branched off from.
+        self.write_branch_root(new_branch, repo)
+
         # Clone into system branch directory.
-        new_repo = os.path.join(new_branch, self.system_repo_base)
-        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
-                                commit)
+        repo_dir = os.path.join(new_branch, self.convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, commit)
 
         # Create a new branch in the local morphs repository.
         self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
-                        cwd=new_repo)
+                        cwd=repo_dir)
+
+    def convert_uri_to_path(self, uri):
+        parts = urlparse.urlparse(uri)
+
+        # If the URI path is relative, assume it is an aliased repo (e.g.
+        # baserock:morphs). Otherwise assume it is a full URI where we need
+        # to strip off the scheme and .git suffix.
+        if not os.path.isabs(parts.path):
+            return uri
+        else:
+            path = parts.netloc
+            if parts.path.endswith('.git'):
+                path = os.path.join(path, parts.path[1:-len('.git')])
+            else:
+                path = os.path.join(path, parts.path[1:])
+            return path
 
     def checkout(self, args):
         '''Check out an existing system branch.'''
 
-        if len(args) != 1:
-            raise cliapp.AppException('morph checkout needs name of '
-                                      'branch as parameter')
+        if len(args) != 2:
+            raise cliapp.AppException('morph checkout needs a repo and the '
+                                      'name of a branch as parameters')
 
-        system_branch = args[0]
+        repo = args[0]
+        system_branch = args[1]
 
         # Create the system branch directory.
         os.makedirs(system_branch)
 
+        # Create a .morph-system-branch directory to clearly identify
+        # this directory as a morph system branch.
+        os.mkdir(os.path.join(system_branch, '.morph-system-branch'))
+
+        # Remember the repository we branched off from.
+        self.write_branch_root(system_branch, repo)
+
         # Clone into system branch directory.
-        new_repo = os.path.join(system_branch, self.system_repo_base)
-        self.clone_to_directory(self.app, new_repo, self.system_repo_name,
-                                system_branch)
+        repo_dir = os.path.join(system_branch, self.convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, system_branch)
 
     def show_system_branch(self, args):
-        '''Print name of current system branch.
+        '''Print name of current system branch.'''
 
-        This must be run in the system branch's ``morphs`` repository.
-
-        '''
-
-        system_branch = self.deduce_system_branch()
-        if system_branch is None:
-            raise cliapp.AppException("Can't determine system branch")
-        self.app.output.write('%s\n' % system_branch)
+        self.app.output.write('%s\n' % self.deduce_system_branch())
 
     def merge(self, args):
         '''Merge specified repositories from another system branch.'''
 
-        if len(args) == 0:
+        if len(args) < 2:
             raise cliapp.AppException('morph merge must get a branch name '
                                       'and some repo names as arguments')
 
-        app = self.app
         other_branch = args[0]
-        mine = self.deduce_mine_directory()
+        workspace = self.deduce_workspace()
         this_branch = self.deduce_system_branch()
 
         for repo in args[1:]:
-            repo = self.resolve_reponame(app, repo)
-            basename = os.path.basename(repo)
-            pull_from = os.path.join(mine, other_branch, basename)
-            repo_dir = os.path.join(mine, this_branch, basename)
-            app.runcmd(['git', 'pull', pull_from, other_branch], cwd=repo_dir)
+            repo_url = self.resolve_reponame(self.app, repo)
+            repo_path = self.convert_uri_to_path(repo)
+            pull_from = 'file://' + os.path.join(workspace, other_branch,
+                                                 repo_path)
+            repo_dir = os.path.join(workspace, this_branch, repo_path)
+            self.app.runcmd(['git', 'pull', pull_from, other_branch],
+                            cwd=repo_dir)
 
     def edit(self, args):
         '''Edit a component in a system branch.'''
@@ -286,45 +354,49 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('morph edit must get a repository name '
                                       'and commit ref as argument')
 
-        app = self.app
-        mine_directory = self.deduce_mine_directory()
+        workspace = self.deduce_workspace()
         system_branch = self.deduce_system_branch()
-        if system_branch is None:
-            raise morphlib.Error('Cannot deduce system branch')
 
-        morphs_dirname = os.path.join(mine_directory, system_branch, 'morphs')
-        if morphs_dirname is None:
-            raise morphlib.Error('Can not find morphs directory')
+        # Find out which repository we branched off from.
+        branch_dir = os.path.join(workspace, system_branch)
+        branch_root = self.read_branch_root(branch_dir)
 
-        repo = self.resolve_reponame(app, args[0])
+        # Convert it to a local directory in the branch.
+        branch_root_path = self.convert_uri_to_path(branch_root)
+        branch_root_dir = os.path.join(branch_dir, branch_root_path)
 
+        # Find out which repository to edit.
+        repo, repo_url = args[0], self.resolve_reponame(self.app, args[0])
+
+        # Find out which ref of the edit repo to check out.
         if len(args) == 2:
             ref = args[1]
         else:
-            ref = self.find_edit_ref(app, morphs_dirname, repo)
+            ref = self.find_edit_ref(self.app, branch_root_dir, repo_url)
             if ref is None:
                 raise morphlib.Error('Cannot deduce commit to start edit from')
 
-        new_repo = os.path.join(mine_directory, system_branch,
-                                os.path.basename(repo))
-        self.clone_to_directory(app, new_repo, args[0], ref)
+        # Clone the repository to be edited.
+        repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
+        self.clone_to_directory(self.app, repo_dir, repo, ref)
 
         if system_branch == ref:
-            app.runcmd(['git', 'checkout', system_branch],
-                       cwd=new_repo)
+            self.app.runcmd(['git', 'checkout', system_branch],
+                            cwd=repo_dir)
         else:
-            app.runcmd(['git', 'checkout', '-b', system_branch, ref],
-                       cwd=new_repo)
+            self.app.runcmd(['git', 'checkout', '-b', system_branch, ref],
+                            cwd=repo_dir)
 
-        for filename, morph in self.morphs_for_repo(app, morphs_dirname, repo):
+        for filename, morph in \
+                self.morphs_for_repo(self.app, branch_root_dir, repo_url):
             changed = False
             for spec in morph['chunks']:
-                spec_repo = self.resolve_reponame(app, spec['repo'])
-                if spec_repo == repo and spec['ref'] != system_branch:
-                    app.status(msg='Replacing ref "%(ref)s" with "%(branch)s"'
-                                   'in %(filename)s',
-                               ref=spec['ref'], branch=system_branch,
-                               filename=filename, chatty=True)
+                spec_repo = self.resolve_reponame(self.app, spec['repo'])
+                if spec_repo == repo_url and spec['ref'] != system_branch:
+                    self.app.status(msg='Replacing ref "%(ref)s" with '
+                                    '"%(branch)s" in %(filename)s',
+                                    ref=spec['ref'], branch=system_branch,
+                                    filename=filename, chatty=True)
                     spec['ref'] = system_branch
                     changed = True
             if changed:

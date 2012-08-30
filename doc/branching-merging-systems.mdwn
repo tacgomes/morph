@@ -57,15 +57,15 @@ we introduce the following concepts (FIXME: naming needs attention):
   a system branch; it need not contain all the repositories, just the
   ones that are being worked on by the user, or that the user for
   other reasons have checked out
-* **morph mine** is where all Morph keeps global
+* **morph workspace** is where all Morph keeps global
   state and shared caches, so that creating a system branch directory
   is a fairly cheap operation; all the system branch directories are
-  inside the morph mine directory
+  inside the morph workspace directory
   
 As a picture:
 
     /home/liw/                  -- user's home directory
-        baserock/               -- morph mine
+        baserock/               -- morph workspace
             .morph/             -- morph shared state, cache, etc
             unstable/           -- system branch directory: mainline devel
                 morphs/         -- git repository for system, stratum morphs
@@ -76,13 +76,13 @@ As a picture:
 To use the system branching and merging, you do the following (which we'll
 cover in more detail later):
 
-1. Initialize the morph mine. This creates the `.morph` directory and
-   populates it with some initial stuff. You can have as many mines as
+1. Initialize the morph workspace. This creates the `.morph` directory and
+   populates it with some initial stuff. You can have as many workspaces as
    you want, but you don't have to have more than one, and you only
    need to initialize it once.
 2. Branch the system from some version of it (e.g., `master`) to work
    on a new feature or bug fix.
-   This creates a system branch directory under the mine directory.
+   This creates a system branch directory under the workspace directory.
    The system branch directory initially contains a clone of the `morphs` 
    git repository, with some changes specific to this system branch.
    (See petrification, below.)
@@ -105,7 +105,7 @@ still fairly high level, and implementation details will come later.
     morph init ~/baserock
 
 This creates the `~/baserock` directory if it does not exist, and then
-initializes it as a "morph mine" directory, by creating a `.morph`
+initializes it as a "morph workspace" directory, by creating a `.morph`
 subdirectory. `.morph` will contain the Morph cache directory, and
 other shared state between the various branches. As part of the cache,
 any git repositories that Morph clones get put into the cache first,
@@ -197,7 +197,7 @@ Usage:
 
     morph branch BRANCH [COMMIT]
 
-This needs to be run in the morph mine directory (the one initialized
+This needs to be run in the morph workspace directory (the one initialized
 with `morph init`).
 
 * If `./BRANCH` as a directory exists, abort.
@@ -206,7 +206,7 @@ with `morph init`).
 * Create a new branch called `BRANCH` in morphs, based either the tip of
   `master` or from `COMMIT` if given. Store the SHA-1 of the branch origin
   in some way so we get at it later.
-    
+
 
 Implementation: `morph checkout`
 --------------
@@ -215,7 +215,7 @@ Usage:
 
     morph checkout BRANCH
 
-This needs to be run in the morph mine directory. It works like 
+This needs to be run in the morph workspace directory. It works like
 `morph branch`, except it does not create the new branch and requires
 it to exist instead.
 
@@ -289,8 +289,8 @@ Usage:
 
     morph git -- log -p master..HEAD
 
-This is to be run in the morph mine. It runs git with the arguments on
-the command line in each local git repository in the mine. (The `--` is
+This is to be run in the morph workspace. It runs git with the arguments on
+the command line in each local git repository in the workspace. (The `--` is
 only necessary if the git arguments are to contain options.)
 
 
@@ -303,7 +303,7 @@ Usage:
 
 This needs to be run inside a system branch directory's `morphs`
 repository, and `BRANCH` must be another system branch checked out 
-in the morph mine.
+in the morph workspace.
 
 * In each git repository modified by the `BRANCH` system branch, 
   run `git merge --no-commit BRANCH`, then undo any changes to 
@@ -318,7 +318,7 @@ Usage:
 
     morph mass-merge BRANCH [TARGET]...
     
-To be run in the morph mine directory.
+To be run in the morph workspace directory.
 
 This just runs `morph merge BRANCH` in each `TARGET` system branch.
 
