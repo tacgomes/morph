@@ -89,7 +89,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             # Do not recurse deeper if we have more than one
             # non-hidden directory.
-            if len([x for x in subdirs if not x.startswith('.')]) > 1:
+            for d in subdirs:
+                if d.startswith('.'):
+                    subdirs.remove(d)
+            if len(subdirs) > 1:
                 break
 
         raise cliapp.AppException("Can't find the system branch directory")
