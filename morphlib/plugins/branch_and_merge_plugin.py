@@ -107,12 +107,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
         with open(filename, 'w') as f:
             f.write('%s\n' % repo)
 
-    @staticmethod
-    def read_branch_root(branch_dir):
-        filename = os.path.join(branch_dir, '.morph-system-branch',
-                                'branch-root')
-        with open(filename, 'r') as f:
-            return f.read().strip()
+    def set_branch_config(self, branch_dir, option, value):
+        filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
+        self.app.runcmd(['git', 'config', '-f', filename,
+                         'branch.%s' % option, '%s' % value])
+
+    def get_branch_config(self, branch_dir, option):
+        filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
+        value = self.app.runcmd(['git', 'config', '-f', filename,
+                                'branch.%s' % option])
+        return value.strip()
 
     @staticmethod
     def clone_to_directory(app, dirname, reponame, ref):
@@ -280,7 +284,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
         # Remember the repository we branched off from.
-        self.write_branch_root(branch_dir, repo)
+        self.set_branch_config(branch_dir, 'branch-root', repo)
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
@@ -326,7 +330,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
         # Remember the repository we branched off from.
-        self.write_branch_root(branch_dir, repo)
+        self.set_branch_config(branch_dir, 'branch-root', repo)
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
@@ -343,7 +347,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         workspace = self.deduce_workspace()
         system_branch = self.deduce_system_branch()
         branch_dir = os.path.join(workspace, system_branch)
-        branch_root = self.read_branch_root(branch_dir)
+        branch_root = self.get_branch_config(branch_dir, 'branch-root')
         self.app.output.write('%s\n' % branch_root)
 
     def merge(self, args):
@@ -378,7 +382,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Find out which repository we branched off from.
         branch_dir = os.path.join(workspace, system_branch)
-        branch_root = self.read_branch_root(branch_dir)
+        branch_root = self.get_branch_config(branch_dir, 'branch-root')
 
         # Convert it to a local directory in the branch.
         branch_root_path = self.convert_uri_to_path(branch_root)
