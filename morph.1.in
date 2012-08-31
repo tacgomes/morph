@@ -23,7 +23,34 @@ Baserock is an embedded Linux system.
 is its workflow tool.
 It manages building binaries,
 and branching and merging of the entire system.
-See the Baserock home page for more information.
+Morph is designed to turn collections of git repositories into system images
+using morphology files to define their dependencies.
+.PP 
+A 
+.B system 
+image is defined as a group of 
+.B strata 
+describing subsystems, 
+each of which comprises a series of 
+.B chunks
+, each of which in turn corresponds 
+to an individual upstream project. For example, there might be a 'generic 
+developer system' system morphology, containing a stratum for the basic 
+bootable system and another for developer tools; the latter would then have 
+individual chunks for make, gcc, binutils and so forth.
+.PP
+A chunk is a git repository based on an individual upstream project's revision
+control system (converted into git if upstream does not already use it), which 
+contains a branch named 'baserock', that both contains a JSON configuration file 
+defining how to build the chunk and any other changes required to get the 
+repository to build with the rest of Baserock.
+.PP
+Morph is also capable of branching the whole system (that is branching all constituent 
+git repositories of a system simultaneously) in order to allow system-wide changes that
+cross the boundaries of individual git repositories, and of generating commits to the 
+group of git repositories that have been modified in such a branch.
+.PP
+For more details, please see the Baserock wiki at http://wiki.baserock.org.
 .SH OPTIONS
 .SH ENVIRONMENT
 .B morph
@@ -87,7 +114,7 @@ sets the environment variable to
 .TP
 .B MORPH_PLUGIN_PATH
 .B morph
-looks for plugins additionally in the directories given in this variable.
+looks for additional plugins in the directories given in this variable.
 Syntax is same as for
 .B PATH
 (i.e., colon delimited pathnames).
@@ -97,9 +124,6 @@ The
 manual page has some more variables that affect
 .B morph
 itself.
-.SH BUGS
-This manual page is badly incomplete,
-but at least it should include all options correctly.
 .SH "SEE ALSO"
 .BR cliapp (5).
 .PP
