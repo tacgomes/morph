@@ -198,8 +198,16 @@ Example system:
         "kind": "system",
         "disk-size": "1G",
         "strata": [
-            "foundation",
-            "linux-stratum"
+            {
+                "morph": "foundation",
+                "repo": "baserock:morphs",
+                "ref": "master"
+            },
+            {
+                "morph": "linux-stratum",
+                "repo": "baserock:morphs",
+                "ref": "master"
+            }
         ]
     }
 
