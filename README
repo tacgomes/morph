@@ -211,7 +211,7 @@ Example system:
         ]
     }
 
-Note that unknown keys in morphologies are silently ignored.
+Note that currently, unknown keys in morphologies are silently ignored.
 
 
 Build environment
