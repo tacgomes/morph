@@ -1,0 +1,47 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Verify that morph branch/checkout/edit create repositories that have
+# a "git config morph.repository" option set so that we can
+# identify these repositories later even when the user has renamed or
+# moved their local directories.
+
+set -eu
+
+cd "$DATADIR/workspace"
+
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+
+echo "morph.repository in branch root repository:"
+cd "$DATADIR/workspace/newbranch/baserock:morphs"
+git config morph.repository
+echo
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+
+echo "morph.repository in branch root repository of a checkout:"
+cd "$DATADIR/workspace/master/baserock:morphs"
+git config morph.repository
+echo
+
+cd "$DATADIR/workspace/master"
+"$SRCDIR/scripts/test-morph" edit baserock:hello master
+
+echo "morph.repository of an edited repository:"
+cd "$DATADIR/workspace/master/baserock:hello"
+git config morph.repository

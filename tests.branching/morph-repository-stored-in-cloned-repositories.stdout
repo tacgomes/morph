@@ -1,0 +1,8 @@
+morph.repository in branch root repository:
+baserock:morphs
+
+morph.repository in branch root repository of a checkout:
+baserock:morphs
+
+morph.repository of an edited repository:
+baserock:hello

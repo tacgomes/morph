@@ -140,6 +140,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Clone it from cache to target directory.
         repo.checkout(ref, os.path.abspath(dirname))
 
+        # Remember the repo name we cloned from in order to be able
+        # to identify the repo again later using the same name, even
+        # if the user happens to rename the directory.
+        app.runcmd(['git', 'config', 'morph.repository', reponame],
+                   cwd=dirname)
+
         # Set the origin to point at the original repository.
         morphlib.git.set_remote(app.runcmd, dirname, 'origin', repo.url)
 
