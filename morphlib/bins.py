@@ -116,8 +116,6 @@ def unpack_binary_from_file(f, dirname):  # pragma: no cover
 
     '''
 
-    tf = tarfile.open(fileobj=f)
-
     # This is evil, but necessary. For some reason Python's system
     # call wrappers (os.mknod and such) do not (always?) set the
     # filename attribute of the OSError exception they raise. We
@@ -177,16 +175,17 @@ def unpack_binary_from_file(f, dirname):  # pragma: no cover
         def make_something(tarinfo, targetpath):  # pragma: no cover
             prepare_extract(tarinfo, targetpath)
             try:
-                return real(tarinfo, targetpath)
-            except OSError, e:
+                ret = real(tarinfo, targetpath)
+            except (IOError, OSError), e:
                 if e.errno != errno.EEXIST:
                     if e.filename is None:
                         e.filename = targetpath
-                        raise e
-                    else:
-                        raise
+                    raise
+            else:
+                return ret
         return make_something
 
+    tf = tarfile.open(fileobj=f, errorlevel=2)
     tf.makedir = monkey_patcher(tf.makedir)
     tf.makefile = monkey_patcher(tf.makefile)
     tf.makeunknown = monkey_patcher(tf.makeunknown)
