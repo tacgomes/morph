@@ -161,17 +161,19 @@ Example stratum:
         "chunks": [
             {
                 "name": "fhs-dirs",
+                "repo": "upstream:fhs-dirs",
                 "ref": "baserock/bootstrap",
                 "build-depends": [],
             },
             {
                 "name": "linux-api-headers",
-                "repo": "linux",
+                "repo": "upstream:linux",
                 "ref": "baserock/morph",
                 "build-depends": ["fhs-dirs"]
             },
             {
                 "name": "eglibc",
+                "repo": "upstream:eglibc",
                 "ref": "baserock/bootstrap",
                 "build-depends": [
                   "linux-api-headers"
@@ -179,6 +181,7 @@ Example stratum:
             },
             {
                 "name": "busybox",
+                "repo": "upstream:busybox",
                 "ref": "baserock/bootstrap",
                 "build-depends": [
                   "fhs-dirs",
