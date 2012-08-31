@@ -1,0 +1,34 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Verify that the branch root repository created by "morph branch" or
+# "morph checkout" can be renamed and "morph edit" still finds the
+# branch root repo and works.
+
+set -eu
+
+cd "$DATADIR/workspace"
+
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+
+cd "$DATADIR/workspace/master"
+mv baserock:morphs my-renamed-morphs
+
+"$SRCDIR/scripts/test-morph" edit baserock:hello master
+
+"$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
