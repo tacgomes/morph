@@ -84,7 +84,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
             # Avoid infinite recursion.
             if dirname in visited:
-                break
+                subdirs[:] = []
+                continue
             visited.add(dirname)
 
             if cls.is_system_branch_directory(dirname):
@@ -92,9 +93,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             # Do not recurse deeper if we have more than one
             # non-hidden directory.
-            for d in copy.copy(subdirs):
-                if d.startswith('.'):
-                    subdirs.remove(d)
+            subdirs[:] = [x for x in subdirs if not x.startswith('.')]
             if len(subdirs) > 1:
                 break
 
