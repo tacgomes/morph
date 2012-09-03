@@ -40,17 +40,6 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(m['max-jobs'], None)
         self.assertEqual(m['chunks'], [])
 
-    def test_makes_max_jobs_be_an_integer(self):
-        m = Morphology('''
-            {
-                "name": "foo",
-                "kind": "chunk",
-                "max-jobs": "42"
-            }
-        ''')
-
-        self.assertEqual(m['max-jobs'], 42)
-
     def test_sets_stratum_chunks_repo_and_morph_from_name(self):
         m = Morphology('''
             {
@@ -58,7 +47,8 @@ class MorphologyTests(unittest.TestCase):
                 "kind": "stratum",
                 "chunks": [
                     {
-                        "name": "le-chunk"
+                        "name": "le-chunk",
+                        "ref": "ref"
                     }
                 ]
             }
@@ -91,3 +81,99 @@ class MorphologyTests(unittest.TestCase):
         self.assertTrue('name' in m.keys())
         self.assertTrue('kind' in m.keys())
         self.assertTrue('disk-size' in m.keys())
+
+    def test_system_indexes_strata(self):
+        m = Morphology('''
+            {
+                "kind": "system",
+                "strata": [
+                    {
+                        "morph": "stratum1",
+                        "repo": "repo",
+                        "ref": "ref"
+                    },
+                    {
+                        "alias": "aliased-stratum",
+                        "morph": "stratum2",
+                        "repo": "repo",
+                        "ref": "ref"
+                    }
+                ]
+            }
+        ''')
+        self.assertEqual(m.lookup_morphology_by_name("stratum1"),
+                         ("repo", "ref", "stratum1.morph"))
+        self.assertEqual(m.lookup_morphology_by_name("aliased-stratum"),
+                         ("repo", "ref", "stratum2.morph"))
+
+    def test_stratum_indexes_chunks(self):
+        m = Morphology('''
+            {
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "repo",
+                        "ref": "ref"
+                    }
+                ]
+            }
+        ''')
+        self.assertEqual(m.lookup_morphology_by_name("chunk"),
+                         ("repo", "ref", "chunk.morph"))
+
+    ## Validation tests
+
+    def test_makes_max_jobs_be_an_integer(self):
+        m = Morphology('''
+            {
+                "name": "foo",
+                "kind": "chunk",
+                "max-jobs": "42"
+            }
+        ''')
+        self.assertEqual(m['max-jobs'], 42)
+
+    def test_stratum_names_must_be_unique_within_a_system(self):
+        text = '''
+            {
+                "kind": "system",
+                "strata": [
+                    {
+                        "morph": "stratum",
+                        "repo": "test1",
+                        "ref": "ref"
+                    },
+                    {
+                        "morph": "stratum",
+                        "repo": "test2",
+                        "ref": "ref"
+                    }
+                ]
+            }
+        '''
+        self.assertRaises(ValueError,
+                          Morphology,
+                          text)
+
+    def test_chunk_names_must_be_unique_within_a_stratum(self):
+        text = '''
+            {
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test1",
+                        "ref": "ref"
+                    },
+                    {
+                        "name": "chunk",
+                        "repo": "test2",
+                        "ref": "ref"
+                    }
+                ]
+            }
+        '''
+        self.assertRaises(ValueError,
+                          Morphology,
+                          text)
