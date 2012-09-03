@@ -27,6 +27,10 @@ import morphlib
 
 class BranchAndMergePlugin(cliapp.Plugin):
 
+    def __init__(self):
+        # Start recording changes.
+        self.init_changelog()
+
     def enable(self):
         self.app.add_subcommand('petrify', self.petrify,
                                 arg_synopsis='STRATUM...')
@@ -48,6 +52,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def disable(self):
         pass
+
+    def init_changelog(self):
+        self.changelog = {}
+
+    def log_change(self, repo, text):
+        if not repo in self.changelog:
+            self.changelog[repo] = []
+        self.changelog[repo].append(text)
+
+    def print_changelog(self, title, early_keys=[]):
+        if self.changelog and self.app.settings['verbose']:
+            msg = '\n%s:\n\n' % title
+            keys = [x for x in early_keys if x in self.changelog]
+            keys.extend([x for x in self.changelog if x not in early_keys])
+            for key in keys:
+                messages = self.changelog[key]
+                msg += '  %s:\n' % key
+                msg += '\n'.join(['    %s' % x for x in messages])
+                msg += '\n\n'
+            self.app.output.write(msg)
 
     @staticmethod
     def deduce_workspace():
@@ -117,8 +141,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 'branch.%s' % option])
         return value.strip()
 
-    @staticmethod
-    def clone_to_directory(app, dirname, reponame, ref):
+    def clone_to_directory(self, dirname, reponame, ref):
         '''Clone a repository below a directory.
 
         As a side effect, clone it into the local repo cache.
@@ -126,13 +149,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
         '''
 
         # Setup.
-        cache = morphlib.util.new_repo_caches(app)[0]
+        cache = morphlib.util.new_repo_caches(self.app)[0]
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            app.settings['repo-alias'])
+            self.app.settings['repo-alias'])
 
         # Get the repository into the cache; make sure it is up to date.
         repo = cache.cache_repo(reponame)
-        if not app.settings['no-git-update']:
+        if not self.app.settings['no-git-update']:
             repo.update()
 
         # Make sure the parent directories needed for the repo dir exist.
@@ -146,37 +169,34 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Remember the repo name we cloned from in order to be able
         # to identify the repo again later using the same name, even
         # if the user happens to rename the directory.
-        app.runcmd(['git', 'config', 'morph.repository', reponame],
-                   cwd=dirname)
+        self.app.runcmd(['git', 'config', 'morph.repository', reponame],
+                        cwd=dirname)
 
         # Set the origin to point at the original repository.
-        morphlib.git.set_remote(app.runcmd, dirname, 'origin', repo.url)
+        morphlib.git.set_remote(self.app.runcmd, dirname, 'origin', repo.url)
 
         # Add push url rewrite rule to .git/config.
-        app.runcmd(['git', 'config',
-                    ('url.%s.pushInsteadOf' %
-                     resolver.push_url(reponame)),
-                    resolver.pull_url(reponame)], cwd=dirname)
+        self.app.runcmd(['git', 'config',
+                        'url.%s.pushInsteadOf' % resolver.push_url(reponame),
+                        resolver.pull_url(reponame)], cwd=dirname)
 
-        app.runcmd(['git', 'remote', 'update'], cwd=dirname)
+        self.app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
-    @staticmethod
-    def resolve_reponame(app, reponame):
+    def resolve_reponame(self, reponame):
         '''Return the full pull URL of a reponame.'''
 
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            app.settings['repo-alias'])
+            self.app.settings['repo-alias'])
         return resolver.pull_url(reponame)
 
-    @staticmethod
-    def load_morphology(app, repo_dir, name, ref=None):
+    def load_morphology(self, repo_dir, name, ref=None):
         if ref is None:
             filename = os.path.join(repo_dir, '%s.morph' % name)
             with open(filename) as f:
                 text = f.read()
         else:
-            text = app.runcmd(['git', 'cat-file', 'blob',
-                               '%s:%s.morph' % (ref, name)], cwd=repo_dir)
+            text = self.app.runcmd(['git', 'cat-file', 'blob',
+                                   '%s:%s.morph' % (ref, name)], cwd=repo_dir)
         morphology = morphlib.morph2.Morphology(text)
         return morphology
 
@@ -347,7 +367,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-        self.clone_to_directory(self.app, repo_dir, repo, commit)
+        self.clone_to_directory(repo_dir, repo, commit)
 
         # Create a new branch in the local morphs repository.
         self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
@@ -377,7 +397,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-        self.clone_to_directory(self.app, repo_dir, repo, system_branch)
+        self.clone_to_directory(repo_dir, repo, system_branch)
 
     def show_system_branch(self, args):
         '''Print name of current system branch.'''
@@ -405,7 +425,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         this_branch = self.deduce_system_branch()
 
         for repo in args[1:]:
-            repo_url = self.resolve_reponame(self.app, repo)
+            repo_url = self.resolve_reponame(repo)
             repo_path = self.convert_uri_to_path(repo)
             pull_from = urlparse.urljoin(
                 'file://', os.path.join(workspace, other_branch, repo_path))
@@ -422,10 +442,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
             return existing_repo
         else:
             # Clone repo and create the system branch in the cloned repo.
-            repo_url = self.resolve_reponame(self.app, repo)
+            repo_url = self.resolve_reponame(repo)
             repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-            self.clone_to_directory(self.app, repo_dir, repo, ref)
+            self.clone_to_directory(repo_dir, repo, ref)
             try:
+                self.log_change(repo, 'branch "%s" created from "%s"' %
+                                (system_branch, ref))
                 self.app.runcmd(['git', 'checkout', '-b', system_branch],
                                 cwd=repo_dir)
             except:
@@ -455,8 +477,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Load the system morphology and find out which repo and ref
         # we need to edit the stratum.
-        system_morphology = self.load_morphology(self.app, branch_root_dir,
-                                                 system_name)
+        system_morphology = self.load_morphology(branch_root_dir, system_name)
         stratum = self.get_edit_info(system_name, system_morphology,
                                      stratum_name, collection='strata')
 
@@ -464,27 +485,35 @@ class BranchAndMergePlugin(cliapp.Plugin):
         stratum_repo_dir = self.make_repository_available(
             system_branch, branch_dir, stratum['repo'], stratum['ref'])
 
-        # If the stratum is in the same repository as the system,
-        # copy its morphology from its source ref into the system branch.
-        if branch_root_dir == stratum_repo_dir:
-            ref = stratum['ref'] if stratum['ref'] != system_branch else None
-            stratum_morphology = self.load_morphology(self.app,
-                                                      branch_root_dir,
-                                                      stratum_name,
-                                                      ref=ref)
-            self.save_morphology(branch_root_dir, stratum_name,
-                                 stratum_morphology)
+        # Check if we need to change anything at all.
+        if stratum['ref'] != system_branch:
+            # If the stratum is in the same repository as the system,
+            # copy its morphology from its source ref into the system branch.
+            if branch_root_dir == stratum_repo_dir:
+                stratum_morphology = self.load_morphology(branch_root_dir,
+                                                          stratum_name,
+                                                          ref=stratum['ref'])
+                self.save_morphology(branch_root_dir, stratum_name,
+                                     stratum_morphology)
 
-        # Update the reference to the stratum in the system morphology.
-        stratum['ref'] = system_branch
-        self.save_morphology(branch_root_dir, system_name, system_morphology)
+                self.log_change(stratum['repo'],
+                                '"%s" copied from "%s" to "%s"' %
+                                (stratum_name, stratum['ref'], system_branch))
+            
+            # Update the reference to the stratum in the system morphology.
+            stratum['ref'] = system_branch
+            self.save_morphology(branch_root_dir, system_name,
+                                 system_morphology)
+
+            self.log_change(branch_root,
+                            '"%s" now includes "%s" from "%s"' %
+                            (system_name, stratum_name, system_branch))
 
         # If we are editing a chunk, make its repository available locally.
         if chunk_name:
             # Load the stratum morphology and find out which repo and ref
             # we need to edit the chunk.
-            stratum_morphology = self.load_morphology(self.app,
-                                                      stratum_repo_dir,
+            stratum_morphology = self.load_morphology(stratum_repo_dir,
                                                       stratum_name)
             chunk = self.get_edit_info(stratum_name, stratum_morphology,
                                        chunk_name, collection='chunks')
@@ -493,9 +522,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
             chunk_repo_dir = self.make_repository_available(
                     system_branch, branch_dir, chunk['repo'], chunk['ref'])
 
-            # Update the reference to the chunk in the stratum morphology.
-            chunk['ref'] = system_branch
-            self.save_morphology(stratum_repo_dir, stratum_name,
-                                 stratum_morphology)
+            # Check if we need to update anything at all.
+            if chunk['ref'] != system_branch:
+                # Update the reference to the chunk in the stratum morphology.
+                chunk['ref'] = system_branch
+                self.save_morphology(stratum_repo_dir, stratum_name,
+                                     stratum_morphology)
 
-        # TODO print what uncommitted changes there are now
+                self.log_change(stratum['repo'],
+                                '"%s" now includes "%s" from "%s"' %
+                                (stratum_name, chunk_name, system_branch))
+
+        self.print_changelog('The following changes were made but have not '
+                             'been comitted')
