@@ -442,7 +442,7 @@ class StratumBuilder(BuilderBase):
                             for dependency in self.artifact.dependencies
                             if dependency.source.morphology['kind'] == 'chunk']
             if len(constituents) == 0:
-                logging.error('Stratum %s is empty' % self.artifact.name)
+                logging.warning('Stratum %s is empty' % self.artifact.name)
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
             with self.build_watch('check-chunks'):
