@@ -195,6 +195,7 @@ class ArtifactResolver(object):
                 stratum.add_dependency(other_stratum)
                 queue.append(other_source)
 
+        # 'name' here is the chunk artifact name
         chunk_artifacts = []
         processed_artifacts = []
         name_to_processed_artifact = {}
@@ -223,8 +224,6 @@ class ArtifactResolver(object):
 
             if build_depends is None:
                 for earlier_artifact in processed_artifacts:
-                    if earlier_artifact is chunk_artifact:
-                        continue
                     if earlier_artifact.depends_on(chunk_artifact):
                         raise MutualDependencyError(
                             chunk_artifact, earlier_artifact)
@@ -232,8 +231,6 @@ class ArtifactResolver(object):
             elif isinstance(build_depends, list):
                 for name in build_depends:
                     other_artifact = name_to_processed_artifact.get(name, None)
-                    if other_artifact is chunk_artifact:
-                        continue
                     if other_artifact:
                         chunk_artifact.add_dependency(other_artifact)
                     else:
