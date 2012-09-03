@@ -26,8 +26,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
 
 # Edit chunk.
-"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
 # See what effect the editing had.
-cd newbranch/baserock:morphs
-git diff
+"$SRCDIR/scripts/run-git-in" "newbranch/baserock:morphs" diff

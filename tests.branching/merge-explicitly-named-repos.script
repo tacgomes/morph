@@ -27,7 +27,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
 
 # Make a change to a chunk.
-"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 cd newbranch/baserock:hello
 touch newfile.txt
 git add newfile.txt
@@ -37,7 +37,7 @@ git commit -m foo --quiet
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs otherbranch
 cd otherbranch
-"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 "$SRCDIR/scripts/test-morph" merge newbranch baserock:hello
 
 # Check results.

@@ -24,3 +24,30 @@ index 006a96c..ad8c08b 100644
 +    "kind": "stratum", 
 +    "name": "hello-stratum"
  }
+diff --git a/hello-system.morph b/hello-system.morph
+index 8dbcf67..db4f1f2 100644
+--- a/hello-system.morph
++++ b/hello-system.morph
+@@ -1,13 +1,14 @@
+ {
+-    "name": "hello-system",
+-    "kind": "system",
+-    "system-kind": "syslinux-disk",
+-    "disk-size": "1G",
++    "build-system": "manual", 
++    "disk-size": 1073741824, 
++    "kind": "system", 
++    "name": "hello-system", 
+     "strata": [
+         {
+-            "morph": "hello-stratum",
+-            "repo": "baserock:morphs",
+-            "ref": "master"
++            "morph": "hello-stratum", 
++            "ref": "newbranch", 
++            "repo": "baserock:morphs"
+         }
+-    ]
++    ], 
++    "system-kind": "syslinux-disk"
+ }
