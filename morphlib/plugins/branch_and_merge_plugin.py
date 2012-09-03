@@ -84,7 +84,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
             # Avoid infinite recursion.
             if dirname in visited:
-                break
+                subdirs[:] = []
+                continue
             visited.add(dirname)
 
             if cls.is_system_branch_directory(dirname):
@@ -92,9 +93,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             # Do not recurse deeper if we have more than one
             # non-hidden directory.
-            for d in copy.copy(subdirs):
-                if d.startswith('.'):
-                    subdirs.remove(d)
+            subdirs[:] = [x for x in subdirs if not x.startswith('.')]
             if len(subdirs) > 1:
                 break
 
@@ -143,6 +142,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Clone it from cache to target directory.
         repo.checkout(ref, os.path.abspath(dirname))
+
+        # Remember the repo name we cloned from in order to be able
+        # to identify the repo again later using the same name, even
+        # if the user happens to rename the directory.
+        app.runcmd(['git', 'config', 'morph.repository', reponame],
+                   cwd=dirname)
 
         # Set the origin to point at the original repository.
         morphlib.git.set_remote(app.runcmd, dirname, 'origin', repo.url)
@@ -310,6 +315,31 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 path = os.path.join(path, parts.path[1:])
             return path
 
+    def find_repository(self, branch_dir, repo):
+        visited = set()
+        for dirname, subdirs, files in os.walk(branch_dir, followlinks=True):
+            # Avoid infinite recursion.
+            if dirname in visited:
+                subdirs[:] = []
+                continue
+            visited.add(dirname)
+
+            # Check if the current directory is a git repository and, if so,
+            # whether it was cloned from the repo we are looking for.
+            if '.git' in subdirs:
+                try:
+                    original_repo = self.app.runcmd(
+                        ['git', 'config', 'morph.repository'], cwd=dirname)
+                    original_repo = original_repo.strip()
+
+                    if repo == original_repo:
+                        return dirname
+                except:
+                    pass
+
+            # Do not recurse into hidden directories.
+            subdirs[:] = [x for x in subdirs if not x.startswith('.')]
+
     def checkout(self, args):
         '''Check out an existing system branch.'''
 
@@ -383,10 +413,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Find out which repository we branched off from.
         branch_dir = os.path.join(workspace, system_branch)
         branch_root = self.get_branch_config(branch_dir, 'branch-root')
-
-        # Convert it to a local directory in the branch.
-        branch_root_path = self.convert_uri_to_path(branch_root)
-        branch_root_dir = os.path.join(branch_dir, branch_root_path)
+        branch_root_dir = self.find_repository(branch_dir, branch_root)
 
         # Find out which repository to edit.
         repo, repo_url = args[0], self.resolve_reponame(self.app, args[0])
