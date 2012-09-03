@@ -9,7 +9,7 @@ d ./newbranch
 d ./newbranch/.morph-system-branch
 d ./newbranch/baserock:morphs
 d ./newbranch/baserock:morphs/.git
-f ./newbranch/.morph-system-branch/branch-root
+f ./newbranch/.morph-system-branch/config
 f ./newbranch/baserock:morphs/hello-stratum.morph
 f ./newbranch/baserock:morphs/hello-system.morph
 Current branches:
