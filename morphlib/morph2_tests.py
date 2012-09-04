@@ -101,10 +101,11 @@ class MorphologyTests(unittest.TestCase):
                 ]
             }
         ''')
-        self.assertEqual(m.lookup_morphology_by_name("stratum1"),
-                         ("repo", "ref", "stratum1.morph"))
-        self.assertEqual(m.lookup_morphology_by_name("aliased-stratum"),
-                         ("repo", "ref", "stratum2.morph"))
+        self.assertEqual(m.lookup_child_by_name('stratum1'),
+                         {'morph': 'stratum1', 'repo': 'repo', 'ref': 'ref' })
+        self.assertEqual(m.lookup_child_by_name('aliased-stratum'),
+                         {'alias': 'aliased-stratum', 'morph': 'stratum2',
+                          'repo': 'repo', 'ref': 'ref'})
 
     def test_stratum_indexes_chunks(self):
         m = Morphology('''
@@ -119,8 +120,27 @@ class MorphologyTests(unittest.TestCase):
                 ]
             }
         ''')
-        self.assertEqual(m.lookup_morphology_by_name("chunk"),
-                         ("repo", "ref", "chunk.morph"))
+
+        child = m.lookup_child_by_name('chunk')
+        self.assertEqual(child['name'], 'chunk')
+        self.assertEqual(child['repo'], 'repo')
+        self.assertEqual(child['ref'], 'ref')
+
+    def test_raises_error_when_child_lookup_fails(self):
+        m = Morphology('''
+            {
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "repo",
+                        "ref": "ref"
+                    }
+                ]
+            }
+        ''')
+
+        self.assertRaises(KeyError, m.lookup_child_by_name, 'foo')
 
     ## Validation tests
 
