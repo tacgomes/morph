@@ -83,27 +83,28 @@ class BranchAndMergePlugin(cliapp.Plugin):
             dirname = os.path.dirname(dirname)
         raise cliapp.AppException("Can't find the workspace directory")
 
-    @classmethod
-    def deduce_system_branch(cls):
+    def deduce_system_branch(self):
         # 1. Deduce the workspace. If this fails, we're not inside a workspace.
-        workspace = cls.deduce_workspace()
+        workspace = self.deduce_workspace()
 
         # 2. We're in a workspace. Check if we're inside a system branch.
         #    If we are, return its name.
         dirname = os.getcwd()
         while dirname != workspace and dirname != '/':
             if os.path.isdir(os.path.join(dirname, '.morph-system-branch')):
-                return os.path.relpath(dirname, workspace)
+                branch_name = self.get_branch_config(dirname, 'branch-name')
+                return branch_name, dirname
             dirname = os.path.dirname(dirname)
 
         # 3. We're in a workspace but not inside a branch. Try to find a
         #    branch directory in the directories below the current working
         #    directory. Avoid ambiguity by only recursing deeper if there
         #    is only one subdirectory.
-        for dirname in cls.walk_special_directories(
+        for dirname in self.walk_special_directories(
                 os.getcwd(), special_subdir='.morph-system-branch',
                 max_subdirs=1):
-            return os.path.relpath(dirname, workspace)
+            branch_name = self.get_branch_config(dirname, 'branch-name')
+            return branch_name, dirname
 
         raise cliapp.AppException("Can't find the system branch directory")
 
@@ -272,6 +273,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 return dirname
         return None
 
+    def find_system_branch(self, workspace, branch_name):
+        for dirname in self.walk_special_directories(
+                workspace, special_subdir='.morph-system-branch'):
+            branch = self.get_branch_config(dirname, 'branch-name')
+            if branch_name == branch:
+                return dirname
+        return None
+
     def petrify(self, args):
         '''Make refs to chunks be absolute SHA-1s.'''
 
@@ -353,7 +362,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # this directory as a morph system branch.
         os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
-        # Remember the repository we branched off from.
+        # Remember the system branch name and the repository we branched
+        # off from initially.
+        self.set_branch_config(branch_dir, 'branch-name', new_branch)
         self.set_branch_config(branch_dir, 'branch-root', repo)
 
         # Clone into system branch directory.
@@ -383,7 +394,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # this directory as a morph system branch.
         os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
 
-        # Remember the repository we branched off from.
+        # Remember the system branch name and the repository we
+        # branched off from.
+        self.set_branch_config(branch_dir, 'branch-name', system_branch)
         self.set_branch_config(branch_dir, 'branch-root', repo)
 
         # Clone into system branch directory.
@@ -393,14 +406,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def show_system_branch(self, args):
         '''Print name of current system branch.'''
 
-        self.app.output.write('%s\n' % self.deduce_system_branch())
+        branch, dirname = self.deduce_system_branch()
+        self.app.output.write('%s\n' % branch)
 
     def show_branch_root(self, args):
         '''Print name of the repository that was branched off from.'''
 
         workspace = self.deduce_workspace()
-        system_branch = self.deduce_system_branch()
-        branch_dir = os.path.join(workspace, system_branch)
+        system_branch, branch_dir = self.deduce_system_branch()
         branch_root = self.get_branch_config(branch_dir, 'branch-root')
         self.app.output.write('%s\n' % branch_root)
 
@@ -411,17 +424,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('morph merge must get a branch name '
                                       'and some repo names as arguments')
 
-        other_branch = args[0]
         workspace = self.deduce_workspace()
-        this_branch = self.deduce_system_branch()
+        other_branch, other_branch_dir = \
+                args[0], self.find_system_branch(workspace, args[0])
+        this_branch, this_branch_dir = self.deduce_system_branch()
 
         for repo in args[1:]:
-            repo_url = self.resolve_reponame(repo)
-            repo_path = self.convert_uri_to_path(repo)
-            pull_from = urlparse.urljoin(
-                'file://', os.path.join(workspace, other_branch, repo_path))
-            repo_dir = os.path.join(workspace, this_branch, repo_path)
-            self.app.runcmd(['git', 'pull', pull_from, other_branch],
+            pull_dir = self.find_repository(other_branch_dir, repo)
+            pull_url = urlparse.urljoin('file://', pull_dir)
+            repo_dir = self.find_repository(this_branch_dir, repo)
+            self.app.runcmd(['git', 'pull', pull_url, other_branch],
                             cwd=repo_dir)
 
     def make_repository_available(self, system_branch, branch_dir, repo, ref):
@@ -455,10 +467,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'or a system, a stratum and a chunk as arguments')
 
         workspace = self.deduce_workspace()
-        system_branch = self.deduce_system_branch()
+        system_branch, branch_dir = self.deduce_system_branch()
 
         # Find out which repository we branched off from.
-        branch_dir = os.path.join(workspace, system_branch)
         branch_root = self.get_branch_config(branch_dir, 'branch-root')
         branch_root_dir = self.find_repository(branch_dir, branch_root)
 
