@@ -48,13 +48,16 @@ class MorphCacheServer(cliapp.Application):
                              'path to the artifact cache directory',
                              metavar='PATH',
                              default=defaults['artifact-dir'])
+        self.settings.boolean(['direct-mode'],
+                              'cache directories are directly managed')
 
     def process_args(self, args):
         app = Bottle()
 
         repo_cache = RepoCache(self,
                                self.settings['repo-dir'],
-                               self.settings['bundle-dir'])
+                               self.settings['bundle-dir'],
+                               self.settings['direct-mode'])
 
         @app.get('/sha1s')
         def sha1():
