@@ -24,7 +24,7 @@ set -eu
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch baserock:morphs me/readme-fix
-"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 cd me/readme-fix/baserock:hello
 echo > README yoyoyo
 git add README
@@ -33,6 +33,6 @@ git commit -m "Fix README, yo!" --quiet
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 cd master
-"$SRCDIR/scripts/test-morph" edit baserock:hello master
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 "$SRCDIR/scripts/test-morph" merge me/readme-fix baserock:hello
 

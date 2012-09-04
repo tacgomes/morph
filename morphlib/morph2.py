@@ -96,14 +96,17 @@ class Morphology(object):
 
         if 'disk-size' in self:
             size = self['disk-size']
-            size = size.lower()
-            if size.endswith('g'):
-                size = int(size[:-1]) * 1024 ** 3
-            elif size.endswith('m'):  # pragma: no cover
-                size = int(size[:-1]) * 1024 ** 2
-            elif size.endswith('k'):  # pragma: no cover
-                size = int(size[:-1]) * 1024
-            else:  # pragma: no cover
+            if isinstance(size, basestring):
+                size = size.lower()
+                if size.endswith('g'):
+                    size = int(size[:-1]) * 1024 ** 3
+                elif size.endswith('m'):  # pragma: no cover
+                    size = int(size[:-1]) * 1024 ** 2
+                elif size.endswith('k'):  # pragma: no cover
+                    size = int(size[:-1]) * 1024
+                else:  # pragma: no cover
+                    size = int(size)
+            else: # pragma: no cover
                 size = int(size)
             self._dict['disk-size'] = size
 
