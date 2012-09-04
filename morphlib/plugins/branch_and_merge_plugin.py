@@ -38,9 +38,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('workspace', self.workspace,
                                 arg_synopsis='')
         self.app.add_subcommand('branch', self.branch,
-                                arg_synopsis='NEW [OLD]')
+                                arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
-                                arg_synopsis='BRANCH')
+                                arg_synopsis='REPO BRANCH')
         self.app.add_subcommand('show-system-branch', self.show_system_branch,
                                 arg_synopsis='')
         self.app.add_subcommand('show-branch-root', self.show_branch_root,
@@ -48,7 +48,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH REPO...')
         self.app.add_subcommand('edit', self.edit,
-                                arg_synopsis='REPO [REF]')
+                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
 
     def disable(self):
         pass
