@@ -1,0 +1,75 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Make sure "morph build" works anywhere in a workspace or system branch
+# and produces the same results every time.
+
+set -eu
+
+# Initialise the workspace.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# Create a new local system branch.
+"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
+
+# Edit linux.
+"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
+
+# Fix the UUIDs being used for the temporary refs. This is needed
+# because the system and stratum morphologies will have references
+# to the temporary build refs and that will affect the artifact
+# cache keys. If we fix the UUIDs, the artifact cache keys will
+# always be the same.
+git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
+    branch.uuid 123456789
+git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
+    morph.uuid 987654321
+git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
+    morph.uuid AABBCCDDE
+
+# Build from the workspace root.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" build linux-system
+"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" > "$DATADIR/output1"
+rm -rf "$DATADIR/cache"/*
+
+# Build from the branch.
+cd "$DATADIR/workspace/branch1"
+"$SRCDIR/scripts/test-morph" build linux-system
+"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" > "$DATADIR/output2"
+rm -rf "$DATADIR/cache/artifacts"/*
+
+# Build form the branch root repository.
+cd "$DATADIR/workspace/branch1/test:morphs-repo"
+"$SRCDIR/scripts/test-morph" build linux-system
+"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" > "$DATADIR/output3"
+rm -rf "$DATADIR/cache/artifacts"/*
+
+# Build from the linux directory.
+cd "$DATADIR/workspace/branch1/test:kernel-repo"
+"$SRCDIR/scripts/test-morph" build linux-system
+"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" > "$DATADIR/output4"
+rm -rf "$DATADIR/cache/artifacts"/*
+
+# Verify that we're always building the same and that we're building
+# the right things after all.
+cat "$DATADIR/output1"
+
+# Print diffs of the build results, all of which should be empty.
+diff "$DATADIR/output1" "$DATADIR/output2"
+diff "$DATADIR/output2" "$DATADIR/output3"
+diff "$DATADIR/output3" "$DATADIR/output4"

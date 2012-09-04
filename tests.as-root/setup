@@ -31,6 +31,9 @@ set -eu
 # The $DATADIR should be empty at the beginnig of each test.
 find "$DATADIR" -mindepth 1 -delete
 
+# Create an empty directory to be used as a morph workspace
+mkdir "$DATADIR/workspace"
+
 # Create chunk repository.
 
 chunkrepo="$DATADIR/chunk-repo"
@@ -119,6 +122,40 @@ cat <<EOF > hello-system.morph
 }
 EOF
 git add hello-system.morph
+
+cat <<EOF > linux-system.morph
+{
+    "name": "linux-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "$(uname -m)",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "linux-stratum",
+            "repo": "test:morphs-repo",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git add linux-system.morph
+
+cat <<EOF > linux-stratum.morph
+{
+    "name": "linux-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "linux",
+            "repo": "test:kernel-repo",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+git add linux-stratum.morph
 
 git commit --quiet -m "add morphs"
 
