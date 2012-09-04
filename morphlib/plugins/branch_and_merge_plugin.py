@@ -83,10 +83,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             dirname = os.path.dirname(dirname)
         raise cliapp.AppException("Can't find the workspace directory")
 
-    @staticmethod
-    def is_system_branch_directory(dirname):
-        return os.path.isdir(os.path.join(dirname, '.morph-system-branch'))
-
     @classmethod
     def deduce_system_branch(cls):
         # 1. Deduce the workspace. If this fails, we're not inside a workspace.
@@ -96,7 +92,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         #    If we are, return its name.
         dirname = os.getcwd()
         while dirname != workspace and dirname != '/':
-            if cls.is_system_branch_directory(dirname):
+            if os.path.isdir(os.path.join(dirname, '.morph-system-branch')):
                 return os.path.relpath(dirname, workspace)
             dirname = os.path.dirname(dirname)
 
@@ -104,22 +100,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
         #    branch directory in the directories below the current working
         #    directory. Avoid ambiguity by only recursing deeper if there
         #    is only one subdirectory.
-        visited = set()
-        for dirname, subdirs, files in os.walk(os.getcwd(), followlinks=True):
-            # Avoid infinite recursion.
-            if dirname in visited:
-                subdirs[:] = []
-                continue
-            visited.add(dirname)
-
-            if cls.is_system_branch_directory(dirname):
-                return os.path.relpath(dirname, workspace)
-
-            # Do not recurse deeper if we have more than one
-            # non-hidden directory.
-            subdirs[:] = [x for x in subdirs if not x.startswith('.')]
-            if len(subdirs) > 1:
-                break
+        for dirname in cls.walk_special_directories(
+                os.getcwd(), special_subdir='.morph-system-branch',
+                max_subdirs=1):
+            return os.path.relpath(dirname, workspace)
 
         raise cliapp.AppException("Can't find the system branch directory")
 
@@ -254,31 +238,38 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 path = os.path.join(path, parts.path[1:])
             return path
 
-    def find_repository(self, branch_dir, repo):
+    @staticmethod
+    def walk_special_directories(root_dir, special_subdir=None, max_subdirs=0):
+        assert(special_subdir is not None)
+        assert(max_subdirs >= 0)
+
         visited = set()
-        for dirname, subdirs, files in os.walk(branch_dir, followlinks=True):
-            # Avoid infinite recursion.
+        for dirname, subdirs, files in os.walk(root_dir, followlinks=True):
+            # Avoid infinite recursion due to symlinks.
             if dirname in visited:
                 subdirs[:] = []
                 continue
             visited.add(dirname)
 
-            # Check if the current directory is a git repository and, if so,
-            # whether it was cloned from the repo we are looking for.
-            if '.git' in subdirs:
-                try:
-                    original_repo = self.app.runcmd(
-                        ['git', 'config', 'morph.repository'], cwd=dirname)
-                    original_repo = original_repo.strip()
-
-                    if repo == original_repo:
-                        return dirname
-                except:
-                    pass
+            # Check if the current directory has the special subdirectory.
+            if special_subdir in subdirs:
+                yield dirname
 
             # Do not recurse into hidden directories.
             subdirs[:] = [x for x in subdirs if not x.startswith('.')]
 
+            # Do not recurse if there is more than the maximum number of
+            # subdirectories allowed.
+            if max_subdirs > 0 and len(subdirs) > max_subdirs:
+                break
+
+    def find_repository(self, branch_dir, repo):
+        for dirname in self.walk_special_directories(branch_dir,
+                                                     special_subdir='.git'):
+            original_repo = self.app.runcmd(
+                ['git', 'config', 'morph.repository'], cwd=dirname)
+            if repo == original_repo.strip():
+                return dirname
         return None
 
     def petrify(self, args):
