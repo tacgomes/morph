@@ -133,8 +133,11 @@ For systems, use the following fields:
 
 * `disk-size`: size of the disk image to be created; may use suffixes like
   `M` and `G`; **required**
-* `strata`: a list of stratum names to include in the system image;
-  **required**
+* `strata`: a list of triples specifying strata to be included in the system
+  image. Similar to chunks, you should give `repo`, `ref` and `morph`
+  (filename without the .morph extension) for each stratum. The value of
+  the `morph` field will be taken as the artifact name; if this causes
+  ambiguity then an `alias` may be specified as well. **required**
 
 Example chunk (simplified commands):
 
