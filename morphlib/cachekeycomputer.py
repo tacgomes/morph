@@ -87,7 +87,7 @@ class CacheKeyComputer(object):
 
         kind = artifact.source.morphology['kind']
         if kind == 'chunk':
-            keys['ref'] = artifact.source.sha1
+            keys['tree'] = artifact.source.tree
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
             le_dict = dict((k, morphology[k]) for k in morphology.keys())
