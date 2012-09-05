@@ -434,25 +434,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch_root = self.get_branch_config(branch_dir, 'branch.root')
         self.app.output.write('%s\n' % branch_root)
 
-    def merge(self, args):
-        '''Merge specified repositories from another system branch.'''
-
-        if len(args) < 2:
-            raise cliapp.AppException('morph merge must get a branch name '
-                                      'and some repo names as arguments')
-
-        workspace = self.deduce_workspace()
-        other_branch, other_branch_dir = \
-                args[0], self.find_system_branch(workspace, args[0])
-        this_branch, this_branch_dir = self.deduce_system_branch()
-
-        for repo in args[1:]:
-            pull_dir = self.find_repository(other_branch_dir, repo)
-            pull_url = urlparse.urljoin('file://', pull_dir)
-            repo_dir = self.find_repository(this_branch_dir, repo)
-            self.app.runcmd(['git', 'pull', pull_url, other_branch],
-                            cwd=repo_dir)
-
     def make_repository_available(self, system_branch, branch_dir, repo, ref):
         existing_repo = self.find_repository(branch_dir, repo)
         if existing_repo:
@@ -554,6 +535,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         self.print_changelog('The following changes were made but have not '
                              'been comitted')
+
+    def merge(self, args):
+        '''Merge specified repositories from another system branch.'''
+
+        if len(args) < 2:
+            raise cliapp.AppException('morph merge must get a branch name '
+                                      'and some repo names as arguments')
+
+        workspace = self.deduce_workspace()
+        other_branch, other_branch_dir = \
+                args[0], self.find_system_branch(workspace, args[0])
+        this_branch, this_branch_dir = self.deduce_system_branch()
+
+        for repo in args[1:]:
+            pull_dir = self.find_repository(other_branch_dir, repo)
+            pull_url = urlparse.urljoin('file://', pull_dir)
+            repo_dir = self.find_repository(this_branch_dir, repo)
+            self.app.runcmd(['git', 'pull', pull_url, other_branch],
+                            cwd=repo_dir)
 
     def build(self, args):
         if len(args) != 1:
