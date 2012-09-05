@@ -65,11 +65,12 @@ class MorphCacheServer(cliapp.Application):
             ref = self._unescape_parameter(request.query.ref)
             try:
                 response.set_header('Cache-Control', 'no-cache')
-                sha1 = repo_cache.resolve_ref(repo, ref)
+                sha1, tree = repo_cache.resolve_ref(repo, ref)
                 return {
                     'repo': '%s' % repo,
                     'ref': '%s' % ref,
-                    'sha1': '%s' % sha1
+                    'sha1': '%s' % sha1,
+                    'tree': '%s' % tree
                 }
             except Exception, e:
                 response.status = 404

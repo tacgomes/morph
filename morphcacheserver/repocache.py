@@ -64,15 +64,24 @@ class RepoCache(object):
                 refs = [x.split() for x in refs]
             else:
                 refs = [x.split() for x in refs if 'origin' in x]
-            return refs[0][0]
+            return refs[0][0], self._tree_from_commit(repo_dir, refs[0][0])
+
         except cliapp.AppException:
             pass
+
         if not self._is_valid_sha1(ref):
             raise InvalidReferenceError(repo_url, ref)
         try:
-            return self._rev_list(ref).strip()
+            sha = self._rev_list(ref).strip()
+            return sha, self._tree_from_commit(repo_dir, sha)
         except:
             raise InvalidReferenceError(repo_url, ref)
+
+    def _tree_from_commit(self, repo_dir, commitsha):
+        commit_info = self.app.runcmd(['git', 'log', '-1',
+                                       '--format=format:%T', commitsha],
+                                      cwd=repo_dir)
+        return commit_info.strip()
 
     def cat_file(self, repo_url, ref, filename):
         quoted_url = self._quote_url(repo_url)
