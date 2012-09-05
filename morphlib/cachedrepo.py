@@ -91,27 +91,29 @@ class CachedRepo(object):
         return len(ref) == 40 and all([x in valid_chars for x in ref])
 
     def resolve_ref(self, ref):
-        '''Attempts to resolve a Git ref into its corresponding SHA1.
+        '''Attempts to resolve a ref into its SHA1 and tree SHA1.
 
         Raises an InvalidReferenceError if the ref is not found in the
         repository.
 
         '''
 
-        try:
-            refs = self._show_ref(ref).split('\n')
-            # split each ref line into an array, drop non-origin branches
-            refs = [x.split() for x in refs if 'origin' in x]
-            return refs[0][0]
-        except cliapp.AppException:
-            pass
-
         if not self.is_valid_sha1(ref):
-            raise InvalidReferenceError(self, ref)
-        try:
-            return self._rev_list(ref).strip()
-        except cliapp.AppException:
-            raise InvalidReferenceError(self, ref)
+            try:
+                refs = self._show_ref(ref).split('\n')
+                # split each ref line into an array, drop non-origin branches
+                refs = [x.split() for x in refs if 'origin' in x]
+                absref = refs[0][0]
+            except cliapp.AppException:
+                raise InvalidReferenceError(self, ref)
+        else:
+            try:
+                absref = self._rev_list(ref).strip()
+            except cliapp.AppException:
+                raise InvalidReferenceError(self, ref)
+
+        tree = self._show_tree_hash(absref)
+        return absref, tree
 
     def cat(self, ref, filename):
         '''Attempts to read a file given a SHA1 ref.
@@ -196,6 +198,10 @@ class CachedRepo(object):
 
     def _show_ref(self, ref):  # pragma: no cover
         return self._runcmd(['git', 'show-ref', ref])
+
+    def _show_tree_hash(self, absref):  # pragma: no cover
+        return self._runcmd(
+                ['git', 'log', '-1', '--format=format:%T', absref]).strip()
 
     def _rev_list(self, ref):  # pragma: no cover
         return self._runcmd(['git', 'rev-list', '--no-walk', ref])

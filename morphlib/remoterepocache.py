@@ -74,7 +74,7 @@ class RemoteRepoCache(object):
     def _resolve_ref_for_repo_url(self, repo_url, ref):  # pragma: no cover
         data = self._make_request('sha1s?repo=%s&ref=%s' % (repo_url, ref))
         info = json.loads(data)
-        return info['sha1']
+        return info['sha1'], info['tree']
 
     def _cat_file_for_repo_url(self, repo_url, ref,
                                filename):  # pragma: no cover

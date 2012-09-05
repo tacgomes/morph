@@ -91,7 +91,7 @@ class CacheKeyComputerTests(unittest.TestCase):
             }''',
         }.iteritems():
             source = morphlib.source.Source(
-                'repo', 'original/ref', 'sha',
+                'repo', 'original/ref', 'sha', 'tree',
                 morphlib.morph2.Morphology(text), name)
             self.source_pool.add(source)
             # FIXME: This should use MorphologyFactory
@@ -171,7 +171,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         old_artifact = self._find_artifact('system-rootfs')
         morphology = old_artifact.source.morphology
         new_source = morphlib.source.Source('repo', 'original/ref', 'newsha',
-                                            morphology,
+                                            'tree', morphology,
                                             old_artifact.source.filename)
         self.source_pool.add(new_source)
         artifacts = self.artifact_resolver.resolve_artifacts(self.source_pool)

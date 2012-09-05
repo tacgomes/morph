@@ -32,14 +32,15 @@ class SourceTests(unittest.TestCase):
         self.repo_name = 'foo.repo'
         self.original_ref = 'original/ref'
         self.sha1 = 'CAFEF00D'
+        self.tree = 'F000000D'
         self.morphology = morphlib.morph2.Morphology(self.morphology_text)
         self.filename = 'foo.morph'
         self.source = morphlib.source.Source(
-            self.repo_name, self.original_ref, self.sha1, self.morphology,
-            self.filename)
+            self.repo_name, self.original_ref, self.sha1, self.tree,
+            self.morphology, self.filename)
         self.other = morphlib.source.Source(
-            self.repo_name, self.original_ref, self.sha1, self.morphology,
-            self.filename)
+            self.repo_name, self.original_ref, self.sha1, self.tree,
+            self.morphology, self.filename)
 
     def test_sets_repo_name(self):
         self.assertEqual(self.source.repo_name, self.repo_name)

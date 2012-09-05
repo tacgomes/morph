@@ -51,7 +51,7 @@ class UpdateGitsPlugin(cliapp.Plugin):
 
         subs_to_process = set()
 
-        def visit(reponame, ref, filename, absref, morphology):
+        def visit(reponame, ref, filename, absref, tree, morphology):
             app.status(msg='Updating %(repo_name)s %(ref)s %(filename)s',
                        repo_name=reponame, ref=ref, filename=filename)
             assert cache.has_repo(reponame)

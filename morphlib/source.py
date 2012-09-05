@@ -27,6 +27,7 @@ class Source(object):
     * ``repo_name`` -- name of the git repository which contains the source
     * ``original_ref`` -- the git ref provided by the user or a morphology
     * ``sha1`` -- the absolute git commit id for the revision we use
+    * ``tree`` -- the SHA1 of the tree corresponding to the commit
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
     * ``dependencies`` -- list of Sources for build dependencies for us
@@ -37,11 +38,13 @@ class Source(object):
 
     '''
 
-    def __init__(self, repo_name, original_ref, sha1, morphology, filename):
+    def __init__(self, repo_name, original_ref, sha1, tree, morphology,
+            filename):
         self.repo = None
         self.repo_name = repo_name
         self.original_ref = original_ref
         self.sha1 = sha1
+        self.tree = tree
         self.morphology = morphology
         self.filename = filename
 

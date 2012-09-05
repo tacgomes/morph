@@ -40,6 +40,19 @@ class CachedRepoTests(unittest.TestCase):
         except:
             raise cliapp.AppException('git show-ref %s' % ref)
 
+    def show_tree_hash(self, absref):
+        output = {
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
+              'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+            '8b780e2e6f102fcf400ff973396566d36d730501':
+              'ffffffffffffffffffffffffffffffffffffffff'
+        }
+        try:
+            return output[absref]
+        except:
+            raise cliapp.AppException('git log -1 --format=format:%T %s' %
+                                      absref)
+
     def rev_list(self, ref):
         output = {
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
@@ -102,6 +115,7 @@ class CachedRepoTests(unittest.TestCase):
         self.repo = cachedrepo.CachedRepo(
             object(), self.repo_name, self.repo_url, self.repo_path)
         self.repo._show_ref = self.show_ref
+        self.repo._show_tree_hash = self.show_tree_hash
         self.repo._rev_list = self.rev_list
         self.repo._cat_file = self.cat_file
         self.repo._copy_repository = self.copy_repository
@@ -118,21 +132,24 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(self.repo.path, self.repo_path)
 
     def test_resolve_named_ref_master(self):
-        sha1 = self.repo.resolve_ref('master')
+        sha1, tree = self.repo.resolve_ref('master')
         self.assertEqual(sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEqual(tree, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
 
     def test_resolve_named_ref_baserock_morph(self):
-        sha1 = self.repo.resolve_ref('baserock/morph')
+        sha1, tree = self.repo.resolve_ref('baserock/morph')
         self.assertEqual(sha1, '8b780e2e6f102fcf400ff973396566d36d730501')
+        self.assertEqual(tree, 'ffffffffffffffffffffffffffffffffffffffff')
 
     def test_fail_resolving_invalid_named_ref(self):
         self.assertRaises(cachedrepo.InvalidReferenceError,
                           self.repo.resolve_ref, 'foo/bar')
 
     def test_resolve_sha1_ref(self):
-        sha1 = self.repo.resolve_ref(
+        sha1, tree = self.repo.resolve_ref(
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
         self.assertEqual(sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
+        self.assertEqual(tree, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
 
     def test_fail_resolving_an_invalid_sha1_ref(self):
         self.assertRaises(cachedrepo.InvalidReferenceError,
