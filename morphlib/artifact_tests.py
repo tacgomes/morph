@@ -41,7 +41,7 @@ class ArtifactTests(unittest.TestCase):
             }
             ''')
         self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', morph, 'chunk.morph')
+            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
         self.artifact_name = 'chunk-runtime'
         self.artifact = morphlib.artifact.Artifact(
             self.source, self.artifact_name)

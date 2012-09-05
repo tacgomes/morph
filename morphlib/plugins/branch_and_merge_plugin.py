@@ -306,7 +306,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                            ref=ref)
                 assert cache.has_repo(reponame)
                 repo = cache.get_repo(reponame)
-                source['ref'] = repo.resolve_ref(ref)
+                source['ref'], tree = repo.resolve_ref(ref)
 
             self.write_morphology(filename, morph)
 

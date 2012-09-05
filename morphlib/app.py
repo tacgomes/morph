@@ -179,8 +179,8 @@ class Morph(cliapp.Application):
     def create_source_pool(self, lrc, rrc, triplet):
         pool = morphlib.sourcepool.SourcePool()
 
-        def add_to_pool(reponame, ref, filename, absref, morphology):
-            source = morphlib.source.Source(reponame, ref, absref,
+        def add_to_pool(reponame, ref, filename, absref, tree, morphology):
+            source = morphlib.source.Source(reponame, ref, absref, tree,
                                             morphology, filename)
             pool.add(source)
 
@@ -196,7 +196,7 @@ class Morph(cliapp.Application):
         return self.create_source_pool(*args)
 
     def _resolveref(self, lrc, rrc, reponame, ref, update=True):
-        '''Resolves the sha1 of the ref in reponame and returns it.
+        '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
         If update is True then this has the side-effect of updating
         or cloning the repository into the local repo cache.
@@ -209,10 +209,10 @@ class Morph(cliapp.Application):
                 self.status(msg='Updating cached git repository %(reponame)s',
                             reponame=reponame)
                 repo.update()
-            absref = repo.resolve_ref(ref)
+            absref, tree = repo.resolve_ref(ref)
         elif rrc is not None:
             try:
-                absref = rrc.resolve_ref(reponame, ref)
+                absref, tree = rrc.resolve_ref(reponame, ref)
             except:
                 pass
         if absref is None:
@@ -223,8 +223,8 @@ class Morph(cliapp.Application):
                 repo.update()
             else:
                 repo = lrc.get_repo(reponame)
-            absref = repo.resolve_ref(ref)
-        return absref
+            absref, tree = repo.resolve_ref(ref)
+        return absref, tree
 
     def traverse_morphs(self, triplets, lrc, rrc, update=True,
                         visit=lambda rn, rf, fn, arf, m: None):
@@ -233,10 +233,10 @@ class Morph(cliapp.Application):
 
         while queue:
             reponame, ref, filename = queue.popleft()
-            absref = self._resolveref(lrc, rrc, reponame, ref, update)
+            absref, tree = self._resolveref(lrc, rrc, reponame, ref, update)
             morphology = morph_factory.get_morphology(
                 reponame, absref, filename)
-            visit(reponame, ref, filename, absref, morphology)
+            visit(reponame, ref, filename, absref, tree, morphology)
             if morphology['kind'] == 'system':
                 queue.extend((s['repo'], s['ref'], '%s.morph' % s['morph'])
                              for s in morphology['strata'])

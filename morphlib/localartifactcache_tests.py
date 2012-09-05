@@ -43,7 +43,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
             }
             ''')
         self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', morph, 'chunk.morph')
+            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
         self.runtime_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-runtime')
         self.devel_artifact = morphlib.artifact.Artifact(
