@@ -30,9 +30,10 @@ echo > README yoyoyo
 git add README
 git commit -m "Fix README, yo!" --quiet
 
+cd ../baserock:morphs
+git commit --quiet --all -m "Commit changes for system branch"
+
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 cd master
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-"$SRCDIR/scripts/test-morph" merge me/readme-fix baserock:hello
-
+"$SRCDIR/scripts/test-morph" merge me/readme-fix

@@ -150,7 +150,6 @@ def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     runcmd(['git', 'checkout', ref], cwd=gitdir)
 
-
 def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
     '''and the status of the working directory'''

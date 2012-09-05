@@ -14,34 +14,37 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
-# Check that "morph merge" merges explicitly named repositories.
-
+# Check that "morph merge" merges a system branch into master
 
 set -eu
-
 
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
 
 # Make a change to a chunk.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd newbranch/baserock:hello
+cd baserock/newbranch/baserock:hello
 touch newfile.txt
 git add newfile.txt
 git commit -m foo --quiet
 
-# Merge changes to a new system branch.
+# Commit in morphs repo
+cd ../baserock:morphs
+git commit --all --quiet -m "Update morph refs for baserock/newbranch"
+
+# Merge changes back to master
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs otherbranch
-cd otherbranch
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-"$SRCDIR/scripts/test-morph" merge newbranch baserock:hello
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+cd master
+"$SRCDIR/scripts/test-morph" merge baserock/newbranch
 
 # Check results.
 cd baserock:hello
 git status --short # make sure all changes are committed
-ls newfile.txt # make sure the new file is there
+[ -e newfile.txt ] # make sure the new file is there
 
+# Make sure all refs to the merged branch have gone.
+cd ../baserock:morphs
+! grep "\"ref\": \"baserock/newbranch\"" *.morph

@@ -49,7 +49,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('show-branch-root', self.show_branch_root,
                                 arg_synopsis='')
         self.app.add_subcommand('merge', self.merge,
-                                arg_synopsis='BRANCH REPO...')
+                                arg_synopsis='BRANCH')
         self.app.add_subcommand('edit', self.edit,
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('build', self.build,
@@ -536,24 +536,92 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.print_changelog('The following changes were made but have not '
                              'been comitted')
 
-    def merge(self, args):
-        '''Merge specified repositories from another system branch.'''
+    def merge_repo(self, name, from_dir, from_branch, to_dir, to_branch,
+                   is_morphs_repo = False):
+        '''Merge changes for a system branch in a specific repository'''
 
-        if len(args) < 2:
-            raise cliapp.AppException('morph merge must get a branch name '
-                                      'and some repo names as arguments')
+        if self.get_uncommitted_changes(from_dir) != []:
+            raise cliapp.AppException('repository %s has uncommitted '
+                                      'changes', name)
+        # repo must be made into a URL to avoid ':' in pathnames confusing git
+        from_url = urlparse.urljoin('file://', from_dir)
+        if is_morphs_repo:
+            # We use --no-commit in this case, so we can then revert the refs
+            # that were changed for the system branch in the merge commit
+            self.app.runcmd(['git', 'pull', '--no-commit', '--no-ff', from_url,
+                            from_branch], cwd=to_dir)
+        else:
+            self.app.runcmd(['git', 'pull', '--no-ff', from_url, from_branch],
+                            cwd=to_dir)
+
+    def merge(self, args):
+        '''Pull and merge changes from a system branch into the current one.'''
+
+        if len(args) != 1:
+            raise cliapp.AppException('morph merge requires a system branch '
+                                      'name as its argument')
 
         workspace = self.deduce_workspace()
-        other_branch, other_branch_dir = \
-                args[0], self.find_system_branch(workspace, args[0])
-        this_branch, this_branch_dir = self.deduce_system_branch()
+        from_branch = args[0]
+        from_branch_dir = self.find_system_branch(workspace, from_branch)
+        to_branch, to_branch_dir = self.deduce_system_branch()
 
-        for repo in args[1:]:
-            pull_dir = self.find_repository(other_branch_dir, repo)
-            pull_url = urlparse.urljoin('file://', pull_dir)
-            repo_dir = self.find_repository(this_branch_dir, repo)
-            self.app.runcmd(['git', 'pull', pull_url, other_branch],
-                            cwd=repo_dir)
+        root_repo = self.get_branch_config(from_branch_dir, 'branch.root')
+        other_root_repo = self.get_branch_config(to_branch_dir, 'branch.root')
+        if root_repo != other_root_repo:
+            raise cliapp.AppException('branches do not share a root '
+                                      'repository : %s vs %s' %
+                                      (root_repo, other_root_repo))
+
+        def _merge_chunk(ci):
+            from_repo = self.find_repository(from_branch_dir, ci['repo'])
+            to_repo = self.make_repository_available(
+                to_branch, to_branch_dir, ci['repo'], to_branch)
+            self.merge_repo(
+                ci['repo'], from_repo, from_branch, to_repo, to_branch)
+
+        def _merge_stratum(si):
+            if si['repo'] == root_repo:
+                to_repo = to_root_dir
+            else:
+                from_repo = self.find_repository(from_branch_dir, si['repo'])
+                to_repo = self.make_repository_available(
+                    to_branch, to_branch_dir, si['repo'], to_branch)
+                self.merge_repo(
+                    si['repo'], from_repo, from_branch, to_repo, to_branch,
+                    is_morphs_repo=True)
+                # We will do a merge commit in this repo later on
+                morphs_repo_list.add(to_repo)
+
+            stratum = self.load_morphology(to_repo, si['morph'])
+            for ci in stratum['chunks']:
+                if ci['ref'] == from_branch:
+                    _merge_chunk(ci)
+                    ci['ref'] = to_branch
+            self.save_morphology(to_repo, si['morph'], stratum)
+
+        from_root_dir = self.find_repository(from_branch_dir, root_repo)
+        to_root_dir = self.find_repository(to_branch_dir, root_repo)
+        self.app.runcmd(['git', 'checkout', to_branch], cwd=to_root_dir)
+        self.merge_repo(root_repo, from_root_dir, from_branch, to_root_dir,
+                        to_branch, is_morphs_repo = True)
+        morphs_repo_list = set([to_root_dir])
+
+        for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
+            name = f[:-len('.morph')]
+            morphology = self.load_morphology(to_root_dir, name)
+
+            if morphology['kind'] == 'system':
+                for si in morphology['strata']:
+                    if si['ref'] == from_branch:
+                        _merge_stratum(si)
+                    si['ref'] = to_branch
+                self.save_morphology(to_root_dir, name, morphology)
+
+        for repo in morphs_repo_list:
+            msg = "Merge system branch '%s'" % from_branch
+            self.app.runcmd(['git', 'commit', '--all', '--message="%s"' % msg],
+                            cwd=repo)
 
     def build(self, args):
         if len(args) != 1:
@@ -674,7 +742,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         except:
             return None
 
-    def get_uncommitted_changes(self, repo_dir, env):
+    def get_uncommitted_changes(self, repo_dir, env={}):
         status = self.app.runcmd(['git', 'status', '--porcelain'],
                                  cwd=repo_dir, env=env)
         changes = []
