@@ -28,9 +28,8 @@ warning_mentions(){
     grep -F "$1" <"$warnings" >/dev/null 2>/dev/null
 }
 
-"$SRCDIR/scripts/test-morph" \
-    build --log=$log test:morphs-repo overlap overlap-stratum.morph \
-        > /dev/null
+"$SRCDIR/scripts/test-morph" build-morphology --log=$log \
+    test:morphs-repo overlap overlap-stratum.morph > /dev/null
 grep WARNING "$log" >"$warnings"
 for str in overlap-stratum \
            overlap-foo-baz overlap-foobar bin/bar \

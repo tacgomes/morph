@@ -44,7 +44,8 @@ EOF
     > /dev/null
 
 # Build first image. Remember the stratum.
-"$SRCDIR/scripts/test-morph" build test:morphs-repo master hello-system.morph
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system.morph
 img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*-rootfs')
 
 # Modify the chunk, in a new branch.
@@ -63,7 +64,8 @@ sed -i 's/master/alfred/' "$DATADIR/morphs-repo/hello-system.morph"
     > /dev/null
 
 # Build second image.
-"$SRCDIR/scripts/test-morph" build test:morphs-repo alfred hello-system.morph
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo alfred hello-system.morph
 img2=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*' \
             ! -name $(basename "$img1"))
 

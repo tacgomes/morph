@@ -43,4 +43,4 @@ git add archless-system.morph
 git commit --quiet -m "add archless system"
 
 "$SRCDIR/scripts/test-morph" \
-    build test:morphs-repo archless archless-system.morph
+    build-morphology test:morphs-repo archless archless-system.morph

@@ -60,7 +60,8 @@ git init --quiet
 git add alfred.morph
 git commit --quiet -m initial
 
-"$SRCDIR/scripts/test-morph" build test:stratum master alfred.morph
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:stratum master alfred.morph
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do
