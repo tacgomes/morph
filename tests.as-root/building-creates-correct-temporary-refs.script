@@ -1,0 +1,63 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Make sure "morph build" works anywhere in a workspace or system branch
+# and produces the same results every time.
+
+set -eu
+
+# Initialise the workspace.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# Create a new local system branch.
+"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
+
+# Edit linux.
+"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
+
+# Fix the UUIDs being used for the temporary refs.
+git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
+    branch.uuid 123456789
+git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
+    morph.uuid 987654321
+git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
+    morph.uuid AABBCCDDE
+
+# Build the linux system from the system branch.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" build linux-system
+
+# Verify that the right temporary refs were created.
+echo "Refs of morphs repo after first build:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+    show-ref | cut -d' ' -f2
+echo "Refs of kernel repo after first build:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \
+    show-ref | cut -d' ' -f2
+echo
+
+# Change the build ref prefix and build again.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" --build-ref-prefix=newprefix build linux-system
+
+# Verify that the right temporary refs were created.
+echo "Refs of morphs repo after second build:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+    show-ref | cut -d' ' -f2
+echo "Refs of kernel repo after second build:"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \
+    show-ref | cut -d' ' -f2
