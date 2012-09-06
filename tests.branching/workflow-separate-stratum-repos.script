@@ -1,0 +1,149 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# Do a complete workflow test, with strata outside the main morphologies
+# repository.
+
+
+set -eu
+
+
+create_chunk() {
+    REPO="$1"
+    NAME="$2"
+
+    mkdir "$1"
+    ln -s "$1" "$1.git"
+    cd "$1"
+
+    cat <<EOF > "$1/$2.morph"
+{
+    "name": "$2",
+    "kind": "chunk",
+    "build-system": "dummy"
+}
+EOF
+
+    git init --quiet
+    git add  .
+    git commit --quiet -m "Initial commit"
+}
+
+write_stratum_morph() {
+    REPO="$1"
+    NAME="$2"
+
+cat <<EOF > "$1/$2.morph"
+{
+    "name": "$2",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:$2-hello",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+}
+
+
+# Create two more strata outside the baserock:morphs repository
+
+EXTERNAL_STRATA_REPO="$DATADIR/external-strata"
+mkdir "$EXTERNAL_STRATA_REPO"
+ln -s "$EXTERNAL_STRATA_REPO" "$EXTERNAL_STRATA_REPO".git
+cd "$EXTERNAL_STRATA_REPO"
+
+git init --quiet .
+
+write_stratum_morph "$EXTERNAL_STRATA_REPO" "stratum2"
+write_stratum_morph "$EXTERNAL_STRATA_REPO" "stratum3"
+
+git add .
+git commit --quiet -m "Initial commit"
+
+# To make life harder, both chunks have the same name too
+
+create_chunk "$DATADIR/stratum2-hello" "hello"
+create_chunk "$DATADIR/stratum3-hello" "hello"
+
+# Update hello-system to include them
+
+cd "$DATADIR/morphs"
+cat <<EOF > "$DATADIR/morphs/hello-system.morph"
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:morphs",
+            "ref": "master"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "baserock:external-strata",
+            "ref": "master"
+        },
+        {
+            "morph": "stratum3",
+            "repo": "baserock:external-strata",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git commit --quiet --all -m "Add two more external strata"
+
+# Now try to branch and merge the system
+# FIXME: we should try and build it, too
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch baserock:morphs me/readme-fixes
+
+# Edit one chunk
+"$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
+cd "$DATADIR/workspace/me/readme-fixes/baserock:stratum2-hello"
+echo > README yoyoyo
+git add README
+git commit -m "Fix README in hello" --quiet
+
+# Edit the other chunk too
+"$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
+cd "$DATADIR/workspace/me/readme-fixes/baserock:stratum3-hello"
+echo > README yoyoyo
+git add README
+git commit -m "Fix README in hello" --quiet
+
+# Update the morphologies repos
+cd ../baserock:external-strata
+git commit --quiet --all -m "Commit changes for system branch"
+
+cd ../baserock:morphs
+git commit --quiet --all -m "Commit changes for system branch"
+
+# Merge our system branch into master
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+cd master
+"$SRCDIR/scripts/test-morph" merge me/readme-fixes
