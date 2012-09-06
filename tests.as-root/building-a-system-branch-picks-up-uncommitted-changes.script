@@ -1,0 +1,71 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Make sure "morph build" works anywhere in a workspace or system branch
+# and produces the same results every time.
+
+set -eu
+
+# Initialise the workspace.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# Create a new local system branch.
+"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
+
+# Edit linux.
+"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
+
+# Fix the UUIDs being used for the temporary refs.
+git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
+    branch.uuid 123456789
+git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
+    morph.uuid 987654321
+git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
+    morph.uuid AABBCCDDE
+
+# Build the linux system from the system branch.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" build linux-system
+
+# Print tree SHA1s of the build ref of morphs and kernel.
+echo "Tree of morphs repo build branch after first build:"
+cd "$DATADIR/workspace/branch1/test:morphs-repo"
+git log -1 --format=%T baserock/builds/123456789/987654321
+echo "Tree of kernel repo build branch after first build:"
+cd "$DATADIR/workspace/branch1/test:kernel-repo"
+git log -1 --format=%T baserock/builds/123456789/AABBCCDDE
+
+echo
+
+# Make an uncommitted change to the linux morphology.
+cd "$DATADIR/workspace/branch1/test:kernel-repo"
+sed -i -e 's@touch@touch foo@g' linux.morph
+
+# Build the linux system again without comitting.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" build linux-system
+
+# Print tree SHA1s of the build ref of morphs and kernel again.
+# This time the tree SHA1 of morphs-repo should be the same
+# but that of the kernel repo should be different because we
+# made a change.
+echo "Tree of morphs repo build branch after second build:"
+cd "$DATADIR/workspace/branch1/test:morphs-repo"
+git log -1 --format=%T baserock/builds/123456789/987654321
+echo "Tree of kernel repo build branch after second build:"
+cd "$DATADIR/workspace/branch1/test:kernel-repo"
+git log -1 --format=%T baserock/builds/123456789/AABBCCDDE
