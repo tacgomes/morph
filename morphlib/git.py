@@ -150,6 +150,14 @@ def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     runcmd(['git', 'checkout', ref], cwd=gitdir)
 
+def ref_exists(runcmd, gitdir, ref):
+    '''Check if specific ref exists locally or in a remote.'''
+    try:
+        runcmd(['git', 'show-ref', '--quiet', ref], cwd=gitdir)
+    except cliapp.AppException:
+        return False
+    return True
+
 def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
     '''and the status of the working directory'''

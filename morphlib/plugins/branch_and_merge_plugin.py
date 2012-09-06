@@ -408,6 +408,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
             repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
             self.clone_to_directory(repo_dir, repo, commit)
 
+            # Check if branch already exists locally or in a remote
+            if morphlib.git.ref_exists(self.app.runcmd, repo_dir, new_branch):
+                raise cliapp.AppException('branch %s already exists in '
+                                          'repository %s' % (new_branch, repo))
+
             # Create a new branch in the local morphs repository.
             self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
                             cwd=repo_dir)
