@@ -620,7 +620,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         for repo in morphs_repo_list:
             msg = "Merge system branch '%s'" % from_branch
-            self.app.runcmd(['git', 'commit', '--all', '--message="%s"' % msg],
+            self.app.runcmd(['git', 'commit', '--all', '--message=%s' % msg],
                             cwd=repo)
 
     def build(self, args):
