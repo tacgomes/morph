@@ -409,7 +409,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.clone_to_directory(repo_dir, repo, commit)
 
             # Check if branch already exists locally or in a remote
-            if morphlib.git.ref_exists(self.app.runcmd, repo_dir, new_branch):
+            if self.resolve_ref(repo_dir, new_branch) is not None:
                 raise cliapp.AppException('branch %s already exists in '
                                           'repository %s' % (new_branch, repo))
 
