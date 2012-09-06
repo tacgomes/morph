@@ -48,6 +48,7 @@ defaults = {
     'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
     'ccache-remotedir': '',
     'ccache-remotenlevels': 2,
+    'build-ref-prefix': 'baserock/builds'
 }
 
 
@@ -144,6 +145,11 @@ class Morph(cliapp.Application):
         self.settings.boolean(['staging-chroot'],
                               'build things in a staging chroot '
                               '(require real root to use)')
+
+        self.settings.string(['build-ref-prefix'],
+                             'Prefix to use for temporary build refs',
+                             metavar='PREFIX',
+                             default=defaults['build-ref-prefix'])
 
     def setup_plugin_manager(self):
         cliapp.Application.setup_plugin_manager(self)
