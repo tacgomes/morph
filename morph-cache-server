@@ -55,6 +55,8 @@ class MorphCacheServer(cliapp.Application):
                              default=defaults['artifact-dir'])
         self.settings.boolean(['direct-mode'],
                               'cache directories are directly managed')
+        self.settings.boolean(['enable-writes'],
+                              'enable the write methods (fetch and delete)')
 
     def process_args(self, args):
         app = Bottle()
@@ -63,6 +65,23 @@ class MorphCacheServer(cliapp.Application):
                                self.settings['repo-dir'],
                                self.settings['bundle-dir'],
                                self.settings['direct-mode'])
+
+        def writable(prefix):
+            """Selectively enable bottle prefixes.
+
+            prefix -- The path prefix we are enabling
+
+            If the runtime configuration setting --enable-writes is provided
+            then we return the app.get() decorator for the given path prefix
+            otherwise we return a lambda which passes the function through
+            undecorated.
+
+            This has the effect of being a runtime-enablable @app.get(...)
+
+            """
+            if self.settings['enable-writes']:
+                return app.get(prefix)
+            return lambda fn: fn
 
         @app.get('/sha1s')
         def sha1():
