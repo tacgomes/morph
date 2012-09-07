@@ -20,6 +20,7 @@ import cliapp
 import logging
 import os
 import urllib
+import shutil
 
 from bottle import Bottle, request, response, run, static_file
 
@@ -94,16 +95,47 @@ class MorphCacheServer(cliapp.Application):
                 fsstinfo = os.statvfs(artifactdir)
                 results["freespace"] = fsstinfo.f_bsize * fsstinfo.f_bavail
                 for fname in filenames:
-                    try:
-                        stinfo = os.stat("%s/%s" % (artifactdir, fname))
-                        files[fname] = {
-                            "atime": stinfo.st_atime,
-                            "size": stinfo.st_size,
-                            "used": stinfo.st_blocks * 512,
-                            }
-                    except Exception, e:
-                        print(e)
+                    if not fname.startswith(".dl."):
+                        try:
+                            stinfo = os.stat("%s/%s" % (artifactdir, fname))
+                            files[fname] = {
+                                "atime": stinfo.st_atime,
+                                "size": stinfo.st_size,
+                                "used": stinfo.st_blocks * 512,
+                                }
+                        except Exception, e:
+                            print(e)
             return results
+
+        @writable('/fetch')
+        def fetch():
+            host = self._unescape_parameter(request.query.host)
+            artifact = self._unescape_parameter(request.query.artifact)
+            try:
+                response.set_header('Cache-Control', 'no-cache')
+                in_fh = urllib.urlopen("http://%s/artifacts?basename=%s" %
+                                       (host, urllib.quote(artifact)))
+                tmpname = "%s/.dl.%s" % (
+                    self.settings['artifact-dir'],
+                    artifact)
+                localtmp = open(tmpname, "w")
+                shutil.copyfileobj(in_fh, localtmp)
+                localtmp.close()
+                in_fh.close()
+                artifilename = "%s/%s" % (self.settings['artifact-dir'],
+                                          artifact)
+                os.rename(tmpname, artifilename)
+                stinfo = os.stat(artifilename)
+                ret = {}
+                ret[artifact] = {
+                    "size": stinfo.st_size,
+                    "used": stinfo.st_blocks * 512
+                    }
+                return ret
+
+            except Exception, e:
+                response.status = 500
+                logging.debug('%s' % e)
 
         @app.get('/sha1s')
         def sha1():
