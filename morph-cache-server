@@ -30,12 +30,17 @@ defaults = {
     'repo-dir': '/var/cache/morph-cache-server/gits',
     'bundle-dir': '/var/cache/morph-cache-server/bundles',
     'artifact-dir': '/var/cache/morph-cache-server/artifacts',
+    'port': 8080,
 }
 
 
 class MorphCacheServer(cliapp.Application):
 
     def add_settings(self):
+        self.settings.integer(['port'],
+                              'port to listen on',
+                              metavar='PORTNUM',
+                              default=defaults['port'])
         self.settings.string(['repo-dir'],
                              'path to the repository cache directory',
                              metavar='PATH',
@@ -128,7 +133,7 @@ class MorphCacheServer(cliapp.Application):
         root = Bottle()
         root.mount(app, '/1.0')
         
-        run(root, host='0.0.0.0', port=8080, reloader=True)
+        run(root, host='0.0.0.0', port=self.settings['port'], reloader=True)
 
     def _unescape_parameter(self, param):
         return urllib.unquote(param)
