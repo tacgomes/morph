@@ -83,6 +83,28 @@ class MorphCacheServer(cliapp.Application):
                 return app.get(prefix)
             return lambda fn: fn
 
+        @writable('/list')
+        def list():
+            response.set_header('Cache-Control', 'no-cache')
+            results = {}
+            files = {}
+            results["files"] = files
+            for artifactdir, __, filenames in \
+                    os.walk(self.settings['artifact-dir']):
+                fsstinfo = os.statvfs(artifactdir)
+                results["freespace"] = fsstinfo.f_bsize * fsstinfo.f_bavail
+                for fname in filenames:
+                    try:
+                        stinfo = os.stat("%s/%s" % (artifactdir, fname))
+                        files[fname] = {
+                            "atime": stinfo.st_atime,
+                            "size": stinfo.st_size,
+                            "used": stinfo.st_blocks * 512,
+                            }
+                    except Exception, e:
+                        print(e)
+            return results
+
         @app.get('/sha1s')
         def sha1():
             repo = self._unescape_parameter(request.query.repo)
