@@ -601,6 +601,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
         from_branch_dir = self.find_system_branch(workspace, from_branch)
         to_branch, to_branch_dir = self.deduce_system_branch()
 
+        if from_branch_dir is None:
+            raise cliapp.AppException('branch %s must be checked out before '
+                                      'it can be merged' % from_branch)
+
         root_repo = self.get_branch_config(from_branch_dir, 'branch.root')
         other_root_repo = self.get_branch_config(to_branch_dir, 'branch.root')
         if root_repo != other_root_repo:
