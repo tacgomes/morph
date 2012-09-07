@@ -19,8 +19,11 @@ import copy
 import os
 import json
 import glob
+import socket
 import tempfile
+import time
 import urlparse
+import uuid
 
 import morphlib
 
@@ -49,6 +52,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH REPO...')
         self.app.add_subcommand('edit', self.edit,
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
+        self.app.add_subcommand('build', self.build,
+                                arg_synopsis='SYSTEM')
 
     def disable(self):
         pass
@@ -92,7 +97,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         dirname = os.getcwd()
         while dirname != workspace and dirname != '/':
             if os.path.isdir(os.path.join(dirname, '.morph-system-branch')):
-                branch_name = self.get_branch_config(dirname, 'branch-name')
+                branch_name = self.get_branch_config(dirname, 'branch.name')
                 return branch_name, dirname
             dirname = os.path.dirname(dirname)
 
@@ -103,27 +108,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
         for dirname in self.walk_special_directories(
                 os.getcwd(), special_subdir='.morph-system-branch',
                 max_subdirs=1):
-            branch_name = self.get_branch_config(dirname, 'branch-name')
+            branch_name = self.get_branch_config(dirname, 'branch.name')
             return branch_name, dirname
 
         raise cliapp.AppException("Can't find the system branch directory")
 
-    @staticmethod
-    def write_branch_root(branch_dir, repo):
-        filename = os.path.join(branch_dir, '.morph-system-branch',
-                                'branch-root')
-        with open(filename, 'w') as f:
-            f.write('%s\n' % repo)
-
     def set_branch_config(self, branch_dir, option, value):
         filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
-        self.app.runcmd(['git', 'config', '-f', filename,
-                         'branch.%s' % option, '%s' % value])
+        self.app.runcmd(['git', 'config', '-f', filename, option, value])
 
     def get_branch_config(self, branch_dir, option):
         filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
-        value = self.app.runcmd(['git', 'config', '-f', filename,
-                                'branch.%s' % option])
+        value = self.app.runcmd(['git', 'config', '-f', filename, option])
+        return value.strip()
+
+    def set_repo_config(self, repo_dir, option, value):
+        self.app.runcmd(['git', 'config', option, value], cwd=repo_dir)
+
+    def get_repo_config(self, repo_dir, option):
+        value = self.app.runcmd(['git', 'config', option], cwd=repo_dir)
         return value.strip()
 
     def clone_to_directory(self, dirname, reponame, ref):
@@ -154,16 +157,19 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Remember the repo name we cloned from in order to be able
         # to identify the repo again later using the same name, even
         # if the user happens to rename the directory.
-        self.app.runcmd(['git', 'config', 'morph.repository', reponame],
-                        cwd=dirname)
+        self.set_repo_config(dirname, 'morph.repository', reponame)
+
+        # Create a UUID for the clone. We will use this for naming
+        # temporary refs, e.g. for building.
+        self.set_repo_config(dirname, 'morph.uuid', uuid.uuid4().hex)
 
         # Set the origin to point at the original repository.
         morphlib.git.set_remote(self.app.runcmd, dirname, 'origin', repo.url)
 
         # Add push url rewrite rule to .git/config.
-        self.app.runcmd(['git', 'config',
-                        'url.%s.pushInsteadOf' % resolver.push_url(reponame),
-                        resolver.pull_url(reponame)], cwd=dirname)
+        self.set_repo_config(
+                dirname, 'url.%s.pushInsteadOf' % resolver.push_url(reponame),
+                resolver.pull_url(reponame))
 
         self.app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
@@ -187,7 +193,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @staticmethod
     def save_morphology(repo_dir, name, morphology):
-        filename = os.path.join(repo_dir, '%s.morph' % name)
+        if not name.endswith('.morph'):
+            name = '%s.morph' % name
+        if os.path.isabs(name):
+            filename = name
+        else:
+            filename = os.path.join(repo_dir, name)
         as_dict = {}
         for key in morphology.keys():
             value = morphology[key]
@@ -267,16 +278,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def find_repository(self, branch_dir, repo):
         for dirname in self.walk_special_directories(branch_dir,
                                                      special_subdir='.git'):
-            original_repo = self.app.runcmd(
-                ['git', 'config', 'morph.repository'], cwd=dirname)
-            if repo == original_repo.strip():
+            original_repo = self.get_repo_config(dirname, 'morph.repository')
+            if repo == original_repo:
                 return dirname
         return None
 
     def find_system_branch(self, workspace, branch_name):
         for dirname in self.walk_special_directories(
                 workspace, special_subdir='.morph-system-branch'):
-            branch = self.get_branch_config(dirname, 'branch-name')
+            branch = self.get_branch_config(dirname, 'branch.name')
             if branch_name == branch:
                 return dirname
         return None
@@ -364,8 +374,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Remember the system branch name and the repository we branched
         # off from initially.
-        self.set_branch_config(branch_dir, 'branch-name', new_branch)
-        self.set_branch_config(branch_dir, 'branch-root', repo)
+        self.set_branch_config(branch_dir, 'branch.name', new_branch)
+        self.set_branch_config(branch_dir, 'branch.root', repo)
+
+        # Generate a UUID for the branch. We will use this for naming
+        # temporary refs, e.g. building.
+        self.set_branch_config(branch_dir, 'branch.uuid', uuid.uuid4().hex)
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
@@ -396,8 +410,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Remember the system branch name and the repository we
         # branched off from.
-        self.set_branch_config(branch_dir, 'branch-name', system_branch)
-        self.set_branch_config(branch_dir, 'branch-root', repo)
+        self.set_branch_config(branch_dir, 'branch.name', system_branch)
+        self.set_branch_config(branch_dir, 'branch.root', repo)
+
+        # Generate a UUID for the branch.
+        self.set_branch_config(branch_dir, 'branch.uuid', uuid.uuid4().hex)
 
         # Clone into system branch directory.
         repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
@@ -414,7 +431,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         workspace = self.deduce_workspace()
         system_branch, branch_dir = self.deduce_system_branch()
-        branch_root = self.get_branch_config(branch_dir, 'branch-root')
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
         self.app.output.write('%s\n' % branch_root)
 
     def merge(self, args):
@@ -470,7 +487,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         system_branch, branch_dir = self.deduce_system_branch()
 
         # Find out which repository we branched off from.
-        branch_root = self.get_branch_config(branch_dir, 'branch-root')
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
         branch_root_dir = self.find_repository(branch_dir, branch_root)
 
         system_name = args[0]
@@ -537,3 +554,239 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         self.print_changelog('The following changes were made but have not '
                              'been comitted')
+
+    def build(self, args):
+        if len(args) != 1:
+            raise cliapp.AppException('morph build expects exactly one '
+                                      'parameter: the system to build')
+
+        system_name = args[0]
+
+        # Deduce workspace and system branch and branch root repository.
+        workspace = self.deduce_workspace()
+        branch, branch_dir = self.deduce_system_branch()
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
+        branch_uuid = self.get_branch_config(branch_dir, 'branch.uuid')
+
+        # Generate a UUID for the build.
+        build_uuid = uuid.uuid4().hex
+
+        self.app.status(msg='Starting build %(uuid)s', uuid=build_uuid)
+
+        self.app.status(msg='Collecting morphologies involved in '
+                            'building %(system)s from %(branch)s',
+                            system=system_name, branch=branch)
+
+        # Get repositories of morphologies involved in building this system
+        # from the current system branch.
+        build_repos = self.get_system_build_repos(
+                branch, branch_dir, branch_root, system_name)
+
+        # Generate temporary build ref names for all these repositories.
+        self.generate_build_ref_names(build_repos, branch_uuid)
+
+        # Create the build refs for all these repositories and commit
+        # all uncommitted changes to them, updating all references
+        # to system branch refs to point to the build refs instead.
+        self.update_build_refs(build_repos, branch, build_uuid)
+
+        # Push the temporary build refs.
+        self.push_build_refs(build_repos)
+
+        # Run the build.
+        build_command = morphlib.buildcommand.BuildCommand(self.app)
+        build_command = self.app.hookmgr.call('new-build-command',
+                                              build_command)
+        build_command.build([branch_root,
+                             build_repos[branch_root]['build-ref'],
+                             '%s.morph' % system_name])
+
+        # Delete the temporary refs on the server.
+        self.delete_remote_build_refs(build_repos)
+
+        self.app.status(msg='Finished build %(uuid)s', uuid=build_uuid)
+
+    def get_system_build_repos(self, system_branch, branch_dir,
+                               branch_root, system_name):
+        build_repos = {}
+
+        def prepare_repo_info(repo, dirname):
+            build_repos[repo] = {
+                'dirname': dirname,
+                'systems': [],
+                'strata': [],
+                'chunks': []
+            }
+
+        def add_morphology_info(info, category):
+            repo = info['repo']
+            if repo in build_repos:
+                repo_dir = build_repos[repo]['dirname']
+            else:
+                repo_dir = self.find_repository(branch_dir, repo)
+            if repo_dir:
+                if not repo in build_repos:
+                    prepare_repo_info(repo, repo_dir)
+                build_repos[repo][category].append(info['morph'])
+            return repo_dir
+
+        # Add repository and morphology of the system.
+        branch_root_dir = self.find_repository(branch_dir, branch_root)
+        prepare_repo_info(branch_root, branch_root_dir)
+        build_repos[branch_root]['systems'].append(system_name)
+
+        # Traverse and add repositories and morphologies involved in
+        # building this system from the system branch.
+        system_morphology = self.load_morphology(branch_root_dir, system_name)
+        for info in system_morphology['strata']:
+            if info['ref'] == system_branch:
+                repo_dir = add_morphology_info(info, 'strata')
+                if repo_dir:
+                    stratum_morphology = self.load_morphology(
+                            repo_dir, info['morph'])
+                    for info in stratum_morphology['chunks']:
+                        if info['ref'] == system_branch:
+                            add_morphology_info(info, 'chunks')
+
+        return build_repos
+
+    def inject_build_refs(self, morphology, build_repos):
+        # Starting from a system or stratum morphology, update all ref
+        # pointers of strata or chunks involved in a system build (represented
+        # by build_repos) to point to temporary build refs of the repos
+        # involved in the system build.
+        def inject_build_ref(info):
+            if info['repo'] in build_repos and (
+                    info['morph'] in build_repos[info['repo']]['strata'] or
+                    info['morph'] in build_repos[info['repo']]['chunks']):
+                info['ref'] = build_repos[info['repo']]['build-ref']
+        if morphology['kind'] == 'system':
+            for info in morphology['strata']:
+                inject_build_ref(info)
+        elif morphology['kind'] == 'stratum':
+            for info in morphology['chunks']:
+                inject_build_ref(info)
+
+    def resolve_ref(self, repodir, ref):
+        try:
+            return self.app.runcmd(['git', 'show-ref', ref],
+                                   cwd=repodir).split()[0]
+        except:
+            return None
+
+    def get_uncommitted_changes(self, repo_dir, env):
+        status = self.app.runcmd(['git', 'status', '--porcelain'],
+                                 cwd=repo_dir, env=env)
+        changes = []
+        for change in status.strip().splitlines():
+            xy, paths = change.strip().split(' ', 1)
+            if xy != '??':
+                changes.append(paths.split()[0])
+        return changes
+
+    def generate_build_ref_names(self, build_repos, branch_uuid):
+        for repo, info in build_repos.iteritems():
+            repo_dir = info['dirname']
+            repo_uuid = self.get_repo_config(repo_dir, 'morph.uuid')
+            build_ref = os.path.join(self.app.settings['build-ref-prefix'],
+                                     branch_uuid, repo_uuid)
+            info['build-ref'] = build_ref
+
+    def update_build_refs(self, build_repos, system_branch, build_uuid):
+        # Define the committer.
+        committer_name = 'Morph (on behalf of %s)' % \
+                self.app.runcmd(['git', 'config', 'user.name']).strip()
+        committer_email = '%s@%s' % \
+                (os.environ.get('LOGNAME'), socket.gethostname())
+
+        for repo, info in build_repos.iteritems():
+            repo_dir = info['dirname']
+            build_ref = info['build-ref']
+
+            self.app.status(msg='%(repo)s: Creating build branch', repo=repo)
+
+            # Obtain parent SHA1 for the temporary ref tree to be committed.
+            # This will either be the current commit of the temporary ref or
+            # HEAD in case the temporary ref does not exist yet.
+            parent_sha1 = self.resolve_ref(repo_dir, build_ref)
+            if not parent_sha1:
+                parent_sha1 = self.resolve_ref(repo_dir, system_branch)
+
+            # Prepare an environment with our internal index file.
+            # This index file allows us to commit changes to a tree without
+            # git noticing any change in working tree or its own index.
+            env = dict(os.environ)
+            env['GIT_INDEX_FILE'] = os.path.join(
+                    repo_dir, '.git', 'morph-index')
+            env['GIT_COMMITTER_NAME'] = committer_name
+            env['GIT_COMMITTER_EMAIL'] = committer_email
+
+            # Read tree from parent or current HEAD into the morph index.
+            self.app.runcmd(['git', 'read-tree', parent_sha1],
+                            cwd=repo_dir, env=env)
+
+            self.app.status(msg='%(repo)s: Adding uncommited changes to '
+                                'build branch', repo=repo)
+
+            # Add all local, uncommitted changes to our internal index.
+            changed_files = self.get_uncommitted_changes(repo_dir, env)
+            self.app.runcmd(['git', 'add'] + changed_files,
+                            cwd=repo_dir, env=env)
+
+            self.app.status(msg='%(repo)s: Update morphologies to use '
+                                'build branch instead of "%(branch)s"',
+                            repo=repo, branch=system_branch)
+
+            # Update all references to the system branches of strata
+            # and chunks to point to the temporary refs, which is needed
+            # for building.
+            filenames = info['systems'] + info['strata']
+            for filename in filenames:
+                # Inject temporary refs in the right places in each morphology.
+                morphology = self.load_morphology(repo_dir, filename)
+                self.inject_build_refs(morphology, build_repos)
+                handle, tmpfile = tempfile.mkstemp(suffix='.morph')
+                self.save_morphology(repo_dir, tmpfile, morphology)
+
+                morphology_sha1 = self.app.runcmd(
+                        ['git', 'hash-object', '-t', 'blob', '-w', tmpfile],
+                        cwd=repo_dir, env=env)
+
+                self.app.runcmd(
+                        ['git', 'update-index', '--cacheinfo',
+                         '100644', morphology_sha1, '%s.morph' % filename],
+                        cwd=repo_dir, env=env)
+
+                # Remove the temporary morphology file.
+                os.remove(tmpfile)
+
+            # Create a commit message including the build UUID. This allows us
+            # to collect all commits of a build across repositories and thereby
+            # see the changes made to the entire system between any two builds.
+            message = 'Morph build %s\n\nSystem branch: %s\n' % \
+                      (build_uuid, system_branch)
+
+            # Write and commit the tree and update the temporary build ref.
+            tree = self.app.runcmd(
+                    ['git', 'write-tree'], cwd=repo_dir, env=env).strip()
+            commit = self.app.runcmd(
+                    ['git', 'commit-tree', tree, '-p', parent_sha1,
+                     '-m', message], cwd=repo_dir, env=env).strip()
+            self.app.runcmd(
+                    ['git', 'update-ref', '-m', message,
+                     'refs/heads/%s' % build_ref, commit],
+                    cwd=repo_dir, env=env)
+
+    def push_build_refs(self, build_repos):
+        for repo, info in build_repos.iteritems():
+            self.app.status(msg='%(repo)s: Pushing build branch', repo=repo)
+            self.app.runcmd(['git', 'push', 'origin', '%s:%s' %
+                             (info['build-ref'], info['build-ref'])],
+                            cwd=info['dirname'])
+
+    def delete_remote_build_refs(self, build_repos):
+        for repo, info in build_repos.iteritems():
+            self.app.status(msg='%(repo)s: Deleting remote build branch',
+                            repo=repo)
+            self.app.runcmd(['git', 'push', 'origin',
+                             ':%s' % info['build-ref']], cwd=info['dirname'])

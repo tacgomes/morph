@@ -91,4 +91,4 @@ git add linux.morph
 git commit --quiet -m 'Make the kernel create a dummy zImage'
 
 "$SRCDIR/scripts/test-morph" --syslinux-mbr-search-path=nosuchfile.bin \
-    build test:morphs-repo custom system.morph > /dev/null
+    build-morphology test:morphs-repo custom system.morph > /dev/null

@@ -36,5 +36,6 @@ EOF
 git add false.morph
 git commit --quiet -m "Make a morphology that fails." 
 
-"$SRCDIR/scripts/test-morph" build test:chunk-repo master false.morph \
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:chunk-repo master false.morph \
     2>/dev/null

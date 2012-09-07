@@ -25,15 +25,17 @@ index 006a96c..ad8c08b 100644
 +    "name": "hello-stratum"
  }
 diff --git a/hello-system.morph b/hello-system.morph
-index 8dbcf67..db4f1f2 100644
+index 1a33ed6..d5aae46 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -1,13 +1,14 @@
+@@ -1,14 +1,15 @@
  {
 -    "name": "hello-system",
 -    "kind": "system",
 -    "system-kind": "syslinux-disk",
+-    "arch": "x86_64",
 -    "disk-size": "1G",
++    "arch": "x86_64", 
 +    "build-system": "manual", 
 +    "disk-size": 1073741824, 
 +    "kind": "system", 

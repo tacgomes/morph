@@ -23,5 +23,5 @@ export TMPDIR
 TMPDIR="$DATADIR"/unwritable-tmp
 install -m 000 -d "$TMPDIR"
 mkdir "$DATADIR"/tmp
-"$SRCDIR/scripts/test-morph" build --tempdir "$DATADIR"/tmp \
+"$SRCDIR/scripts/test-morph" build-morphology --tempdir "$DATADIR"/tmp \
     test:morphs-repo master hello-stratum.morph

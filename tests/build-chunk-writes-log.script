@@ -19,7 +19,8 @@
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" build test:chunk-repo farrokh hello.morph
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:chunk-repo farrokh hello.morph
 
 SOURCES="$DATADIR/cached-sources"
 find "$DATADIR/cache/artifacts" -name '*.chunk.*' |

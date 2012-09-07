@@ -22,13 +22,13 @@ import morphlib
 class BuildPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('build', self.build,
+        self.app.add_subcommand('build-morphology', self.build_morphology,
                                 arg_synopsis='(REPO REF FILENAME)...')
 
     def disable(self):
         pass
 
-    def build(self, args):
+    def build_morphology(self, args):
         '''Build a binary from a morphology.
 
         Command line arguments are the repository, git tree-ish reference,

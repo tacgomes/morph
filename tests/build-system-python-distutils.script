@@ -51,7 +51,7 @@ git add hello.morph
 
 git commit --quiet -m 'convert hello into a python project'
 
-"$SRCDIR/scripts/test-morph" build --prefix= \
+"$SRCDIR/scripts/test-morph" build-morphology --prefix= \
     test:chunk-repo farrokh hello.morph
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
