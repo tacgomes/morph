@@ -115,6 +115,22 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         raise cliapp.AppException("Can't find the system branch directory")
 
+    def find_repository(self, branch_dir, repo):
+        for dirname in self.walk_special_directories(branch_dir,
+                                                     special_subdir='.git'):
+            original_repo = self.get_repo_config(dirname, 'morph.repository')
+            if repo == original_repo:
+                return dirname
+        return None
+
+    def find_system_branch(self, workspace, branch_name):
+        for dirname in self.walk_special_directories(
+                workspace, special_subdir='.morph-system-branch'):
+            branch = self.get_branch_config(dirname, 'branch.name')
+            if branch_name == branch:
+                return dirname
+        return None
+
     def set_branch_config(self, branch_dir, option, value):
         filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
         self.app.runcmd(['git', 'config', '-f', filename, option, value])
@@ -130,6 +146,30 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def get_repo_config(self, repo_dir, option):
         value = self.app.runcmd(['git', 'config', option], cwd=repo_dir)
         return value.strip()
+
+    def get_uncommitted_changes(self, repo_dir, env={}):
+        status = self.app.runcmd(['git', 'status', '--porcelain'],
+                                 cwd=repo_dir, env=env)
+        changes = []
+        for change in status.strip().splitlines():
+            xy, paths = change.strip().split(' ', 1)
+            if xy != '??':
+                changes.append(paths.split()[0])
+        return changes
+
+    def resolve_ref(self, repodir, ref):
+        try:
+            return self.app.runcmd(['git', 'show-ref', ref],
+                                   cwd=repodir).split()[0]
+        except:
+            return None
+
+    def resolve_reponame(self, reponame):
+        '''Return the full pull URL of a reponame.'''
+
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            self.app.settings['repo-alias'])
+        return resolver.pull_url(reponame)
 
     def clone_to_directory(self, dirname, reponame, ref):
         '''Clone a repository below a directory.
@@ -174,13 +214,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 resolver.pull_url(reponame))
 
         self.app.runcmd(['git', 'remote', 'update'], cwd=dirname)
-
-    def resolve_reponame(self, reponame):
-        '''Return the full pull URL of a reponame.'''
-
-        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-            self.app.settings['repo-alias'])
-        return resolver.pull_url(reponame)
 
     def load_morphology(self, repo_dir, name, ref=None):
         if ref is None:
@@ -296,22 +329,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             # subdirectories allowed.
             if max_subdirs > 0 and len(subdirs) > max_subdirs:
                 break
-
-    def find_repository(self, branch_dir, repo):
-        for dirname in self.walk_special_directories(branch_dir,
-                                                     special_subdir='.git'):
-            original_repo = self.get_repo_config(dirname, 'morph.repository')
-            if repo == original_repo:
-                return dirname
-        return None
-
-    def find_system_branch(self, workspace, branch_name):
-        for dirname in self.walk_special_directories(
-                workspace, special_subdir='.morph-system-branch'):
-            branch = self.get_branch_config(dirname, 'branch.name')
-            if branch_name == branch:
-                return dirname
-        return None
 
     def petrify(self, args):
         '''Make refs to chunks be absolute SHA-1s.'''
@@ -773,23 +790,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         elif morphology['kind'] == 'stratum':
             for info in morphology['chunks']:
                 inject_build_ref(info)
-
-    def resolve_ref(self, repodir, ref):
-        try:
-            return self.app.runcmd(['git', 'show-ref', ref],
-                                   cwd=repodir).split()[0]
-        except:
-            return None
-
-    def get_uncommitted_changes(self, repo_dir, env={}):
-        status = self.app.runcmd(['git', 'status', '--porcelain'],
-                                 cwd=repo_dir, env=env)
-        changes = []
-        for change in status.strip().splitlines():
-            xy, paths = change.strip().split(' ', 1)
-            if xy != '??':
-                changes.append(paths.split()[0])
-        return changes
 
     def generate_build_ref_names(self, build_repos, branch_uuid):
         for repo, info in build_repos.iteritems():
