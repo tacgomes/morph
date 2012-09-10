@@ -26,20 +26,29 @@ class Morphology(object):
 
     '''
 
-    static_defaults = [
-        ('configure-commands', None),
-        ('build-commands', None),
-        ('test-commands', None),
-        ('install-commands', None),
-        ('chunks', []),
-        ('strata', []),
-        ('max-jobs', None),
-        ('description', ''),
-        ('build-depends', None),
-        ('build-system', 'manual'),
-        ('arch', None),
-        ('system-kind', None),
-    ]
+    static_defaults = {
+        'chunk': [
+            ('description', ''),
+            ('configure-commands', None),
+            ('build-commands', None),
+            ('test-commands', None),
+            ('install-commands', None),
+            ('chunks', []),
+            ('max-jobs', None),
+            ('build-system', 'manual')
+        ],
+        'stratum': [
+            ('chunks', []),
+            ('description', ''),
+            ('build-depends', None)
+        ],
+        'system': [
+            ('strata', []),
+            ('description', ''),
+            ('arch', None),
+            ('system-kind', None)
+        ]
+    }
 
     def __init__(self, text):
         self._dict = json.loads(text)
@@ -110,7 +119,7 @@ class Morphology(object):
                 size = int(size)
             self._dict['disk-size'] = size
 
-        for name, value in self.static_defaults:
+        for name, value in self.static_defaults[self['kind']]:
             if name not in self._dict:
                 self._dict[name] = value
 
