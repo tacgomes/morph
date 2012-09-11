@@ -48,3 +48,11 @@ git status --short # make sure all changes are committed
 # Make sure all refs to the merged branch have gone.
 cd ../baserock:morphs
 ! grep "\"ref\": \"baserock/newbranch\"" *.morph
+
+echo "Commit message for baserock:morphs"
+git cat-file commit HEAD | tail -n 1
+
+echo
+echo "Commit message for baserock:hello"
+cd ../baserock:hello
+git cat-file commit HEAD | tail -n 1

@@ -574,7 +574,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              'been comitted')
 
     def merge_repo(self, name, from_dir, from_branch, to_dir, to_branch,
-                   is_morphs_repo = False):
+                   commit = False):
         '''Merge changes for a system branch in a specific repository'''
 
         if self.get_uncommitted_changes(from_dir) != []:
@@ -582,14 +582,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'changes', name)
         # repo must be made into a URL to avoid ':' in pathnames confusing git
         from_url = urlparse.urljoin('file://', from_dir)
-        if is_morphs_repo:
-            # We use --no-commit in this case, so we can then revert the refs
-            # that were changed for the system branch in the merge commit
-            self.app.runcmd(['git', 'pull', '--no-commit', '--no-ff', from_url,
-                            from_branch], cwd=to_dir)
-        else:
-            self.app.runcmd(['git', 'pull', '--no-ff', from_url, from_branch],
-                            cwd=to_dir)
+        self.app.runcmd(['git', 'pull', '--no-commit', '--no-ff', from_url,
+                        from_branch], cwd=to_dir)
+        if commit:
+            msg = "Merge system branch '%s'" % from_branch
+            self.app.runcmd(['git', 'commit', '-m%s' % msg], cwd=to_dir)
 
     def merge(self, args):
         '''Pull and merge changes from a system branch into the current one.'''
@@ -618,8 +615,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             from_repo = self.find_repository(from_branch_dir, ci['repo'])
             to_repo = self.make_repository_available(
                 to_branch, to_branch_dir, ci['repo'], to_branch)
-            self.merge_repo(
-                ci['repo'], from_repo, from_branch, to_repo, to_branch)
+            self.merge_repo(ci['repo'], from_repo, from_branch,
+                            to_repo, to_branch, commit=True)
 
         def _merge_stratum(si):
             if si['repo'] == root_repo:
@@ -628,10 +625,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 from_repo = self.find_repository(from_branch_dir, si['repo'])
                 to_repo = self.make_repository_available(
                     to_branch, to_branch_dir, si['repo'], to_branch)
-                self.merge_repo(
-                    si['repo'], from_repo, from_branch, to_repo, to_branch,
-                    is_morphs_repo=True)
                 # We will do a merge commit in this repo later on
+                self.merge_repo(si['repo'], from_repo, from_branch,
+                                to_repo, to_branch, commit=False)
                 morphs_repo_list.add(to_repo)
 
             stratum = self.load_morphology(to_repo, si['morph'])
@@ -644,8 +640,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         from_root_dir = self.find_repository(from_branch_dir, root_repo)
         to_root_dir = self.find_repository(to_branch_dir, root_repo)
         self.app.runcmd(['git', 'checkout', to_branch], cwd=to_root_dir)
-        self.merge_repo(root_repo, from_root_dir, from_branch, to_root_dir,
-                        to_branch, is_morphs_repo = True)
+        self.merge_repo(root_repo, from_root_dir, from_branch,
+                        to_root_dir, to_branch, commit=False)
         morphs_repo_list = set([to_root_dir])
 
         for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
