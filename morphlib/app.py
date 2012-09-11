@@ -173,7 +173,7 @@ class Morph(cliapp.Application):
 
         while args:
             assert len(args) >= 2, args
-            yield args[0], args[1], args[2]
+            yield args[0], args[1], args[2] + ".morph"
             args = args[3:]
 
     def _itertriplets(self, *args):

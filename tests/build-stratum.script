@@ -20,7 +20,7 @@
 set -eu
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum.morph
+    test:morphs-repo master hello-stratum
 "$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
                                    "$DATADIR/cache/artifacts/"*.hello-stratum \
                                    "$DATADIR/stratum.tar" hello-stratum

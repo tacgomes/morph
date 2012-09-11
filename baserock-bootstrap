@@ -18,17 +18,17 @@ case "$(uname -m)" in
 *armv7*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2"
-    export PASS3_STRATUM="imx53-bootstrap-pass3.morph"
+    export PASS3_STRATUM="imx53-bootstrap-pass3"
     ;;
 *armv5*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv5 -O2"
-    export PASS3_STRATUM="imx53-bootstrap-pass3.morph"
+    export PASS3_STRATUM="imx53-bootstrap-pass3"
     ;;
 *)
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
     export TARGET_CFLAGS="-O2"
-    export PASS3_STRATUM="x86_64-generic-bootstrap-pass3.morph"
+    export PASS3_STRATUM="x86_64-generic-bootstrap-pass3"
     ;;
 esac
 
@@ -68,7 +68,7 @@ pass1_get_sources_with_morph()
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
     python ./morph --verbose update-gits \
-        baserock:morphs master bootstrap-pass1.morph \
+        baserock:morphs master bootstrap-pass1 \
         --cachedir=$LFS/baserock/cache \
         --log=$LFS/baserock/morph.log \
         --dump-memory-profile=none \
@@ -82,7 +82,7 @@ pass1_build_with_morph()
     $HOST_MKDIR -p $LFS/baserock/cache
     $HOST_MKDIR -p $LFS/tmp
     python ./morph --verbose build-morphology \
-        baserock:morphs master bootstrap-pass1.morph \
+        baserock:morphs master bootstrap-pass1 \
         --no-git-update \
         --no-distcc \
         --no-ccache \
@@ -176,7 +176,7 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 python ./morph --verbose update-gits \
-    baserock:morphs master bootstrap-pass2.morph \
+    baserock:morphs master bootstrap-pass2 \
     --bootstrap \
     --cachedir=/baserock/cache \
     --log=/baserock/morph.log \
@@ -224,7 +224,7 @@ mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 export LD_LIBRARY_PATH="/usr/lib:/lib:/lib64:/tools/lib:/tools/lib64"
 python ./morph --verbose build-morphology \
-    baserock:morphs master bootstrap-pass2.morph \
+    baserock:morphs master bootstrap-pass2 \
         --bootstrap \
         --no-git-update \
         --cachedir=/baserock/cache \

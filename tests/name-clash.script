@@ -49,11 +49,11 @@ EOF
 
 # build the dodgy chunk
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo farrokh goodbye.morph
+    test:chunk-repo farrokh goodbye
 
 # build a stratum 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum.morph
+    test:morphs-repo master hello-stratum
 
 # unpack it and check the contents
 INSTDIR="$DATADIR"/unpack

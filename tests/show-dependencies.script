@@ -20,5 +20,5 @@
 set -eu
 
 "$SRCDIR/scripts/test-morph" \
-    show-dependencies test:test-repo master xfce-core.morph |
+    show-dependencies test:test-repo master xfce-core |
     sed 's/test://'

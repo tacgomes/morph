@@ -320,7 +320,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         app = self.app
         cache = morphlib.util.new_repo_caches(app)[0]
 
-        for filename in args:
+        for morphology_name in args:
+            filename = morphology_name + '.morph'
             with open(filename) as f:
                 morph = morphlib.morph2.Morphology(f.read())
 
@@ -708,7 +709,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                               build_command)
         build_command.build([branch_root,
                              build_repos[branch_root]['build-ref'],
-                             '%s.morph' % system_name])
+                             system_name])
 
         # Delete the temporary refs on the server.
         self.delete_remote_build_refs(build_repos)

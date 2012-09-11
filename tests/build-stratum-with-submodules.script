@@ -66,7 +66,7 @@ EOF
 # No build and verify we got a stratum.
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master submod-stratum.morph
+    test:morphs-repo master submod-stratum
 "$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
                                    "$DATADIR/cache/artifacts/"*submod-stratum \
                                    "$DATADIR/stratum.tar" submod-stratum

@@ -24,8 +24,8 @@ used to actually run the build. The usual workflow is this:
 
 Eventually, `morph` will get a manual page. Meanwhile, a short usage:
 
-    fakeroot morph --keep-path -v build morphs master foundation.morph
-    sudo morph --keep-path -v build morphs master base-system.morph
+    fakeroot morph --keep-path -v build-morphology morphs master foundation
+    sudo morph --keep-path -v build-morphology morphs master base-system
 
 (Run with `fakeroot`, when building anything but a system image; run
 with `sudo` when building a system image.)
