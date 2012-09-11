@@ -19,6 +19,8 @@
 
 set -eu
 
+source "$SRCDIR/scripts/fix-committer-info"
+
 # Initialise the workspace.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init

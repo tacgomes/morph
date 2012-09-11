@@ -19,6 +19,8 @@
 
 set -eu
 
+source "$SRCDIR/scripts/fix-committer-info"
+
 # Initialise the workspace.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
@@ -36,6 +38,7 @@ git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
     morph.uuid 987654321
 git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
     morph.uuid AABBCCDDE
+
 
 # Build once.
 cd "$DATADIR/workspace"
