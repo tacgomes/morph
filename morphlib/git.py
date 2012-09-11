@@ -135,6 +135,18 @@ class Submodules(object):
     def __len__(self):
         return len(self.submodules)
 
+def get_user_name(runcmd):
+    '''Get user.name configuration setting. Complain if none was found.'''
+    if 'GIT_AUTHOR_NAME' in os.environ:
+        return os.environ['GIT_AUTHOR_NAME'].strip()
+    try:
+        return runcmd(['git', 'config', 'user.name']).strip()
+    except cliapp.AppException:
+        raise cliapp.AppException(
+            'No git user info found. Please set your identity, using: \n'
+            '    git config --global user.name "My Name"\n'
+            '    git config --global user.email "me@example.com"\n')
+
 
 def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
