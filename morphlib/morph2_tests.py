@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import StringIO
 import unittest
 
 from morphlib.morph2 import Morphology
@@ -197,3 +198,78 @@ class MorphologyTests(unittest.TestCase):
         self.assertRaises(ValueError,
                           Morphology,
                           text)
+
+    def test_writing_preserves_field_order(self):
+        text = '''{
+    "kind": "system",
+    "disk-size": 1073741824,
+    "description": "Some text",
+    "arch": "x86_64",
+    "system-kind": "syslinux-disk",
+    "strata": [
+        {
+            "morph": "foundation",
+            "repo": "morphs",
+            "ref": "ref"
+        },
+        {
+            "morph": "devel",
+            "repo": "morphs",
+            "ref": "ref"
+        }
+    ]
+}'''
+        morphology = Morphology(text)
+        output = StringIO.StringIO()
+        morphology.write_to_file(output)
+
+        text_lines = text.splitlines()
+        output_lines = output.getvalue().splitlines()
+
+        # Verify that input and output are equal.
+        self.assertEqual(text_lines, output_lines)
+
+    def test_writing_stratum_morphology_preserves_chunk_order(self):
+        text = '''{
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "foo",
+            "repo": "morphs",
+            "ref": "ref",
+            "build-depends": []
+        },
+        {
+            "name": "bar",
+            "repo": "morphs",
+            "ref": "ref",
+            "build-depends": []
+        }
+    ]
+}'''
+        morphology = Morphology(text)
+        output = StringIO.StringIO()
+        morphology.write_to_file(output)
+
+        text_lines = text.splitlines()
+        output_lines = output.getvalue().splitlines()
+
+        # Verify that input and output are equal.
+        self.assertEqual(text_lines, output_lines)
+
+    def test_writing_preserves_disk_size(self):
+        text = '''{
+    "kind": "system",
+    "disk-size": "1g",
+    "arch": "x86_64",
+    "system-kind": "syslinux-disk"
+}'''
+        morphology = Morphology(text)
+        output = StringIO.StringIO()
+        morphology.write_to_file(output)
+
+        text_lines = text.splitlines()
+        output_lines = output.getvalue().splitlines()
+
+        # Verify that in- and output are the same.
+        self.assertEqual(text_lines, output_lines)

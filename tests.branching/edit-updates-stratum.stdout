@@ -1,55 +1,26 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 006a96c..ad8c08b 100644
+index 006a96c..68fcbff 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -1,12 +1,14 @@
- {
--    "name": "hello-stratum",
--    "kind": "stratum",
-+    "build-system": "manual", 
-     "chunks": [
+@@ -5,7 +5,7 @@
          {
--            "name": "hello",
--            "repo": "baserock:hello",
+             "name": "hello",
+             "repo": "baserock:hello",
 -            "ref": "master",
--            "build-depends": []
-+            "build-depends": [], 
-+            "morph": "hello", 
-+            "name": "hello", 
-+            "ref": "newbranch", 
-+            "repo": "baserock:hello"
++            "ref": "newbranch",
+             "build-depends": []
          }
--    ]
-+    ], 
-+    "kind": "stratum", 
-+    "name": "hello-stratum"
- }
+     ]
 diff --git a/hello-system.morph b/hello-system.morph
-index 1a33ed6..d5aae46 100644
+index 1a33ed6..9cca1bf 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -1,14 +1,15 @@
- {
--    "name": "hello-system",
--    "kind": "system",
--    "system-kind": "syslinux-disk",
--    "arch": "x86_64",
--    "disk-size": "1G",
-+    "arch": "x86_64", 
-+    "build-system": "manual", 
-+    "disk-size": 1073741824, 
-+    "kind": "system", 
-+    "name": "hello-system", 
-     "strata": [
+@@ -8,7 +8,7 @@
          {
--            "morph": "hello-stratum",
--            "repo": "baserock:morphs",
+             "morph": "hello-stratum",
+             "repo": "baserock:morphs",
 -            "ref": "master"
-+            "morph": "hello-stratum", 
-+            "ref": "newbranch", 
-+            "repo": "baserock:morphs"
++            "ref": "newbranch"
          }
--    ]
-+    ], 
-+    "system-kind": "syslinux-disk"
+     ]
  }

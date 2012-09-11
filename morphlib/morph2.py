@@ -14,7 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import collections
+import copy
 import json
+import re
 
 
 class Morphology(object):
@@ -26,23 +29,39 @@ class Morphology(object):
 
     '''
 
-    static_defaults = [
-        ('configure-commands', None),
-        ('build-commands', None),
-        ('test-commands', None),
-        ('install-commands', None),
-        ('chunks', []),
-        ('strata', []),
-        ('max-jobs', None),
-        ('description', ''),
-        ('build-depends', None),
-        ('build-system', 'manual'),
-        ('arch', None),
-        ('system-kind', None),
-    ]
+    static_defaults = {
+        'chunk': [
+            ('description', ''),
+            ('configure-commands', None),
+            ('build-commands', None),
+            ('test-commands', None),
+            ('install-commands', None),
+            ('chunks', []),
+            ('max-jobs', None),
+            ('build-system', 'manual')
+        ],
+        'stratum': [
+            ('chunks', []),
+            ('description', ''),
+            ('build-depends', None)
+        ],
+        'system': [
+            ('strata', []),
+            ('description', ''),
+            ('arch', None),
+            ('system-kind', None)
+        ]
+    }
+
+    @staticmethod
+    def _order_keys(pairs):
+        result = collections.OrderedDict()
+        for k,v in pairs:
+            result[k] = v
+        return result
 
     def __init__(self, text):
-        self._dict = json.loads(text)
+        self._dict = json.loads(text, object_pairs_hook=self._order_keys)
         self._set_defaults()
         self._validate_children()
 
@@ -96,21 +115,10 @@ class Morphology(object):
 
         if 'disk-size' in self:
             size = self['disk-size']
-            if isinstance(size, basestring):
-                size = size.lower()
-                if size.endswith('g'):
-                    size = int(size[:-1]) * 1024 ** 3
-                elif size.endswith('m'):  # pragma: no cover
-                    size = int(size[:-1]) * 1024 ** 2
-                elif size.endswith('k'):  # pragma: no cover
-                    size = int(size[:-1]) * 1024
-                else:  # pragma: no cover
-                    size = int(size)
-            else: # pragma: no cover
-                size = int(size)
-            self._dict['disk-size'] = size
+            self._dict['_disk-size'] = size
+            self._dict['disk-size'] = self._parse_size(size)
 
-        for name, value in self.static_defaults:
+        for name, value in self.static_defaults[self['kind']]:
             if name not in self._dict:
                 self._dict[name] = value
 
@@ -125,3 +133,38 @@ class Morphology(object):
                 source['morph'] = source['name']
             if 'build-depends' not in source:
                 source['build-depends'] = None
+
+    def _parse_size(self, size):
+        if isinstance(size, basestring):
+            size = size.lower()
+            if size.endswith('g'):
+                return int(size[:-1]) * 1024 ** 3
+            elif size.endswith('m'):  # pragma: no cover
+                return int(size[:-1]) * 1024 ** 2
+            elif size.endswith('k'):  # pragma: no cover
+                return int(size[:-1]) * 1024
+        return int(size)
+
+    def write_to_file(self, f):
+        # Recreate dict without the empty default values, with a few kind
+        # specific hacks to try and edit standard morphologies as
+        # non-destructively as possible
+        as_dict = collections.OrderedDict()
+        for key in self.keys():
+            if self['kind'] == 'stratum' and key == 'chunks':
+                value = copy.copy(self[key])
+                for chunk in value:
+                    if chunk["morph"] == chunk["name"]:
+                        del chunk["morph"]
+            if self['kind'] == 'system' and key == 'disk-size':
+                # Use human-readable value (assumes we never programmatically
+                # change this value within morph)
+                value = self['_disk-size']
+            else:
+                value = self[key]
+            if value and key[0] != '_':
+                as_dict[key] = value
+        text = json.dumps(as_dict, indent=4)
+        text = re.sub(" \n", "\n", text)
+        f.write(text)
+        f.write('\n')

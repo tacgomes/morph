@@ -234,14 +234,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
             filename = name
         else:
             filename = os.path.join(repo_dir, name)
-        as_dict = {}
-        for key in morphology.keys():
-            value = morphology[key]
-            if value:
-                as_dict[key] = value
+        filename = os.path.join(repo_dir, '%s' % name)
         with morphlib.savefile.SaveFile(filename, 'w') as f:
-            json.dump(as_dict, fp=f, indent=4, sort_keys=True)
-            f.write('\n')
+            morphology.write_to_file(f)
 
     @staticmethod
     def get_edit_info(morphology_name, morphology, name, collection='strata'):
@@ -256,17 +251,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise cliapp.AppException(
                         'Chunk "%s" not found in stratum "%s"' %
                         (name, morphology_name))
-
-    @staticmethod
-    def write_morphology(filename, morphology):
-        as_dict = {}
-        for key in morphology.keys():
-            value = morphology[key]
-            if value:
-                as_dict[key] = value
-        with morphlib.savefile.SaveFile(filename, 'w') as f:
-            json.dump(as_dict, fp=f, indent=4, sort_keys=True)
-            f.write('\n')
 
     @staticmethod
     def convert_uri_to_path(uri):
@@ -357,7 +341,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 repo = cache.get_repo(reponame)
                 source['ref'], tree = repo.resolve_ref(ref)
 
-            self.write_morphology(filename, morph)
+            with morphlib.savefile.SaveFile(filename, 'w') as f:
+                morph.write_to_file(f)
 
     def init(self, args):
         '''Initialize a workspace directory.'''
