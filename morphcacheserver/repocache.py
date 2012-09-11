@@ -17,6 +17,7 @@
 import cliapp
 import os
 import string
+import urlparse
 
 
 class RepositoryNotFoundError(cliapp.AppException):
@@ -44,32 +45,51 @@ class UnresolvedNamedReferenceError(cliapp.AppException):
 
 class RepoCache(object):
     
-    def __init__(self, app, repo_cache_dir, bundle_cache_dir):
+    def __init__(self, app, repo_cache_dir, bundle_cache_dir, direct_mode):
         self.app = app
         self.repo_cache_dir = repo_cache_dir
         self.bundle_cache_dir = bundle_cache_dir
+        self.direct_mode = direct_mode
 
     def resolve_ref(self, repo_url, ref):
         quoted_url = self._quote_url(repo_url)
         repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
         if not os.path.exists(repo_dir):
-            raise RepositoryNotFoundError(repo_url)
+            repo_dir = "%s.git" % repo_dir
+            if not os.path.exists(repo_dir):
+                raise RepositoryNotFoundError(repo_url)
         try:
             refs = self._show_ref(repo_dir, ref).split('\n')
-            refs = [x.split() for x in refs if 'origin' in x]
-            return refs[0][0]
+            if self.direct_mode:
+                refs = [x.split() for x in refs]
+            else:
+                refs = [x.split() for x in refs if 'origin' in x]
+            return refs[0][0], self._tree_from_commit(repo_dir, refs[0][0])
+
         except cliapp.AppException:
             pass
+
         if not self._is_valid_sha1(ref):
             raise InvalidReferenceError(repo_url, ref)
         try:
-            return self._rev_list(ref).strip()
+            sha = self._rev_list(ref).strip()
+            return sha, self._tree_from_commit(repo_dir, sha)
         except:
             raise InvalidReferenceError(repo_url, ref)
+
+    def _tree_from_commit(self, repo_dir, commitsha):
+        commit_info = self.app.runcmd(['git', 'log', '-1',
+                                       '--format=format:%T', commitsha],
+                                      cwd=repo_dir)
+        return commit_info.strip()
 
     def cat_file(self, repo_url, ref, filename):
         quoted_url = self._quote_url(repo_url)
         repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
+        if not os.path.exists(repo_dir):
+            repo_dir = "%s.git" % repo_dir
+            if not os.path.exists(repo_dir):
+                raise RepositoryNotFoundError(repo_url)
         if not self._is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(repo_url, ref)
         if not os.path.exists(repo_dir):
@@ -84,6 +104,10 @@ class RepoCache(object):
     def ls_tree(self, repo_url, ref, path):
         quoted_url = self._quote_url(repo_url)
         repo_dir = os.path.join(self.repo_cache_dir, quoted_url)
+        if not os.path.exists(repo_dir):
+            repo_dir = "%s.git" % repo_dir
+            if not os.path.exists(repo_dir):
+                raise RepositoryNotFoundError(repo_url)
         if not self._is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(repo_url, ref)
         if not os.path.exists(repo_dir):
@@ -108,13 +132,16 @@ class RepoCache(object):
         return data
 
     def get_bundle_filename(self, repo_url):
-        quoted_url = self._quote_url(repo_url)
+        quoted_url = self._quote_url(repo_url, True)
         return os.path.join(self.bundle_cache_dir, '%s.bndl' % quoted_url)
         
-    def _quote_url(self, url):
-        valid_chars = string.digits + string.letters + '%_'
-        transl = lambda x: x if x in valid_chars else '_'
-        return ''.join([transl(x) for x in url])
+    def _quote_url(self, url, always_indirect=False):
+        if self.direct_mode and not always_indirect:
+            return urlparse.urlparse(url)[2]
+        else:
+            valid_chars = string.digits + string.letters + '%_'
+            transl = lambda x: x if x in valid_chars else '_'
+            return ''.join([transl(x) for x in url])
 
     def _show_ref(self, repo_dir, ref):
         return self.app.runcmd(['git', 'show-ref', ref], cwd=repo_dir)
