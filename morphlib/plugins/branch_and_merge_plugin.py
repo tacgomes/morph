@@ -475,27 +475,34 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch_root = self.get_branch_config(branch_dir, 'branch.root')
         self.app.output.write('%s\n' % branch_root)
 
-    def make_repository_available(self, system_branch, branch_dir, repo, ref):
-        existing_repo = self.find_repository(branch_dir, repo)
-        if existing_repo:
-            # Reuse the existing clone and its system branch.
-            self.app.runcmd(['git', 'checkout', system_branch],
-                            cwd=existing_repo)
-            return existing_repo
-        else:
-            # Clone repo and create the system branch in the cloned repo.
+    def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
+        '''Make a chunk or stratum repository available for a system branch
+
+        We ensure the 'system_branch' ref within 'repo' is checked out,
+        creating it from 'parent_ref' if required.
+
+        The function aims for permissiveness, so users can try to fix any
+        weirdness they have caused in the repos with another call to 'morph
+        edit'.
+
+        '''
+
+        parent_ref = parent_ref or ref
+
+        repo_dir = self.find_repository(branch_dir, repo)
+        if repo_dir is None:
             repo_url = self.resolve_reponame(repo)
             repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-            self.clone_to_directory(repo_dir, repo, ref)
-            try:
-                self.log_change(repo, 'branch "%s" created from "%s"' %
-                                (system_branch, ref))
-                self.app.runcmd(['git', 'checkout', '-b', system_branch],
-                                cwd=repo_dir)
-            except:
-                self.app.runcmd(['git', 'checkout', system_branch],
-                                cwd=repo_dir)
-            return repo_dir
+            self.clone_to_directory(repo_dir, repo, parent_ref)
+
+        if self.resolve_ref(repo_dir, ref) is None:
+            self.log_change(repo, 'branch "%s" created from "%s"' %
+                            (ref, parent_ref))
+            self.app.runcmd(['git', 'checkout', '-b', ref], cwd=repo_dir)
+        else:
+            # git copes even if the system_branch ref is already checked out
+            self.app.runcmd(['git', 'checkout', ref], cwd=repo_dir)
+        return repo_dir
 
     def edit(self, args):
         '''Edit a component in a system branch.'''
@@ -523,8 +530,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                      stratum_name, collection='strata')
 
         # Make the stratum repository and the ref available locally.
-        stratum_repo_dir = self.make_repository_available(
-            system_branch, branch_dir, stratum['repo'], stratum['ref'])
+        stratum_repo_dir = self.checkout_repository(
+            branch_dir, stratum['repo'], system_branch,
+            parent_ref=stratum['ref'])
 
         # Check if we need to change anything at all.
         if stratum['ref'] != system_branch:
@@ -560,8 +568,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                        chunk_name, collection='chunks')
 
             # Make the chunk repository and the ref available locally.
-            chunk_repo_dir = self.make_repository_available(
-                    system_branch, branch_dir, chunk['repo'], chunk['ref'])
+            chunk_repo_dir = self.checkout_repository(
+                    branch_dir, chunk['repo'], system_branch,
+                    parent_ref=chunk['ref'])
 
             # Check if we need to update anything at all.
             if chunk['ref'] != system_branch:
@@ -617,8 +626,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         def _merge_chunk(ci):
             from_repo = self.find_repository(from_branch_dir, ci['repo'])
-            to_repo = self.make_repository_available(
-                to_branch, to_branch_dir, ci['repo'], to_branch)
+            to_repo = self.checkout_repository(
+                to_branch_dir, ci['repo'], to_branch)
             self.merge_repo(ci['repo'], from_repo, from_branch,
                             to_repo, to_branch, commit=True)
 
@@ -627,8 +636,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 to_repo = to_root_dir
             else:
                 from_repo = self.find_repository(from_branch_dir, si['repo'])
-                to_repo = self.make_repository_available(
-                    to_branch, to_branch_dir, si['repo'], to_branch)
+                to_repo = self.checkout_repository(
+                    to_branch_dir, si['repo'], to_branch)
                 # We will do a merge commit in this repo later on
                 self.merge_repo(si['repo'], from_repo, from_branch,
                                 to_repo, to_branch, commit=False)
