@@ -81,7 +81,7 @@ pass1_build_with_morph()
     cd $LFS/baserock/gits/morph
     $HOST_MKDIR -p $LFS/baserock/cache
     $HOST_MKDIR -p $LFS/tmp
-    python ./morph --verbose build \
+    python ./morph --verbose build-morphology \
         baserock:morphs master bootstrap-pass1.morph \
         --no-git-update \
         --no-distcc \
@@ -223,7 +223,7 @@ cd /baserock/gits/morph
 mkdir -p /baserock/cache
 export PATH="/usr/bin:/bin:$tools/bin:$tools/sbin"
 export LD_LIBRARY_PATH="/usr/lib:/lib:/lib64:/tools/lib:/tools/lib64"
-python ./morph --verbose build \
+python ./morph --verbose build-morphology \
     baserock:morphs master bootstrap-pass2.morph \
         --bootstrap \
         --no-git-update \
@@ -378,7 +378,7 @@ scripts/assemble-stratum --cachedir /baserock/cache \
     "$LFS/baserock/cache/artifacts/"*.stratum.bootstrap-pass2 \
     "\$filler" bootstrap-pass2
 
-python ./morph --verbose build \
+python ./morph --verbose build-morphology \
     baserock:morphs master $PASS3_STRATUM \
         --staging-chroot \
         --staging-filler "\$filler" \
