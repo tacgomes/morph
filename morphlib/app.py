@@ -18,6 +18,7 @@ import cliapp
 import collections
 import logging
 import os
+import sys
 import time
 import warnings
 
@@ -169,6 +170,9 @@ class Morph(cliapp.Application):
         # treat settings['repo-alias'] as the sole source of prefixes for git
         # URL expansion.
         self.settings['repo-alias'] = morphlib.util.combine_aliases(self)
+        if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
+            self.settings.dump_config(sys.stdout)
+            sys.exit(0)
         cliapp.Application.process_args(self, args)
 
     def setup_plugin_manager(self):
