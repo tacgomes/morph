@@ -13,6 +13,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import re
+
 import morphlib
 
 '''Utility functions for morph.'''
@@ -97,6 +99,49 @@ def new_artifact_caches(settings):  # pragma: no cover
         rac = None
     return lac, rac
 
+def combine_aliases(app):  # pragma: no cover
+    '''Create a full repo-alias set from the app's settings.'''
+    trove_host = app.settings['trove-host']
+    trove_prefixes = app.settings['trove-prefix']
+    repo_aliases = app.settings['repo-alias']
+    repo_pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pull>[^#]+)#(?P<push>[^#]+)$'
+    trove_pat = (r'^(?P<prefix>[a-z0-9]+)=(?P<path>[^#]+)#'
+                 '(?P<pull>[^#]+)#(?P<push>[^#]+)$')
+    alias_map = {}
+    def _expand(protocol, path):
+        if protocol == "git":
+            return "git://%s/%s/%%s" % (trove_host, path)
+        elif protocol == "ssh":
+            return "ssh://git@%s/%s/%%s" % (trove_host, path)
+        else:
+            raise cliapp.AppException(
+                'Unknown protocol in trove_prefix: %s' % protocol)
+
+    if trove_host:
+        alias_map['baserock'] = "baserock=%s#%s" % (
+            _expand('git', 'baserock'),
+            _expand('ssh', 'baserock'))
+        alias_map['upstream'] = "upstream=%s#%s" % (
+            _expand('git', 'delta'),
+            _expand('ssh', 'delta'))
+        for trove_prefix in trove_prefixes:
+            m = re.match(trove_pat, trove_prefix)
+            if m:
+                alias_map[m.group('prefix')] = "%s=%s#%s" % (
+                    m.group('prefix'),
+                    _expand(m.group('pull'), m.group('path')),
+                    _expand(m.group('push'), m.group('path')))
+            elif '=' not in trove_prefix:
+                alias_map[trove_prefix] = "%s=%s#%s" % (
+                    trove_prefix,
+                    _expand('ssh', trove_prefix),
+                    _expand('ssh', trove_prefix))
+    for repo_alias in repo_aliases:
+        m = re.match(repo_pat, repo_alias)
+        if m:
+            alias_map[m.group('prefix')] = repo_alias
+
+    return alias_map.values()
 
 def new_repo_caches(app):  # pragma: no cover
     '''Create new objects for local, remote git repository caches.'''

@@ -25,13 +25,9 @@ import morphlib
 
 
 defaults = {
+    'trove-host': 'git.baserock.org',
+    'trove-prefix': [ ],
     'repo-alias': [
-        ('upstream='
-            'git://git.baserock.org/delta/#'
-            'ssh://gitano@git.baserock.org/delta/'),
-        ('baserock='
-            'git://git.baserock.org/baserock/#'
-            'ssh://gitano@git.baserock.org/baserock/'),
         ('freedesktop='
             'git://anongit.freedesktop.org/#'
             'ssh://git.freedesktop.org/'),
@@ -59,6 +55,22 @@ class Morph(cliapp.Application):
                               'show what is happening in much detail')
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
+        self.settings.string(['trove-host'],
+                             'hostname of Trove instance',
+                             metavar='HOST',
+                             default=defaults['trove-host'])
+        self.settings.string_list(['trove-prefix'],
+                                  'define URL prefix aliases stored '
+                                  'directly on the Trove host.  Uses '
+                                  'the form '
+                                  'alias=pathprefix#pullmethod#pushmethod '
+                                  'for example, foocorp=fooprojects#git#ssh '
+                                  'will be expanded into a repo-alias of '
+                                  'foocorp=git://trove-host/fooprojects/%s#...'
+                                  ' with the push side set to the ssh url to '
+                                  'the trove.',\
+                                  metavar='ALIAS=PREFIX#PULL#PUSH',
+                                  default=defaults['trove-prefix'])
         self.settings.string_list(['repo-alias'],
                                   'define URL prefix aliases to allow '
                                   'repository addresses to be shortened; '
@@ -150,6 +162,14 @@ class Morph(cliapp.Application):
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
                              default=defaults['build-ref-prefix'])
+
+    def process_args(self, args):
+        # Combine the aliases into repo-alias before passing on to normal
+        # command processing.  This means everything from here on down can
+        # treat settings['repo-alias'] as the sole source of prefixes for git
+        # URL expansion.
+        self.settings['repo-alias'] = morphlib.util.combine_aliases(self)
+        cliapp.Application.process_args(self, args)
 
     def setup_plugin_manager(self):
         cliapp.Application.setup_plugin_manager(self)
