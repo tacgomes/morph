@@ -644,11 +644,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 morphs_repo_list.add(to_repo)
 
             stratum = self.load_morphology(to_repo, si['morph'])
+            changed = False
             for ci in stratum['chunks']:
                 if ci['ref'] == from_branch:
                     _merge_chunk(ci)
                     ci['ref'] = to_branch
-            self.save_morphology(to_repo, si['morph'], stratum)
+                    changed = True
+            if changed:
+                self.save_morphology(to_repo, si['morph'], stratum)
 
         from_root_dir = self.find_repository(from_branch_dir, root_repo)
         to_root_dir = self.find_repository(to_branch_dir, root_repo)
@@ -662,11 +665,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
             morphology = self.load_morphology(to_root_dir, name)
 
             if morphology['kind'] == 'system':
+                changed = False
                 for si in morphology['strata']:
                     if si['ref'] == from_branch:
                         _merge_stratum(si)
-                    si['ref'] = to_branch
-                self.save_morphology(to_root_dir, name, morphology)
+                        si['ref'] = to_branch
+                        changed = True
+                if changed:
+                    self.save_morphology(to_root_dir, name, morphology)
 
         for repo in morphs_repo_list:
             msg = "Merge system branch '%s'" % from_branch
