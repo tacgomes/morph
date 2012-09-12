@@ -40,11 +40,11 @@ something like this:
     cachedir = /home/username/baserock/cache
     log = /home/username/baserock/morph.log
     log-max = 200M
-    git-base-url = git://gitorious.org/baserock-morphs
-    bundle-server = http://roadtrain.codethink.co.uk/bundles
+    trove-host = git.baserock.org
+    bundle-server = http://git.baserock.org/bundles
 
-All of the above settings apart from `log` are the defaults, so may be
-omitted.
+All of the above settings apart from `log` and `bundle-server` are the
+defaults, so may be omitted.
 
 
 Morphology file syntax
