@@ -348,7 +348,8 @@ class ChunkBuilder(BuilderBase):
         '''
 
         now = time.time()
-        for dirname, subdirs, basenames in os.walk(root.encode("utf-8"), topdown=False):
+        for dirname, subdirs, basenames in os.walk(root.encode("utf-8"),
+                                                   topdown=False):
             for basename in basenames:
                 pathname = os.path.join(dirname, basename)
                 # we need the following check to ignore broken symlinks
