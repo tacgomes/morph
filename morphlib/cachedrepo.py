@@ -44,12 +44,20 @@ class CheckoutDirectoryExistsError(cliapp.AppException):
             (target_dir, repo))
 
 
+class CloneError(cliapp.AppException):
+
+    def __init__(self, repo, target_dir):
+        cliapp.AppException.__init__(
+            self,
+            'Failed to copy %s into %s' % (repo.original_name, target_dir))
+
+
 class CheckoutError(cliapp.AppException):
 
     def __init__(self, repo, ref, target_dir):
         cliapp.AppException.__init__(
             self,
-            'Failed to check out %s:%s into %s' % (repo, ref, target_dir))
+            'Failed to check out ref %s in %s' % (ref, target_dir))
 
 
 class UpdateError(cliapp.AppException):
@@ -154,11 +162,8 @@ class CachedRepo(object):
 
         os.mkdir(target_dir)
 
-        try:
-            self._copy_repository(self.path, target_dir)
-            self._checkout_ref(ref, target_dir)
-        except cliapp.AppException:
-            raise CheckoutError(self, ref, target_dir)
+        self._copy_repository(self.path, target_dir)
+        self._checkout_ref(ref, target_dir)
 
     def ls_tree(self, ref):
         '''Return file names found in root tree. Does not recurse to subtrees.
@@ -215,10 +220,16 @@ class CachedRepo(object):
                              '%s:%s' % (ref, filename)])
 
     def _copy_repository(self, source_dir, target_dir):  # pragma: no cover
-        morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
+        try:
+            morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
+        except cliapp.AppException:
+            raise CloneError(self, target_dir)
 
     def _checkout_ref(self, ref, target_dir):  # pragma: no cover
-        morphlib.git.checkout_ref(self._runcmd, target_dir, ref)
+        try:
+            morphlib.git.checkout_ref(self._runcmd, target_dir, ref)
+        except cliapp.AppException:
+            raise CheckoutError(self, ref, target_dir)
 
     def _update(self):  # pragma: no cover
         self._runcmd(['git', 'remote', 'update', 'origin'])
