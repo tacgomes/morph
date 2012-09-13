@@ -80,14 +80,10 @@ class CachedRepoTests(unittest.TestCase):
         pass
 
     def checkout_ref(self, ref, target_dir):
-        bad_refs = [
-            'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-            '079bbfd447c8534e464ce5d40b80114c2022ebf4',
-        ]
-        if ref in bad_refs:
-            # simulate a git failure or something similar to
-            # trigger a CheckoutError
-            raise cliapp.AppException('git checkout %s' % ref)
+        if ref == 'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
+            raise morphlib.cachedrepo.CloneError(self.repo, target_dir)
+        elif ref == '079bbfd447c8534e464ce5d40b80114c2022ebf4':
+            raise morphlib.cachedrepo.CheckoutError(self.repo, ref, target_dir)
         else:
             with open(os.path.join(target_dir, 'foo.morph'), 'w') as f:
                 f.write('contents of foo.morph')
@@ -186,6 +182,11 @@ class CachedRepoTests(unittest.TestCase):
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           self.tempdir.dirname)
 
+    def test_fail_checkout_due_to_clone_error(self):
+        self.assertRaises(cachedrepo.CloneError, self.repo.checkout,
+                          'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+                          self.tempdir.join('failed-checkout'))
+
     def test_fail_checkout_from_invalid_ref(self):
         self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
                           '079bbfd447c8534e464ce5d40b80114c2022ebf4',
@@ -199,11 +200,6 @@ class CachedRepoTests(unittest.TestCase):
 
         morph_filename = os.path.join(unpack_dir, 'foo.morph')
         self.assertTrue(os.path.exists(morph_filename))
-
-    def test_fail_checkout_due_to_copy_or_checkout_problem(self):
-        self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
-                          'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-                          self.tempdir.join('failed-checkout'))
 
     def test_ls_tree_in_existing_ref(self):
         data = self.repo.ls_tree('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
