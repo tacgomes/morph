@@ -196,6 +196,17 @@ def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     runcmd(['git', 'checkout', ref], cwd=gitdir)
 
+
+def index_has_changes(runcmd, gitdir):
+    '''Returns True if there are no staged changes to commit'''
+    try:
+        runcmd(['git', 'diff-index', '--cached', '--quiet',
+                '--ignore-submodules', 'HEAD'], cwd=gitdir)
+    except cliapp.AppException:
+        return True
+    return False
+
+
 def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
     '''and the status of the working directory'''

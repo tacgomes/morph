@@ -685,6 +685,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 merge_chunk(old_ci, ci)
             if changed:
                 self.save_morphology(to_repo, si['morph'], stratum)
+                self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
+                                cwd=to_repo)
 
         from_root_dir = self.find_repository(from_branch_dir, root_repo)
         to_root_dir = self.find_repository(to_branch_dir, root_repo)
@@ -718,11 +720,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     merge_stratum(old_si, si)
                 if changed:
                     self.save_morphology(to_root_dir, name, morphology)
+                    self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
 
         for repo_dir in dirty_repos:
-            msg = "Merge system branch '%s'" % from_branch
-            self.app.runcmd(['git', 'commit', '--all', '--message=%s' % msg],
-                            cwd=repo_dir)
+            # Repo will often turn out to not be dirty: if the changes we
+            # merged only updated refs to the system branch, we will have
+            # changed them back again so that the index will now be empty.
+            if morphlib.git.index_has_changes(self.app.runcmd, repo_dir):
+                msg = "Merge system branch '%s'" % from_branch
+                self.app.runcmd(['git', 'commit', '--all', '-m%s' % msg],
+                                cwd=repo_dir)
 
     def build(self, args):
         if len(args) != 1:
