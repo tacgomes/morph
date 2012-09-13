@@ -784,9 +784,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def update_build_refs(self, build_repos, system_branch, build_uuid):
         # Define the committer.
         committer_name = 'Morph (on behalf of %s)' % \
-                self.app.runcmd(['git', 'config', 'user.name']).strip()
+            (morphlib.git.get_user_name(self.app.runcmd))
         committer_email = '%s@%s' % \
-                (os.environ.get('LOGNAME'), socket.gethostname())
+            (os.environ.get('LOGNAME'), socket.gethostname())
 
         for repo, info in build_repos.iteritems():
             repo_dir = info['dirname']
