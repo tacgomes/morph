@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Create git repositories for tests. The chunk repository will contain a 
 # simple "hello, world" C program, and two branches ("master", "farrokh"), 
