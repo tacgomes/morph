@@ -1,1 +1,1 @@
-ERROR: Failed to check out file://TMP/morphs:i/do/not/exist into TMP/workspace/i/do/not/exist/baserock:morphs
+ERROR: Failed to check out ref i/do/not/exist in TMP/workspace/i/do/not/exist/baserock:morphs

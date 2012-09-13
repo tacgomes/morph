@@ -1,1 +1,1 @@
-ERROR: Failed to check out file://TMP/morphs:invalid-ref into TMP/workspace/foo/bar/baserock:morphs
+ERROR: Failed to check out ref invalid-ref in TMP/workspace/foo/bar/baserock:morphs
