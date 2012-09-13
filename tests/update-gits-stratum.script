@@ -26,8 +26,7 @@ git checkout --quiet farrokh
 git commit --quiet --allow-empty --allow-empty-message -m ""
 NEWREF="$(git show-ref --hash farrokh)"
 
-"$SRCDIR/scripts/test-morph" update-gits \
-    test:morphs-repo master hello-stratum.morph
+"$SRCDIR/scripts/test-morph" update-gits test:morphs-repo master hello-stratum
 
 # check the top commit of the cached repo's farrokh branch
 cd "$DATADIR/cache/gits/"*chunk?repo*

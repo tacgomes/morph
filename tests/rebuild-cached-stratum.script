@@ -38,7 +38,7 @@ cache="$DATADIR/cache/artifacts"
 
 # Build the first time.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo rebuild-cached-stratum hello-stratum.morph
+    test:morphs-repo rebuild-cached-stratum hello-stratum
 echo "first build:"
 (cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
@@ -50,7 +50,7 @@ echo "first build:"
 
 # Rebuild.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo rebuild-cached-stratum hello-stratum.morph
+    test:morphs-repo rebuild-cached-stratum hello-stratum
 echo "second build:"
 (cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)

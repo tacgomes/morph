@@ -132,7 +132,7 @@ git add overlap-*.morph
 git commit --quiet -m 'Add overlapping chunks'
 
 "$SRCDIR/scripts/test-morph" \
-    build-morphology test:morphs-repo overlap overlap-system.morph > /dev/null
+    build-morphology test:morphs-repo overlap overlap-system > /dev/null
 "$SRCDIR/scripts/list-overlaps" groups \
     "$cache"/*.system.overlap-system*.overlaps |
 while IFS='\n' read overlaps; do

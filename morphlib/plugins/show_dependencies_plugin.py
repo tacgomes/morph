@@ -49,6 +49,7 @@ class ShowDependenciesPlugin(cliapp.Plugin):
 
         # traverse the morphs to list all the sources
         for repo, ref, filename in self.app.itertriplets(args):
+            morph = filename[:-len('.morph')]
             pool = self.app.create_source_pool(
                 lrc, rrc, (repo, ref, filename))
 
@@ -56,7 +57,7 @@ class ShowDependenciesPlugin(cliapp.Plugin):
             artifacts = resolver.resolve_artifacts(pool)
 
             self.app.output.write('dependency graph for %s|%s|%s:\n' %
-                                  (repo, ref, filename))
+                                  (repo, ref, morph))
             for artifact in sorted(artifacts, key=str):
                 self.app.output.write('  %s\n' % artifact)
                 for dependency in sorted(artifact.dependencies, key=str):
@@ -64,7 +65,7 @@ class ShowDependenciesPlugin(cliapp.Plugin):
 
             order = morphlib.buildorder.BuildOrder(artifacts)
             self.app.output.write('build order for %s|%s|%s:\n' %
-                                  (repo, ref, filename))
+                                  (repo, ref, morph))
             for group in order.groups:
                 self.app.output.write('  group:\n')
                 for artifact in group:
