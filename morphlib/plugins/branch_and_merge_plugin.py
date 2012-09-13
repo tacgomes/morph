@@ -617,7 +617,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         if self.get_uncommitted_changes(from_dir) != []:
             raise cliapp.AppException('repository %s has uncommitted '
-                                      'changes' % name)
+                                      'changes' % from_dir)
         # repo must be made into a URL to avoid ':' in pathnames confusing git
         from_url = urlparse.urljoin('file://', from_dir)
         self.app.runcmd(['git', 'pull', '--no-commit', '--no-ff', from_url,
