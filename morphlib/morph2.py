@@ -14,7 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import sys
+have_python27 = sys.version_info >= (2,7)
+
 import collections
+if not hasattr(collections, 'OrderedDict'): # pragma: no cover
+    collections.OrderedDict = dict
 import copy
 import json
 import re
@@ -53,15 +58,19 @@ class Morphology(object):
         ]
     }
 
-    @staticmethod
-    def _order_keys(pairs):
-        result = collections.OrderedDict()
-        for k,v in pairs:
-            result[k] = v
-        return result
+    if have_python27: # pragma: no cover
+        @staticmethod
+        def _order_keys(pairs):
+            result = collections.OrderedDict()
+            for k,v in pairs:
+                result[k] = v
+            return result
 
     def __init__(self, text):
-        self._dict = json.loads(text, object_pairs_hook=self._order_keys)
+        if have_python27: # pragma: no cover
+            self._dict = json.loads(text, object_pairs_hook=self._order_keys)
+        else: # pragma: no cover
+            self._dict = json.loads(text)
         self._set_defaults()
         self._validate_children()
 
@@ -143,9 +152,9 @@ class Morphology(object):
                 return int(size[:-1]) * 1024 ** 2
             elif size.endswith('k'):  # pragma: no cover
                 return int(size[:-1]) * 1024
-        return int(size)
+        return int(size) # pragma: no cover
 
-    def write_to_file(self, f):
+    def write_to_file(self, f): # pragma: no cover
         # Recreate dict without the empty default values, with a few kind
         # specific hacks to try and edit standard morphologies as
         # non-destructively as possible

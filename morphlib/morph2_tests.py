@@ -14,6 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import sys
+have_python27 = sys.version_info >= (2,7)
+
 import StringIO
 import unittest
 
@@ -199,8 +202,9 @@ class MorphologyTests(unittest.TestCase):
                           Morphology,
                           text)
 
-    def test_writing_preserves_field_order(self):
-        text = '''{
+    if have_python27:
+        def test_writing_preserves_field_order(self):
+            text = '''{
     "kind": "system",
     "disk-size": 1073741824,
     "description": "Some text",
@@ -219,18 +223,19 @@ class MorphologyTests(unittest.TestCase):
         }
     ]
 }'''
-        morphology = Morphology(text)
-        output = StringIO.StringIO()
-        morphology.write_to_file(output)
+            morphology = Morphology(text)
+            output = StringIO.StringIO()
+            morphology.write_to_file(output)
 
-        text_lines = text.splitlines()
-        output_lines = output.getvalue().splitlines()
+            text_lines = text.splitlines()
+            output_lines = output.getvalue().splitlines()
 
-        # Verify that input and output are equal.
-        self.assertEqual(text_lines, output_lines)
+            # Verify that input and output are equal.
+            self.assertEqual(text_lines, output_lines)
 
-    def test_writing_stratum_morphology_preserves_chunk_order(self):
-        text = '''{
+    if have_python27:
+        def test_writing_stratum_morphology_preserves_chunk_order(self):
+            text = '''{
     "kind": "stratum",
     "chunks": [
         {
@@ -247,29 +252,30 @@ class MorphologyTests(unittest.TestCase):
         }
     ]
 }'''
-        morphology = Morphology(text)
-        output = StringIO.StringIO()
-        morphology.write_to_file(output)
+            morphology = Morphology(text)
+            output = StringIO.StringIO()
+            morphology.write_to_file(output)
 
-        text_lines = text.splitlines()
-        output_lines = output.getvalue().splitlines()
+            text_lines = text.splitlines()
+            output_lines = output.getvalue().splitlines()
 
-        # Verify that input and output are equal.
-        self.assertEqual(text_lines, output_lines)
+            # Verify that input and output are equal.
+            self.assertEqual(text_lines, output_lines)
 
-    def test_writing_preserves_disk_size(self):
-        text = '''{
+    if have_python27:
+        def test_writing_preserves_disk_size(self):
+            text = '''{
     "kind": "system",
     "disk-size": "1g",
     "arch": "x86_64",
     "system-kind": "syslinux-disk"
 }'''
-        morphology = Morphology(text)
-        output = StringIO.StringIO()
-        morphology.write_to_file(output)
+            morphology = Morphology(text)
+            output = StringIO.StringIO()
+            morphology.write_to_file(output)
 
-        text_lines = text.splitlines()
-        output_lines = output.getvalue().splitlines()
+            text_lines = text.splitlines()
+            output_lines = output.getvalue().splitlines()
 
-        # Verify that in- and output are the same.
-        self.assertEqual(text_lines, output_lines)
+            # Verify that in- and output are the same.
+            self.assertEqual(text_lines, output_lines)

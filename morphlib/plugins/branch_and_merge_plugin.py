@@ -859,8 +859,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             tree = self.app.runcmd(
                     ['git', 'write-tree'], cwd=repo_dir, env=env).strip()
             commit = self.app.runcmd(
-                    ['git', 'commit-tree', tree, '-p', parent_sha1,
-                     '-m', message], cwd=repo_dir, env=env).strip()
+                    ['git', 'commit-tree', tree, '-p', parent_sha1],
+                     feed_stdin=message, cwd=repo_dir, env=env).strip()
             self.app.runcmd(
                     ['git', 'update-ref', '-m', message,
                      'refs/heads/%s' % build_ref, commit],
