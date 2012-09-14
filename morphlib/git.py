@@ -154,8 +154,42 @@ def set_remote(runcmd, gitdir, name, url):
 
 
 def copy_repository(runcmd, repo, destdir):
-    '''Copies a cached repository into a directory using cp.'''
-    return runcmd(['cp', '-a', os.path.join(repo, '.git'), destdir])
+    '''Copies a cached repository into a directory using cp.
+
+    This also fixes up the repository afterwards, so that it can contain
+    code etc.  It does not leave any given branch ready for use.
+
+    '''
+    runcmd(['cp', '-a', repo, os.path.join(destdir, '.git')])
+    # core.bare should be false so that git believes work trees are possible
+    runcmd(['git', 'config', 'core.bare', 'false'], cwd=destdir)
+    # we do not want the origin remote to behave as a mirror for pulls
+    runcmd(['git', 'config', '--unset', 'remote.origin.mirror'], cwd=destdir)
+    # we want a traditional refs/heads -> refs/remotes/origin ref mapping
+    runcmd(['git', 'config', 'remote.origin.fetch',
+            '+refs/heads/*:refs/remotes/origin/*'], cwd=destdir)
+    # set the origin url to the cached repo so that we can quickly clean up
+    runcmd(['git', 'config', 'remote.origin.url', repo], cwd=destdir)
+    # by packing the refs, we can then edit then en-masse easily
+    runcmd(['git', 'pack-refs', '--all', '--prune'], cwd=destdir)
+    # turn refs/heads/* into refs/remotes/origin/* in the packed refs
+    # so that the new copy behaves more like a traditional clone.
+    logging.debug("Adjusting packed refs for %s" % destdir)
+    with open(os.path.join(destdir, ".git", "packed-refs"), "r") as ref_fh:
+        pack_lines = ref_fh.read().split("\n")
+    with open(os.path.join(destdir, ".git", "packed-refs"), "w") as ref_fh:
+        ref_fh.write(pack_lines.pop(0) + "\n")
+        for refline in pack_lines:
+            if ' refs/remotes/' in refline:
+                continue
+            if ' refs/heads/' in refline:
+                sha, ref = refline[:40], refline[41:]
+                if ref.startswith("refs/heads/"):
+                    ref = "refs/remotes/origin/" + ref[11:]
+                refline = "%s %s" % (sha, ref)
+            ref_fh.write("%s\n" % (refline))
+    # Finally run a remote update to clear up the refs ready for use.
+    runcmd(['git', 'remote', 'update', 'origin', '--prune'], cwd=destdir)
 
 
 def checkout_ref(runcmd, gitdir, ref):
@@ -167,3 +201,16 @@ def reset_workdir(runcmd, gitdir):
     '''and the status of the working directory'''
     runcmd(['git', 'clean', '-fxd'], cwd=gitdir)
     runcmd(['git', 'reset', '--hard', 'HEAD'], cwd=gitdir)
+
+
+def clone_into(runcmd, srcpath, targetpath, ref=None):
+    '''Clones a repo in srcpath into targetpath, optionally directly at ref.'''
+    if ref is None:
+        runcmd(['git', 'clone', srcpath, targetpath])
+    else:
+        runcmd(['git', 'clone', '-b', ref, srcpath, targetpath])
+
+def find_first_ref(runcmd, gitdir, ref):
+    '''Find the *first* ref match and returns its sha1.'''
+    return runcmd(['git', 'show-ref', ref],
+                  cwd=gitdir).split("\n")[0].split(" ")[0]

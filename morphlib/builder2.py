@@ -308,16 +308,14 @@ class ChunkBuilder(BuilderBase):
 
         cache_dir = os.path.dirname(self.artifact.source.repo.path)
 
-        def extract_repo(path, sha1, destdir):
+        def extract_repo(repo, sha1, destdir):
             self.app.status(msg='Extracting %(source)s into %(target)s',
-                            source=path,
+                            source=repo.original_name,
                             target=destdir)
-            if not os.path.exists(destdir):
-                os.mkdir(destdir)
-            morphlib.git.copy_repository(self.app.runcmd, path, destdir)
-            morphlib.git.checkout_ref(self.app.runcmd, destdir, sha1)
+
+            repo.checkout(sha1, destdir)
             morphlib.git.reset_workdir(self.app.runcmd, destdir)
-            submodules = morphlib.git.Submodules(self.app, path, sha1)
+            submodules = morphlib.git.Submodules(self.app, repo.path, sha1)
             try:
                 submodules.load()
             except morphlib.git.NoModulesFileError:
@@ -327,14 +325,14 @@ class ChunkBuilder(BuilderBase):
                 for sub in submodules:
                     cached_repo = self.repo_cache.get_repo(sub.url)
                     sub_dir = os.path.join(destdir, sub.path)
-                    tuples.append((cached_repo.path, sub.commit, sub_dir))
+                    tuples.append((cached_repo, sub.commit, sub_dir))
                 return tuples
 
         s = self.artifact.source
-        todo = [(s.repo.path, s.sha1, srcdir)]
+        todo = [(s.repo, s.sha1, srcdir)]
         while todo:
-            path, sha1, srcdir = todo.pop()
-            todo += extract_repo(path, sha1, srcdir)
+            repo, sha1, srcdir = todo.pop()
+            todo += extract_repo(repo, sha1, srcdir)
         self.set_mtime_recursively(srcdir)
 
     def set_mtime_recursively(self, root):  # pragma: no cover

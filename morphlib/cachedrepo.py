@@ -49,6 +49,14 @@ class CloneError(cliapp.AppException):
     def __init__(self, repo, target_dir):
         cliapp.AppException.__init__(
             self,
+            'Failed to clone %s into %s' % (repo.original_name, target_dir))
+
+
+class CopyError(cliapp.AppException):
+
+    def __init__(self, repo, target_dir):
+        cliapp.AppException.__init__(
+            self,
             'Failed to copy %s into %s' % (repo.original_name, target_dir))
 
 
@@ -74,6 +82,9 @@ class CachedRepo(object):
     On instance of this class represents a locally cached version of a
     remote Git repository. This remote repository is set up as the
     'origin' remote.
+
+    Cached repositories are bare mirrors of the upstream.  Locally created
+    branches will be lost the next time the repository updates.
 
     CachedRepo objects can resolve Git refs into SHA1s. Given a SHA1
     ref, they can also be asked to return the contents of a file via the
@@ -109,8 +120,7 @@ class CachedRepo(object):
         if not self.is_valid_sha1(ref):
             try:
                 refs = self._show_ref(ref).split('\n')
-                # split each ref line into an array, drop non-origin branches
-                refs = [x.split() for x in refs if 'origin' in x]
+                refs = [x.split() for x in refs]
                 absref = refs[0][0]
             except cliapp.AppException:
                 raise InvalidReferenceError(self, ref)
@@ -146,8 +156,8 @@ class CachedRepo(object):
             raise IOError('File %s does not exist in ref %s of repo %s' %
                           (filename, ref, self))
 
-    def checkout(self, ref, target_dir):
-        '''Unpacks the repository in a directory and checks out a commit ref.
+    def clone_checkout(self, ref, target_dir):
+        '''Clone from the cache into the target path and check out a given ref.
 
         Raises a CheckoutDirectoryExistsError if the target
         directory already exists. Raises an InvalidReferenceError if the
@@ -160,9 +170,28 @@ class CachedRepo(object):
         if os.path.exists(target_dir):
             raise CheckoutDirectoryExistsError(self, target_dir)
 
-        os.mkdir(target_dir)
+        self.resolve_ref(ref)
 
+        self._clone_into(target_dir, ref)
+
+    def checkout(self, ref, target_dir):
+        '''Unpacks the repository in a directory and checks out a commit ref.
+
+        Raises an InvalidReferenceError if the ref is not found in the
+        repository. Raises a CopyError if something goes wrong with the copy
+        of the repository. Raises a CheckoutError if something else goes wrong
+        while copying the repository or checking out the SHA1 ref.
+
+        '''
+
+        if not os.path.exists(target_dir):
+            os.mkdir(target_dir)
+
+        # Note, we copy instead of cloning because it's much faster in the case
+        # that the target is on a different filesystem from the cache. We then
+        # take care to turn the copy into something as good as a real clone.
         self._copy_repository(self.path, target_dir)
+
         self._checkout_ref(ref, target_dir)
 
     def ls_tree(self, ref):
@@ -219,11 +248,18 @@ class CachedRepo(object):
         return self._runcmd(['git', 'cat-file', 'blob',
                              '%s:%s' % (ref, filename)])
 
+    def _clone_into(self, target_dir, ref):  #pragma: no cover
+        '''Actually perform the clone'''
+        try:
+            morphlib.git.clone_into(self._runcmd, self.path, target_dir, ref)
+        except cliapp.AppException:
+            raise CloneError(self, target_dir)
+
     def _copy_repository(self, source_dir, target_dir):  # pragma: no cover
         try:
             morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
         except cliapp.AppException:
-            raise CloneError(self, target_dir)
+            raise CopyError(self, target_dir)
 
     def _checkout_ref(self, ref, target_dir):  # pragma: no cover
         try:
@@ -232,7 +268,7 @@ class CachedRepo(object):
             raise CheckoutError(self, ref, target_dir)
 
     def _update(self):  # pragma: no cover
-        self._runcmd(['git', 'remote', 'update', 'origin'])
+        self._runcmd(['git', 'remote', 'update', 'origin', '--prune'])
 
     def __str__(self):  # pragma: no cover
         return self.url
