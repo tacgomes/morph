@@ -26,14 +26,16 @@ cd "$DATADIR/workspace"
 
 echo "Workspace after creating the first branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 # Now, create a nother branch from the workspace.
 "$SRCDIR/scripts/test-morph" branch baserock:morphs branch2
 
 echo "Workspace after creating the second branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 # Now, enter the first branch and create a third branch, which
 # should not be created in the working directory but in the
@@ -43,7 +45,8 @@ cd "$DATADIR/workspace/branch1"
 
 echo "Workspace after creating the third branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 # Now, go into the morphs repository of that third branch and
 # create a fourth system branch from in there. This, too, should
@@ -53,4 +56,5 @@ cd "$DATADIR/workspace/branch3/baserock:morphs"
 
 echo "Workspace after creating the fourth branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
