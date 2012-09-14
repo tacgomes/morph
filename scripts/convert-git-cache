@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Copyright (C) 2012 Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# This is a program to convert the json dump of the overlaps between artifacts
+# in a format more suited to shell programs, or human reading
+
+set -eu
+
+CACHE_ROOT=$(morph --dump-config | grep cachedir | cut -d\  -f3)
+
+REPO_CACHE="${CACHE_ROOT}/gits"
+
+for REPO_DIR in $(cd "${REPO_CACHE}"; ls); do
+    cd "${REPO_CACHE}/${REPO_DIR}"
+    if test -d .git; then
+        echo "Converting ${REPO_DIR}"
+        mv .git/* .
+        rmdir .git
+        git config core.bare true
+        git config remote.origin.mirror true
+        git config remote.origin.fetch "+refs/*:refs/*"
+        echo "Migrating refs, please hold..."
+        rm -f refs/remotes/origin/HEAD
+        for REF in $(git branch -r); do
+            BRANCH=${REF#origin/}
+            git update-ref "refs/heads/${BRANCH}" \
+                $(git rev-parse "refs/remotes/${REF}")
+            git update-ref -d "refs/remotes/${REF}"
+        done
+        echo "Re-running remote update with --prune"
+        if ! git remote update origin --prune; then
+            echo "${REPO_DIR} might be broken."
+        fi
+    else
+        echo "Do not need to convert ${REPO_DIR}"
+    fi
+done
