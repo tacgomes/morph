@@ -30,4 +30,4 @@ NEWREF="$(git show-ref --hash farrokh)"
 
 # check the top commit of the cached repo's farrokh branch
 cd "$DATADIR/cache/gits/"*chunk?repo*
-test "$(git show-ref --hash refs/remotes/origin/farrokh)" = "$NEWREF"
+test "$(git show-ref --hash refs/heads/farrokh)" = "$NEWREF"

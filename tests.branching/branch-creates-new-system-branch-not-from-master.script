@@ -21,11 +21,12 @@ set -eu
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch origin/alfred
+"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch alfred
 
 echo "File tree:"
 "$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 echo "Current branches:"
 "$SRCDIR/scripts/run-git-in" newbranch/baserock:morphs branch

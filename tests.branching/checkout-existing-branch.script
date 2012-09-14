@@ -27,7 +27,8 @@ cd "$DATADIR/workspace"
 
 echo "File tree:"
 "$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 echo "Current branches:"
 "$SRCDIR/scripts/run-git-in" master/baserock:morphs branch

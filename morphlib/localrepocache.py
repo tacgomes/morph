@@ -197,7 +197,7 @@ class LocalRepoCache(object):
             return False, 'Unable to fetch bundle %s: %s' % (bundle_url, e)
 
         try:
-            self._git(['clone', '-n', bundle_path, path])
+            self._git(['clone', '--mirror', '-n', bundle_path, path])
             self._git(['remote', 'set-url', 'origin', repourl], cwd=path)
         except cliapp.AppException, e:  # pragma: no cover
             if self._exists(path):
@@ -236,7 +236,7 @@ class LocalRepoCache(object):
         repourl = self._resolver.pull_url(reponame)
         path = self._cache_name(repourl)
         try:
-            self._git(['clone', '-n', repourl, path])
+            self._git(['clone', '--mirror', '-n', repourl, path])
         except cliapp.AppException, e:
             errors.append('Unable to clone from %s to %s: %s' %
                           (repourl, path, e))

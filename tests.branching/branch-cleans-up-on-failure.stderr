@@ -1,1 +1,1 @@
-ERROR: Failed to check out ref invalid-ref in TMP/workspace/foo/bar/baserock:morphs
+ERROR: Ref invalid-ref is an invalid reference for repo file://TMP/morphs

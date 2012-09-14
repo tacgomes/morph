@@ -4,7 +4,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/baserock:morphs
@@ -18,7 +17,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/baserock:morphs
@@ -39,7 +37,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/baserock:morphs
@@ -67,7 +64,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/baserock:morphs

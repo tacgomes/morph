@@ -1,1 +1,1 @@
-ERROR: Failed to check out ref i/do/not/exist in TMP/workspace/i/do/not/exist/baserock:morphs
+ERROR: Ref i/do/not/exist is an invalid reference for repo file://TMP/morphs

@@ -194,7 +194,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             os.makedirs(parent_dir)
 
         # Clone it from cache to target directory.
-        repo.checkout(ref, os.path.abspath(dirname))
+        repo.clone_checkout(ref, os.path.abspath(dirname))
 
         # Remember the repo name we cloned from in order to be able
         # to identify the repo again later using the same name, even
@@ -221,6 +221,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
             with open(filename) as f:
                 text = f.read()
         else:
+            ref = morphlib.git.find_first_ref(self.app.runcmd, repo_dir, ref)
+            logging.warning("Running git cat-file blob %s:%s.morph in %s" % (
+                    ref, name, repo_dir))
             text = self.app.runcmd(['git', 'cat-file', 'blob',
                                    '%s:%s.morph' % (ref, name)], cwd=repo_dir)
         morphology = morphlib.morph2.Morphology(text)

@@ -26,7 +26,8 @@ cd "$DATADIR/workspace"
 
 echo "Workspace after checking out master from the workspace directory:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'
 
 # Reset the workspace.
 cd "$DATADIR"
@@ -43,4 +44,5 @@ cd newbranch/baserock:morphs
 
 echo "Workspace after checking out master from within a new branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,'
+    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
+    grep -v 'cache/gits/file_[^/]*/'

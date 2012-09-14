@@ -4,7 +4,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_git
-d ./.morph/cache/gits/file_git/.git
 d ./master
 d ./master/.morph-system-branch
 d ./master/tmp
@@ -23,7 +22,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./master
 d ./master/.morph-system-branch
 d ./master/tmp

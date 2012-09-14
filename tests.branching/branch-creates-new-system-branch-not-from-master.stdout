@@ -4,7 +4,6 @@ d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
-d ./.morph/cache/gits/file_morphs/.git
 d ./newbranch
 d ./newbranch/.morph-system-branch
 d ./newbranch/baserock:morphs
@@ -14,7 +13,7 @@ f ./newbranch/baserock:morphs/hello-stratum.morph
 f ./newbranch/baserock:morphs/hello-system.morph
 f ./newbranch/baserock:morphs/this.is.alfred
 Current branches:
-  master
+  alfred
 * newbranch
 Current origin:
 * remote origin
@@ -24,8 +23,7 @@ Current origin:
   Remote branches:
     alfred tracked
     master tracked
-  Local branches configured for 'git pull':
-    master    merges with remote master
-    newbranch merges with remote alfred
+  Local branch configured for 'git pull':
+    alfred merges with remote alfred
   Local ref configured for 'git push':
-    master pushes to master (up to date)
+    alfred pushes to alfred (up to date)
