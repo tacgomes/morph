@@ -63,7 +63,6 @@ cat <<EOF > "$1/$2.morph"
 EOF
 }
 
-
 # Create two more strata outside the baserock:morphs repository
 
 EXTERNAL_STRATA_REPO="$DATADIR/external-strata"
@@ -84,14 +83,22 @@ git commit --quiet -m "Initial commit"
 create_chunk "$DATADIR/stratum2-hello" "hello"
 create_chunk "$DATADIR/stratum3-hello" "hello"
 
-# Update hello-system to include them
+# Update hello-system to include them ... using a system branch! Since the
+# strata refs are 'master' not 'me/add-external-strata' this does not cause
+# problems with merging.
 
-cd "$DATADIR/morphs"
-cat <<EOF > "$DATADIR/morphs/hello-system.morph"
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch baserock:morphs me/add-external-strata
+
+cd "$DATADIR/workspace/me/add-external-strata/baserock:morphs"
+
+cat <<EOF > "hello-system.morph"
 {
     "name": "hello-system",
     "kind": "system",
     "system-kind": "syslinux-disk",
+    "arch": "x86_64",
     "disk-size": "1G",
     "strata": [
         {
@@ -114,14 +121,26 @@ cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 EOF
 git commit --quiet --all -m "Add two more external strata"
 
-# Now try to branch and merge the system
-# FIXME: we should try and build it, too
-
+# Merge to master
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+cd master/baserock:morphs
+"$SRCDIR/scripts/test-morph" merge me/add-external-strata
+
+# In reality the user would do: 'git push origin master' here,
+# but since our remote repo is non-bare we must cheat a bit.
+# We should consider a separate fixture for the workflow tests.
+cd "$DATADIR/morphs"
+git pull -q \
+    "file://$DATADIR/workspace/master/baserock:morphs" master
+
+# Now make another change to the system
+# FIXME: we should try and build it, too
+cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs me/readme-fixes
 
 # Edit one chunk
+cd "me/readme-fixes"
 "$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
 cd "$DATADIR/workspace/me/readme-fixes/baserock:stratum2-hello"
 echo > README yoyoyo
@@ -135,7 +154,7 @@ echo > README yoyoyo
 git add README
 git commit -m "Fix README in hello" --quiet
 
-# Update the morphologies repos
+# Update the morphology repos
 cd ../baserock:external-strata
 git commit --quiet --all -m "Commit changes for system branch"
 
@@ -144,6 +163,17 @@ git commit --quiet --all -m "Commit changes for system branch"
 
 # Merge our system branch into master
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge me/readme-fixes
+
+# Check the changes have appeared
+cd baserock:morphs
+[ $(git rev-parse HEAD) = $(git rev-parse master) ]
+
+cd ../baserock:stratum2-hello
+[ -e README ]
+[ $(git rev-parse HEAD) = $(git rev-parse master) ]
+
+cd ../baserock:stratum3-hello
+[ -e README ]
+[ $(git rev-parse HEAD) = $(git rev-parse master) ]
