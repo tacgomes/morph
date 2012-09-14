@@ -30,10 +30,10 @@ class CachedRepoTests(unittest.TestCase):
         output = {
             'master':
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9'
-            ' refs/remotes/origin/master',
+            ' refs/heads/master',
             'baserock/morph':
             '8b780e2e6f102fcf400ff973396566d36d730501'
-            ' refs/remotes/origin/baserock/morph',
+            ' refs/heads/baserock/morph',
         }
         try:
             return output[ref]
@@ -45,12 +45,14 @@ class CachedRepoTests(unittest.TestCase):
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
               'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
             '8b780e2e6f102fcf400ff973396566d36d730501':
-              'ffffffffffffffffffffffffffffffffffffffff'
+              'ffffffffffffffffffffffffffffffffffffffff',
+            'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
+              'dddddddddddddddddddddddddddddddddddddddd'
         }
         try:
             return output[absref]
         except:
-            raise cliapp.AppException('git log -1 --format=format:%T %s' %
+            raise cliapp.AppException('git log -1 --format=format:%%T %s' %
                                       absref)
 
     def rev_list(self, ref):
@@ -77,7 +79,8 @@ class CachedRepoTests(unittest.TestCase):
                 'git cat-file blob %s:%s' % (ref, filename))
 
     def copy_repository(self, source_dir, target_dir):
-        pass
+        if target_dir.endswith('failed-checkout'):
+            raise morphlib.cachedrepo.CopyError(self.repo, target_dir)
 
     def checkout_ref(self, ref, target_dir):
         if ref == 'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
@@ -98,6 +101,12 @@ class CachedRepoTests(unittest.TestCase):
         except:
             raise cliapp.AppException('git ls-tree --name-only %s' % (ref))
 
+    def clone_into(self, target_dir, ref):
+        if target_dir.endswith('failed-checkout'):
+            raise morphlib.cachedrepo.CloneError(self.repo, target_dir)
+        self.clone_target = target_dir
+        self.clone_ref = ref
+
     def update_successfully(self):
         pass
 
@@ -117,6 +126,7 @@ class CachedRepoTests(unittest.TestCase):
         self.repo._copy_repository = self.copy_repository
         self.repo._checkout_ref = self.checkout_ref
         self.repo._ls_tree = self.ls_tree
+        self.repo._clone_into = self.clone_into
         self.tempdir = morphlib.tempdir.Tempdir()
 
     def tearDown(self):
@@ -176,14 +186,19 @@ class CachedRepoTests(unittest.TestCase):
         self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
                           self.repo.cat, 'master', 'doesnt-matter')
 
-    def test_fail_checkout_into_existing_directory(self):
+    def test_fail_clone_checkout_into_existing_directory(self):
         self.assertRaises(cachedrepo.CheckoutDirectoryExistsError,
-                          self.repo.checkout,
+                          self.repo.clone_checkout,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                           self.tempdir.dirname)
 
     def test_fail_checkout_due_to_clone_error(self):
-        self.assertRaises(cachedrepo.CloneError, self.repo.checkout,
+        self.assertRaises(cachedrepo.CloneError, self.repo.clone_checkout,
+                          'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+                          self.tempdir.join('failed-checkout'))
+
+    def test_fail_checkout_due_to_copy_error(self):
+        self.assertRaises(cachedrepo.CopyError, self.repo.checkout,
                           'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
                           self.tempdir.join('failed-checkout'))
 
@@ -220,3 +235,8 @@ class CachedRepoTests(unittest.TestCase):
     def test_failing_update(self):
         self.repo._update = self.update_with_failure
         self.assertRaises(cachedrepo.UpdateError, self.repo.update)
+
+    def test_clone_checkout(self):
+        self.repo.clone_checkout('master', '/.DOES_NOT_EXIST')
+        self.assertEqual(self.clone_target, '/.DOES_NOT_EXIST')
+        self.assertEqual(self.clone_ref, 'master')
