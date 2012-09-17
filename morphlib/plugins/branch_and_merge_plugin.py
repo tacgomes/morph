@@ -56,6 +56,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
+        self.app.add_subcommand('foreach', self.foreach,
+                                arg_synopsis='COMMAND')
 
     def disable(self):
         pass
@@ -949,3 +951,44 @@ class BranchAndMergePlugin(cliapp.Plugin):
                             repo=repo)
             self.app.runcmd(['git', 'push', 'origin',
                              ':%s' % info['build-ref']], cwd=info['dirname'])
+
+    def foreach(self, args):
+        '''Run a command in each repository checked out in a system branch
+
+        For simplicity, this simply iterates repositories in the directory
+        rather than walking through the morphologies as 'morph merge' does.
+
+        '''
+
+        if len(args) == 0:
+            raise cliapp.AppException('morph foreach expects a command to run')
+
+        workspace = self.deduce_workspace()
+        branch, branch_path = self.deduce_system_branch()
+        root_repo_dir = self.get_branch_config(branch_path, 'branch.root')
+
+        dirs = [d for d in self.walk_special_directories(
+                    branch_path, special_subdir='.git')
+                if os.path.basename(d) != root_repo_dir]
+        dirs.sort()
+        root_repo_path = os.path.join(branch_path, root_repo_dir)
+        for d in [root_repo_path] + dirs:
+            try:
+                repo = self.get_repo_config(d, 'morph.repository')
+            except cliapp.AppException:
+                continue
+
+            if d != root_repo_path:
+                print
+            print repo
+
+            try:
+                output = self.app.runcmd(args, cwd=d)
+            except cliapp.AppException as e:
+                # Don't allow cliapp to swallow the output of the command
+                # as the body of the exception
+                output_start = e.msg.find('\n')
+                self.app.output.write(e.msg[output_start+1:])
+                raise cliapp.AppException(e.msg[:output_start])
+
+            self.app.output.write(output)
