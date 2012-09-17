@@ -26,13 +26,12 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs alfred
 
 # Edit the hello chunk in alfred.
+cd "alfred"
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
-echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/baserock:morphs" branch
+echo "Current branches:"
+"$SRCDIR/scripts/test-morph" foreach git branch
 
-echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/alfred/baserock:hello" branch
-
+echo
 echo "Files in hello:"
 ls "$DATADIR/workspace/alfred/baserock:hello"
