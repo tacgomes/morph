@@ -14,7 +14,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Check that "morph merge" merges a system branch into master
+# "morph merge" should deal with stratum renames; currently it doesn't deal
+# very well, but at least we don't crash.
 
 set -eu
 
@@ -23,38 +24,28 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
 
-# Make a change to a chunk.
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd baserock/newbranch/baserock:hello
-touch newfile.txt
-git add newfile.txt
-git commit -m foo --quiet
+# The user may 'morph edit hello-system hello-stratum hello' and commit here:
+# we currently silently ignore her changes on merge, because we don't
+# associate hello-stratum and goodbye-stratum at all.
 
-# Commit in morphs repo
-cd ../baserock:morphs
-git commit --all --quiet -m "Update morph refs for baserock/newbranch"
+# Rename the stratum
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+cd baserock/newbranch/baserock:morphs
 
-# Merge changes back to master
+sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/'\
+    -i hello-system.morph
+sed -e 's/"name": "hello-stratum"/"name": "goodbye-stratum"/' \
+    hello-stratum.morph > goodbye-stratum.morph
+git rm -q hello-stratum.morph
+git add goodbye-stratum.morph
+git commit -q --all -m "Rename hello-stratum to goodbye-stratum"
+
+# The user may 'morph edit hello-system goodbye-stratum hello' and commit
+# here, too: same problem.
+
+# Merge changes back to master (this should fail, because we don't support
+# adding strata inside branches yet).
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch
-
-# Check results.
-cd baserock:hello
-git status --short # make sure all changes are committed
-[ -e newfile.txt ] # make sure the new file is there
-
-# Make sure all refs to the merged branch have gone.
-cd ../baserock:morphs
-! grep "\"ref\": \"baserock/newbranch\"" *.morph
-
-# The only change here was the branch refs, which have now been
-# changed back - so there should not be any new commits.
-echo "Commit message for baserock:morphs"
-git cat-file commit HEAD | tail -n 1
-
-echo
-echo "Commit message for baserock:hello"
-cd ../baserock:hello
-git cat-file commit HEAD | tail -n 1

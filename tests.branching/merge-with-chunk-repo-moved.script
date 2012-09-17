@@ -14,7 +14,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Check that "morph merge" merges a system branch into master
+# "morph merge" should detect changes in a repo that was added as part of the
+# branch and warn the user that the changes will not be merged automatically
 
 set -eu
 
@@ -23,38 +24,30 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
 
-# Make a change to a chunk.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd baserock/newbranch/baserock:hello
+
+# Chunk moves to a new location (we manually update the ref back to master
+# here, so 'morph edit' can create a system branch in the new repo from it).
+git clone -q "$DATADIR/hello" "$DATADIR/hello-lorried"
+cd "$DATADIR/workspace/baserock/newbranch/baserock:morphs"
+sed -e 's/"repo": "baserock:hello"/"repo": "baserock:hello-lorried"/' \
+    -e 's/"ref": "baserock\/newbranch"/"ref": "master"/' \
+    -i hello-stratum.morph
+git commit -q --all -m "'hello' repository has moved"
+
+# Now we further edit the chunk, just for fun.
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
+cd "$DATADIR/workspace/baserock/newbranch/baserock:hello-lorried"
 touch newfile.txt
 git add newfile.txt
-git commit -m foo --quiet
+git commit -m "Add new file" --quiet
 
-# Commit in morphs repo
-cd ../baserock:morphs
-git commit --all --quiet -m "Update morph refs for baserock/newbranch"
+cd "$DATADIR/workspace/baserock/newbranch/baserock:morphs"
+git commit -q --all -m "Update system branch refs"
 
-# Merge changes back to master
+# Try to merge changes back to master (should fail, because we don't support
+# adding chunks inside branches yet).
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch
-
-# Check results.
-cd baserock:hello
-git status --short # make sure all changes are committed
-[ -e newfile.txt ] # make sure the new file is there
-
-# Make sure all refs to the merged branch have gone.
-cd ../baserock:morphs
-! grep "\"ref\": \"baserock/newbranch\"" *.morph
-
-# The only change here was the branch refs, which have now been
-# changed back - so there should not be any new commits.
-echo "Commit message for baserock:morphs"
-git cat-file commit HEAD | tail -n 1
-
-echo
-echo "Commit message for baserock:hello"
-cd ../baserock:hello
-git cat-file commit HEAD | tail -n 1

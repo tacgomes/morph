@@ -14,7 +14,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Check that "morph merge" merges a system branch into master
+# "morph merge" should pull changes from a chunk even if its name was changed
+# in the branch
 
 set -eu
 
@@ -23,15 +24,22 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
 
-# Make a change to a chunk.
+# Rename the chunk, and then commit a seperate change
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 cd baserock/newbranch/baserock:hello
+
+cat hello.morph | sed -e 's/"name": "hello"/"name": "goodbye"/' > goodbye.morph
+git rm -q hello.morph
+git add goodbye.morph
+git commit -m "Rename chunk" --quiet
+
 touch newfile.txt
 git add newfile.txt
-git commit -m foo --quiet
+git commit -m "Add new file" --quiet
 
-# Commit in morphs repo
+# Update stratum to point at the renamed chunk
 cd ../baserock:morphs
+sed -ie 's/"name": "hello"/"name": "goodbye"/' hello-stratum.morph
 git commit --all --quiet -m "Update morph refs for baserock/newbranch"
 
 # Merge changes back to master
@@ -40,21 +48,9 @@ cd "$DATADIR/workspace"
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch
 
-# Check results.
+# Morph should have realised that 'goodbye' is not a new chunk,
+# and pulled in the changes from 'hello' in the old branch
 cd baserock:hello
-git status --short # make sure all changes are committed
-[ -e newfile.txt ] # make sure the new file is there
-
-# Make sure all refs to the merged branch have gone.
-cd ../baserock:morphs
-! grep "\"ref\": \"baserock/newbranch\"" *.morph
-
-# The only change here was the branch refs, which have now been
-# changed back - so there should not be any new commits.
-echo "Commit message for baserock:morphs"
-git cat-file commit HEAD | tail -n 1
-
-echo
-echo "Commit message for baserock:hello"
-cd ../baserock:hello
-git cat-file commit HEAD | tail -n 1
+[ ! -e hello.morph ]
+[ -e goodbye.morph ]
+[ -e newfile.txt ]
