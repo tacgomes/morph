@@ -28,21 +28,10 @@ cd "$DATADIR/workspace"
 # Edit chunk.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
-echo "Current branches, morphs:"
-"$SRCDIR/scripts/run-git-in" \
-    "$DATADIR/workspace/newbranch/baserock:morphs" branch
+echo "Current branches:"
+"$SRCDIR/scripts/test-morph" foreach git branch
 
-echo "Current origin, morphs:"
-"$SRCDIR/scripts/run-git-in" \
-    "$DATADIR/workspace/newbranch/baserock:morphs" \
-    remote show origin | \
-        sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'
-
-echo "Current branches, hello:"
-"$SRCDIR/scripts/run-git-in" \
-    "$DATADIR/workspace/newbranch/baserock:hello" branch
-
-echo "Current origin, hello:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/newbranch/baserock:hello" \
-    remote show origin | \
-        sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'
+echo
+echo "Current origins:"
+"$SRCDIR/scripts/test-morph" foreach git remote show origin | \
+    sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'

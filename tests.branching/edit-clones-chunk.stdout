@@ -1,7 +1,14 @@
-Current branches, morphs:
+Current branches:
+baserock:morphs
   master
 * newbranch
-Current origin, morphs:
+
+baserock:hello
+  master
+* newbranch
+
+Current origins:
+baserock:morphs
 * remote origin
   Fetch URL: file://TMP/morphs
   Push  URL: file://TMP/morphs
@@ -13,10 +20,8 @@ Current origin, morphs:
     master merges with remote master
   Local ref configured for 'git push':
     master pushes to master (up to date)
-Current branches, hello:
-  master
-* newbranch
-Current origin, hello:
+
+baserock:hello
 * remote origin
   Fetch URL: file://TMP/hello
   Push  URL: file://TMP/hello

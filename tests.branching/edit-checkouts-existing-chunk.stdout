@@ -1,7 +1,10 @@
-Current branches, morphs:
+Current branches:
+baserock:morphs
 * alfred
-Current branches, hello:
+
+baserock:hello
 * alfred
   master
+
 Files in hello:
 hello.morph
