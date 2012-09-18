@@ -979,8 +979,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 continue
 
             if d != root_repo_path:
-                print
-            print repo
+                self.app.output.write('\n')
+            self.app.output.write('%s\n' % repo)
 
             try:
                 output = self.app.runcmd(args, cwd=d)
