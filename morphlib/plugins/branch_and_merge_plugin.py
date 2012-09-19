@@ -37,8 +37,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.init_changelog()
 
     def enable(self):
-        self.app.add_subcommand('petrify', self.petrify,
-                                arg_synopsis='STRATUM...')
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
         self.app.add_subcommand('workspace', self.workspace,
                                 arg_synopsis='')
@@ -54,6 +52,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('edit', self.edit,
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
+        self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('foreach', self.foreach,
@@ -319,37 +318,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if max_subdirs > 0 and len(subdirs) > max_subdirs:
                 break
 
-    def petrify(self, args):
-        '''Make refs to chunks be absolute SHA-1s.'''
-
-        app = self.app
-        cache = morphlib.util.new_repo_caches(app)[0]
-
-        for morphology_name in args:
-            filename = morphology_name + '.morph'
-            with open(filename) as f:
-                morph = morphlib.morph2.Morphology(f.read())
-
-            if morph['kind'] != 'stratum':
-                app.status(msg='Not a stratum: %(filename)s',
-                           filename=filename)
-                continue
-
-            app.status(msg='Petrifying %(filename)s', filename=filename)
-
-            for source in morph['chunks']:
-                reponame = source.get('repo', source['name'])
-                ref = source['ref']
-                app.status(msg='Looking up sha1 for %(repo_name)s %(ref)s',
-                           repo_name=reponame,
-                           ref=ref)
-                assert cache.has_repo(reponame)
-                repo = cache.get_repo(reponame)
-                source['ref'], tree = repo.resolve_ref(ref)
-
-            with morphlib.savefile.SaveFile(filename, 'w') as f:
-                morph.write_to_file(f)
-
     def init(self, args):
         '''Initialize a workspace directory.'''
 
@@ -584,6 +552,56 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.log_change(stratum['repo'],
                                 '"%s" now includes "%s" from "%s"' %
                                 (stratum_name, chunk_name, system_branch))
+
+        self.print_changelog('The following changes were made but have not '
+                             'been comitted')
+
+    def petrify(self, args):
+        '''Convert all chunk refs in a branch to be fixed SHA1s
+
+        This allows the developer to work on a feature in isolation, without
+        changes from upstream breaking the world under their feet.
+
+        Strata refs are not petrified, because they must all be edited to set
+        the new chunk refs, which requires branching them all for the current
+        branch - so they will not be updated outside of the user's control in
+        any case.
+
+        '''
+
+        if len(args) != 0:
+            raise cliapp.AppException('morph petrify takes no arguments')
+
+        workspace = self.deduce_workspace()
+        branch, branch_path = self.deduce_system_branch()
+        root_repo = self.get_branch_config(branch_path, 'branch.root')
+        root_repo_dir = self.find_repository(branch_path, root_repo)
+
+        lrc, rrc = morphlib.util.new_repo_caches(self.app)
+
+        for f in glob.glob(os.path.join(root_repo_dir, '*.morph')):
+            name = os.path.basename(f)[:-len('.morph')]
+            morphology = self.load_morphology(root_repo_dir, name)
+            if morphology['kind'] != 'system':
+                continue
+
+            for stratum_info in morphology['strata']:
+                if stratum_info['repo'] != root_repo:
+                    raise ('not yet implemented- need to morph edit this stratum')
+                repo_dir = root_repo_dir
+
+                stratum = self.load_morphology(repo_dir, stratum_info['morph'])
+
+                for chunk_info in stratum['chunks']:
+                    if 'unpetrify-ref' not in chunk_info:
+                        commit_sha1, tree_sha1 = self.app.resolve_ref(
+                            lrc, rrc, chunk_info['repo'], chunk_info['ref'],
+                            update=not self.app.settings['no-git-update'])
+                        chunk_info['unpetrify-ref'] = chunk_info['ref']
+                        chunk_info['ref'] = commit_sha1
+                self.save_morphology(repo_dir, stratum_info['morph'], stratum)
+
+            self.save_morphology(root_repo_dir, name, morphology)
 
         self.print_changelog('The following changes were made but have not '
                              'been comitted')

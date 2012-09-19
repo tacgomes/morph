@@ -30,9 +30,8 @@ fi
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" update-gits baserock:morphs master hello-stratum
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 
 cd master/baserock:morphs
-"$SRCDIR/scripts/test-morph" petrify hello-stratum
+"$SRCDIR/scripts/test-morph" petrify
 cat hello-stratum.morph
