@@ -243,6 +243,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
         with morphlib.savefile.SaveFile(filename, 'w') as f:
             morphology.write_to_file(f)
 
+        if name != morphology['name']:
+            logging.warning('%s: morphology "name" should match filename' %
+                            filename)
+
     @staticmethod
     def get_edit_info(morphology_name, morphology, name, collection='strata'):
         try:
