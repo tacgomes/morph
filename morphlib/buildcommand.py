@@ -131,6 +131,7 @@ class BuildCommand(object):
             self.app.status(msg='The %(kind)s %(name)s is already built',
                             kind=artifact.source.morphology['kind'],
                             name=artifact.name)
+            self.cache_artifacts_locally([artifact])
         else:
             self.app.status(msg='Building %(kind)s %(name)s',
                             kind=artifact.source.morphology['kind'],
@@ -149,6 +150,12 @@ class BuildCommand(object):
                 self.install_chunk_artifacts(staging_area,
                                              (artifact,))
             self.remove_staging_area(staging_area)
+        self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
+                        kind=artifact.source.morphology['kind'],
+                        name=artifact.name,
+                        cachepath=self.lac.artifact_filename(artifact),
+                        chatty=(artifact.source.morphology['kind'] !=
+                                "system"))
 
     def is_built(self, artifact):
         '''Does either cache already have the artifact?'''
