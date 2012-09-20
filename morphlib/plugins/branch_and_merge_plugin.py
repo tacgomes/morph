@@ -958,6 +958,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         For simplicity, this simply iterates repositories in the directory
         rather than walking through the morphologies as 'morph merge' does.
 
+        Morph will interpret switch arguments, so you should separate the
+        command with --, as in the following example:
+
+            morph foreach -- git status --short
+
         '''
 
         if len(args) == 0:
