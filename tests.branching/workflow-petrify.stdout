@@ -1,0 +1,152 @@
+test/petrify after petrifying:
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "x86_64",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:morphs",
+            "ref": "test/petrify"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "baserock:external-strata",
+            "ref": "test/petrify"
+        },
+        {
+            "morph": "stratum3",
+            "repo": "baserock:external-strata",
+            "ref": "test/petrify"
+        }
+    ]
+}
+{
+    "name": "stratum2",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum2-hello",
+            "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-depends": [],
+            "unpetrify-ref": "master"
+        }
+    ]
+}
+{
+    "name": "stratum3",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum3-hello",
+            "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-depends": [],
+            "unpetrify-ref": "master"
+        }
+    ]
+}
+
+test/petrify after editing a chunk:
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "x86_64",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:morphs",
+            "ref": "test/petrify"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "baserock:external-strata",
+            "ref": "test/petrify"
+        },
+        {
+            "morph": "stratum3",
+            "repo": "baserock:external-strata",
+            "ref": "test/petrify"
+        }
+    ]
+}
+{
+    "name": "stratum2",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum2-hello",
+            "ref": "test/petrify",
+            "build-depends": []
+        }
+    ]
+}
+{
+    "name": "stratum3",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum3-hello",
+            "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-depends": [],
+            "unpetrify-ref": "master"
+        }
+    ]
+}
+
+test/unpetrify after unpetrifying:
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "x86_64",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:morphs",
+            "ref": "test/unpetrify"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "baserock:external-strata",
+            "ref": "test/unpetrify"
+        },
+        {
+            "morph": "stratum3",
+            "repo": "baserock:external-strata",
+            "ref": "test/unpetrify"
+        }
+    ]
+}
+{
+    "name": "stratum2",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum2-hello",
+            "ref": "test/petrify",
+            "build-depends": []
+        }
+    ]
+}
+{
+    "name": "stratum3",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:stratum3-hello",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}

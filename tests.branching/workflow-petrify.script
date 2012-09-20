@@ -1,0 +1,67 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# Do a complete workflow test, with strata outside the main morphologies
+# repository.
+
+
+set -eu
+
+. "$SRCDIR/tests.branching/setup-3rd-party-strata"
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/petrify
+
+cd test/petrify
+"$SRCDIR/scripts/test-morph" petrify
+
+echo "test/petrify after petrifying:"
+cat baserock:morphs/hello-system.morph
+cat baserock:external-strata/stratum2.morph
+cat baserock:external-strata/stratum3.morph
+
+"$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
+
+echo
+echo "test/petrify after editing a chunk:"
+cat baserock:morphs/hello-system.morph
+cat baserock:external-strata/stratum2.morph
+cat baserock:external-strata/stratum3.morph
+
+# me/readme-fixes in baserock:stratum2-hello should be 'master', but
+# that's the only ref upstream so we can infer that it is if we got here
+
+cd baserock:morphs
+git commit --quiet --all -m "Petrify branch test/petrify"
+git push --quiet origin test/petrify
+cd ../baserock:external-strata
+git commit --quiet --all -m "Petrify branch test/petrify"
+git push --quiet origin test/petrify
+
+# unpetrify is easy enough. Let's try unpetrifying a different branch that
+# was forked off the original while it was petrified, instead.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/unpetrify test/petrify
+
+cd test/unpetrify
+"$SRCDIR/scripts/test-morph" unpetrify
+
+echo
+echo "test/unpetrify after unpetrifying:"
+cat baserock:morphs/hello-system.morph
+cat baserock:external-strata/stratum2.morph
+cat baserock:external-strata/stratum3.morph
