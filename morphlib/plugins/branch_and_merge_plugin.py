@@ -502,6 +502,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
         return stratum_repo_dir
 
     def edit_chunk(self, system_branch, branch_dir, stratum_repo_dir, chunk):
+        if 'unpetrify-ref' in chunk:
+            chunk['ref'] = chunk['unpetrify-ref']
+            del chunk['unpetrify-ref']
+
         # Make the chunk repository and the ref available locally.
         chunk_repo_dir = self.checkout_repository(
                 branch_dir, chunk['repo'], system_branch,
