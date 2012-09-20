@@ -25,7 +25,7 @@ class LocalArtifactCache(object):
         self.cachedir = cachedir
 
     def put(self, artifact):
-        filename = self._artifact_filename(artifact)
+        filename = self.artifact_filename(artifact)
         return morphlib.savefile.SaveFile(filename, mode='w')
 
     def put_artifact_metadata(self, artifact, name):
@@ -37,7 +37,7 @@ class LocalArtifactCache(object):
         return morphlib.savefile.SaveFile(filename, mode='w')
 
     def has(self, artifact):
-        filename = self._artifact_filename(artifact)
+        filename = self.artifact_filename(artifact)
         return os.path.exists(filename)
 
     def has_artifact_metadata(self, artifact, name):
@@ -49,7 +49,7 @@ class LocalArtifactCache(object):
         return os.path.exists(filename)
 
     def get(self, artifact):
-        filename = self._artifact_filename(artifact)
+        filename = self.artifact_filename(artifact)
         return open(filename)
 
     def get_artifact_metadata(self, artifact, name):
@@ -60,7 +60,7 @@ class LocalArtifactCache(object):
         filename = self._source_metadata_filename(source, cachekey, name)
         return open(filename)
 
-    def _artifact_filename(self, artifact):
+    def artifact_filename(self, artifact):
         basename = artifact.basename()
         return os.path.join(self.cachedir, basename)
 
