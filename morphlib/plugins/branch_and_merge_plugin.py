@@ -53,6 +53,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('edit', self.edit,
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
+        self.app.add_subcommand('unpetrify', self.unpetrify)
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('foreach', self.foreach,
@@ -599,6 +600,49 @@ class BranchAndMergePlugin(cliapp.Plugin):
                             update=not self.app.settings['no-git-update'])
                         chunk_info['unpetrify-ref'] = chunk_info['ref']
                         chunk_info['ref'] = commit_sha1
+                self.save_morphology(repo_dir, stratum_info['morph'], stratum)
+
+            self.save_morphology(root_repo_dir, name, morphology)
+
+        self.print_changelog('The following changes were made but have not '
+                             'been comitted')
+
+    def unpetrify(self, args):
+        '''Reverse the process of petrification
+
+        Unpetrifies all chunk refs in a branch that were previously petrified.
+        Makes no attempt to 'unedit' strata that were branched solely so they
+        could be petrified.
+
+        If a branch is petrified and then branched from, the child branch can
+        be unpetrified independently of the parent.
+
+        '''
+
+        if len(args) != 0:
+            raise cliapp.AppException('morph unpetrify takes no arguments')
+
+        workspace = self.deduce_workspace()
+        branch, branch_path = self.deduce_system_branch()
+        root_repo = self.get_branch_config(branch_path, 'branch.root')
+        root_repo_dir = self.find_repository(branch_path, root_repo)
+
+        for f in glob.glob(os.path.join(root_repo_dir, '*.morph')):
+            name = os.path.basename(f)[:-len('.morph')]
+            morphology = self.load_morphology(root_repo_dir, name)
+            if morphology['kind'] != 'system':
+                continue
+
+            for stratum_info in morphology['strata']:
+                repo_dir = self.edit_stratum(
+                    branch, branch_path, root_repo_dir, stratum_info)
+
+                stratum = self.load_morphology(repo_dir, stratum_info['morph'])
+
+                for chunk_info in stratum['chunks']:
+                    if 'unpetrify-ref' in chunk_info:
+                        chunk_info['ref'] = chunk_info['unpetrify-ref']
+                        del chunk_info['unpetrify-ref']
                 self.save_morphology(repo_dir, stratum_info['morph'], stratum)
 
             self.save_morphology(root_repo_dir, name, morphology)

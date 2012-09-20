@@ -34,4 +34,10 @@ cd "$DATADIR/workspace"
 
 cd master/baserock:morphs
 "$SRCDIR/scripts/test-morph" petrify
+echo "Petrified:"
+cat hello-stratum.morph
+
+"$SRCDIR/scripts/test-morph" unpetrify
+echo
+echo "Unpetrified:"
 cat hello-stratum.morph
