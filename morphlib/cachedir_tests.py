@@ -71,7 +71,7 @@ class CacheDirTests(unittest.TestCase):
             'kind': 'chunk',
             'ref': 'DEADBEEF',
             'repo': 'git://git.baserock.org/hello/',
-            'arch': 'armel',
+            'arch': 'armv7',
         }
         pathname = self.cachedir.name(dict_key)
         self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
@@ -82,7 +82,7 @@ class CacheDirTests(unittest.TestCase):
             'kind': 'stratum',
             'ref': 'DEADBEEF',
             'repo': 'git://git.baserock.org/hello/',
-            'arch': 'armel',
+            'arch': 'armv7',
         }
         pathname = self.cachedir.name(dict_key)
         self.assert_(pathname.startswith(self.cachedir.dirname + '/'))
@@ -92,7 +92,7 @@ class CacheDirTests(unittest.TestCase):
         dict_key = {
             'ref': 'DEADBEEF',
             'repo': 'git://git.baserock.org/hello/',
-            'arch': 'armel',
+            'arch': 'armv7',
         }
         pathname = self.cachedir.name(dict_key)
         self.assert_(pathname.startswith(self.cachedir.dirname + '/'))

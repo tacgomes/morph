@@ -218,7 +218,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertEqual(morph.builds_artifacts, ['foo-system-rootfs'])
 
     def test_sets_builds_artifacts_for_arm_system(self):
-        self.lr.arch = 'arm'
+        self.lr.arch = 'armv7'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(sorted(morph.builds_artifacts),
                          sorted(['foo-system-rootfs', 'foo-system-kernel']))

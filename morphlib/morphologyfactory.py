@@ -96,7 +96,7 @@ class MorphologyFactory(object):
                                  '(it is a mandatory field)' % filename)
 
         name = morphology['name']
-        if morphology['arch'] == 'arm':
+        if morphology['arch'] == 'armv7':
             morphology.builds_artifacts = [name + '-kernel', name + '-rootfs']
         else:
             # FIXME: -rootfs is a misnomer, should be -disk, but can't
