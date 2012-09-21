@@ -224,10 +224,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 text = f.read()
         else:
             ref = morphlib.git.find_first_ref(self.app.runcmd, repo_dir, ref)
-            logging.warning("Running git cat-file blob %s:%s.morph in %s" % (
-                    ref, name, repo_dir))
-            text = self.app.runcmd(['git', 'cat-file', 'blob',
-                                   '%s:%s.morph' % (ref, name)], cwd=repo_dir)
+            try:
+                text = self.app.runcmd(['git', 'cat-file', 'blob',
+                                       '%s:%s.morph' % (ref, name)],
+                                       cwd=repo_dir)
+            except cliapp.AppException as e:
+                msg = '%s.morph was not found in %s' % (name, repo_dir)
+                if ref is not None:
+                    msg += ' at ref %s' % ref
+                raise cliapp.AppException(msg)
         morphology = morphlib.morph2.Morphology(text)
         return morphology
 
