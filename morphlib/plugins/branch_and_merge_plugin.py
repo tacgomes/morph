@@ -224,10 +224,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 text = f.read()
         else:
             ref = morphlib.git.find_first_ref(self.app.runcmd, repo_dir, ref)
-            logging.warning("Running git cat-file blob %s:%s.morph in %s" % (
-                    ref, name, repo_dir))
-            text = self.app.runcmd(['git', 'cat-file', 'blob',
-                                   '%s:%s.morph' % (ref, name)], cwd=repo_dir)
+            try:
+                text = self.app.runcmd(['git', 'cat-file', 'blob',
+                                       '%s:%s.morph' % (ref, name)],
+                                       cwd=repo_dir)
+            except cliapp.AppException as e:
+                msg = '%s.morph was not found in %s' % (name, repo_dir)
+                if ref is not None:
+                    msg += ' at ref %s' % ref
+                raise cliapp.AppException(msg)
         morphology = morphlib.morph2.Morphology(text)
         return morphology
 
@@ -242,6 +247,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
         filename = os.path.join(repo_dir, '%s' % name)
         with morphlib.savefile.SaveFile(filename, 'w') as f:
             morphology.write_to_file(f)
+
+        if name != morphology['name']:
+            logging.warning('%s: morphology "name" should match filename' %
+                            filename)
 
     @staticmethod
     def get_edit_info(morphology_name, morphology, name, collection='strata'):
@@ -957,6 +966,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         For simplicity, this simply iterates repositories in the directory
         rather than walking through the morphologies as 'morph merge' does.
+
+        Morph will interpret switch arguments, so you should separate the
+        command with --, as in the following example:
+
+            morph foreach -- git status --short
 
         '''
 
