@@ -225,12 +225,11 @@ class Morph(cliapp.Application):
                       category=DeprecationWarning)
         return self.create_source_pool(*args)
 
-    def _resolveref(self, lrc, rrc, reponame, ref, update=True):
+    def resolve_ref(self, lrc, rrc, reponame, ref, update=True):
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
         If update is True then this has the side-effect of updating
         or cloning the repository into the local repo cache.
-
         '''
         absref = None
         if lrc.has_repo(reponame):
@@ -263,7 +262,7 @@ class Morph(cliapp.Application):
 
         while queue:
             reponame, ref, filename = queue.popleft()
-            absref, tree = self._resolveref(lrc, rrc, reponame, ref, update)
+            absref, tree = self.resolve_ref(lrc, rrc, reponame, ref, update)
             morphology = morph_factory.get_morphology(
                 reponame, absref, filename)
             visit(reponame, ref, filename, absref, tree, morphology)

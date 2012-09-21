@@ -1,0 +1,134 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# Create strata outside the main morphologies repository, which is useful
+# for the more complex workflow tests.
+
+
+. "$SRCDIR/scripts/fix-committer-info"
+
+create_chunk() {
+    REPO="$1"
+    NAME="$2"
+
+    mkdir "$1"
+    ln -s "$1" "$1.git"
+    cd "$1"
+
+    cat <<EOF > "$1/$2.morph"
+{
+    "name": "$2",
+    "kind": "chunk",
+    "build-system": "dummy"
+}
+EOF
+
+    git init --quiet
+    git add  .
+    git commit --quiet -m "Initial commit"
+}
+
+write_stratum_morph() {
+    REPO="$1"
+    NAME="$2"
+
+cat <<EOF > "$1/$2.morph"
+{
+    "name": "$2",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "baserock:$2-hello",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+}
+
+# Create two more strata outside the baserock:morphs repository
+
+EXTERNAL_STRATA_REPO="$DATADIR/external-strata"
+mkdir "$EXTERNAL_STRATA_REPO"
+ln -s "$EXTERNAL_STRATA_REPO" "$EXTERNAL_STRATA_REPO".git
+cd "$EXTERNAL_STRATA_REPO"
+
+git init --quiet .
+
+write_stratum_morph "$EXTERNAL_STRATA_REPO" "stratum2"
+write_stratum_morph "$EXTERNAL_STRATA_REPO" "stratum3"
+
+git add .
+git commit --quiet -m "Initial commit"
+
+# To make life harder, both chunks have the same name too
+
+create_chunk "$DATADIR/stratum2-hello" "hello"
+create_chunk "$DATADIR/stratum3-hello" "hello"
+
+# Update hello-system to include them ... using a system branch! Since the
+# strata refs are 'master' not 'me/add-external-strata' this does not cause
+# problems with merging.
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch baserock:morphs me/add-external-strata
+
+cd "$DATADIR/workspace/me/add-external-strata/baserock:morphs"
+
+cat <<EOF > "hello-system.morph"
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "x86_64",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "baserock:morphs",
+            "ref": "master"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "baserock:external-strata",
+            "ref": "master"
+        },
+        {
+            "morph": "stratum3",
+            "repo": "baserock:external-strata",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git commit --quiet --all -m "Add two more external strata"
+
+# Merge to master
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+cd master/baserock:morphs
+"$SRCDIR/scripts/test-morph" merge me/add-external-strata
+
+# In reality the user would do: 'git push origin master' here,
+# but since our remote repo is non-bare we must cheat a bit.
+# We should consider a separate fixture for the workflow tests.
+cd "$DATADIR/morphs"
+git pull -q \
+    "file://$DATADIR/workspace/master/baserock:morphs" master

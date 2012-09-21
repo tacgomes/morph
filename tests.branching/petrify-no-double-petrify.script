@@ -15,8 +15,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Verify that "morph petrify" works.
-
+# It should be impossible to lose the original refs, or we risk making
+# unpetrify impossible.
 
 set -eu
 
@@ -28,16 +28,14 @@ then
     exit 0
 fi
 
+
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
 
 cd master/baserock:morphs
 "$SRCDIR/scripts/test-morph" petrify
-echo "Petrified:"
-cat hello-stratum.morph
+"$SRCDIR/scripts/test-morph" petrify
+"$SRCDIR/scripts/test-morph" petrify
 
-"$SRCDIR/scripts/test-morph" unpetrify
-echo
-echo "Unpetrified:"
 cat hello-stratum.morph

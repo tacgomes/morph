@@ -1,4 +1,3 @@
-Petrified:
 {
     "name": "hello-stratum",
     "kind": "stratum",
@@ -9,20 +8,6 @@ Petrified:
             "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
             "build-depends": [],
             "unpetrify-ref": "master"
-        }
-    ]
-}
-
-Unpetrified:
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "baserock:hello",
-            "ref": "master",
-            "build-depends": []
         }
     ]
 }
