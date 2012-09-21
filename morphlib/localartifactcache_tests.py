@@ -15,6 +15,7 @@
 
 
 import unittest
+import os
 
 import morphlib
 
@@ -51,6 +52,14 @@ class LocalArtifactCacheTests(unittest.TestCase):
 
     def tearDown(self):
         self.tempdir.remove()
+
+    def test_artifact_filename(self):
+        cache = morphlib.localartifactcache.LocalArtifactCache(
+            self.tempdir.dirname)
+        filename = cache.artifact_filename(self.devel_artifact)
+        expected_name = os.path.join(self.tempdir.dirname,
+                                     self.devel_artifact.basename())
+        self.assertEqual(filename, expected_name)
 
     def test_put_artifacts_and_check_whether_the_cache_has_them(self):
         cache = morphlib.localartifactcache.LocalArtifactCache(
