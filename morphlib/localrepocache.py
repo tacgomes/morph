@@ -126,17 +126,24 @@ class LocalRepoCache(object):
         This method is meant to be overridden by unit tests.
 
         '''
-
-        source_handle = urllib2.urlopen(url)
-        target_handle = open(filename, 'wb')
-
-        data = source_handle.read(4096)
-        while data:
-            target_handle.write(data)
-            data = source_handle.read(4096)
-
-        source_handle.close()
-        target_handle.close()
+        self._app.status(msg="Trying to fetch %(bundle)s to seed the cache",
+                         bundle=url,
+                         chatty=True)
+        source_handle = None
+        try:
+            source_handle = urllib2.urlopen(url)
+            with open(filename, 'wb') as target_handle:
+                shutil.copyfileobj(source_handle, target_handle)
+            self._app.status(msg="Bundle fetch successful",
+                             chatty=True)
+        except Exception, e:
+            self._app.status(msg="Bundle fetch failed: %(reason)s",
+                             reason=e,
+                             chatty=True)
+            raise
+        finally:
+            if source_handle is not None:
+                source_handle.close()
 
     def _mkdir(self, dirname):  # pragma: no cover
         '''Create a directory.
