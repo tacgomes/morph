@@ -982,13 +982,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.app.output.write('\n')
             self.app.output.write('%s\n' % repo)
 
-            try:
-                output = self.app.runcmd(args, cwd=d)
-            except cliapp.AppException as e:
-                # Don't allow cliapp to swallow the output of the command
-                # as the body of the exception
-                output_start = e.msg.find('\n')
-                self.app.output.write(e.msg[output_start+1:])
-                raise cliapp.AppException(e.msg[:output_start])
-
+            status, output, error = self.app.runcmd_unchecked(args, cwd=d)
             self.app.output.write(output)
+            if status != 0:
+                self.app.output.write(error)
+                raise cliapp.AppException(
+                    'Command failed at repo %s: %s' % (repo, ' '.join(args)))

@@ -1,1 +1,1 @@
-ERROR: Command failed: git remote update non-existant-remote
+ERROR: Command failed at repo baserock:morphs: git remote update non-existant-remote
