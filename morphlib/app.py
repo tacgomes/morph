@@ -164,7 +164,22 @@ class Morph(cliapp.Application):
                              metavar='PREFIX',
                              default=defaults['build-ref-prefix'])
 
+    def check_mtime(self):
+        # Check the mtime for the file to make sure the system clock has been
+        # set
+        try:
+            file_mtime = os.path.getmtime(__file__)
+        except OSError as e:
+            raise morphlib.Error('%s %s' % (e.strerror,e.filename))
+
+        sys_time = time.time()
+        if file_mtime > sys_time:
+            raise morphlib.Error('mtime for %s is in the future, please set'
+                                 'your system clock' % __file__)
+
     def process_args(self, args):
+        self.check_mtime()
+
         # Combine the aliases into repo-alias before passing on to normal
         # command processing.  This means everything from here on down can
         # treat settings['repo-alias'] as the sole source of prefixes for git
