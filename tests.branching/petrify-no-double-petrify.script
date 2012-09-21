@@ -1,0 +1,41 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# It should be impossible to lose the original refs, or we risk making
+# unpetrify impossible.
+
+set -eu
+
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    cat "$SRCDIR/tests.branching/petrify.stdout"
+    exit 0
+fi
+
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+
+cd master/baserock:morphs
+"$SRCDIR/scripts/test-morph" petrify
+"$SRCDIR/scripts/test-morph" petrify
+"$SRCDIR/scripts/test-morph" petrify
+
+cat hello-stratum.morph
