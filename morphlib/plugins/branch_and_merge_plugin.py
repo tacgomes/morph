@@ -186,6 +186,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.settings['repo-alias'])
 
         # Get the repository into the cache; make sure it is up to date.
+        self.app.status(msg='Updating git repository %(reponame)s',
+                        reponame=reponame)
         repo = cache.cache_repo(reponame)
         if not self.app.settings['no-git-update']:
             repo.update()
