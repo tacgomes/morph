@@ -113,7 +113,7 @@ class Morphology(object):
                     return info
         elif self['kind'] == 'stratum':
             for info in self['chunks']:
-                source_name = info.get('alias', info['name'])
+                source_name = info.get('alias', info['morph'])
                 if source_name == name:
                     return info
         raise KeyError('"%s" not found' % name)
