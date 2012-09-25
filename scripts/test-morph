@@ -28,5 +28,6 @@ set -eu
 export PATH="$SRCDIR:$PATH"
 
 "$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
+    --tarball-server= --cache-server= \
     --config="$DATADIR/morph.conf" "$@"
 

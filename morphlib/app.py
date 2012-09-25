@@ -81,10 +81,10 @@ class Morph(cliapp.Application):
                                   'contain a %s where the shortname gets '
                                   'replaced',
                                   default=defaults['repo-alias'])
-        self.settings.string(['bundle-server'],
-                             'base URL to download bundles. '
+        self.settings.string(['tarball-server'],
+                             'base URL to download tarballs. '
                              'If not provided, defaults to '
-                             'http://TROVEHOST/bundles/',
+                             'http://TROVEHOST/tarballs/',
                              metavar='URL',
                              default=None)
         self.settings.string(['cache-server'],
@@ -192,8 +192,8 @@ class Morph(cliapp.Application):
         if self.settings['cache-server'] is None:
             self.settings['cache-server'] = 'http://%s:8080/' % (
                 self.settings['trove-host'])
-        if self.settings['bundle-server'] is None:
-            self.settings['bundle-server'] = 'http://%s/bundles/' % (
+        if self.settings['tarball-server'] is None:
+            self.settings['tarball-server'] = 'http://%s/tarballs/' % (
                 self.settings['trove-host'])
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)

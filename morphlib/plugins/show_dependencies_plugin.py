@@ -36,11 +36,11 @@ class ShowDependenciesPlugin(cliapp.Plugin):
         if not os.path.exists(self.app.settings['cachedir']):
             os.mkdir(self.app.settings['cachedir'])
         cachedir = os.path.join(self.app.settings['cachedir'], 'gits')
-        bundle_base_url = self.app.settings['bundle-server']
+        tarball_base_url = self.app.settings['tarball-server']
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             self.app.settings['repo-alias'])
         lrc = morphlib.localrepocache.LocalRepoCache(
-            self.app, cachedir, repo_resolver, bundle_base_url)
+            self.app, cachedir, repo_resolver, tarball_base_url)
         if self.app.settings['cache-server']:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
                 self.app.settings['cache-server'], repo_resolver)

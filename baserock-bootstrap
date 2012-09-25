@@ -73,7 +73,7 @@ pass1_get_sources_with_morph()
         --log=$LFS/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --bundle-server="$GIT_BUNDLES"
+        --tarball-server="$GIT_TARBALLS"
 }
 
 pass1_build_with_morph()
@@ -182,7 +182,7 @@ python ./morph --verbose update-gits \
     --log=/baserock/morph.log \
     --dump-memory-profile=none \
     --keep-path \
-    --bundle-server="$GIT_BUNDLES"
+    --tarball-server="$GIT_TARBALLS"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
@@ -231,7 +231,7 @@ python ./morph --verbose build-morphology \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --bundle-server="$GIT_BUNDLES" \
+        --tarball-server="$GIT_TARBALLS" \
         --target-cflags="$TARGET_CFLAGS"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
@@ -334,7 +334,7 @@ python ./morph --verbose update-gits \
     --log=/baserock/morph.log \
     --dump-memory-profile=none \
     --keep-path \
-    --bundle-server="$GIT_BUNDLES"
+    --tarball-server="$GIT_TARBALLS"
 EOF
     $HOST_CHMOD +x "$LFS/baserock/build.sh"
     local do_chroot="$BASEDIR/do-chroot.bash"
@@ -387,7 +387,7 @@ python ./morph --verbose build-morphology \
         --log=/baserock/morph.log \
         --dump-memory-profile=none \
         --keep-path \
-        --bundle-server="$GIT_BUNDLES" \
+        --tarball-server="$GIT_TARBALLS" \
         --target-cflags="$TARGET_CFLAGS"
 rm "\$filler"
 EOF
