@@ -18,4 +18,4 @@
 
 import morphlib
 
-morphlib.app.Morph().run()
+morphlib.app.Morph(version=morphlib.__version__).run()

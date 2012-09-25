@@ -20,6 +20,9 @@
 import cliapp
 
 
+__version__ = '0.1'
+
+
 class Error(cliapp.AppException):
 
     '''Base for all morph exceptions that cause user-visible messages.'''
