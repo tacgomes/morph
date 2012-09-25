@@ -1,0 +1,117 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Simple merge conflict handling test.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    exit 0
+fi
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# Create stable branch to merge TO
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable
+cd test/stable/baserock:morphs
+git push --quiet origin test/stable
+
+# Create feature branch to merge FROM
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/feature test/stable
+
+# Need 2 chunks!
+
+# Make a change in TO
+cd "$DATADIR/workspace/test/stable"
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+cd baserock:morphs
+cat <<EOF > "hello-stratum.morph"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello-runtime",
+            "repo": "baserock:hello",
+            "ref": "master",
+            "morph": "hello",
+            "build-depends": []
+        },
+        {
+            "name": "hello-devel",
+            "repo": "baserock:hello",
+            "ref": "master",
+            "morph": "hello",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+git commit --quiet --all -m "Split up 'hello' chunk into runtime and devel"
+
+# Make a change in FROM that isn't very mergable
+cd "$DATADIR/workspace/test/feature"
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+cd baserock:morphs
+cat <<EOF > "hello-stratum.morph"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello-devel",
+            "repo": "baserock:hello",
+            "ref": "master",
+            "morph": "hello",
+            "build-depends": []
+        },
+        {
+            "name": "hello-runtime",
+            "repo": "baserock:hello",
+            "ref": "master",
+            "morph": "hello",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+git commit --quiet --all -m "Split up 'hello' chunk into devel and runtime"
+
+# Merge changes from test/feature to test/stable
+cd "$DATADIR/workspace/test/stable"
+"$SRCDIR/scripts/test-morph" merge test/feature
+
+# Check results: changes to 'hello' should have been merged back to
+# test/stable.
+cd baserock:hello
+[ -e newfile.txt ]
+
+# Make sure all changes are committed and to the correct branch ('hello'
+# was built from 'master' before branching, so the changes should be
+# merged back to 'master').
+git status --short
+[ $(git rev-parse master) = $(git rev-parse HEAD) ]
+
+# Changes here should be on test/stable.
+cd ../baserock:morphs
+git status --short
+[ $(git rev-parse test/stable) = $(git rev-parse HEAD) ]
+
+# Make sure all refs to the merged branch have gone.
+! grep "\"ref\": \"test/feature\"" *.morph
