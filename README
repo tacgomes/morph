@@ -41,10 +41,8 @@ something like this:
     log = /home/username/baserock/morph.log
     log-max = 200M
     trove-host = git.baserock.org
-    bundle-server = http://git.baserock.org/bundles
 
-All of the above settings apart from `log` and `bundle-server` are the
-defaults, so may be omitted.
+All of the above settings apart from `log` are the defaults, so may be omitted.
 
 
 Morphology file syntax
@@ -257,8 +255,8 @@ The variables are:
 * `DEBIAN_MIRROR`; which must be a path suitable for passing to
   debootstrap; which at the time of writing allowed http://,
   file:// or ssh:// urls; **required**
-* `GIT_BUNDLES`; which must be a url to a bundles directory;
-  morph will try to fetch bundles from here before trying the
+* `GIT_TARBALLS`; which must be a url to a tarballs directory;
+  morph will try to fetch tarballs from here before trying the
   git-base-url; **required**
 * `snapshot`; which should be `false` (or any executable that
   exits unsuccessfully) if creating a snapshot after each stage

@@ -45,9 +45,9 @@ class UpdateGitsPlugin(cliapp.Plugin):
         cachedir = os.path.join(app.settings['cachedir'], 'gits')
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             app.settings['repo-alias'])
-        bundle_base_url = app.settings['bundle-server']
+        tarball_base_url = app.settings['tarball-server']
         cache = morphlib.localrepocache.LocalRepoCache(
-            app, cachedir, repo_resolver, bundle_base_url)
+            app, cachedir, repo_resolver, tarball_base_url)
 
         subs_to_process = set()
 

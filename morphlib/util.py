@@ -149,10 +149,10 @@ def new_repo_caches(app):  # pragma: no cover
     aliases = app.settings['repo-alias']
     cachedir = create_cachedir(app.settings)
     gits_dir = os.path.join(cachedir, 'gits')
-    bundle_base_url = app.settings['bundle-server']
+    tarball_base_url = app.settings['tarball-server']
     repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
     lrc = morphlib.localrepocache.LocalRepoCache(
-        app, gits_dir, repo_resolver, bundle_base_url=bundle_base_url)
+        app, gits_dir, repo_resolver, tarball_base_url=tarball_base_url)
 
     url = app.settings['cache-server']
     if url:

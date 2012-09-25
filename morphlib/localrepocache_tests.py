@@ -16,6 +16,7 @@
 
 import unittest
 import urllib2
+import os
 
 import cliapp
 
@@ -27,11 +28,11 @@ class LocalRepoCacheTests(unittest.TestCase):
     def setUp(self):
         aliases = ['upstream=git://example.com/#example.com:%s.git']
         repo_resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
-        bundle_base_url = 'http://lorry.example.com/bundles/'
+        tarball_base_url = 'http://lorry.example.com/tarballs/'
         self.reponame = 'upstream:reponame'
         self.repourl = 'git://example.com/reponame'
         escaped_url = 'git___example_com_reponame'
-        self.bundle_url = '%s%s.bndl' % (bundle_base_url, escaped_url)
+        self.tarball_url = '%s%s.tar' % (tarball_base_url, escaped_url)
         self.cachedir = '/cache/dir'
         self.cache_path = '%s/%s' % (self.cachedir, escaped_url)
         self.cache = set()
@@ -39,12 +40,20 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.fetched = []
         self.removed = []
         self.lrc = morphlib.localrepocache.LocalRepoCache(
-            object(), self.cachedir, repo_resolver, bundle_base_url)
+            object(), self.cachedir, repo_resolver, tarball_base_url)
         self.lrc._git = self.fake_git
         self.lrc._exists = self.fake_exists
         self.lrc._fetch = self.not_found
         self.lrc._mkdir = self.fake_mkdir
         self.lrc._remove = self.fake_remove
+        self.lrc._runcmd = self.fake_runcmd
+
+    def fake_runcmd(self, args, cwd=None):
+        if args[0:2] == ['tar', 'xf']:
+            self.unpacked_tar = args[2]
+            self.cache.add(cwd)
+        else:
+            raise NotImplementedError()
 
     def fake_git(self, args, cwd=None):
         if args[0] == 'clone':
@@ -58,7 +67,15 @@ class LocalRepoCacheTests(unittest.TestCase):
         elif args[0:2] == ['remote', 'set-url']:
             remote = args[2]
             url = args[3]
-            self.remotes[remote]['url'] = url
+            self.remotes[remote] = {'url': url}
+        elif args[0:2] == ['config', 'remote.origin.url']:
+            remote = 'origin'
+            url = args[2]
+            self.remotes[remote] = {'url': url}
+        elif args[0:2] == ['config', 'remote.origin.mirror']:
+            remote = 'origin'
+        elif args[0:2] == ['config', 'remote.origin.fetch']:
+            remote = 'origin'
         else:
             raise NotImplementedError()
 
@@ -113,15 +130,17 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertRaises(morphlib.localrepocache.NoRemote,
                           self.lrc.cache_repo, self.repourl)
 
-    def test_does_not_mind_a_missing_bundle(self):
+    def test_does_not_mind_a_missing_tarball(self):
         self.lrc.cache_repo(self.repourl)
         self.assertEqual(self.fetched, [])
 
-    def test_fetches_bundle_when_it_exists(self):
+    def test_fetches_tarball_when_it_exists(self):
         self.lrc._fetch = self.fake_fetch
+        self.unpacked_tar = ""
+        self.mkdir_path = ""
         self.lrc.cache_repo(self.repourl)
-        self.assertEqual(self.fetched, [self.bundle_url])
-        self.assertEqual(self.removed, [self.cache_path + '.bundle'])
+        self.assertEqual(self.fetched, [self.tarball_url])
+        self.assertEqual(self.removed, [self.cache_path + '.tar'])
         self.assertEqual(self.remotes['origin']['url'], self.repourl)
 
     def test_gets_cached_shortened_repo(self):
