@@ -58,7 +58,7 @@ class Morph(cliapp.Application):
                               'show no output unless there is an error')
         self.settings.string(['trove-host'],
                              'hostname of Trove instance',
-                             metavar='HOST',
+                             metavar='TROVEHOST',
                              default=defaults['trove-host'])
         self.settings.string_list(['trove-prefix'],
                                   'define URL prefix aliases stored '
@@ -82,11 +82,15 @@ class Morph(cliapp.Application):
                                   'replaced',
                                   default=defaults['repo-alias'])
         self.settings.string(['bundle-server'],
-                             'base URL to download bundles',
+                             'base URL to download bundles. '
+                             'If not provided, defaults to '
+                             'http://TROVEHOST/bundles/',
                              metavar='URL',
                              default=None)
         self.settings.string(['cache-server'],
-                             'HTTP URL of the morph cache server to use',
+                             'HTTP URL of the morph cache server to use. '
+                             'If not provided, defaults to '
+                             'http://TROVEHOST:8080/',
                              metavar='URL',
                              default=None)
         self.settings.string(['cachedir'],
@@ -185,6 +189,12 @@ class Morph(cliapp.Application):
         # treat settings['repo-alias'] as the sole source of prefixes for git
         # URL expansion.
         self.settings['repo-alias'] = morphlib.util.combine_aliases(self)
+        if self.settings['cache-server'] is None:
+            self.settings['cache-server'] = 'http://%s:8080/' % (
+                self.settings['trove-host'])
+        if self.settings['bundle-server'] is None:
+            self.settings['bundle-server'] = 'http://%s/bundles/' % (
+                self.settings['trove-host'])
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
