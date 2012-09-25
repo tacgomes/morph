@@ -238,6 +238,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
         morphology = morphlib.morph2.Morphology(text)
         return morphology
 
+    def reset_work_tree_safe(self, repo_dir):
+        # This function avoids throwing any exceptions, so it is safe to call
+        # inside an 'except' block without altering the backtrace.
+
+        command = 'git', 'reset', '--hard'
+        status, output, error = self.app.runcmd_unchecked(command,
+                                                          cwd=repo_dir)
+        if status != 0:
+            logging.warning ("Warning: error while trying to clean up %s: %s" %
+                             (repo_dir, error))
+
     @staticmethod
     def save_morphology(repo_dir, name, morphology):
         if not name.endswith('.morph'):
@@ -794,61 +805,72 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
                                 cwd=to_repo_dir)
 
-        dirty_repo_dirs = set()
-        failed_repos = set()
-
-        to_root_dir = self.merge_repo(
-            dirty_repo_dirs, failed_repos,
-            from_branch_dir, root_repo, from_branch,
-            to_branch_dir, root_repo, to_branch)
-        if to_root_dir is None:
-            raise cliapp.AppException(
-                'Merging failed in %s: please manually merge %s into %s in '
-                'this repo and try again.' %
-                (root_repo, to_branch, from_branch))
-
-        for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
-            name = os.path.basename(f)[:-len('.morph')]
+        def merge_system(name):
             old_morphology, morphology = self.load_morphology_pair(
                 to_root_dir, to_branch, name)
 
-            if morphology['kind'] == 'system':
-                changed = False
-                edited_strata = [si for si in morphology['strata']
-                                 if si['ref'] == from_branch]
-                for si in edited_strata:
-                    for old_si in old_morphology['strata']:
-                        # We make no attempt at rename / move detection
-                        if old_si['morph'] == si['morph'] \
-                                and old_si['repo'] == si['repo']:
-                            break
-                    else:
-                        raise cliapp.AppException(
-                            'stratum %s was added within this branch and '
-                            'subsequently edited. This is not yet supported: '
-                            'refusing to merge.' % si['morph'])
-                    changed = True
-                    si['ref'] = old_si['ref']
-                    merge_stratum(old_si, si)
-                if changed:
-                    self.save_morphology(to_root_dir, name, morphology)
-                    self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
+            if morphology['kind'] != 'system':
+                return
 
-        if len(failed_repos) > 0:
-            raise cliapp.AppException(
-                'merging errors were encountered in the following %s: %s\n\n'
-                'Please manually merge the target ref into %s in each case.' %
-                ('repository' if len(failed_repos) == 1 else 'repositories',
-                 ', '.join(failed_repos), from_branch))
+            changed = False
+            edited_strata = [si for si in morphology['strata']
+                             if si['ref'] == from_branch]
+            for si in edited_strata:
+                for old_si in old_morphology['strata']:
+                    # We make no attempt at rename / move detection
+                    if old_si['morph'] == si['morph'] \
+                            and old_si['repo'] == si['repo']:
+                        break
+                else:
+                    raise cliapp.AppException(
+                        'stratum %s was added within this branch and '
+                        'subsequently edited. This is not yet supported: '
+                        'refusing to merge.' % si['morph'])
+                changed = True
+                si['ref'] = old_si['ref']
+                merge_stratum(old_si, si)
+            if changed:
+                self.save_morphology(to_root_dir, name, morphology)
+                self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
 
-        for repo_dir in dirty_repo_dirs:
-            # Repo will often turn out to not be dirty: if the changes we
-            # merged only updated refs to the system branch, we will have
-            # changed them back again so that the index will now be empty.
-            if morphlib.git.index_has_changes(self.app.runcmd, repo_dir):
-                msg = "Merge system branch '%s'" % from_branch
-                self.app.runcmd(['git', 'commit', '--all', '-m%s' % msg],
-                                cwd=repo_dir)
+        dirty_repo_dirs = set()
+        failed_repos = set()
+
+        try:
+            to_root_dir = self.merge_repo(
+                dirty_repo_dirs, failed_repos,
+                from_branch_dir, root_repo, from_branch,
+                to_branch_dir, root_repo, to_branch)
+            if to_root_dir is None:
+                raise cliapp.AppException(
+                    'Merging failed in %s: please manually merge %s into %s '
+                    'in this repo and try again.' %
+                    (root_repo, to_branch, from_branch))
+
+            for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
+                name = os.path.basename(f)[:-len('.morph')]
+                merge_system(name)
+
+            if len(failed_repos) > 0:
+                raise cliapp.AppException(
+                    'merge errors were encountered in the following %s:\n\n'
+                    '\t%s\n\nPlease manually merge the target ref into %s in '
+                    'each case, and then merge the system branch.' %
+                    ('repository' if len(failed_repos)==1 else 'repositories',
+                     '\n\t'.join(failed_repos), from_branch))
+
+            for repo_dir in dirty_repo_dirs:
+                # Repo will often turn out to not be dirty: if the changes we
+                # merged only updated refs to the system branch, we will have
+                # changed them back again so that the index will now be empty.
+                if morphlib.git.index_has_changes(self.app.runcmd, repo_dir):
+                    msg = "Merge system branch '%s'" % from_branch
+                    self.app.runcmd(['git', 'commit', '--all', '-m%s' % msg],
+                                    cwd=repo_dir)
+        except:
+            for repo_dir in dirty_repo_dirs:
+                self.reset_work_tree_safe(repo_dir)
+            raise
 
     def build(self, args):
         if len(args) != 1:
