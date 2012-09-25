@@ -95,7 +95,7 @@ class RemoteArtifactCache(object):
         try:
             urllib2.urlopen(request)
             return True
-        except urllib2.HTTPError:
+        except (urllib2.HTTPError, urllib2.URLError):
             return False
 
     def _get_file(self, filename):  # pragma: no cover
