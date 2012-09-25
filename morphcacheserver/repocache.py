@@ -137,7 +137,10 @@ class RepoCache(object):
         
     def _quote_url(self, url, always_indirect=False):
         if self.direct_mode and not always_indirect:
-            return urlparse.urlparse(url)[2]
+            quoted_url = urlparse.urlparse(url)[2]
+            while quoted_url.startswith("/"):
+                quoted_url = quoted_url[1:]
+            return quoted_url
         else:
             valid_chars = string.digits + string.letters + '%_'
             transl = lambda x: x if x in valid_chars else '_'
