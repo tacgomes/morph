@@ -480,10 +480,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
         if self.resolve_ref(repo_dir, ref) is None:
             self.log_change(repo, 'branch "%s" created from "%s"' %
                             (ref, parent_ref))
-            self.app.runcmd(['git', 'checkout', '-b', ref], cwd=repo_dir)
+            command = ['git', 'checkout', '-b', ref]
         else:
             # git copes even if the system_branch ref is already checked out
-            self.app.runcmd(['git', 'checkout', ref], cwd=repo_dir)
+            command = ['git', 'checkout', ref]
+
+        status, output, error = self.app.runcmd_unchecked(
+            command, cwd=repo_dir)
+        if status != 0:
+            raise cliapp.AppException('Command failed: %s in repo %s\n%s' %
+                                      (' '.join(command), repo, error))
         return repo_dir
 
     def edit_stratum(self, system_branch, branch_dir, branch_root_dir,
