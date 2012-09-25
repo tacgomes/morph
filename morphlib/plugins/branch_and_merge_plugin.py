@@ -699,9 +699,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return old, new
 
-    def merge_repo(self, dirty_repos, from_branch_dir, from_repo, from_ref,
+    def merge_repo(self, dirty_repos, failed_repos,
+                   from_branch_dir, from_repo, from_ref,
                    to_branch_dir, to_repo, to_ref):
         '''Merge changes for a system branch in a specific repository'''
+
+        if to_repo in failed_repos:
+            return None
 
         from_repo_dir = self.find_repository(from_branch_dir, from_repo)
         to_repo_dir = self.checkout_repository(to_branch_dir, to_repo, to_ref)
@@ -721,10 +725,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
         from_url = urlparse.urljoin('file://', from_repo_dir)
 
         status, output, error = self.app.runcmd_unchecked(
-            ['git', 'pull', '--no-commit', '--no-ff', from_url, from_ref],
-            cwd=to_repo_dir)
+            ['git', 'pull', '--quiet', '--no-commit', '--no-ff',
+             from_url, from_ref], cwd=to_repo_dir)
         if status != 0:
-            raise cliapp.AppException('merge conflict: %s' % (output))
+            self.app.output.write(
+                'Merge errors encountered merging into %s in repo %s:\n%s%s\n'
+                % (to_ref, to_repo, error, output))
+            failed_repos.add(to_repo)
+            return None
         return to_repo_dir
 
     def merge(self, args):
@@ -752,13 +760,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         def merge_chunk(old_ci, ci):
             self.merge_repo(
-                dirty_repos, from_branch_dir, old_ci['repo'], from_branch,
+                dirty_repo_dirs, failed_repos,
+                from_branch_dir, old_ci['repo'], from_branch,
                 to_branch_dir, ci['repo'], ci['ref'])
 
         def merge_stratum(old_si, si):
             to_repo_dir = self.merge_repo(
-                dirty_repos, from_branch_dir, old_si['repo'], from_branch,
+                dirty_repo_dirs, failed_repos,
+                from_branch_dir, old_si['repo'], from_branch,
                 to_branch_dir, si['repo'], si['ref'])
+            if to_repo_dir is None:
+                return
 
             old_stratum, stratum = self.load_morphology_pair(
                 to_repo_dir, old_si['ref'], si['morph'])
@@ -782,11 +794,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
                                 cwd=to_repo_dir)
 
-        dirty_repos = set()
+        dirty_repo_dirs = set()
+        failed_repos = set()
 
         to_root_dir = self.merge_repo(
-            dirty_repos, from_branch_dir, root_repo, from_branch,
+            dirty_repo_dirs, failed_repos,
+            from_branch_dir, root_repo, from_branch,
             to_branch_dir, root_repo, to_branch)
+        if to_root_dir is None:
+            raise cliapp.AppException(
+                'Merging failed in %s: please manually merge %s into %s in '
+                'this repo and try again.' %
+                (root_repo, to_branch, from_branch))
 
         for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
             name = os.path.basename(f)[:-len('.morph')]
@@ -815,7 +834,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     self.save_morphology(to_root_dir, name, morphology)
                     self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
 
-        for repo_dir in dirty_repos:
+        if len(failed_repos) > 0:
+            raise cliapp.AppException(
+                'merging errors were encountered in the following %s: %s\n\n'
+                'Please manually merge the target ref into %s in each case.' %
+                ('repository' if len(failed_repos) == 1 else 'repositories',
+                 ', '.join(failed_repos), from_branch))
+
+        for repo_dir in dirty_repo_dirs:
             # Repo will often turn out to not be dirty: if the changes we
             # merged only updated refs to the system branch, we will have
             # changed them back again so that the index will now be empty.
