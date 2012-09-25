@@ -699,8 +699,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return old, new
 
-    def merge_repo(self, name, from_dir, from_branch, to_dir, to_branch,
-                   commit = False):
+    def merge_repo(self, name, from_dir, from_branch, to_dir, to_branch):
         '''Merge changes for a system branch in a specific repository'''
 
         if self.get_uncommitted_changes(from_dir) != []:
@@ -708,11 +707,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'changes' % from_dir)
         # repo must be made into a URL to avoid ':' in pathnames confusing git
         from_url = urlparse.urljoin('file://', from_dir)
-        self.app.runcmd(['git', 'pull', '--no-commit', '--no-ff', from_url,
-                        from_branch], cwd=to_dir)
-        if commit:
-            msg = "Merge system branch '%s'" % from_branch
-            self.app.runcmd(['git', 'commit', '-m%s' % msg], cwd=to_dir)
+        status, output, error = self.app.runcmd_unchecked(
+            ['git', 'pull', '--no-commit', '--no-ff', from_url, from_branch],
+            cwd=to_dir)
+        if status != 0:
+            raise cliapp.AppException('merge conflict: %s' % (output))
 
     def merge(self, args):
         '''Pull and merge changes from a system branch into the current one.'''
@@ -741,18 +740,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
             from_repo = self.find_repository(from_branch_dir, old_ci['repo'])
             to_repo = self.checkout_repository(
                 to_branch_dir, ci['repo'], ci['ref'])
-            self.merge_repo(ci['repo'], from_repo, from_branch,
-                            to_repo, ci['ref'], commit=True)
+            if to_repo not in dirty_repos:
+                self.merge_repo(ci['repo'], from_repo, from_branch,
+                                to_repo, ci['ref'])
+                dirty_repos.add(to_repo)
 
         def merge_stratum(old_si, si):
             from_repo = self.find_repository(from_branch_dir, old_si['repo'])
             to_repo = self.checkout_repository(
                 to_branch_dir, si['repo'], si['ref'])
-
             if to_repo not in dirty_repos:
                 self.merge_repo(si['repo'], from_repo, from_branch,
-                                to_repo, si['ref'], commit=False)
+                                to_repo, si['ref'])
                 dirty_repos.add(to_repo)
+
             old_stratum, stratum = self.load_morphology_pair(
                 to_repo, old_si['ref'], si['morph'])
 
