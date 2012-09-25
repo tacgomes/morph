@@ -699,19 +699,33 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return old, new
 
-    def merge_repo(self, name, from_dir, from_branch, to_dir, to_branch):
+    def merge_repo(self, dirty_repos, from_branch_dir, from_repo, from_ref,
+                   to_branch_dir, to_repo, to_ref):
         '''Merge changes for a system branch in a specific repository'''
 
-        if self.get_uncommitted_changes(from_dir) != []:
+        from_repo_dir = self.find_repository(from_branch_dir, from_repo)
+        to_repo_dir = self.checkout_repository(to_branch_dir, to_repo, to_ref)
+
+        if to_repo_dir in dirty_repos:
+            return to_repo_dir
+        dirty_repos.add(to_repo_dir)
+
+        if self.get_uncommitted_changes(from_repo_dir) != []:
             raise cliapp.AppException('repository %s has uncommitted '
-                                      'changes' % from_dir)
+                                      'changes' % from_repo)
+        if self.get_uncommitted_changes(to_repo_dir) != []:
+            raise cliapp.AppException('repository %s has uncommitted '
+                                      'changes' % to_repo)
+
         # repo must be made into a URL to avoid ':' in pathnames confusing git
-        from_url = urlparse.urljoin('file://', from_dir)
+        from_url = urlparse.urljoin('file://', from_repo_dir)
+
         status, output, error = self.app.runcmd_unchecked(
-            ['git', 'pull', '--no-commit', '--no-ff', from_url, from_branch],
-            cwd=to_dir)
+            ['git', 'pull', '--no-commit', '--no-ff', from_url, from_ref],
+            cwd=to_repo_dir)
         if status != 0:
             raise cliapp.AppException('merge conflict: %s' % (output))
+        return to_repo_dir
 
     def merge(self, args):
         '''Pull and merge changes from a system branch into the current one.'''
@@ -737,26 +751,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       (root_repo, other_root_repo))
 
         def merge_chunk(old_ci, ci):
-            from_repo = self.find_repository(from_branch_dir, old_ci['repo'])
-            to_repo = self.checkout_repository(
+            self.merge_repo(
+                dirty_repos, from_branch_dir, old_ci['repo'], from_branch,
                 to_branch_dir, ci['repo'], ci['ref'])
-            if to_repo not in dirty_repos:
-                self.merge_repo(ci['repo'], from_repo, from_branch,
-                                to_repo, ci['ref'])
-                dirty_repos.add(to_repo)
 
         def merge_stratum(old_si, si):
-            from_repo = self.find_repository(from_branch_dir, old_si['repo'])
-            to_repo = self.checkout_repository(
+            to_repo_dir = self.merge_repo(
+                dirty_repos, from_branch_dir, old_si['repo'], from_branch,
                 to_branch_dir, si['repo'], si['ref'])
-            if to_repo not in dirty_repos:
-                self.merge_repo(si['repo'], from_repo, from_branch,
-                                to_repo, si['ref'])
-                dirty_repos.add(to_repo)
 
             old_stratum, stratum = self.load_morphology_pair(
-                to_repo, old_si['ref'], si['morph'])
-
+                to_repo_dir, old_si['ref'], si['morph'])
             changed = False
             edited_chunks = [ci for ci in stratum['chunks']
                              if ci['ref'] == from_branch]
@@ -773,16 +778,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 ci['ref'] = old_ci['ref']
                 merge_chunk(old_ci, ci)
             if changed:
-                self.save_morphology(to_repo, si['morph'], stratum)
+                self.save_morphology(to_repo_dir, si['morph'], stratum)
                 self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
-                                cwd=to_repo)
+                                cwd=to_repo_dir)
 
-        from_root_dir = self.find_repository(from_branch_dir, root_repo)
-        to_root_dir = self.find_repository(to_branch_dir, root_repo)
-        self.app.runcmd(['git', 'checkout', to_branch], cwd=to_root_dir)
-        self.merge_repo(root_repo, from_root_dir, from_branch,
-                        to_root_dir, to_branch, commit=False)
-        dirty_repos = set([to_root_dir])
+        dirty_repos = set()
+
+        to_root_dir = self.merge_repo(
+            dirty_repos, from_branch_dir, root_repo, from_branch,
+            to_branch_dir, root_repo, to_branch)
 
         for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
             name = os.path.basename(f)[:-len('.morph')]
