@@ -31,11 +31,13 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
 
 # Make a change to a chunk.
+cd baserock/newbranch
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd baserock/newbranch/baserock:hello
+cd baserock:hello
 touch newfile.txt
 git add newfile.txt
 git commit -m foo --quiet
+git push --quiet origin baserock/newbranch
 
 # Commit in morphs repo
 cd ../baserock:morphs
