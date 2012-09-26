@@ -98,7 +98,7 @@ EOF
 chmod +x "./do-squeeze-chroot"
 
 if ([ "x$DEBIAN_MIRROR" = x ] && echo DEBIAN_MIRROR is unspecified >&2) ||
-    ([ "x$GIT_BUNDLES" = x ] && echo GIT_BUNDLES is unspecified >&2)
+    ([ "x$GIT_TARBALLS" = x ] && echo GIT_TARBALLS is unspecified >&2)
 then
     echo You have to set DEBIAN_MIRROR and other environment variables 1>&2
     exit 1
