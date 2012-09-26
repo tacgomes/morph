@@ -132,3 +132,5 @@ cd master/baserock:morphs
 cd "$DATADIR/morphs"
 git pull -q \
     "file://$DATADIR/workspace/master/baserock:morphs" master
+
+cd "$DATADIR/workspace"

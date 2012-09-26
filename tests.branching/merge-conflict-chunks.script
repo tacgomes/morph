@@ -1,0 +1,95 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# When conflicts occur outside the root morphs repository, 'morph merge'
+# should keep going until the end and report the list of failed repos.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    exit 0
+fi
+
+. "$SRCDIR/tests.branching/setup-3rd-party-strata"
+
+# Create stable branch to merge TO
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable
+cd test/stable/baserock:morphs
+git push --quiet origin test/stable
+
+# Create feature branch to merge FROM
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/feature test/stable
+
+add_text_in_repo() {
+    REPO="$1"
+    TEXT="$2"
+
+    cd "$1"
+    echo $TEXT > conflict.txt
+    git add conflict.txt
+    git commit --quiet --message "Add some text"
+    cd - > /dev/null
+}
+
+# Sow the seeds of conflict
+cd "$DATADIR/workspace/test/stable"
+"$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
+"$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
+add_text_in_repo "baserock:stratum2-hello" "xyzzy"
+add_text_in_repo "baserock:stratum3-hello" "xyzzy"
+
+cd "$DATADIR/workspace/test/feature"
+"$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
+"$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
+add_text_in_repo "baserock:stratum2-hello" "plugh"
+add_text_in_repo "baserock:stratum3-hello" "plover"
+
+# This should not be necessary, one day
+cd "$DATADIR/workspace/test/stable/baserock:morphs"
+git commit --quiet --all --message "Commit refs for branch"
+cd "$DATADIR/workspace/test/stable/baserock:external-strata"
+git commit --quiet --all --message "Commit refs for branch"
+
+cd "$DATADIR/workspace/test/feature/baserock:morphs"
+git commit --quiet --all --message "Commit refs for branch"
+cd "$DATADIR/workspace/test/feature/baserock:external-strata"
+git commit --quiet --all --message "Commit refs for branch"
+
+# Manually merge in baserock:morphs for now so we test that errors in other
+# repos are collected instead of being immediately fatal. Morph should be able
+# to deal with this merge automatically in the future because it's only the
+# system branch refs that are conflicting.
+cd "$DATADIR/workspace/test/feature/baserock:morphs"
+git pull --quiet --strategy=ours \
+    "file:///$DATADIR/workspace/test/stable/baserock:morphs" test/stable
+cd "$DATADIR/workspace/test/feature/baserock:external-strata"
+git pull --quiet --strategy=ours \
+    "file:///$DATADIR/workspace/test/stable/baserock:external-strata" \
+    test/stable
+
+# Merge changes from test/feature to test/stable
+cd "$DATADIR/workspace/test/stable"
+"$SRCDIR/scripts/test-morph" merge test/feature || true
+
+# Check that the repos are all clean
+for repo in "baserock:morphs" "baserock:external-strata" \
+            "baserock:stratum2-hello" "baserock:stratum3-hello"; do
+    cd "$DATADIR/workspace/test/stable/$repo"
+    git status --porcelain
+    [ $(git rev-parse HEAD) = $(git rev-parse test/stable) ]
+done

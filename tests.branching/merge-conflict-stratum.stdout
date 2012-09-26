@@ -1,0 +1,7 @@
+Merge errors encountered merging into test/stable in repo baserock:morphs:
+Auto-merging hello-system.morph
+CONFLICT (content): Merge conflict in hello-system.morph
+Auto-merging hello-stratum.morph
+CONFLICT (content): Merge conflict in hello-stratum.morph
+Automatic merge failed; fix conflicts and then commit the result.
+
