@@ -212,7 +212,7 @@ class ArtifactResolverTests(unittest.TestCase):
             {
                 "name": "foo",
                 "kind": "system",
-                "arch": "arm"
+                "arch": "armv7"
             }
             ''')
         morph.builds_artifacts = ['foo-rootfs', 'foo-kernel']
