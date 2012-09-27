@@ -868,6 +868,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     msg = "Merge system branch '%s'" % from_branch
                     self.app.runcmd(['git', 'commit', '--all', '-m%s' % msg],
                                     cwd=repo_dir)
+
+            self.app.status(msg="Merge successful")
         except:
             for repo_dir in dirty_repo_dirs:
                 self.reset_work_tree_safe(repo_dir)
