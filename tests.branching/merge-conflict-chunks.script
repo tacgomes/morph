@@ -72,18 +72,6 @@ git commit --quiet --all --message "Commit refs for branch"
 cd "$DATADIR/workspace/test/feature/baserock:external-strata"
 git commit --quiet --all --message "Commit refs for branch"
 
-# Manually merge in baserock:morphs for now so we test that errors in other
-# repos are collected instead of being immediately fatal. Morph should be able
-# to deal with this merge automatically in the future because it's only the
-# system branch refs that are conflicting.
-cd "$DATADIR/workspace/test/feature/baserock:morphs"
-git pull --quiet --strategy=ours \
-    "file:///$DATADIR/workspace/test/stable/baserock:morphs" test/stable
-cd "$DATADIR/workspace/test/feature/baserock:external-strata"
-git pull --quiet --strategy=ours \
-    "file:///$DATADIR/workspace/test/stable/baserock:external-strata" \
-    test/stable
-
 # Merge changes from test/feature to test/stable
 cd "$DATADIR/workspace/test/stable"
 "$SRCDIR/scripts/test-morph" merge test/feature || true
