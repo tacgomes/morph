@@ -843,9 +843,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 to_branch_dir, root_repo, to_branch)
             if to_root_dir is None:
                 raise cliapp.AppException(
-                    'Merging failed in %s: please manually merge %s into %s '
-                    'in this repo and try again.' %
-                    (root_repo, to_branch, from_branch))
+                    'Merging failed in %s: please \'git merge\' the latest %s '
+                    'into %s in the \'%s\' system branch.' %
+                    (root_repo, to_branch, from_branch, from_branch))
 
             for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
                 name = os.path.basename(f)[:-len('.morph')]
@@ -855,9 +855,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise cliapp.AppException(
                     'merge errors were encountered in the following %s:\n\n'
                     '\t%s\n\nPlease manually merge the target ref into %s in '
-                    'each case, and then merge the system branch.' %
+                    'each case in the %s system branch, and then repeat the '
+                    'system branch merge.' %
                     ('repository' if len(failed_repos)==1 else 'repositories',
-                     '\n\t'.join(failed_repos), from_branch))
+                     '\n\t'.join(failed_repos), from_branch, from_branch))
 
             for repo_dir in dirty_repo_dirs:
                 # Repo will often turn out to not be dirty: if the changes we

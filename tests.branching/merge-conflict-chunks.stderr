@@ -3,4 +3,4 @@ ERROR: merge errors were encountered in the following repositories:
 	baserock:stratum2-hello
 	baserock:stratum3-hello
 
-Please manually merge the target ref into test/feature in each case, and then merge the system branch.
+Please manually merge the target ref into test/feature in each case in the test/feature system branch, and then repeat the system branch merge.
