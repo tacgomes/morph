@@ -29,7 +29,6 @@ import uuid
 
 import morphlib
 
-
 class BranchAndMergePlugin(cliapp.Plugin):
 
     def __init__(self):
@@ -58,6 +57,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='COMMAND')
+        # This command should be hidden, once cliapp supports such a thing
+        self.app.add_subcommand('merge-morphology', self.merge_morphology)
 
     def disable(self):
         pass
@@ -710,10 +711,51 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return old, new
 
+    def configure_merge_driver(self, repo_dir):
+        self.set_repo_config(repo_dir, 'merge.morph.name',
+            'Morphology merge driver')
+        self.set_repo_config(repo_dir, 'merge.morph.driver',
+            '%s merge-morphology $MORPH_FROM_BRANCH $MORPH_TO_BRANCH '
+            '%%O %%A %%B' % self.app.__file__)
+
+    MERGE_ATTRIBUTE = '*.morph\tmerge=morph\n'
+
+    def enable_merge_driver(self, repo_dir):
+        attributes_file = os.path.join(repo_dir, ".git", "info", "attributes")
+        with open(attributes_file, 'a') as f:
+            f.write(self.MERGE_ATTRIBUTE)
+
+    def disable_merge_driver(self, repo_dir):
+        attributes_file = os.path.join(repo_dir, ".git", "info", "attributes")
+        with open(attributes_file, 'r') as f:
+            attributes = f.read()
+        if attributes == self.MERGE_ATTRIBUTE:
+            os.unlink(attributes_file)
+        elif attributes.endswith(self.MERGE_ATTRIBUTE):
+            with morphlib.savefile.SaveFile(attributes_file, 'w') as f:
+                f.write(attributes[:-len(self.MERGE_ATTRIBUTE)])
+
     def merge_repo(self, dirty_repos, failed_repos,
                    from_branch_dir, from_repo, from_ref,
                    to_branch_dir, to_repo, to_ref):
-        '''Merge changes for a system branch in a specific repository'''
+        '''Merge changes for a system branch in a specific repository
+
+        This done using a standard 'git pull', with a custom merge driver to
+        handle the .morph files.
+
+        The merge driver is only invoked when there is a three-way merge
+        conflict on a file. If the file has changed in the FROM branch but not
+        in the TO branch (relative to the base version) git will choose the
+        FROM version without considering its contents.
+
+        Since git may automatically update morphologies in TO to use the refs
+        out of FROM, the merge driver does the same, and we then reset them
+        back and write the morphologies out again after recursively merging
+        the components. It's important that we disable the merge driver again
+        after the pull, or we risk confusing later users of the same repo who
+        do a manual git merge.
+
+        '''
 
         if to_repo in failed_repos:
             return None
@@ -732,16 +774,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('repository %s has uncommitted '
                                       'changes' % to_repo)
 
-        # repo must be made into a URL to avoid ':' in pathnames confusing git
+        self.configure_merge_driver(to_repo_dir)
+        self.enable_merge_driver(to_repo_dir)
+        env = dict(os.environ)
+        env['MORPH_FROM_BRANCH'] = from_ref
+        env['MORPH_TO_BRANCH'] = to_ref
+        # ':' in pathnames confuses git, so we have to pass it a URL
         from_url = urlparse.urljoin('file://', from_repo_dir)
-
         status, output, error = self.app.runcmd_unchecked(
             ['git', 'pull', '--quiet', '--no-commit', '--no-ff',
-             from_url, from_ref], cwd=to_repo_dir)
+             from_url, from_ref], cwd=to_repo_dir, env=env)
+        self.disable_merge_driver(to_repo_dir)
+
         if status != 0:
             self.app.output.write(
-                'Merge errors encountered merging into %s in repo %s:\n%s%s\n'
-                % (to_ref, to_repo, error, output))
+                'Merge errors encountered in %s, branch %s:\n%s'
+                % (to_repo, to_ref, output))
+
+        if status != 0:
+            self.app.output.write('\n')
             failed_repos.add(to_repo)
             return None
         return to_repo_dir
@@ -843,9 +894,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 to_branch_dir, root_repo, to_branch)
             if to_root_dir is None:
                 raise cliapp.AppException(
-                    'Merging failed in %s: please manually merge %s into %s '
-                    'in this repo and try again.' %
-                    (root_repo, to_branch, from_branch))
+                    'Merging failed in %s: please \'git merge\' the latest %s '
+                    'into %s in the \'%s\' system branch.' %
+                    (root_repo, to_branch, from_branch, from_branch))
 
             for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
                 name = os.path.basename(f)[:-len('.morph')]
@@ -855,9 +906,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise cliapp.AppException(
                     'merge errors were encountered in the following %s:\n\n'
                     '\t%s\n\nPlease manually merge the target ref into %s in '
-                    'each case, and then merge the system branch.' %
+                    'each case in the %s system branch, and then repeat the '
+                    'system branch merge.' %
                     ('repository' if len(failed_repos)==1 else 'repositories',
-                     '\n\t'.join(failed_repos), from_branch))
+                     '\n\t'.join(failed_repos), from_branch, from_branch))
 
             for repo_dir in dirty_repo_dirs:
                 # Repo will often turn out to not be dirty: if the changes we
@@ -867,10 +919,75 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     msg = "Merge system branch '%s'" % from_branch
                     self.app.runcmd(['git', 'commit', '--all', '-m%s' % msg],
                                     cwd=repo_dir)
+
+            self.app.status(msg="Merge successful")
         except:
             for repo_dir in dirty_repo_dirs:
                 self.reset_work_tree_safe(repo_dir)
             raise
+
+    def merge_morphology_contents(self, from_branch, from_morph, to_morph):
+        if from_morph['kind'] != to_morph['kind'] or \
+           from_morph['name'] != to_morph['name']:
+            raise cliapp.AppException('mismatch in name or kind')
+
+        pairs = []
+        if to_morph['kind'] == 'system':
+            pairs = zip(from_morph['strata'], to_morph['strata'])
+        elif to_morph['kind'] == 'stratum':
+            pairs = zip(from_morph['chunks'], to_morph['chunks'])
+
+        for from_child, to_child in pairs:
+            if from_child['morph'] != to_child['morph'] or \
+               from_child['repo'] != to_child['repo']:
+                continue
+
+            # 'morph merge' has two stages, of which this is the first. In the
+            # second stage we iterate each component whose 'ref' points to
+            # 'from_branch', merge inside its repository, and then update the
+            # morphology again to point at the merged ref in that repository.
+            # That is why we apparently merge the 'ref' field backwards here.
+            if from_child['ref'] == from_branch:
+                to_child['ref'] = from_branch
+
+    def merge_morphology(self, args):
+        '''Automatically merge changes between two conflicting morphologies.
+
+        Normally executed as a git merge driver.
+
+        In the future, this function can be expanded to resolve changes in
+        field ordering.
+
+        '''
+
+        if len(args) != 5:
+            raise cliapp.AppException('this command is not meant to be run '
+                                      'manually.')
+
+        from_branch = args[0]
+        to_branch = args[1]
+        base_file = args[2]
+        to_file = args[3]     # local
+        from_file = args[4]   # remote
+
+        with open(from_file) as f:
+            from_morph = morphlib.morph2.Morphology(f.read())
+        with open(to_file) as f:
+            to_morph = morphlib.morph2.Morphology(f.read())
+
+        self.merge_morphology_contents(from_branch, from_morph, to_morph)
+
+        # git merge gives us temporary files which we can overwrite with our
+        # resolution
+        with morphlib.savefile.SaveFile(to_file, 'w') as f:
+            to_morph.write_to_file(f)
+
+        # Leave the rest of the merging to git for now.
+        status, output, error = self.app.runcmd_unchecked(
+            ['git', 'merge-file', '-LHEAD', '-LBASE', '-L%s' % from_branch,
+             to_file, base_file, from_file])
+        if status != 0:
+            raise cliapp.AppException('Morph did not resolve all conflicts')
 
     def build(self, args):
         if len(args) != 1:

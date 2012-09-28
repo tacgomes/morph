@@ -1,9 +1,9 @@
-Merge errors encountered merging into test/stable in repo baserock:stratum2-hello:
+Merge errors encountered in baserock:stratum2-hello, branch test/stable:
 Auto-merging conflict.txt
 CONFLICT (add/add): Merge conflict in conflict.txt
 Automatic merge failed; fix conflicts and then commit the result.
 
-Merge errors encountered merging into test/stable in repo baserock:stratum3-hello:
+Merge errors encountered in baserock:stratum3-hello, branch test/stable:
 Auto-merging conflict.txt
 CONFLICT (add/add): Merge conflict in conflict.txt
 Automatic merge failed; fix conflicts and then commit the result.

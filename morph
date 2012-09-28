@@ -17,5 +17,8 @@
 
 
 import morphlib
+import os.path
 
-morphlib.app.Morph(version=morphlib.__version__).run()
+app = morphlib.app.Morph(version=morphlib.__version__)
+app.__file__ = os.path.realpath(__file__)
+app.run()

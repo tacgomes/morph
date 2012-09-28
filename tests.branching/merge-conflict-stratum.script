@@ -21,7 +21,9 @@ set -eu
 # Disable test on versions of Python before 2.7.
 if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
 then
-    exit 0
+    cat "$SRCDIR/tests.branching/merge-conflict-stratum.stdout"
+    cat "$SRCDIR/tests.branching/merge-conflict-stratum.stderr" >&2
+    exit 1
 fi
 
 cd "$DATADIR/workspace"
@@ -93,25 +95,6 @@ cat <<EOF > "hello-stratum.morph"
 EOF
 git commit --quiet --all -m "Split up 'hello' chunk into devel and runtime"
 
-# Merge changes from test/feature to test/stable
+# Merge changes from test/feature to test/stable - we expect failure
 cd "$DATADIR/workspace/test/stable"
 "$SRCDIR/scripts/test-morph" merge test/feature
-
-# Check results: changes to 'hello' should have been merged back to
-# test/stable.
-cd baserock:hello
-[ -e newfile.txt ]
-
-# Make sure all changes are committed and to the correct branch ('hello'
-# was built from 'master' before branching, so the changes should be
-# merged back to 'master').
-git status --short
-[ $(git rev-parse master) = $(git rev-parse HEAD) ]
-
-# Changes here should be on test/stable.
-cd ../baserock:morphs
-git status --short
-[ $(git rev-parse test/stable) = $(git rev-parse HEAD) ]
-
-# Make sure all refs to the merged branch have gone.
-! grep "\"ref\": \"test/feature\"" *.morph
