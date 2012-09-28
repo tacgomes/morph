@@ -267,6 +267,12 @@ class Morph(cliapp.Application):
         elif rrc is not None:
             try:
                 absref, tree = rrc.resolve_ref(reponame, ref)
+                if absref is not None:
+                    self.status(msg='Resolved %(reponame)s %(ref)s via remote '
+                                'repo cache',
+                                reponame=reponame,
+                                ref=ref,
+                                chatty=True)
             except:
                 pass
         if absref is None:
@@ -282,7 +288,8 @@ class Morph(cliapp.Application):
 
     def traverse_morphs(self, triplets, lrc, rrc, update=True,
                         visit=lambda rn, rf, fn, arf, m: None):
-        morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc)
+        morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
+                                                                     self)
         queue = collections.deque(triplets)
 
         while queue:

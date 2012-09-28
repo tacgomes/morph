@@ -39,9 +39,14 @@ class MorphologyFactory(object):
 
     '''An way of creating morphologies which will provide a default'''
 
-    def __init__(self, local_repo_cache, remote_repo_cache=None):
+    def __init__(self, local_repo_cache, remote_repo_cache=None, app=None):
         self._lrc = local_repo_cache
         self._rrc = remote_repo_cache
+        self._app = app
+
+    def status(self, *args, **kwargs):  # pragma: no cover
+        if self._app is not None:
+            self._app.status(*args, **kwargs)
 
     def get_morphology(self, reponame, sha1, filename):
 
@@ -54,6 +59,10 @@ class MorphologyFactory(object):
         elif self._rrc is not None:
             file_list = self._rrc.ls_tree(reponame, sha1)
             if filename in file_list:
+                self.status(msg="Retrieving %(reponame)s %(sha1)s %(filename)s"
+                            " from the remote artifact cache.",
+                            reponame=reponame, sha1=sha1, filename=filename,
+                            chatty=True)
                 text = self._rrc.cat_file(reponame, sha1, filename)
         else:
             raise NotcachedError(reponame)
