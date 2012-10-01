@@ -18,17 +18,17 @@ case "$(uname -m)" in
 *armv7*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -O2"
-    export PASS3_STRATUM="imx53-bootstrap-pass3"
+    export PASS3_STRATUM="bootstrap-pass3-imx53"
     ;;
 *armv5*)
     export LFS_TGT=$(uname -m)-lfs-linux-gnueabi
     export TARGET_CFLAGS="-march=armv5 -O2"
-    export PASS3_STRATUM="imx53-bootstrap-pass3"
+    export PASS3_STRATUM="bootstrap-pass3-imx53"
     ;;
 *)
     export LFS_TGT=$(uname -m)-lfs-linux-gnu
     export TARGET_CFLAGS="-O2"
-    export PASS3_STRATUM="x86_64-generic-bootstrap-pass3"
+    export PASS3_STRATUM="bootstrap-pass3-x86_64-generic"
     ;;
 esac
 
