@@ -291,10 +291,14 @@ class Morph(cliapp.Application):
         morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
                                                                      self)
         queue = collections.deque(triplets)
+        updated_repos = set([])
 
         while queue:
             reponame, ref, filename = queue.popleft()
-            absref, tree = self.resolve_ref(lrc, rrc, reponame, ref, update)
+            update_repo = update and reponame not in updated_repos
+            absref, tree = self.resolve_ref(lrc, rrc, reponame, ref,
+                                            update_repo)
+            updated_repos.add(reponame)
             morphology = morph_factory.get_morphology(
                 reponame, absref, filename)
             visit(reponame, ref, filename, absref, tree, morphology)
