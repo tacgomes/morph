@@ -221,12 +221,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
     def load_morphology(self, repo_dir, name, ref=None):
+        '''Returns a morphology, optionally retrieved from a specific ref
+
+        The repositories that make up a system branch checkout should only
+        have modifications to the ref matching that system branch. Unless 'ref'
+        is a sha1, origin/ref will be used instead to ensure that no local
+        modifications are considered and no local tracking branch needs to be
+        created. Where the ref is that of the system branch, 'None' should be
+        passed because we should load directly from the working tree in this
+        case, honouring any uncommitted changes.
+
+        '''
+
         if ref is None:
             filename = os.path.join(repo_dir, '%s.morph' % name)
             with open(filename) as f:
                 text = f.read()
         else:
-            ref = morphlib.git.find_first_ref(self.app.runcmd, repo_dir, ref)
+            if not morphlib.git.is_valid_sha1(ref):
+                ref = morphlib.git.rev_parse(self.app.runcmd, repo_dir,
+                                             'origin/' + ref)
             try:
                 text = self.app.runcmd(['git', 'cat-file', 'blob',
                                        '%s:%s.morph' % (ref, name)],
