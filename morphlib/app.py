@@ -291,7 +291,7 @@ class Morph(cliapp.Application):
         morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
                                                                      self)
         queue = collections.deque(triplets)
-        updated_repos = set([])
+        updated_repos = set()
 
         while queue:
             reponame, ref, filename = queue.popleft()
