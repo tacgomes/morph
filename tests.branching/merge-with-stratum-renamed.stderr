@@ -1,1 +1,1 @@
-ERROR: stratum goodbye-stratum was added within this branch and subsequently edited. This is not yet supported: refusing to merge.
+ERROR: goodbye-stratum.morph was not found in TMP/workspace/master/baserock:morphs at ref 804a475402fb6ded64a2749c7adf5b33c7c8ce1e

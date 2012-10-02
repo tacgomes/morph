@@ -1,1 +1,1 @@
-ERROR: Merging failed in baserock:morphs: please 'git merge' the latest test/stable into test/feature in the 'test/feature' system branch.
+ERROR: merge errors were encountered. Please manually merge the target ref into test/feature in the remote system branch in each case, and then repeat the 'morph merge' operation.
