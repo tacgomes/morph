@@ -103,12 +103,6 @@ class CachedRepo(object):
         self.url = url
         self.path = path
 
-    def is_valid_sha1(self, ref):
-        '''Checks whether a string is a valid SHA1.'''
-
-        valid_chars = 'abcdefABCDEF0123456789'
-        return len(ref) == 40 and all([x in valid_chars for x in ref])
-
     def resolve_ref(self, ref):
         '''Attempts to resolve a ref into its SHA1 and tree SHA1.
 
@@ -117,7 +111,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             try:
                 refs = self._show_ref(ref).split('\n')
                 refs = [x.split() for x in refs]
@@ -143,7 +137,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref).strip()
@@ -203,7 +197,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref).strip()

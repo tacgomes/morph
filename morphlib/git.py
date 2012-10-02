@@ -225,3 +225,9 @@ def find_first_ref(runcmd, gitdir, ref):
     '''Find the *first* ref match and returns its sha1.'''
     return runcmd(['git', 'show-ref', ref],
                   cwd=gitdir).split("\n")[0].split(" ")[0]
+
+def is_valid_sha1(ref):
+    '''Checks whether a string is a valid SHA1.'''
+
+    valid_chars = 'abcdefABCDEF0123456789'
+    return len(ref) == 40 and all([x in valid_chars for x in ref])
