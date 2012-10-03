@@ -751,8 +751,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         '''
 
-        # FIXME: We should save this in the morph_files dict somehow, to avoid
-        # rerunning git-merge-base too many times.
         base_sha1 = self.app.runcmd(['git', 'merge-base', from_sha1, to_ref],
                                     cwd=repo_dir).strip()
         base_morph = self.load_morphology(repo_dir, name, ref=base_sha1)
@@ -766,7 +764,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'match filename)' % name)
         if from_morph['kind'] != to_morph['kind']:
             raise cliapp.AppException(
-                'merge conflict: "kind" of morphology %s' % name)
+                'merge conflict: "kind" of morphology %s changed from %s to %s'
+                % (name, from_morph['kind'], to_morph['kind']))
 
         return base_morph, from_morph, to_morph
 
