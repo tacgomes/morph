@@ -1,0 +1,49 @@
+#!/bin/sh
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# 'git show-ref master' sorts its output alphebetically, so we can't rely on
+# it to resolve 'master': we might get 'alpha/master' instead.
+
+set -eu
+
+. "$SRCDIR/scripts/fix-committer-info"
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    exit 0
+fi
+
+cd "$DATADIR/morphs"
+git mv hello-stratum.morph goodbye-stratum.morph
+sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/' \
+    -i hello-system.morph
+
+git commit --quiet -am "Rename hello-system"
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch baserock:morphs release
+
+# Create an extra ref to confuse any users of git show-ref
+cd release/baserock:morphs
+git checkout --quiet -b alpha/master HEAD~1
+git checkout --quiet release
+
+# The petrify will fail if we resolved 'master' as 'alpha/master' by mistake.
+cd "$DATADIR/workspace/release/baserock:morphs"
+"$SRCDIR/scripts/test-morph" petrify

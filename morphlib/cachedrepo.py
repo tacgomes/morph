@@ -103,12 +103,6 @@ class CachedRepo(object):
         self.url = url
         self.path = path
 
-    def is_valid_sha1(self, ref):
-        '''Checks whether a string is a valid SHA1.'''
-
-        valid_chars = 'abcdefABCDEF0123456789'
-        return len(ref) == 40 and all([x in valid_chars for x in ref])
-
     def resolve_ref(self, ref):
         '''Attempts to resolve a ref into its SHA1 and tree SHA1.
 
@@ -117,7 +111,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             try:
                 refs = self._show_ref(ref).split('\n')
                 refs = [x.split() for x in refs]
@@ -143,7 +137,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref).strip()
@@ -194,6 +188,15 @@ class CachedRepo(object):
 
         self._checkout_ref(ref, target_dir)
 
+    def load_morphology(self, ref, name):
+        '''Loads a morphology from a given ref'''
+
+        if not morphlib.git.is_valid_sha1(ref):
+            ref = self._rev_list(ref).strip()
+        text = self.cat(ref, '%s.morph' % name)
+        morphology = morphlib.morph2.Morphology(text)
+        return morphology
+
     def ls_tree(self, ref):
         '''Return file names found in root tree. Does not recurse to subtrees.
 
@@ -203,7 +206,7 @@ class CachedRepo(object):
 
         '''
 
-        if not self.is_valid_sha1(ref):
+        if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
             sha1 = self._rev_list(ref).strip()

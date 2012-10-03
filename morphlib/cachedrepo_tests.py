@@ -26,6 +26,11 @@ from morphlib import cachedrepo
 
 class CachedRepoTests(unittest.TestCase):
 
+    EXAMPLE_MORPH = '''{
+        "name": "foo",
+        "kind": "chunk"
+    }'''
+
     def show_ref(self, ref):
         output = {
             'master':
@@ -57,6 +62,7 @@ class CachedRepoTests(unittest.TestCase):
 
     def rev_list(self, ref):
         output = {
+            'master': 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
             'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
@@ -70,7 +76,7 @@ class CachedRepoTests(unittest.TestCase):
     def cat_file(self, ref, filename):
         output = {
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9:foo.morph':
-            'contents of foo.morph'
+            self.EXAMPLE_MORPH
         }
         try:
             return output['%s:%s' % (ref, filename)]
@@ -165,7 +171,7 @@ class CachedRepoTests(unittest.TestCase):
     def test_cat_existing_file_in_existing_ref(self):
         data = self.repo.cat('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                              'foo.morph')
-        self.assertEqual(data, 'contents of foo.morph')
+        self.assertEqual(data, self.EXAMPLE_MORPH)
 
     def test_fail_cat_file_in_invalid_ref(self):
         self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.cat,
@@ -215,6 +221,10 @@ class CachedRepoTests(unittest.TestCase):
 
         morph_filename = os.path.join(unpack_dir, 'foo.morph')
         self.assertTrue(os.path.exists(morph_filename))
+
+    def test_load_morphology_from_existing_ref(self):
+        morph = self.repo.load_morphology('master', 'foo')
+        self.assertTrue(morph['name'] == 'foo')
 
     def test_ls_tree_in_existing_ref(self):
         data = self.repo.ls_tree('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
