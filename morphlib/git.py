@@ -135,6 +135,28 @@ class Submodules(object):
     def __len__(self):
         return len(self.submodules)
 
+
+def update_submodules(app, repo_dir):  # pragma: no cover
+    '''Set up repo submodules, rewriting the URLs to expand prefixes
+
+    We do this automatically rather than leaving it to the user so that they
+    don't have to worry about the prefixed URLs manually.
+    '''
+
+    if os.path.exists(os.path.join(repo_dir, '.gitmodules')):
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            app.settings['repo-alias'])
+        app.runcmd(['git', 'submodule', 'init'], cwd=repo_dir)
+        urls = app.runcmd(
+            ['git', 'config', '--get-regexp', r'submodule.\w+.url'],
+            cwd=repo_dir)
+        for line in urls.splitlines():
+            setting, url = line.split(' ')
+            app.runcmd(['git', 'config', setting, resolver.pull_url(url)],
+                       cwd=repo_dir)
+        app.runcmd(['git', 'submodule', 'update'], cwd=repo_dir)
+
+
 def get_user_name(runcmd):
     '''Get user.name configuration setting. Complain if none was found.'''
     if 'GIT_AUTHOR_NAME' in os.environ:
