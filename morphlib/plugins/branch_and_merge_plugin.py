@@ -219,7 +219,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             os.makedirs(parent_dir)
 
         # Clone it from cache to target directory.
-        repo.clone_checkout(ref, os.path.abspath(dirname))
+        target_path = os.path.abspath(dirname)
+        repo.clone_checkout(ref, target_path)
 
         # Remember the repo name we cloned from in order to be able
         # to identify the repo again later using the same name, even
@@ -230,13 +231,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # temporary refs, e.g. for building.
         self.set_repo_config(dirname, 'morph.uuid', uuid.uuid4().hex)
 
-        # Set the origin to point at the original repository.
+        # URL configuration
         morphlib.git.set_remote(self.app.runcmd, dirname, 'origin', repo.url)
-
-        # Add push url rewrite rule to .git/config.
         self.set_repo_config(
-                dirname, 'url.%s.pushInsteadOf' % resolver.push_url(reponame),
-                resolver.pull_url(reponame))
+            dirname, 'url.%s.pushInsteadOf' % resolver.push_url(reponame),
+            resolver.pull_url(reponame))
+        morphlib.git.update_submodules(self.app, target_path)
 
         self.app.runcmd(['git', 'remote', 'update'], cwd=dirname)
 
