@@ -94,7 +94,7 @@ loop=$(losetup -o "$(expr "$offset" '*' "$ssz")" -f --show "$img1")
 udevadm settle
 trap 'losetup -d "$loop"' INT TERM EXIT
 mount -o subvol=factory-run -t btrfs "$loop" "$DATADIR/unpacked"
-trap 'umount "$DATADIR/unpacked"; losetup -d "$loop"' INT TERM EXIT
+trap 'umount -d "$DATADIR/unpacked"' INT TERM EXIT
 
 cd "$DATADIR/unpacked"
 echo "old version:"
