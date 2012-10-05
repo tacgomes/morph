@@ -71,3 +71,16 @@ class LocalArtifactCache(object):
     def _source_metadata_filename(self, source, cachekey, name):
         basename = '%s.%s' % (cachekey, name)
         return os.path.join(self.cachedir, basename)
+
+    def clear(self):
+        '''Clear everything from the artifact cache directory.
+        
+        After calling this, the artifact cache will be entirely empty.
+        Caveat caller.
+        
+        '''
+
+        for dirname, subdirs, basenames in os.walk(self.cachedir):
+            for basename in basenames:
+                os.remove(os.path.join(dirname, basename))
+
