@@ -50,6 +50,21 @@ class RootfsTarballBuilder(SystemKindBuilder):  # pragma: no cover
                 self.unpack_strata(fs_root)
                 self.create_fstab(fs_root)
                 self.copy_kernel_into_artifact_cache(fs_root)
+                unslashy_root = fs_root[1:]
+                def uproot_info(info):
+                    if info.name == unslashy_root:
+                        info.name = "."
+                    elif info.name.startswith(unslashy_root):
+                        info.name = "." + info.name[len(unslashy_root):]
+                    return info
+                artiname = self.artifact.source.morphology['name']
+                tar = tarfile.TarFile.gzopen(fileobj=handle, mode="w",
+                                             compresslevel=1,
+                                             name=artiname)
+                self.app.status(msg='Constructing tarball of root filesystem',
+                                chatty=True)
+                tar.add(fs_root, recursive=True, filter=uproot_info)
+                tar.close()
             except BaseException, e:
                 logging.error(traceback.format_exc())
                 self.app.status(msg='Error while building system',
