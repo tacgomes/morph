@@ -142,3 +142,16 @@ class LocalArtifactCacheTests(unittest.TestCase):
 
         self.assertEqual(stored_metadata,
                          'source log line 1\nsource log line 2\n')
+
+    def test_clears_artifact_cache(self):
+        cache = morphlib.localartifactcache.LocalArtifactCache(
+            self.tempdir.dirname)
+
+        handle = cache.put(self.runtime_artifact)
+        handle.write('runtime')
+        handle.close()
+
+        self.assertTrue(cache.has(self.runtime_artifact))
+        cache.clear()
+        self.assertFalse(cache.has(self.runtime_artifact))
+
