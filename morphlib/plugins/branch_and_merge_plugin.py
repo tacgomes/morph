@@ -1085,7 +1085,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.runcmd(['git', 'read-tree', parent_sha1],
                             cwd=repo_dir, env=env)
 
-            self.app.status(msg='%(repo)s: Adding uncommited changes to '
+            self.app.status(msg='%(repo)s: Adding uncommitted changes to '
                                 'build branch', repo=repo)
 
             # Add all local, uncommitted changes to our internal index.
