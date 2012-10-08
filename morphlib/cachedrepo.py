@@ -271,7 +271,11 @@ class CachedRepo(object):
             raise CheckoutError(self, ref, target_dir)
 
     def _update(self):  # pragma: no cover
-        self._runcmd(['git', 'remote', 'update', 'origin', '--prune'])
+        try:
+            self._runcmd(['git', 'remote', 'update', 'origin', '--prune'])
+        except cliapp.AppException, ae:
+            self._runcmd(['git', 'remote', 'prune', 'origin'])
+            self._runcmd(['git', 'remote', 'update', 'origin'])
 
     def __str__(self):  # pragma: no cover
         return self.url
