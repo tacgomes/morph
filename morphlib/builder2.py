@@ -23,6 +23,8 @@ from collections import defaultdict
 import tarfile
 import traceback
 import subprocess
+import tempfile
+import gzip
 
 import cliapp
 
@@ -663,40 +665,54 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
             rootfs_artifact = self.new_artifact(
                 self.artifact.source.morphology['name'] + '-rootfs')
             handle = self.local_artifact_cache.put(rootfs_artifact)
-            image_name = handle.name
-
-            self._create_image(image_name)
-            self._partition_image(image_name)
-            self._install_mbr(arch, image_name)
-            partition = self._setup_device_mapping(image_name)
-
-            mount_point = None
+            (image_file_fd, image_name) = \
+                tempfile.mkstemp(dir=self.app.settings['tempdir'])
             try:
-                self._create_fs(partition)
-                mount_point = self.staging_area.destdir(self.artifact.source)
-                self._mount(partition, mount_point)
-                factory_path = os.path.join(mount_point, 'factory')
-                self._create_subvolume(factory_path)
-                self.unpack_strata(factory_path)
-                self.create_fstab(factory_path)
-                self._create_bootloader_config(factory_path)
-                self._create_subvolume_snapshot(
-                    mount_point, 'factory', 'factory-run')
-                factory_run_path = os.path.join(mount_point, 'factory-run')
-                self._install_boot_files(arch, factory_run_path, mount_point)
-                self._install_bootloader(mount_point)
-                self.copy_kernel_into_artifact_cache(factory_path)
-                self._unmount(mount_point)
-            except BaseException, e:
-                logging.error(traceback.format_exc())
-                self.app.status(msg='Error while building system',
-                                error=True)
-                self._unmount(mount_point)
+                self._create_image(image_name)
+                self._partition_image(image_name)
+                self._install_mbr(arch, image_name)
+                partition = self._setup_device_mapping(image_name)
+
+                mount_point = None
+                try:
+                    self._create_fs(partition)
+                    mount_point = self.staging_area.destdir(self.artifact.source)
+                    self._mount(partition, mount_point)
+                    factory_path = os.path.join(mount_point, 'factory')
+                    self._create_subvolume(factory_path)
+                    self.unpack_strata(factory_path)
+                    self.create_fstab(factory_path)
+                    self._create_bootloader_config(factory_path)
+                    self._create_subvolume_snapshot(
+                        mount_point, 'factory', 'factory-run')
+                    factory_run_path = os.path.join(mount_point, 'factory-run')
+                    self._install_boot_files(arch, factory_run_path, mount_point)
+                    self._install_bootloader(mount_point)
+                    self.copy_kernel_into_artifact_cache(factory_path)
+                    self._unmount(mount_point)
+                except BaseException, e:
+                    logging.error(traceback.format_exc())
+                    self.app.status(msg='Error while building system',
+                                    error=True)
+                    self._unmount(mount_point)
+                    self._undo_device_mapping(image_name)
+                    raise
+
                 self._undo_device_mapping(image_name)
+
+                self.app.status(msg='Compressing disk image',
+                                chatty=True)
+                with os.fdopen(image_file_fd, "rb") as ifh:
+                    with gzip.GzipFile(fileobj=handle, mode="wb",
+                                       compresslevel=1) as ofh:
+                        shutil.copyfileobj(ifh, ofh, 1024 * 1024)
+
+            except:
+                os.remove(image_name)
                 handle.abort()
                 raise
 
-            self._undo_device_mapping(image_name)
+            os.remove(image_name)
             handle.close()
 
         self.save_build_times()
