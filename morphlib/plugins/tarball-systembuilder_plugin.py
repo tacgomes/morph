@@ -54,6 +54,9 @@ class RootfsTarballBuilder(SystemKindBuilder):  # pragma: no cover
                 unslashy_root = fs_root[1:]
                 def uproot_info(info):
                     info.name = relpath(info.name, unslashy_root)
+                    if info.islnk():
+                        info.linkname = relpath(info.linkname,
+                                                unslashy_root)
                     return info
                 artiname = self.artifact.source.morphology['name']
                 tar = tarfile.TarFile.gzopen(fileobj=handle, mode="w",
