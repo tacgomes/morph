@@ -17,9 +17,60 @@
 import cliapp
 import os
 import tempfile
+import gzip
 
 import morphlib
 
+class MountableImage(object):
+    '''Mountable image (deals with decompression).'''
+    def __init__(self, app, artifact_path):
+        self.app = app
+        self.artifact_path = artifact_path
+
+    def setup(self, path):
+        self.app.status(msg='Preparing image %(path)s', path=path)
+        self.app.status(msg='  Decompressing...', chatty=True)
+        (tempfd, self.temp_path) = \
+            tempfile.mkstemp(dir=self.app.settings['tempdir'])
+        outfh = None
+        try:
+            with os.fdopen(tempfd, "wb") as outfh:
+                with gzip.open(path, "rb") as infh:
+                    morphlib.util.copyfileobj(infh, outfh)
+        except:
+            os.unlink(self.temp_path)
+            raise
+        self.app.status(msg='  Mounting image at %(path)s',
+                        path=self.temp_path, chatty=True)
+        part = morphlib.fsutils.setup_device_mapping(self.app.runcmd,
+                                                     self.temp_path)
+        mount_point = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        morphlib.fsutils.mount(self.app.runcmd, part, mount_point)
+        self.mount_point = mount_point
+        return mount_point
+
+    def cleanup(self, path, mount_point):
+        self.app.status(msg='Clearing down image at %(path)s', path=path,
+                        chatty=True)
+        try:
+            morphlib.fsutils.unmount(self.app.runcmd, mount_point)
+        except:
+            pass
+        try:
+            morphlib.fsutils.undo_device_mapping(self.app.runcmd, path)
+        except:
+            pass
+        try:
+            os.rmdir(mount_point)
+            os.unlink(path)
+        except:
+            pass
+
+    def __enter__(self):
+        return self.setup(self.artifact_path)
+
+    def __exit__(self, exctype, excvalue, exctraceback):
+        self.cleanup(self.temp_path, self.mount_point)
 
 class TrebuchetPlugin(cliapp.Plugin):
 
@@ -73,39 +124,10 @@ class TrebuchetPlugin(cliapp.Plugin):
         image_path_1 = lac.get(artifact1).name
         image_path_2 = lac.get(artifact2).name
 
-        def setup(path):
-            app.status(msg='Mounting image %(path)s', path=path)
-            part = morphlib.fsutils.setup_device_mapping(app.runcmd, path)
-            mount_point = tempfile.mkdtemp(dir=app.settings['tempdir'])
-            morphlib.fsutils.mount(app.runcmd, part, mount_point)
-            return mount_point
-
-        def cleanup(path, mount_point):
-            if mount_point is not None:
-                try:
-                    morphlib.fsutils.unmount(app.runcmd, mount_point)
-                except:
-                    pass
-            try:
-                morphlib.fsutils.undo_device_mapping(app.runcmd, path)
-            except:
-                pass
-            try:
-                os.rmdir(mount_point)
-            except:
-                pass
-
         mount_point_1 = None
         mount_point_2 = None
-        try:
-            mount_point_1 = setup(image_path_1)
-            mount_point_2 = setup(image_path_2)
-
-            app.runcmd(['tbdiff-create', output,
-                        os.path.join(mount_point_1, 'factory'),
-                        os.path.join(mount_point_2, 'factory')])
-        except BaseException:
-            raise
-        finally:
-            cleanup(image_path_1, mount_point_1)
-            cleanup(image_path_2, mount_point_2)
+        with MountableImage(app, image_path_1) as mount_point_1:
+            with MountableImage(app, image_path_2) as mount_point_2:
+                app.runcmd(['tbdiff-create', output,
+                            os.path.join(mount_point_1, 'factory'),
+                            os.path.join(mount_point_2, 'factory')])
