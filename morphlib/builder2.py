@@ -676,7 +676,8 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                 mount_point = None
                 try:
                     self._create_fs(partition)
-                    mount_point = self.staging_area.destdir(self.artifact.source)
+                    mount_point = \
+                        self.staging_area.destdir(self.artifact.source)
                     self._mount(partition, mount_point)
                     factory_path = os.path.join(mount_point, 'factory')
                     self._create_subvolume(factory_path)
@@ -685,8 +686,10 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                     self._create_bootloader_config(factory_path)
                     self._create_subvolume_snapshot(
                         mount_point, 'factory', 'factory-run')
-                    factory_run_path = os.path.join(mount_point, 'factory-run')
-                    self._install_boot_files(arch, factory_run_path, mount_point)
+                    factory_run_path = os.path.join(mount_point,
+                                                    'factory-run')
+                    self._install_boot_files(arch, factory_run_path,
+                                             mount_point)
                     self._install_bootloader(mount_point)
                     self.copy_kernel_into_artifact_cache(factory_path)
                     self._unmount(mount_point)

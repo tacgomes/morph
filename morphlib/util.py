@@ -161,3 +161,42 @@ def new_repo_caches(app):  # pragma: no cover
         rrc = None
 
     return lrc, rrc
+
+
+# This acquired from rdiff-backup which is GPLv2+ and a patch from 2011
+# which has not yet been merged, combined with a tad of tidying from us.
+def copyfileobj(inputfp, outputfp, blocksize=1024*1024):  # pragma: no cover
+    """Copies file inputfp to outputfp in blocksize intervals"""
+
+    sparse = False
+    buf = None
+    while 1:
+        inbuf = inputfp.read(blocksize)
+        if not inbuf: break
+        if not buf: 
+            buf = inbuf
+        else:
+            buf += inbuf
+            
+        # Combine "short" reads
+        if (len(buf) < blocksize):
+            continue
+            
+        buflen = len(buf)
+        if buf == "\x00" * buflen:
+            outputfp.seek(buflen, os.SEEK_CUR)
+            buf = None
+            # flag sparse=True, that we seek()ed, but have not written yet
+            # The filesize is wrong until we write
+            sparse = True 
+        else:
+            outputfp.write(buf)
+            buf = None
+            # We wrote, so clear sparse.
+            sparse = False
+            
+    if buf:
+        outputfp.write(buf)
+    elif sparse:
+        outputfp.seek(-1, os.SEEK_CUR)
+        outputfp.write("\x00")
