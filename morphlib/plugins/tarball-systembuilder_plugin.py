@@ -17,6 +17,7 @@
 import json
 import logging
 import os
+from os.path import relpath
 import shutil
 import time
 from collections import defaultdict
@@ -52,10 +53,7 @@ class RootfsTarballBuilder(SystemKindBuilder):  # pragma: no cover
                 self.copy_kernel_into_artifact_cache(fs_root)
                 unslashy_root = fs_root[1:]
                 def uproot_info(info):
-                    if info.name == unslashy_root:
-                        info.name = "."
-                    elif info.name.startswith(unslashy_root):
-                        info.name = "." + info.name[len(unslashy_root):]
+                    info.name = relpath(info.name, unslashy_root)
                     return info
                 artiname = self.artifact.source.morphology['name']
                 tar = tarfile.TarFile.gzopen(fileobj=handle, mode="w",
