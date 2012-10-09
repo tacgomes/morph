@@ -22,7 +22,12 @@ import gzip
 import morphlib
 
 class MountableImage(object):
-    '''Mountable image (deals with decompression).'''
+    '''Mountable image (deals with decompression).
+
+    Note, this is a read-only mount in the sense that the decompressed
+    image is not then recompressed after, instead any changes are discarded.
+
+    '''
     def __init__(self, app, artifact_path):
         self.app = app
         self.artifact_path = artifact_path
@@ -32,7 +37,7 @@ class MountableImage(object):
         self.app.status(msg='  Decompressing...', chatty=True)
         (tempfd, self.temp_path) = \
             tempfile.mkstemp(dir=self.app.settings['tempdir'])
-        outfh = None
+
         try:
             with os.fdopen(tempfd, "wb") as outfh:
                 with gzip.open(path, "rb") as infh:
