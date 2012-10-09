@@ -49,13 +49,6 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     # does not complain about an implausibly old timestamp.
     normalized_timestamp = 683074800
 
-    def mkrel(filename):
-        assert filename.startswith(rootdir)
-        if filename == rootdir:
-            return '.'
-        assert filename.startswith(rootdir + '/')
-        return filename[len(rootdir + '/'):]
-
     def matches(filename):
         return any(x.match(filename) for x in compiled)
 
@@ -76,7 +69,7 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
         subdirsymlinks = [x for x in subdirpaths if os.path.islink(x)]
         filenames = [os.path.join(dirname, x) for x in basenames]
         for filename in [dirname] + subdirsymlinks + filenames:
-            if matches(mkrel(filename)):
+            if matches(os.path.relpath(filename, rootdir)):
                 for name in names_to_root(filename):
                     if name not in include:
                         logging.debug('regexp match: %s' % name)
@@ -89,7 +82,8 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     tar = tarfile.open(fileobj=f, mode='w:gz')
     for filename in include:
         # Normalize mtime for everything.
-        tarinfo = tar.gettarinfo(filename, arcname=mkrel(filename))
+        tarinfo = tar.gettarinfo(filename,
+                                 arcname=os.path.relpath(filename, rootdir))
         tarinfo.ctime = normalized_timestamp
         tarinfo.mtime = normalized_timestamp
         if tarinfo.isreg():
