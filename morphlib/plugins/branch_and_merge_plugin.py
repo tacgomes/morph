@@ -266,8 +266,81 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 if ref is not None:
                     msg += ' at ref %s' % ref
                 raise cliapp.AppException(msg)
-        morphology = morphlib.morph2.Morphology(text)
+
+        try:
+            morphology = morphlib.morph2.Morphology(text)
+        except ValueError as e:
+            raise morphlib.Error("Error parsing %s: %s" %
+                                 (filename, str(e)))
+
+        self._validate_morphology(morphology, '%s.morph' % name)
+
         return morphology
+
+    def _validate_morphology(self, morphology, basename):
+        # FIXME: This really should be in MorphologyFactory. Later.
+        
+        def require(field):
+            if field not in morphology:
+                raise morphlib.Error(
+                    'Required field "%s" is missing from morphology %s' %
+                        (field, basename))
+        
+        required = {
+            'system': [
+                'name',
+                'system-kind',
+                'arch',
+                'strata',
+            ],
+            'stratum': [
+                'name',
+                'chunks',
+            ],
+            'chunk': [
+                'name',
+            ]
+        }
+        
+        also_known = {
+            'system': [
+                'kind',
+                'description',
+                'disk-size',
+                '_disk-size',
+            ],
+            'stratum': [
+                'kind',
+                'description',
+                'build-depends',
+            ],
+            'chunk': [
+                'kind',
+                'description',
+                'build-system',
+                'configure-commands',
+                'build-commands',
+                'test-commands',
+                'install-commands',
+                'max-jobs',
+                'chunks',
+            ]
+        }
+        
+        require('kind')
+        kind = morphology['kind']
+        if kind not in required:
+            raise morphlib.Error(
+                'Unknown morphology kind "%s" in %s' % (kind, basename))
+        for field in required[kind]:
+            require(field)
+            
+        known = required[kind] + also_known[kind]
+        for field in morphology.keys():
+            if field not in known:
+                msg = 'Unknown field "%s" in %s' % (field, basename)
+                logging.warning(msg)
+                self.app.status(msg=msg)
 
     def reset_work_tree_safe(self, repo_dir):
         # This function avoids throwing any exceptions, so it is safe to call
