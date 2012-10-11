@@ -79,6 +79,10 @@ class BuildCommand(object):
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
+            
+        self.app.status(
+            msg='Validating cross-morphology references', chatty=True)
+        self._validate_cross_morphology_references(srcpool)
 
         self.app.status(msg='Creating artifact resolver', chatty=True)
         ar = morphlib.artifactresolver.ArtifactResolver()
@@ -95,6 +99,45 @@ class BuildCommand(object):
         order = morphlib.buildorder.BuildOrder(artifacts)
 
         return order
+
+    def _validate_cross_morphology_references(self, srcpool):
+        for src in srcpool:
+            kind = src.morphology['kind']
+            method_name = '_validate_cross_refs_for_%s' % kind
+            if hasattr(self, method_name):
+                logging.debug('Calling %s' % method_name)
+                getattr(self, method_name)(src, srcpool)
+            else:
+                logging.warning('No %s' % method_name)
+
+    def _validate_cross_refs_for_system(self, src, srcpool):
+        self._validate_cross_refs_for_xxx(
+            src, srcpool, src.morphology['strata'], 'stratum')
+
+    def _validate_cross_refs_for_stratum(self, src, srcpool):
+        self._validate_cross_refs_for_xxx(
+            src, srcpool, src.morphology['chunks'], 'chunk')
+
+    def _validate_cross_refs_for_xxx(self, src, srcpool, specs, wanted):
+        for spec in specs:
+            repo_name = spec['repo']
+            ref = spec['ref']
+            filename = '%s.morph' % spec['morph']
+            logging.debug(
+                'Validating cross ref to %s:%s:%s' %
+                    (repo_name, ref, filename))
+            other = srcpool.lookup(repo_name, ref, filename)
+            if other.morphology['kind'] != wanted:
+                raise morphlib.Error(
+                    '%s %s references %s:%s:%s which is a %s, '
+                        'instead of a %s' %
+                        (src.morphology['kind'],
+                         src.morphology['name'],
+                         repo_name,
+                         ref,
+                         filename,
+                         other.morphology['kind'],
+                         wanted))
 
     def build_in_order(self, order):
         '''Build everything specified in a build order.'''
