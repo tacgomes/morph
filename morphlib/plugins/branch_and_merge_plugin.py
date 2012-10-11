@@ -1169,13 +1169,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         workspace = self.deduce_workspace()
         branch, branch_path = self.deduce_system_branch()
-        root_repo_dir = self.get_branch_config(branch_path, 'branch.root')
+
+        root_repo = self.get_branch_config(branch_path, 'branch.root')
+        root_repo_dir = self.convert_uri_to_path(root_repo)
+        root_repo_path = os.path.join(branch_path, root_repo_dir)
 
         dirs = [d for d in self.walk_special_directories(
                     branch_path, special_subdir='.git')
-                if os.path.basename(d) != root_repo_dir]
+                if not os.path.samefile(d, root_repo_path)]
         dirs.sort()
-        root_repo_path = os.path.join(branch_path, root_repo_dir)
         for d in [root_repo_path] + dirs:
             try:
                 repo = self.get_repo_config(d, 'morph.repository')
