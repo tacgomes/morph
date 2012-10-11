@@ -1,1 +1,1 @@
-ERROR: merge conflict: "kind" of morphology hello-stratum changed from chunk to stratum
+ERROR: merge conflict: "kind" of morphology hello-system.hello-stratum changed from stratum to chunk

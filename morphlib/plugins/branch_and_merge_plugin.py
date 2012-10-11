@@ -756,18 +756,82 @@ class BranchAndMergePlugin(cliapp.Plugin):
         base_morph = self.load_morphology(repo_dir, name, ref=base_sha1)
         from_morph = self.load_morphology(repo_dir, name, ref=from_sha1)
         to_morph = self.load_morphology(repo_dir, name, ref=to_ref)
+        return base_morph, from_morph, to_morph
+
+    def check_component(self, parent_kind, parent_path, from_info, to_info):
+        assert (parent_kind in ['system', 'stratum'])
+
+        kind = 'chunk' if parent_kind == 'stratum' else 'stratum'
+        name = to_info.get('alias', to_info.get('name', to_info.get('morph')))
+        path = parent_path + '.' + name
+
+        if kind == 'chunk':
+            # Only chunks can be petrified
+            from_unpetrify_ref = from_info.get('unpetrify-ref', None)
+            to_unpetrify_ref = to_info.get('unpetrify-ref', None)
+            if from_unpetrify_ref is not None and to_unpetrify_ref is None:
+                self.app.output.write(
+                    'WARNING: chunk "%s" is now petrified\n' % path)
+            elif from_unpetrify_ref is None and to_unpetrify_ref is not None:
+                self.app.output.write(
+                    'WARNING: chunk "%s" is no longer petrified\n' % path)
+            elif from_unpetrify_ref != to_unpetrify_ref:
+                raise cliapp.AppException(
+                    'merge conflict: chunk "%s" is petrified to a different '
+                    'ref in each branch' % path)
+
+    def diff_morphologies(self, path, from_morph, to_morph):
+        '''Component-level diff between two versions of a morphology'''
+
+        def component_key(info):
+            # This function needs only to be stable and reproducible
+            key = info['repo'] + '|' + info['morph']
+            if 'name' in info:
+                key += '|' + info['name']
+            return key
 
         if from_morph['name'] != to_morph['name']:
             # We should enforce name == filename in load_morphology()
             raise cliapp.AppException(
                 'merge conflict: "name" of morphology %s (name should always '
-                'match filename)' % name)
+                'match filename)' % path)
         if from_morph['kind'] != to_morph['kind']:
             raise cliapp.AppException(
                 'merge conflict: "kind" of morphology %s changed from %s to %s'
-                % (name, from_morph['kind'], to_morph['kind']))
+                % (path, to_morph['kind'], from_morph['kind']))
 
-        return base_morph, from_morph, to_morph
+        kind = to_morph['kind']
+
+        # copy() makes a shallow copy, so editing the list elements will
+        # change the actual morphologies.
+        if kind == 'system':
+            from_components = copy.copy(from_morph['strata'])
+            to_components = copy.copy(to_morph['strata'])
+        elif kind == 'stratum':
+            from_components = copy.copy(from_morph['chunks'])
+            to_components = copy.copy(to_morph['chunks'])
+        from_components.sort(key=component_key)
+        to_components.sort(key=component_key)
+
+        # These are not set() purely because a set requires a hashable type
+        intersection = [] # TO n FROM
+        from_diff = []    # FROM \ TO
+        to_diff = []      # TO \ FROM
+        while len(from_components) > 0 and len(to_components) > 0:
+            from_info = from_components.pop(0)
+            to_info = to_components.pop(0)
+            match = cmp(component_key(from_info), component_key(to_info))
+            if match < 0:
+                from_diff.append(from_info)
+            elif match > 0:
+                to_diff.append(to_info)
+            elif match == 0:
+                intersection.append((from_info, to_info))
+        if len(from_components) != 0:
+            from_diff.append(from_components.pop(0))
+        if len(to_components) != 0:
+            to_diff.append(to_components.pop(0))
+        return intersection, from_diff, to_diff
 
     def merge_repo(self, merged_repos, from_branch_dir, from_repo, from_ref,
                    to_branch_dir, to_repo, to_ref):
@@ -837,17 +901,23 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'repository : %s vs %s' %
                                       (root_repo, other_root_repo))
 
-        def merge_chunk(old_ci, ci):
+        def merge_chunk(parent_path, old_ci, ci):
             self.merge_repo(merged_repos,
                 from_branch_dir, old_ci['repo'], from_branch,
                 to_branch_dir, ci['repo'], ci['ref'])
 
-        def merge_stratum(old_si, si):
+        def merge_stratum(parent_path, old_si, si):
+            path = parent_path + '.' + si['morph']
+
             to_repo_dir, from_sha1 = self.merge_repo(merged_repos,
                 from_branch_dir, old_si['repo'], from_branch,
                 to_branch_dir, si['repo'], si['ref'])
             base_morph, from_morph, to_morph = self.get_merge_files(
                 to_repo_dir, from_sha1, si['ref'], si['morph'])
+            intersection, from_diff, to_diff = self.diff_morphologies(
+                path, from_morph, to_morph)
+            for from_ci, to_ci in intersection:
+                self.check_component('stratum', path, from_ci, to_ci)
 
             changed = False
             edited_chunks = [ci for ci in from_morph['chunks']
@@ -863,7 +933,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                         'refusing to merge.' % ci['name'])
                 changed = True
                 ci['ref'] = old_ci['ref']
-                merge_chunk(old_ci, ci)
+                merge_chunk(path, old_ci, ci)
             if changed:
                 self.save_morphology(to_repo_dir, si['morph'], to_morph)
                 self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
@@ -874,6 +944,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 to_root_dir, from_sha1, to_branch, name)
             if to_morph['kind'] != 'system':
                 return
+
+            intersection, from_diff, to_diff = self.diff_morphologies(
+                name, from_morph, to_morph)
+            for from_si, to_si in intersection:
+                self.check_component('system', name, from_si, to_si)
 
             changed = False
             edited_strata = [si for si in from_morph['strata']
@@ -891,7 +966,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                         'refusing to merge.' % si['morph'])
                 changed = True
                 si['ref'] = old_si['ref']
-                merge_stratum(old_si, si)
+                merge_stratum(name, old_si, si)
             if changed:
                 self.save_morphology(to_root_dir, name, to_morph)
                 self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
