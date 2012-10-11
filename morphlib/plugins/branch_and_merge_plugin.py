@@ -266,7 +266,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 if ref is not None:
                     msg += ' at ref %s' % ref
                 raise cliapp.AppException(msg)
-        morphology = morphlib.morph2.Morphology(text)
+
+        try:
+            morphology = morphlib.morph2.Morphology(text)
+        except ValueError as e:
+            raise morphlib.Error("Error parsing %s: %s" %
+                                 (filename, str(e)))
+
         return morphology
 
     def reset_work_tree_safe(self, repo_dir):
