@@ -302,6 +302,31 @@ class BranchAndMergePlugin(cliapp.Plugin):
             ]
         }
         
+        also_known = {
+            'system': [
+                'kind',
+                'description',
+                'disk-size',
+                '_disk-size',
+            ],
+            'stratum': [
+                'kind',
+                'description',
+                'build-depends',
+            ],
+            'chunk': [
+                'kind',
+                'description',
+                'build-system',
+                'configure-commands',
+                'build-commands',
+                'test-commands',
+                'install-commands',
+                'max-jobs',
+                'chunks',
+            ]
+        }
+        
         require('kind')
         kind = morphology['kind']
         if kind not in required:
@@ -309,6 +334,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'Unknown morphology kind "%s" in %s' % (kind, basename))
         for field in required[kind]:
             require(field)
+            
+        known = required[kind] + also_known[kind]
+        for field in morphology.keys():
+            if field not in known:
+                msg = 'Unknown field "%s" in %s' % (field, basename)
+                logging.warning(msg)
+                self.app.status(msg=msg)
 
     def reset_work_tree_safe(self, repo_dir):
         # This function avoids throwing any exceptions, so it is safe to call
