@@ -14,19 +14,19 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Things that "morph merge" isn't expected to handle (but shouldn't crash)
+# If the user merges a petrified branch into an unpetrified branch,
+# we should warn them.
 
 set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/unmergable
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/petrified
 
-cd "$DATADIR/workspace/test/unmergable/baserock:morphs"
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
-sed -ie 's/"kind": "stratum"/"kind": "chunk"/' hello-stratum.morph
-git commit --quiet --all -m "Unmergeable because kind has changed"
+cd "$DATADIR/workspace/test/petrified/baserock:morphs"
+"$SRCDIR/scripts/test-morph" petrify
+git commit --quiet --all -m "Petrify branch"
 
 cd "$DATADIR/workspace/master/baserock:morphs"
-"$SRCDIR/scripts/test-morph" merge test/unmergable
+"$SRCDIR/scripts/test-morph" merge test/petrified
