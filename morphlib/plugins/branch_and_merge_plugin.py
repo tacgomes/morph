@@ -273,7 +273,42 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise morphlib.Error("Error parsing %s: %s" %
                                  (filename, str(e)))
 
+        self._validate_morphology(morphology, '%s.morph' % name)
+
         return morphology
+
+    def _validate_morphology(self, morphology, basename):
+        # FIXME: This really should be in MorphologyFactory. Later.
+        
+        def require(field):
+            if field not in morphology:
+                raise morphlib.Error(
+                    'Required field "%s" is missing from morphology %s' %
+                        (field, basename))
+        
+        required = {
+            'system': [
+                'name',
+                'system-kind',
+                'arch',
+                'strata',
+            ],
+            'stratum': [
+                'name',
+                'chunks',
+            ],
+            'chunk': [
+                'name',
+            ]
+        }
+        
+        require('kind')
+        kind = morphology['kind']
+        if kind not in required:
+            raise morphlib.Error(
+                'Unknown morphology kind "%s" in %s' % (kind, basename))
+        for field in required[kind]:
+            require(field)
 
     def reset_work_tree_safe(self, repo_dir):
         # This function avoids throwing any exceptions, so it is safe to call
