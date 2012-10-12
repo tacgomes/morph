@@ -36,17 +36,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.init_changelog()
 
     def enable(self):
+        # User-facing commands
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
-        self.app.add_subcommand('workspace', self.workspace,
-                                arg_synopsis='')
         self.app.add_subcommand('branch', self.branch,
                                 arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
                                 arg_synopsis='REPO BRANCH')
-        self.app.add_subcommand('show-system-branch', self.show_system_branch,
-                                arg_synopsis='')
-        self.app.add_subcommand('show-branch-root', self.show_branch_root,
-                                arg_synopsis='')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('edit', self.edit,
@@ -55,8 +50,19 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('unpetrify', self.unpetrify)
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
+        self.app.add_subcommand('status', self.status)
+
+        # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='COMMAND')
+
+        # Plumbing commands (FIXME: should be hidden from --help by default)
+        self.app.add_subcommand('workspace', self.workspace,
+                                arg_synopsis='')
+        self.app.add_subcommand('show-system-branch', self.show_system_branch,
+                                arg_synopsis='')
+        self.app.add_subcommand('show-branch-root', self.show_branch_root,
+                                arg_synopsis='')
 
     def disable(self):
         pass
@@ -119,7 +125,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def find_repository(self, branch_dir, repo):
         for dirname in self.walk_special_directories(branch_dir,
                                                      special_subdir='.git'):
-            original_repo = self.get_repo_config(dirname, 'morph.repository')
+            try:
+                original_repo = self.get_repo_config(
+                    dirname, 'morph.repository')
+            except cliapp.AppException:
+                # The user may have manually put a git repo in the branch
+                continue
             if repo == original_repo:
                 return dirname
         return None
@@ -147,6 +158,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def get_repo_config(self, repo_dir, option):
         value = self.app.runcmd(['git', 'config', option], cwd=repo_dir)
         return value.strip()
+
+    def get_head(self, repo_path):
+        '''Return the ref that the working tree is on for a repo'''
+
+        ref = self.app.runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                              cwd=repo_path).strip()
+        if ref == 'HEAD':
+            ref = 'detached HEAD'
+        return ref
 
     def get_uncommitted_changes(self, repo_dir, env={}):
         status = self.app.runcmd(['git', 'status', '--porcelain'],
@@ -421,6 +441,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
             parent = os.path.dirname(parent)
 
     @staticmethod
+    def iterate_branch_repos(branch_path, root_repo_path):
+        '''Produces a sorted list of component repos in a branch checkout'''
+
+        dirs = [d for d in BranchAndMergePlugin.walk_special_directories(
+                    branch_path, special_subdir='.git')
+                if not os.path.samefile(d, root_repo_path)]
+        dirs.sort()
+
+        for d in [root_repo_path] + dirs:
+            yield d
+
+    @staticmethod
     def walk_special_directories(root_dir, special_subdir=None, max_subdirs=0):
         assert(special_subdir is not None)
         assert(max_subdirs >= 0)
@@ -471,11 +503,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         os.mkdir(os.path.join(dirname, '.morph'))
         self.app.status(msg='Initialized morph workspace', chatty=True)
-
-    def workspace(self, args):
-        '''Find morph workspace directory from current working directory.'''
-
-        self.app.output.write('%s\n' % self.deduce_workspace())
 
     def branch(self, args):
         '''Branch the whole system.'''
@@ -559,20 +586,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         except:
             self.remove_branch_dir_safe(workspace, system_branch)
             raise
-
-    def show_system_branch(self, args):
-        '''Print name of current system branch.'''
-
-        branch, dirname = self.deduce_system_branch()
-        self.app.output.write('%s\n' % branch)
-
-    def show_branch_root(self, args):
-        '''Print name of the repository that was branched off from.'''
-
-        workspace = self.deduce_workspace()
-        system_branch, branch_dir = self.deduce_system_branch()
-        branch_root = self.get_branch_config(branch_dir, 'branch.root')
-        self.app.output.write('%s\n' % branch_root)
 
     def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
         '''Make a chunk or stratum repository available for a system branch
@@ -1299,6 +1312,48 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.runcmd(['git', 'push', 'origin',
                              ':%s' % info['build-ref']], cwd=info['dirname'])
 
+    def status(self, args):
+        if len(args) != 0:
+            raise cliapp.AppException('morph status takes no arguments')
+
+        workspace = self.deduce_workspace()
+        try:
+            branch, branch_path = self.deduce_system_branch()
+        except cliapp.AppException:
+            branch = None
+
+        if branch is None:
+            self.app.output.write("System branches in current workspace:\n")
+            for dirname in self.walk_special_directories(
+                    workspace, special_subdir='.morph-system-branch'):
+                branch = self.get_branch_config(dirname, 'branch.name')
+                self.app.output.write("    %s\n" % branch)
+            return
+
+        root_repo = self.get_branch_config(branch_path, 'branch.root')
+        root_repo_path = self.find_repository(branch_path, root_repo)
+
+        self.app.output.write("On branch %s, root %s\n" % (branch, root_repo))
+
+        has_uncommitted_changes = False
+        for d in self.iterate_branch_repos(branch_path, root_repo_path):
+            try:
+                repo = self.get_repo_config(d, 'morph.repository')
+            except cliapp.AppException:
+                self.app.output.write(
+                    '    %s: not part of system branch\n' % d)
+                continue
+            head = self.get_head(d)
+            if head != branch:
+                self.app.output.write(
+                    '    %s: unexpected ref checked out "%s"\n' % (repo, head))
+            if len(self.get_uncommitted_changes(d)) > 0:
+                has_uncommitted_changes = True
+                self.app.output.write('    %s: uncommitted changes\n' % repo)
+
+        if not has_uncommitted_changes:
+            self.app.output.write("\nNo repos have outstanding changes.\n")
+
     def foreach(self, args):
         '''Run a command in each repository checked out in a system branch
 
@@ -1319,14 +1374,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch, branch_path = self.deduce_system_branch()
 
         root_repo = self.get_branch_config(branch_path, 'branch.root')
-        root_repo_dir = self.convert_uri_to_path(root_repo)
-        root_repo_path = os.path.join(branch_path, root_repo_dir)
+        root_repo_path = self.find_repository(branch_path, root_repo)
 
-        dirs = [d for d in self.walk_special_directories(
-                    branch_path, special_subdir='.git')
-                if not os.path.samefile(d, root_repo_path)]
-        dirs.sort()
-        for d in [root_repo_path] + dirs:
+        for d in self.iterate_branch_repos(branch_path, root_repo_path):
             try:
                 repo = self.get_repo_config(d, 'morph.repository')
             except cliapp.AppException:
@@ -1342,3 +1392,22 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.app.output.write(error)
                 raise cliapp.AppException(
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
+
+    def workspace(self, args):
+        '''Find morph workspace directory from current working directory.'''
+
+        self.app.output.write('%s\n' % self.deduce_workspace())
+
+    def show_system_branch(self, args):
+        '''Print name of current system branch.'''
+
+        branch, dirname = self.deduce_system_branch()
+        self.app.output.write('%s\n' % branch)
+
+    def show_branch_root(self, args):
+        '''Print name of the repository that was branched off from.'''
+
+        workspace = self.deduce_workspace()
+        system_branch, branch_dir = self.deduce_system_branch()
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
+        self.app.output.write('%s\n' % branch_root)

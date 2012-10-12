@@ -1,0 +1,5 @@
+On branch test, root baserock:morphs
+    baserock:morphs: uncommitted changes
+    baserock:external-strata: uncommitted changes
+    baserock:stratum2-hello: unexpected ref checked out "master"
+    TMP/workspace/test/red-herring: not part of system branch
