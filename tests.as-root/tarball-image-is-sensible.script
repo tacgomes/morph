@@ -20,7 +20,11 @@
 
 set -eu
 
-source "$SRCDIR/scripts/fix-committer-info"
+case $(python --version 2>&1) in
+    "Python 2.6"*) exit 0 ;;
+esac
+
+. "$SRCDIR/scripts/fix-committer-info"
 
 tar=$("$SRCDIR/morph" \
         --no-default-config --config="$DATADIR/morph.conf" --verbose \

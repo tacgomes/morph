@@ -706,9 +706,10 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                 self.app.status(msg='Compressing disk image',
                                 chatty=True)
                 with os.fdopen(image_file_fd, "rb") as ifh:
-                    with gzip.GzipFile(fileobj=handle, mode="wb",
-                                       compresslevel=1) as ofh:
-                        shutil.copyfileobj(ifh, ofh, 1024 * 1024)
+                    ofh = gzip.GzipFile(
+                        fileobj=handle, mode="wb", compresslevel=1)
+                    shutil.copyfileobj(ifh, ofh, 1024 * 1024)
+                    ofh.close()
 
             except:
                 os.remove(image_name)

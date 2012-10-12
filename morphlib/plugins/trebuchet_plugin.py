@@ -40,8 +40,9 @@ class MountableImage(object):
 
         try:
             with os.fdopen(tempfd, "wb") as outfh:
-                with gzip.open(path, "rb") as infh:
-                    morphlib.util.copyfileobj(infh, outfh)
+                infh = gzip.open(path, "rb")
+                morphlib.util.copyfileobj(infh, outfh)
+                infh.close()
         except:
             os.unlink(self.temp_path)
             raise
