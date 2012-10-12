@@ -125,7 +125,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def find_repository(self, branch_dir, repo):
         for dirname in self.walk_special_directories(branch_dir,
                                                      special_subdir='.git'):
-            original_repo = self.get_repo_config(dirname, 'morph.repository')
+            try:
+                original_repo = self.get_repo_config(
+                    dirname, 'morph.repository')
+            except cliapp.AppException:
+                # The user may have manually put a git repo in the branch
+                continue
             if repo == original_repo:
                 return dirname
         return None
@@ -1326,8 +1331,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             return
 
         root_repo = self.get_branch_config(branch_path, 'branch.root')
-        root_repo_dir = self.convert_uri_to_path(root_repo)
-        root_repo_path = os.path.join(branch_path, root_repo_dir)
+        root_repo_path = self.find_repository(branch_path, root_repo)
 
         self.app.output.write("On branch %s, root %s\n" % (branch, root_repo))
 
@@ -1370,8 +1374,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch, branch_path = self.deduce_system_branch()
 
         root_repo = self.get_branch_config(branch_path, 'branch.root')
-        root_repo_dir = self.convert_uri_to_path(root_repo)
-        root_repo_path = os.path.join(branch_path, root_repo_dir)
+        root_repo_path = self.find_repository(branch_path, root_repo)
 
         for d in self.iterate_branch_repos(branch_path, root_repo_path):
             try:
