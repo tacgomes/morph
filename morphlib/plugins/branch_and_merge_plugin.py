@@ -436,6 +436,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
             parent = os.path.dirname(parent)
 
     @staticmethod
+    def iterate_branch_repos(branch_path, root_repo_path):
+        '''Produces a sorted list of component repos in a branch checkout'''
+
+        dirs = [d for d in BranchAndMergePlugin.walk_special_directories(
+                    branch_path, special_subdir='.git')
+                if not os.path.samefile(d, root_repo_path)]
+        dirs.sort()
+
+        for d in [root_repo_path] + dirs:
+            yield d
+
+    @staticmethod
     def walk_special_directories(root_dir, special_subdir=None, max_subdirs=0):
         assert(special_subdir is not None)
         assert(max_subdirs >= 0)
@@ -1316,15 +1328,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         root_repo = self.get_branch_config(branch_path, 'branch.root')
         root_repo_dir = self.convert_uri_to_path(root_repo)
         root_repo_path = os.path.join(branch_path, root_repo_dir)
-        dirs = [d for d in self.walk_special_directories(
-                    branch_path, special_subdir='.git')
-                if not os.path.samefile(d, root_repo_path)]
-        dirs.sort()
 
         self.app.output.write("On branch %s, root %s\n" % (branch, root_repo))
 
         has_uncommitted_changes = False
-        for d in [root_repo_path] + dirs:
+        for d in self.iterate_branch_repos(branch_path, root_repo_path):
             try:
                 repo = self.get_repo_config(d, 'morph.repository')
             except cliapp.AppException:
@@ -1365,11 +1373,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         root_repo_dir = self.convert_uri_to_path(root_repo)
         root_repo_path = os.path.join(branch_path, root_repo_dir)
 
-        dirs = [d for d in self.walk_special_directories(
-                    branch_path, special_subdir='.git')
-                if not os.path.samefile(d, root_repo_path)]
-        dirs.sort()
-        for d in [root_repo_path] + dirs:
+        for d in self.iterate_branch_repos(branch_path, root_repo_path):
             try:
                 repo = self.get_repo_config(d, 'morph.repository')
             except cliapp.AppException:
