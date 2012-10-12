@@ -20,7 +20,7 @@
 
 set -eu
 
-source "$SRCDIR/scripts/fix-committer-info"
+. "$SRCDIR/scripts/fix-committer-info"
 
 tar=$("$SRCDIR/morph" \
         --no-default-config --config="$DATADIR/morph.conf" --verbose \
