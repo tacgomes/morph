@@ -50,6 +50,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('unpetrify', self.unpetrify)
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
+        self.app.add_subcommand('status', self.status)
 
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
@@ -152,6 +153,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def get_repo_config(self, repo_dir, option):
         value = self.app.runcmd(['git', 'config', option], cwd=repo_dir)
         return value.strip()
+
+    def get_head(self, repo_path):
+        '''Return the ref that the working tree is on for a repo'''
+
+        ref = self.app.runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                              cwd=repo_path).strip()
+        if ref == 'HEAD':
+            ref = 'detached HEAD'
+        return ref
 
     def get_uncommitted_changes(self, repo_dir, env={}):
         status = self.app.runcmd(['git', 'status', '--porcelain'],
@@ -1284,6 +1294,53 @@ class BranchAndMergePlugin(cliapp.Plugin):
                             repo=repo)
             self.app.runcmd(['git', 'push', 'origin',
                              ':%s' % info['build-ref']], cwd=info['dirname'])
+
+    def status(self, args):
+        if len(args) != 0:
+            raise cliapp.AppException('morph status takes no arguments')
+
+        workspace = self.deduce_workspace()
+        try:
+            branch, branch_path = self.deduce_system_branch()
+        except cliapp.AppException:
+            branch = None
+
+        if branch is None:
+            self.app.output.write("System branches in current workspace:\n")
+            for dirname in self.walk_special_directories(
+                    workspace, special_subdir='.morph-system-branch'):
+                branch = self.get_branch_config(dirname, 'branch.name')
+                self.app.output.write("    %s\n" % branch)
+            return
+
+        root_repo = self.get_branch_config(branch_path, 'branch.root')
+        root_repo_dir = self.convert_uri_to_path(root_repo)
+        root_repo_path = os.path.join(branch_path, root_repo_dir)
+        dirs = [d for d in self.walk_special_directories(
+                    branch_path, special_subdir='.git')
+                if not os.path.samefile(d, root_repo_path)]
+        dirs.sort()
+
+        self.app.output.write("On branch %s, root %s\n" % (branch, root_repo))
+
+        has_uncommitted_changes = False
+        for d in [root_repo_path] + dirs:
+            try:
+                repo = self.get_repo_config(d, 'morph.repository')
+            except cliapp.AppException:
+                self.app.output.write(
+                    '    %s: not part of system branch\n' % d)
+                continue
+            head = self.get_head(d)
+            if head != branch:
+                self.app.output.write(
+                    '    %s: unexpected ref checked out "%s"\n' % (repo, head))
+            if len(self.get_uncommitted_changes(d)) > 0:
+                has_uncommitted_changes = True
+                self.app.output.write('    %s: uncommitted changes\n' % repo)
+
+        if not has_uncommitted_changes:
+            self.app.output.write("\nNo repos have outstanding changes.\n")
 
     def foreach(self, args):
         '''Run a command in each repository checked out in a system branch
