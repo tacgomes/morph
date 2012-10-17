@@ -9,6 +9,12 @@ Petrified:
             "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
             "build-depends": [],
             "unpetrify-ref": "master"
+        },
+        {
+            "name": "goodbye",
+            "repo": "baserock:goodbye",
+            "ref": "test/petrify",
+            "build-depends": []
         }
     ]
 }
@@ -22,6 +28,12 @@ Unpetrified:
             "name": "hello",
             "repo": "baserock:hello",
             "ref": "master",
+            "build-depends": []
+        },
+        {
+            "name": "goodbye",
+            "repo": "baserock:goodbye",
+            "ref": "test/petrify",
             "build-depends": []
         }
     ]
