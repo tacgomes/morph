@@ -1345,8 +1345,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         if branch is None:
             self.app.output.write("System branches in current workspace:\n")
-            for dirname in self.walk_special_directories(
-                    workspace, special_subdir='.morph-system-branch'):
+            branch_dirs = sorted(self.walk_special_directories(
+                workspace, special_subdir='.morph-system-branch'))
+            for dirname in branch_dirs:
                 branch = self.get_branch_config(dirname, 'branch.name')
                 self.app.output.write("    %s\n" % branch)
             return
