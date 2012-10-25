@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Test making a patch between two different system images
 #
@@ -18,6 +18,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 set -eu
+
+. "$SRCDIR/tests.as-root/lib"
 
 # Make a stratum that include hello and kernel chunks.
 cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
@@ -89,26 +91,10 @@ Done.
 EOF
 exit 0
 
-# find out the offset of the partition in the disk image
-# udevadm settle is used to wait until devices have appeared
-loop=$(losetup -f --show "$img1")
-udevadm settle
-offset=$(sfdisk -d "$loop" |
-             sed -n '/start=/s/^.*start=\s*\([0-9]\+\)[^0-9].*$/\1/p' |
-             head -n 1)
-ssz=`cat "/sys/devices/virtual/block/$(basename "$loop")/queue/hw_sector_size"`
-losetup -d "$loop"
-udevadm settle
-
-# mount the disk
-mkdir "$DATADIR/unpacked"
-# this has to be done by losetup then mount, because busybox mount doesn't
-# accept the -o offset= option
-loop=$(losetup -o "$(expr "$offset" '*' "$ssz")" -f --show "$img1")
-udevadm settle
-trap 'losetup -d "$loop"' INT TERM EXIT
-mount -o subvol=factory-run -t btrfs "$loop" "$DATADIR/unpacked"
-trap 'umount -d "$DATADIR/unpacked"' INT TERM EXIT
+mkdir -p "$DATADIR/unpacked"
+device=$(loopback_rootfs "$img1")
+mount -o subvol=factory-run "$device" "$DATADIR/unpacked"
+trap 'cd /; umount -d "$device"' INT TERM ERR
 
 cd "$DATADIR/unpacked"
 echo "old version:"
@@ -119,7 +105,7 @@ tbdiff-deploy "$patch" 2>/dev/null
 echo "new version:"
 ./bin/hello
 
-# Done.
 echo "Done."
-# chdir out of mounted folder, so it can be unmounted
+
 cd /
+umount -d "$device"

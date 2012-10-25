@@ -662,8 +662,8 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
         with self.build_watch('overall-build'):
             arch = self.artifact.source.morphology['arch']
 
-            rootfs_artifact = self.new_artifact(
-                self.artifact.source.morphology['name'] + '-rootfs')
+            rootfs_name = self.artifact.source.morphology['name'] + '-rootfs'
+            rootfs_artifact = self.new_artifact(rootfs_name)
             handle = self.local_artifact_cache.put(rootfs_artifact)
             (image_file_fd, image_name) = \
                 tempfile.mkstemp(dir=self.app.settings['tempdir'])
@@ -682,6 +682,7 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                     factory_path = os.path.join(mount_point, 'factory')
                     self._create_subvolume(factory_path)
                     self.unpack_strata(factory_path)
+                    self.write_metadata(factory_path, rootfs_name)
                     self.create_fstab(factory_path)
                     self._create_bootloader_config(factory_path)
                     self._create_subvolume_snapshot(
