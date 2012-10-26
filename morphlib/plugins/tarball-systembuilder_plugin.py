@@ -49,6 +49,7 @@ class RootfsTarballBuilder(SystemKindBuilder):  # pragma: no cover
             try:
                 fs_root = self.staging_area.destdir(self.artifact.source)
                 self.unpack_strata(fs_root)
+                self.write_metadata(fs_root, rootfs_name)
                 self.create_fstab(fs_root)
                 self.copy_kernel_into_artifact_cache(fs_root)
                 unslashy_root = fs_root[1:]

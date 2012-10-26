@@ -1,36 +1,35 @@
 #!/bin/sh
 #
-# A system kind of 'rootfs-tarball' should create a tarball containing
-# all the required files
-#
 # Copyright (C) 2012  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -eu
+# Helper functions for as-root tests
 
-case $(python --version 2>&1) in
-    "Python 2.6"*) exit 0 ;;
-esac
+loopback_rootfs() {
+    # Find offset partition offset in a rootfs and mount it
+    ROOTFS="$1"
 
-. "$SRCDIR/scripts/fix-committer-info"
+    mv "$ROOTFS" "$ROOTFS-unzipped.gz"
+    gunzip "$ROOTFS-unzipped.gz"
 
-tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
-    build-morphology test:morphs-repo tarball-links hello-tarball)
+    OFFSET=$(sfdisk -d "$ROOTFS-unzipped" | \
+        grep -m 1 -o 'start=\s\+\([0-9]\+\)' | awk '{ print $2 }')
+    OFFSET=$(expr "$OFFSET" '*' 512)
 
-extracted="$DATADIR/extracted"
-mkdir -p "$extracted"
-cd "$extracted"
-tar -xf "$tar"
-find . -mindepth 1 | xargs ls -dF | LC_ALL=C sort -u
+    DEVICE=$(losetup --show -o "$OFFSET" -f "$ROOTFS-unzipped")
+    udevadm settle
+
+    echo "$DEVICE"
+}

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # A system kind of 'disk' should create the disk image, plus a kernel file.
 #
@@ -18,6 +18,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 set -eu
+
+. "$SRCDIR/tests.as-root/lib"
 
 cache="$DATADIR/cache/artifacts"
 kernelrepo="$DATADIR/kernel-repo"
@@ -83,8 +85,8 @@ git add linux.morph
 
 git commit --quiet -m 'Make the kernel create a dummy zImage'
 
-"$SRCDIR/scripts/test-morph" \
-    build-morphology test:morphs-repo custom system > /dev/null
+rootfs=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
+    build-morphology test:morphs-repo custom system)
 
 for suffix in kernel rootfs
 do
@@ -96,3 +98,12 @@ do
     fi
 done
 
+mkdir -p "$DATADIR/mnt"
+device=$(loopback_rootfs "$rootfs")
+mount "$device" "$DATADIR/mnt"
+trap 'cd /; umount -d "$device"' INT TERM ERR
+
+cd "$DATADIR/mnt"
+find | LC_ALL=C sort -u
+cd "$DATADIR"
+umount -d "$device"

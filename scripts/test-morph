@@ -27,7 +27,25 @@ set -eu
 # distributed builds, which invoke morph as a sub-process.
 export PATH="$SRCDIR:$PATH"
 
-"$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
-    --tarball-server= --cache-server= \
-    --config="$DATADIR/morph.conf" "$@"
+if [ "$1" = "--find-system-artifact" ]; then
+    shift
 
+    "$SRCDIR/morph" --no-default-config \
+        --tarball-server= --cache-server= \
+        --config="$DATADIR/morph.conf" --verbose "$@" > $DATADIR/stdout
+
+    ARTIFACT=$(grep "system \S\+-rootfs is cached at" "$DATADIR/stdout" | \
+        sed -nre "s/^.*system \S+-rootfs is cached at (\S+)$/\1/p")
+    rm "$DATADIR/stdout"
+
+    if [ ! -e "$ARTIFACT" ]; then
+        echo "Unable to find rootfs artifact: $ARTIFACT" 1>&2
+        exit 1
+    fi
+
+    echo $ARTIFACT
+else
+    "$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
+        --tarball-server= --cache-server= \
+        --config="$DATADIR/morph.conf" "$@"
+fi

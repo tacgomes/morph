@@ -1,5 +1,6 @@
 ./baserock/
 ./baserock/hello-stratum.meta
+./baserock/hello-tarball-rootfs.meta
 ./baserock/hello.meta
 ./baserock/link-stratum.meta
 ./baserock/links.meta
