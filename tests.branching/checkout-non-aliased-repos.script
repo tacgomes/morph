@@ -34,12 +34,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" checkout "$REPO_WITH_SUFFIX" master
 
-echo "File tree of repo with suffix:"
-"$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
-    grep -v 'cache/gits/file_[^/]*/' |
-    sed "s,${DATADIR:1},DATADIR,g" |
-    sed "s,${TEMP_DIR:1},TEMP_DIR,g"
+test -d "$DATADIR/workspace/master/$DATADIR/morphs"
 
 echo "Current branches of repo with suffix:"
 "$SRCDIR/scripts/run-git-in" master/"${DATADIR:1}"/morphs branch
@@ -52,12 +47,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" checkout "$REPO_WITHOUT_SUFFIX" master
 
-echo "File tree of repo without suffix:"
-"$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
-    sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |
-    grep -v 'cache/gits/file_[^/]*/' |
-    sed "s,${DATADIR:1},DATADIR,g" |
-    sed "s,${TEMP_DIR:1},TEMP_DIR,g"
+test -d "$DATADIR/workspace/master/$DATADIR/morphs"
 
 echo "Current branches of repo without suffix:"
 "$SRCDIR/scripts/run-git-in" master/"${DATADIR:1}"/morphs branch
