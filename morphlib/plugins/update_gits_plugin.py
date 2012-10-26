@@ -31,13 +31,7 @@ class UpdateGitsPlugin(cliapp.Plugin):
         pass
 
     def update_gits(self, args):
-        '''Update cached git repositories.
-
-        Parse the given morphologies, and their dependencies, and
-        update all the git repositories referred to by them in the
-        morph cache directory.
-
-        '''
+        '''Manually update cached git repositories for the given morphology'''
 
         app = self.app
         if not os.path.exists(app.settings['cachedir']):

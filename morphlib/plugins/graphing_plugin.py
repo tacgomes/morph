@@ -31,6 +31,7 @@ class GraphingPlugin(cliapp.Plugin):
         pass
 
     def graph_build_depends(self, args):
+        '''Create a visualisation of build dependencies in a stratum'''
         for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Creating build order for '
                                 '%(repo_name)s %(ref)s %(filename)s',

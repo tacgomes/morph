@@ -29,15 +29,10 @@ class BuildPlugin(cliapp.Plugin):
         pass
 
     def build_morphology(self, args):
-        '''Build a binary from a morphology.
+        '''Build a system, outside of a system branch
 
-        Command line arguments are the repository, git tree-ish reference,
-        and morphology filename. Morph takes care of building all dependencies
-        before building the morphology. All generated binaries are put into the
-        cache.
-
-        (The triplet of command line arguments may be repeated as many
-        times as necessary.)
+        Command line arguments are the repository, git ref,
+        and morphology filename.
 
         '''
 
