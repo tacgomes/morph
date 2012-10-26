@@ -52,10 +52,21 @@ defaults = {
 class Morph(cliapp.Application):
 
     def add_settings(self):
+        # Logging
         self.settings.boolean(['verbose', 'v'],
                               'show what is happening in much detail')
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
+
+        # General Options
+        self.settings.string(['cachedir'],
+                             'put build results in DIR',
+                             metavar='DIR',
+                             default=defaults['cachedir'])
+        self.settings.string(['build-ref-prefix'],
+                             'Prefix to use for temporary build refs',
+                             metavar='PREFIX',
+                             default=defaults['build-ref-prefix'])
         self.settings.string(['trove-host'],
                              'hostname of Trove instance',
                              metavar='TROVEHOST',
@@ -72,6 +83,12 @@ class Morph(cliapp.Application):
                                   'the trove.',\
                                   metavar='ALIAS=PREFIX#PULL#PUSH',
                                   default=defaults['trove-prefix'])
+
+        # Advanced Options
+        self.settings.boolean(['no-git-update'],
+                              'do not update the cached git repositories '
+                              'during a build (user must have done that '
+                              'already using the update-gits subcommand)')
         self.settings.string_list(['repo-alias'],
                                   'define URL prefix aliases to allow '
                                   'repository addresses to be shortened; '
@@ -81,31 +98,56 @@ class Morph(cliapp.Application):
                                   'contain a %s where the shortname gets '
                                   'replaced',
                                   default=defaults['repo-alias'])
-        self.settings.string(['tarball-server'],
-                             'base URL to download tarballs. '
-                             'If not provided, defaults to '
-                             'http://TROVEHOST/tarballs/',
-                             metavar='URL',
-                             default=None)
         self.settings.string(['cache-server'],
                              'HTTP URL of the morph cache server to use. '
                              'If not provided, defaults to '
                              'http://TROVEHOST:8080/',
                              metavar='URL',
                              default=None)
-        self.settings.string(['cachedir'],
-                             'put build results in DIR',
-                             metavar='DIR',
-                             default=defaults['cachedir'])
+        self.settings.string(['tarball-server'],
+                             'base URL to download tarballs. '
+                             'If not provided, defaults to '
+                             'http://TROVEHOST/tarballs/',
+                             metavar='URL',
+                             default=None)
+
+        # Build Options
+        self.settings.boolean(['bootstrap'],
+                              'build stuff in bootstrap mode; this is '
+                              'DANGEROUS and will install stuff on your '
+                              'system')
+        self.settings.string(['ccache-remotedir'],
+                             'allow ccache to download objects from REMOTEDIR '
+                             'if they are not cached locally',
+                             metavar='REMOTEDIR',
+                             default=defaults['ccache-remotedir'])
+        self.settings.integer(['ccache-remotenlevels'],
+                              'assume ccache directory objects are split into '
+                              'NLEVELS levels of subdirectories',
+                              metavar='NLEVELS',
+                              default=defaults['ccache-remotenlevels'])
+        self.settings.boolean(['keep-path'],
+                              'do not touch the PATH environment variable')
+        self.settings.integer(['max-jobs'],
+                              'run at most N parallel jobs with make (default '
+                              'is to a value based on the number of CPUs '
+                              'in the machine running morph',
+                              metavar='N',
+                              default=defaults['max-jobs'])
+        self.settings.boolean(['no-ccache'], 'do not use ccache')
+        self.settings.boolean(['no-distcc'], 'do not use distcc')
         self.settings.string(['prefix'],
                              'build chunks with prefix PREFIX',
                              metavar='PREFIX', default=defaults['prefix'])
-        self.settings.string(['toolchain-target'],
-                             'set the TOOLCHAIN_TARGET variable which is used '
-                             'in some chunks to determine which architecture '
-                             'to build tools for',
-                             metavar='TOOLCHAIN_TARGET',
-                             default=defaults['toolchain-target'])
+        self.settings.boolean(['staging-chroot'],
+                              'build things in a staging chroot '
+                              '(require real root to use)')
+        self.settings.string_list(['staging-filler'],
+                                  'unpack BLOB into staging area for '
+                                  'non-bootstrap builds (this will '
+                                  'eventually be replaced with proper '
+                                  'build dependencies)',
+                                  metavar='BLOB')
         self.settings.string(['target-cflags'],
                              'inject additional CFLAGS into the environment '
                              'that is used to build chunks',
@@ -120,53 +162,12 @@ class Morph(cliapp.Application):
                              'NFS)',
                              metavar='DIR',
                              default=os.environ.get('TMPDIR'))
-        self.settings.boolean(['no-ccache'], 'do not use ccache')
-        self.settings.string(['ccache-remotedir'],
-                             'allow ccache to download objects from REMOTEDIR '
-                             'if they are not cached locally',
-                             metavar='REMOTEDIR',
-                             default=defaults['ccache-remotedir'])
-        self.settings.integer(['ccache-remotenlevels'],
-                              'assume ccache directory objects are split into '
-                              'NLEVELS levels of subdirectories',
-                              metavar='NLEVELS',
-                              default=defaults['ccache-remotenlevels'])
-        self.settings.boolean(['no-distcc'], 'do not use distcc')
-        self.settings.integer(['max-jobs'],
-                              'run at most N parallel jobs with make (default '
-                              'is to a value based on the number of CPUs '
-                              'in the machine running morph',
-                              metavar='N',
-                              default=defaults['max-jobs'])
-        self.settings.boolean(['keep-path'],
-                              'do not touch the PATH environment variable')
-        self.settings.boolean(['bootstrap'],
-                              'build stuff in bootstrap mode; this is '
-                              'DANGEROUS and will install stuff on your '
-                              'system')
-        self.settings.boolean(['ignore-submodules'],
-                              'do not cache repositories of git submodules '
-                              'or unpack them into the build directory')
-
-        self.settings.boolean(['no-git-update'],
-                              'do not update the cached git repositories '
-                              'during a build (user must have done that '
-                              'already using the update-gits subcommand)')
-
-        self.settings.string_list(['staging-filler'],
-                                  'unpack BLOB into staging area for '
-                                  'non-bootstrap builds (this will '
-                                  'eventually be replaced with proper '
-                                  'build dependencies)',
-                                  metavar='BLOB')
-        self.settings.boolean(['staging-chroot'],
-                              'build things in a staging chroot '
-                              '(require real root to use)')
-
-        self.settings.string(['build-ref-prefix'],
-                             'Prefix to use for temporary build refs',
-                             metavar='PREFIX',
-                             default=defaults['build-ref-prefix'])
+        self.settings.string(['toolchain-target'],
+                             'set the TOOLCHAIN_TARGET variable which is used '
+                             'in some chunks to determine which architecture '
+                             'to build tools for',
+                             metavar='TOOLCHAIN_TARGET',
+                             default=defaults['toolchain-target'])
 
     def check_time(self):
         # Check that the current time is not far in the past.
