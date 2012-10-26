@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import datetime
 import json
 import logging
 import os
@@ -541,6 +542,18 @@ class SystemKindBuilder(BuilderBase):  # pragma: no cover
 
             ldconfig(self.app.runcmd, path)
 
+    def write_metadata(self, instdir, artifact_name):
+        BuilderBase.write_metadata(self, instdir, artifact_name)
+
+        os_release_file = os.path.join(instdir, 'etc', 'os-release')
+        if not os.path.exists(os.path.dirname(os_release_file)):
+            os.makedirs(os.path.dirname(os_release_file))
+        with morphlib.savefile.SaveFile(os_release_file, 'w') as f:
+            f.write('Baserock %s, built from ref %s on %s\n' %
+                (self.artifact.source.morphology['name'],
+                 self.artifact.source.original_ref,
+                 datetime.date.today()))
+
     def create_fstab(self, path):
         '''Create an /etc/fstab inside a system tree.
 
@@ -615,7 +628,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             system_kind, self.args, self.kwargs)
         logging.debug('Building system with %s' % repr(builder))
         self.app.status(msg='Building system %(system_name)s',
-                        system_name=self.artifact.name)
+                        system_name=self.artifact.source.morphology['name'])
         return builder.build_and_cache()
 
 

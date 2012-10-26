@@ -16,4 +16,6 @@
 ./boot/vmlinuz
 ./etc/
 ./etc/fstab
+./etc/os-release
 ./extlinux.conf
+Baserock hello-tarball, built from ref tarball-links
