@@ -105,5 +105,6 @@ trap 'cd /; umount -d "$device"' INT TERM ERR
 
 cd "$DATADIR/mnt"
 find | LC_ALL=C sort -u
+sed -e 's/ on [0-9\-]\+//' "$DATADIR/mnt/factory-run/etc/os-release"
 cd "$DATADIR"
 umount -d "$device"

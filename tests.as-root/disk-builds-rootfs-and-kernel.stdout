@@ -16,6 +16,7 @@
 ./factory-run/boot/vmlinuz
 ./factory-run/etc
 ./factory-run/etc/fstab
+./factory-run/etc/os-release
 ./factory/baserock
 ./factory/baserock/hello.meta
 ./factory/baserock/linux.meta
@@ -28,3 +29,5 @@
 ./factory/boot/vmlinuz
 ./factory/etc
 ./factory/etc/fstab
+./factory/etc/os-release
+Baserock system, built from ref custom

@@ -34,3 +34,4 @@ mkdir -p "$extracted"
 cd "$extracted"
 tar -xf "$tar"
 find . -mindepth 1 | xargs ls -dF | LC_ALL=C sort -u
+sed -e 's/ on [0-9\-]\+//' "$extracted/etc/os-release"
