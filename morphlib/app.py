@@ -60,7 +60,7 @@ class Morph(cliapp.Application):
 
         # General Options
         self.settings.string(['cachedir'],
-                             'put build results in DIR',
+                             'cache git repositories and build results in DIR',
                              metavar='DIR',
                              default=defaults['cachedir'])
         self.settings.string(['build-ref-prefix'],
@@ -72,31 +72,20 @@ class Morph(cliapp.Application):
                              metavar='TROVEHOST',
                              default=defaults['trove-host'])
         self.settings.string_list(['trove-prefix'],
-                                  'define URL prefix aliases stored '
-                                  'directly on the Trove host.  Uses '
-                                  'the form '
-                                  'alias=pathprefix#pullmethod#pushmethod '
-                                  'for example, foocorp=fooprojects#git#ssh '
-                                  'will be expanded into a repo-alias of '
-                                  'foocorp=git://trove-host/fooprojects/%s#...'
-                                  ' with the push side set to the ssh url to '
-                                  'the trove.',\
-                                  metavar='ALIAS=PREFIX#PULL#PUSH',
+                                  'list of URL prefixes that should be '
+                                  'resolved to Trove',
+                                  metavar='PREFIX, ...',
                                   default=defaults['trove-prefix'])
 
         # Advanced Options
         self.settings.boolean(['no-git-update'],
                               'do not update the cached git repositories '
-                              'during a build (user must have done that '
-                              'already using the update-gits subcommand)')
+                              'automatically')
         self.settings.string_list(['repo-alias'],
-                                  'define URL prefix aliases to allow '
-                                  'repository addresses to be shortened; '
-                                  'use alias=pullpattern=pushpattern '
-                                  'to allow alias:shortname to be used '
-                                  'instead of the full URL; the patterns must '
-                                  'contain a %s where the shortname gets '
-                                  'replaced',
+                                  'list of URL prefix definitions, in the '
+                                  'form: example=git://git.example.com/%s'
+                                  '#git@git.example.com/%s',
+                                  metavar='ALIAS=PREFIX#PULL#PUSH',
                                   default=defaults['repo-alias'])
         self.settings.string(['cache-server'],
                              'HTTP URL of the morph cache server to use. '
@@ -140,14 +129,11 @@ class Morph(cliapp.Application):
                              'build chunks with prefix PREFIX',
                              metavar='PREFIX', default=defaults['prefix'])
         self.settings.boolean(['staging-chroot'],
-                              'build things in a staging chroot '
-                              '(require real root to use)')
+                              'build things in an isolated chroot '
+                              '(default: true)')
         self.settings.string_list(['staging-filler'],
-                                  'unpack BLOB into staging area for '
-                                  'non-bootstrap builds (this will '
-                                  'eventually be replaced with proper '
-                                  'build dependencies)',
-                                  metavar='BLOB')
+                                  'use FILE as contents of build chroot',
+                                  metavar='FILE')
         self.settings.string(['target-cflags'],
                              'inject additional CFLAGS into the environment '
                              'that is used to build chunks',
