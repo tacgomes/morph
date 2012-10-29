@@ -73,3 +73,14 @@ git status --short
 
 # Make sure all refs to the merged branch have gone.
 ! grep "\"ref\": \"test/feature\"" *.morph
+
+# The only change here was the branch refs, which have now been
+# changed back - so there should not be any new commits.
+echo "Commit message for baserock:morphs"
+git cat-file commit HEAD | tail -n 1
+
+echo
+echo "Commit message for baserock:hello"
+cd ../baserock:hello
+git cat-file commit HEAD | tail -n 1
+

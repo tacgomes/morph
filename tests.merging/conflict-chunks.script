@@ -27,7 +27,7 @@ then
     exit 0
 fi
 
-. "$SRCDIR/tests.branching/setup-3rd-party-strata"
+. "$SRCDIR/scripts/setup-3rd-party-strata"
 
 # Create stable branch to merge TO
 "$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable

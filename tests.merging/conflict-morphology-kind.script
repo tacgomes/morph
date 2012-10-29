@@ -14,17 +14,19 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Check "morph merge" gives reasonable error messages
+# If morphology kind differs between branches, it's a merge conflict
 
 set -eu
 
-# Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-
 "$SRCDIR/scripts/test-morph" checkout baserock:morphs master
-cd master
+"$SRCDIR/scripts/test-morph" branch baserock:morphs test/unmergable
 
-# 'From' branch is not checked out (and also doesn't exist, but that
-# problem can only be detected when 'morph checkout' is run)
-"$SRCDIR/scripts/test-morph" merge baserock/newbranch || true
+cd "$DATADIR/workspace/test/unmergable/baserock:morphs"
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+sed -ie 's/"kind": "stratum"/"kind": "chunk"/' hello-stratum.morph
+git commit --quiet --all -m "Unmergeable because kind has changed"
+
+cd "$DATADIR/workspace/master/baserock:morphs"
+"$SRCDIR/scripts/test-morph" merge test/unmergable

@@ -22,7 +22,7 @@
 set -eu
 
 
-. "$SRCDIR/tests.branching/setup-3rd-party-strata"
+. "$SRCDIR/scripts/setup-3rd-party-strata"
 
 # Make a change to the system
 # FIXME: we should try and build it, too

@@ -19,7 +19,7 @@
 
 set -eu
 
-. "$SRCDIR/tests.branching/setup-3rd-party-strata"
+. "$SRCDIR/scripts/setup-3rd-party-strata"
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch baserock:morphs test
