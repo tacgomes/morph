@@ -91,7 +91,8 @@ class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
                 ['syslinux-mbr-search-paths'],
                 'A list of files to search for to use as the syslinux mbr',
                 default=['/usr/lib/extlinux/mbr.bin',
-                         '/usr/share/syslinux/mbr.bin'])
+                         '/usr/share/syslinux/mbr.bin'],
+                group='Build Options')
             self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
 
     def disable(self):

@@ -54,7 +54,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
-                                arg_synopsis='COMMAND')
+                                arg_synopsis='-- COMMAND')
 
         # Plumbing commands (FIXME: should be hidden from --help by default)
         self.app.add_subcommand('workspace', self.workspace,
@@ -505,7 +505,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.status(msg='Initialized morph workspace', chatty=True)
 
     def branch(self, args):
-        '''Branch the whole system.'''
+        '''Create a new system branch.'''
 
         if len(args) not in [2, 3]:
             raise cliapp.AppException('morph branch needs name of branch '
@@ -714,18 +714,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              'been comitted')
 
     def petrify(self, args):
-        '''Convert all chunk refs in a branch to be fixed SHA1s
+        '''Convert all chunk refs in a system branch to be fixed SHA1s
 
-        This allows the developer to work on a feature in isolation, without
-        changes from upstream breaking the world under their feet.
-
-        Strata refs are not petrified, because they must all be edited to set
-        the new chunk refs, which requires branching them all for the current
-        branch - so they will not be updated outside of the user's control in
-        any case. Chunks that have already been edited on the current branch
-        are also not petrified.
-
+        This isolates the branch from changes made by other developers in the
+        chunk repositories.
         '''
+
+        # Stratum refs are not petrified, because they must all be edited to
+        # set the new chunk refs, which requires branching them all for the
+        # current branch - so they will not be updated outside of the user's
+        # control in any case. Chunks that have already been edited on the
+        # current branch are also not petrified.
 
         if len(args) != 0:
             raise cliapp.AppException('morph petrify takes no arguments')
@@ -786,16 +785,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              'been comitted')
 
     def unpetrify(self, args):
-        '''Reverse the process of petrification
+        '''Reverse the process of petrification'''
 
-        Unpetrifies all chunk refs in a branch that were previously petrified.
-        Makes no attempt to 'unedit' strata that were branched solely so they
-        could be petrified.
-
-        If a branch is petrified and then branched from, the child branch can
-        be unpetrified independently of the parent.
-
-        '''
+        # This function makes no attempt to 'unedit' strata that were branched
+        # solely so they could be petrified.
 
         if len(args) != 0:
             raise cliapp.AppException('morph unpetrify takes no arguments')
@@ -1115,6 +1108,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise
 
     def build(self, args):
+        '''Build a system from the current system branch'''
+
         if len(args) != 1:
             raise cliapp.AppException('morph build expects exactly one '
                                       'parameter: the system to build')
@@ -1334,6 +1329,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              ':%s' % info['build-ref']], cwd=info['dirname'])
 
     def status(self, args):
+        '''Show information about the current system branch or workspace'''
         if len(args) != 0:
             raise cliapp.AppException('morph status takes no arguments')
 
@@ -1379,15 +1375,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def foreach(self, args):
         '''Run a command in each repository checked out in a system branch
 
-        For simplicity, this simply iterates repositories in the directory
-        rather than walking through the morphologies as 'morph merge' does.
-
-        Morph will interpret switch arguments, so you should separate the
-        command with --, as in the following example:
-
-            morph foreach -- git status --short
+        Use -- before specifying the command to separate its arguments from
+        Morph's own arguments.
 
         '''
+
+        # For simplicity, this simply iterates repositories in the directory
+        # rather than walking through the morphologies as 'morph merge' does.
 
         if len(args) == 0:
             raise cliapp.AppException('morph foreach expects a command to run')
@@ -1416,18 +1410,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
 
     def workspace(self, args):
-        '''Find morph workspace directory from current working directory.'''
+        '''Find the toplevel directory of the current workspace'''
 
         self.app.output.write('%s\n' % self.deduce_workspace())
 
     def show_system_branch(self, args):
-        '''Print name of current system branch.'''
+        '''Print name of current system branch'''
 
         branch, dirname = self.deduce_system_branch()
         self.app.output.write('%s\n' % branch)
 
     def show_branch_root(self, args):
-        '''Print name of the repository that was branched off from.'''
+        '''Print name of the repository holding the system morphologies'''
 
         workspace = self.deduce_workspace()
         system_branch, branch_dir = self.deduce_system_branch()

@@ -31,7 +31,7 @@ class ShowDependenciesPlugin(cliapp.Plugin):
         pass
 
     def show_dependencies(self, args):
-        '''Dumps the dependency tree of all input morphologies.'''
+        '''Dumps the dependency tree of all input morphologies'''
 
         if not os.path.exists(self.app.settings['cachedir']):
             os.mkdir(self.app.settings['cachedir'])
