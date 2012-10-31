@@ -52,13 +52,11 @@ defaults = {
 class Morph(cliapp.Application):
 
     def add_settings(self):
-        # Logging
         self.settings.boolean(['verbose', 'v'],
                               'show what is happening in much detail')
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
 
-        # General Options
         self.settings.string(['cachedir'],
                              'cache git repositories and build results in DIR',
                              metavar='DIR',
@@ -77,68 +75,84 @@ class Morph(cliapp.Application):
                                   metavar='PREFIX, ...',
                                   default=defaults['trove-prefix'])
 
-        # Advanced Options
+        group_advanced = 'Advanced Options'
         self.settings.boolean(['no-git-update'],
                               'do not update the cached git repositories '
-                              'automatically')
+                              'automatically',
+                              group=group_advanced)
         self.settings.string_list(['repo-alias'],
                                   'list of URL prefix definitions, in the '
                                   'form: example=git://git.example.com/%s'
                                   '#git@git.example.com/%s',
                                   metavar='ALIAS=PREFIX#PULL#PUSH',
-                                  default=defaults['repo-alias'])
+                                  default=defaults['repo-alias'],
+                                  group=group_advanced)
         self.settings.string(['cache-server'],
                              'HTTP URL of the morph cache server to use. '
                              'If not provided, defaults to '
                              'http://TROVEHOST:8080/',
                              metavar='URL',
-                             default=None)
+                             default=None,
+                             group=group_advanced)
         self.settings.string(['tarball-server'],
                              'base URL to download tarballs. '
                              'If not provided, defaults to '
                              'http://TROVEHOST/tarballs/',
                              metavar='URL',
-                             default=None)
+                             default=None,
+                             group=group_advanced)
 
         # Build Options
+        group_build = 'Build Options'
         self.settings.boolean(['bootstrap'],
                               'build stuff in bootstrap mode; this is '
                               'DANGEROUS and will install stuff on your '
-                              'system')
+                              'system',
+                              group=group_build)
         self.settings.string(['ccache-remotedir'],
                              'allow ccache to download objects from REMOTEDIR '
                              'if they are not cached locally',
                              metavar='REMOTEDIR',
-                             default=defaults['ccache-remotedir'])
+                             default=defaults['ccache-remotedir'],
+                             group=group_build)
         self.settings.integer(['ccache-remotenlevels'],
                               'assume ccache directory objects are split into '
                               'NLEVELS levels of subdirectories',
                               metavar='NLEVELS',
-                              default=defaults['ccache-remotenlevels'])
+                              default=defaults['ccache-remotenlevels'],
+                              group=group_build)
         self.settings.boolean(['keep-path'],
-                              'do not touch the PATH environment variable')
+                              'do not touch the PATH environment variable',
+                              group=group_build)
         self.settings.integer(['max-jobs'],
                               'run at most N parallel jobs with make (default '
                               'is to a value based on the number of CPUs '
                               'in the machine running morph',
                               metavar='N',
-                              default=defaults['max-jobs'])
-        self.settings.boolean(['no-ccache'], 'do not use ccache')
-        self.settings.boolean(['no-distcc'], 'do not use distcc')
+                              default=defaults['max-jobs'],
+                              group=group_build)
+        self.settings.boolean(['no-ccache'], 'do not use ccache',
+                              group=group_build)
+        self.settings.boolean(['no-distcc'], 'do not use distcc',
+                              group=group_build)
         self.settings.string(['prefix'],
                              'build chunks with prefix PREFIX',
-                             metavar='PREFIX', default=defaults['prefix'])
+                             metavar='PREFIX', default=defaults['prefix'],
+                             group=group_build)
         self.settings.boolean(['staging-chroot'],
                               'build things in an isolated chroot '
-                              '(default: true)')
+                              '(default: true)',
+                              group=group_build)
         self.settings.string_list(['staging-filler'],
                                   'use FILE as contents of build chroot',
-                                  metavar='FILE')
+                                  metavar='FILE',
+                                  group=group_build)
         self.settings.string(['target-cflags'],
                              'inject additional CFLAGS into the environment '
                              'that is used to build chunks',
                              metavar='CFLAGS',
-                             default='')
+                             default='',
+                             group=group_build)
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                              '(this is separate from just setting $TMPDIR '
@@ -147,13 +161,15 @@ class Morph(cliapp.Application):
                              'this setting can point at a directory in '
                              'NFS)',
                              metavar='DIR',
-                             default=os.environ.get('TMPDIR'))
+                             default=os.environ.get('TMPDIR'),
+                             group=group_build)
         self.settings.string(['toolchain-target'],
                              'set the TOOLCHAIN_TARGET variable which is used '
                              'in some chunks to determine which architecture '
                              'to build tools for',
                              metavar='TOOLCHAIN_TARGET',
-                             default=defaults['toolchain-target'])
+                             default=defaults['toolchain-target'],
+                             group=group_build)
 
     def check_time(self):
         # Check that the current time is not far in the past.
