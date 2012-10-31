@@ -21,8 +21,8 @@ loopback_rootfs() {
     # Find offset partition offset in a rootfs and mount it
     ROOTFS="$1"
 
-    mv "$ROOTFS" "$ROOTFS-unzipped.gz"
-    gunzip "$ROOTFS-unzipped.gz"
+    PYTHONPATH="$SRCDIR" "$SRCDIR/scripts/sparse-gunzip" \
+                         <"$ROOTFS" >"$ROOTFS-unzipped"
 
     OFFSET=$(sfdisk -d "$ROOTFS-unzipped" | \
         grep -m 1 -o 'start=\s\+\([0-9]\+\)' | awk '{ print $2 }')

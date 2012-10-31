@@ -1,0 +1,6 @@
+#!/usr/bin/python
+from morphlib.util import copyfileobj
+import gzip, sys
+infh = gzip.GzipFile(fileobj=sys.stdin)
+copyfileobj(infh, sys.stdout)
+infh.close()
