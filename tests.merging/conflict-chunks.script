@@ -22,8 +22,8 @@ set -eu
 # Disable test on versions of Python before 2.7.
 if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
 then
-    cat "$SRCDIR/tests.branching/merge-conflict-chunks.stdout"
-    cat "$SRCDIR/tests.branching/merge-conflict-chunks.stderr" >&2
+    cat "$SRCDIR/tests.merging/conflict-chunks.stdout"
+    cat "$SRCDIR/tests.merging/conflict-chunks.stderr" >&2
     exit 0
 fi
 
