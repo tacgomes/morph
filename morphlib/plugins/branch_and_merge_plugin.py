@@ -275,6 +275,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             with open(filename) as f:
                 text = f.read()
         else:
+            filename = '%s.morph at ref %s in %s' % (name, ref, repo_dir)
             if not morphlib.git.is_valid_sha1(ref):
                 ref = morphlib.git.rev_parse(self.app.runcmd, repo_dir, ref)
             try:
