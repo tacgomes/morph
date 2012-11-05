@@ -739,7 +739,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # We must first get the full set of strata. One same stratum may be
         # in multiple systems and each system may use a different ref.
         strata = {}
-        for f in glob.glob(os.path.join(root_repo_dir, '*.morph')):
+        for f in sorted(glob.iglob(os.path.join(root_repo_dir, '*.morph'))):
             name = os.path.basename(f)[:-len('.morph')]
             morphology = self.load_morphology(root_repo_dir, name)
             if morphology['kind'] != 'system':
