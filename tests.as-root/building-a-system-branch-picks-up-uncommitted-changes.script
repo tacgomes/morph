@@ -34,14 +34,10 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" build linux-system
 
 # Print tree SHA1s of the build ref of morphs and kernel.
-echo "Tree of morphs repo build branch after first build:"
 cd "$DATADIR/workspace/branch1/test:morphs"
-git log -1 --format=%T baserock/builds/123456789/987654321
-echo "Tree of kernel repo build branch after first build:"
+MORPHS_SHA1="$(git rev-parse baserock/builds/123456789/987654321)"
 cd "$DATADIR/workspace/branch1/test:kernel-repo"
-git log -1 --format=%T baserock/builds/123456789/AABBCCDDE
-
-echo
+KERNEL_SHA1="$(git rev-parse baserock/builds/123456789/AABBCCDDE)"
 
 # Make an uncommitted change to the linux morphology.
 cd "$DATADIR/workspace/branch1/test:kernel-repo"
@@ -55,9 +51,7 @@ cd "$DATADIR/workspace"
 # This time the tree SHA1 of morphs should be the same
 # but that of the kernel repo should be different because we
 # made a change.
-echo "Tree of morphs repo build branch after second build:"
 cd "$DATADIR/workspace/branch1/test:morphs"
-git log -1 --format=%T baserock/builds/123456789/987654321
-echo "Tree of kernel repo build branch after second build:"
+[ "$(git rev-parse baserock/builds/123456789/987654321)" != "$MORPHS_SHA1" ]
 cd "$DATADIR/workspace/branch1/test:kernel-repo"
-git log -1 --format=%T baserock/builds/123456789/AABBCCDDE
+[ "$(git rev-parse baserock/builds/123456789/AABBCCDDE)" != "$KERNEL_SHA1" ]

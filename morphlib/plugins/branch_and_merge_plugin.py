@@ -1116,6 +1116,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'parameter: the system to build')
 
         system_name = args[0]
+        push = False
 
         # Deduce workspace and system branch and branch root repository.
         workspace = self.deduce_workspace()
@@ -1143,21 +1144,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Create the build refs for all these repositories and commit
         # all uncommitted changes to them, updating all references
         # to system branch refs to point to the build refs instead.
-        self.update_build_refs(build_repos, branch, build_uuid)
+        self.update_build_refs(build_repos, branch, build_uuid, push)
 
-        # Push the temporary build refs.
-        self.push_build_refs(build_repos)
+        if push:
+            self.push_build_refs(build_repos)
+            build_branch_root = branch_root
+        else:
+            dirname = build_repos[branch_root]['dirname']
+            build_branch_root = urlparse.urljoin('file://', dirname)
 
         # Run the build.
         build_command = morphlib.buildcommand.BuildCommand(self.app)
         build_command = self.app.hookmgr.call('new-build-command',
                                               build_command)
-        build_command.build([branch_root,
+        build_command.build([build_branch_root,
                              build_repos[branch_root]['build-ref'],
                              system_name])
 
-        # Delete the temporary refs on the server.
-        self.delete_remote_build_refs(build_repos)
+        if push:
+            self.delete_remote_build_refs(build_repos)
 
         self.app.status(msg='Finished build %(uuid)s', uuid=build_uuid)
 
@@ -1212,7 +1217,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return build_repos
 
-    def inject_build_refs(self, morphology, build_repos):
+    def inject_build_refs(self, morphology, build_repos, will_push):
         # Starting from a system or stratum morphology, update all ref
         # pointers of strata or chunks involved in a system build (represented
         # by build_repos) to point to temporary build refs of the repos
@@ -1222,6 +1227,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     info['morph'] in build_repos[info['repo']]['strata'] or
                     info['morph'] in build_repos[info['repo']]['chunks']):
                 info['ref'] = build_repos[info['repo']]['build-ref']
+                if not will_push:
+                    dirname = build_repos[info['repo']]['dirname']
+                    info['repo'] = urlparse.urljoin('file://', dirname)
         if morphology['kind'] == 'system':
             for info in morphology['strata']:
                 inject_build_ref(info)
@@ -1237,7 +1245,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                      branch_uuid, repo_uuid)
             info['build-ref'] = build_ref
 
-    def update_build_refs(self, build_repos, system_branch, build_uuid):
+    def update_build_refs(self, build_repos, system_branch, build_uuid,
+                          will_push):
         '''Update build branches for each repository with any local changes '''
 
         # Define the committer.
@@ -1291,7 +1300,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             for filename in filenames:
                 # Inject temporary refs in the right places in each morphology.
                 morphology = self.load_morphology(repo_dir, filename)
-                self.inject_build_refs(morphology, build_repos)
+                self.inject_build_refs(morphology, build_repos, will_push)
                 handle, tmpfile = tempfile.mkstemp(suffix='.morph')
                 self.save_morphology(repo_dir, tmpfile, morphology)
 

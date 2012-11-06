@@ -32,14 +32,14 @@ source "$SRCDIR/tests.as-root/setup-build"
 # Build once.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" build linux-system
-"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts"
+ARTIFACT_COUNT="$(ls "$DATADIR/cache/artifacts" | wc -l)"
 
 # Build twice.
 cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/test-morph" build linux-system
-"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts"
+[ "$ARTIFACT_COUNT" -eq $(ls "$DATADIR/cache/artifacts" | wc -l) ]
 
 # Build thrice, and that should be enough.
 cd "$DATADIR/workspace/branch1/test:morphs"
 "$SRCDIR/scripts/test-morph" build linux-system
-"$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts"
+[ "$ARTIFACT_COUNT" -eq $(ls "$DATADIR/cache/artifacts" | wc -l) ]
