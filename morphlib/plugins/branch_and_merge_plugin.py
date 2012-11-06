@@ -1163,6 +1163,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def get_system_build_repos(self, system_branch, branch_dir,
                                branch_root, system_name):
+        '''Map upstream repository URLs to their checkouts in the system branch
+
+        Also provides the list of morphologies stored in each repository,
+        grouped by kind.
+
+        '''
+
         build_repos = {}
 
         def prepare_repo_info(repo, dirname):
@@ -1231,6 +1238,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             info['build-ref'] = build_ref
 
     def update_build_refs(self, build_repos, system_branch, build_uuid):
+        '''Update build branches for each repository with any local changes '''
+
         # Define the committer.
         committer_name = 'Morph (on behalf of %s)' % \
             (morphlib.git.get_user_name(self.app.runcmd))
