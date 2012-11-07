@@ -27,28 +27,28 @@ set -eu
 # Make a change to the system
 # FIXME: we should try and build it, too
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs me/readme-fixes
+"$SRCDIR/scripts/test-morph" branch test:morphs me/readme-fixes
 
 # Edit one chunk
 cd "me/readme-fixes"
 "$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
-cd "$DATADIR/workspace/me/readme-fixes/baserock:stratum2-hello"
+cd "$DATADIR/workspace/me/readme-fixes/test:stratum2-hello"
 echo > README yoyoyo
 git add README
 git commit -m "Fix README in hello" --quiet
 
 # Edit the other chunk too
 "$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
-cd "$DATADIR/workspace/me/readme-fixes/baserock:stratum3-hello"
+cd "$DATADIR/workspace/me/readme-fixes/test:stratum3-hello"
 echo > README yoyoyo
 git add README
 git commit -m "Fix README in hello" --quiet
 
 # Update the morphology repos
-cd ../baserock:external-strata
+cd ../test:external-strata
 git commit --quiet --all -m "Commit changes for system branch"
 
-cd ../baserock:morphs
+cd ../test:morphs
 git commit --quiet --all -m "Commit changes for system branch"
 
 # Merge our system branch into master
@@ -57,13 +57,13 @@ cd master
 "$SRCDIR/scripts/test-morph" merge me/readme-fixes
 
 # Check the changes have appeared
-cd baserock:morphs
+cd test:morphs
 [ $(git rev-parse HEAD) = $(git rev-parse master) ]
 
-cd ../baserock:stratum2-hello
+cd ../test:stratum2-hello
 [ -e README ]
 [ $(git rev-parse HEAD) = $(git rev-parse master) ]
 
-cd ../baserock:stratum3-hello
+cd ../test:stratum3-hello
 [ -e README ]
 [ $(git rev-parse HEAD) = $(git rev-parse master) ]

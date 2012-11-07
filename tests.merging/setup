@@ -29,7 +29,7 @@ source "$SRCDIR/scripts/fix-committer-info"
 # Create a morph configuration file
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
-repo-alias = baserock=file://$DATADIR/%s#file://$DATADIR/%s
+repo-alias = test=file://$DATADIR/%s#file://$DATADIR/%s
 cachedir = $DATADIR/workspace/.morph/cache
 log = $DATADIR/morph.log
 keep-path = true
@@ -58,7 +58,7 @@ cat <<EOF > "$DATADIR/morphs/hello-system.morph"
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "baserock:morphs",
+            "repo": "test:morphs",
             "ref": "master"
         }
     ]
@@ -72,7 +72,7 @@ cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "build-depends": []
         }

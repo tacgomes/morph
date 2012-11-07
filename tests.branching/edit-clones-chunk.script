@@ -23,7 +23,7 @@ set -eu
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
 
 # Edit chunk.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello

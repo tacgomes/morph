@@ -29,7 +29,7 @@ fi
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs baserock/newbranch
 
 # The user may 'morph edit hello-system hello-stratum hello' and commit here:
 # we currently silently ignore her changes on merge, because we don't
@@ -37,7 +37,7 @@ cd "$DATADIR/workspace"
 
 # Rename the stratum
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
-cd baserock/newbranch/baserock:morphs
+cd baserock/newbranch/test:morphs
 
 sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/'\
     -i hello-system.morph
@@ -53,6 +53,6 @@ git commit -q --all -m "Rename hello-stratum to goodbye-stratum"
 # Merge changes back to master (this should fail, because we don't support
 # adding strata inside branches yet).
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch

@@ -1,5 +1,5 @@
-On branch test, root baserock:morphs
-    baserock:morphs: uncommitted changes
-    baserock:external-strata: uncommitted changes
-    baserock:stratum2-hello: unexpected ref checked out "master"
-    TMP/workspace/test/red-herring: not part of system branch
+On branch branch1, root test:morphs
+    test:morphs: uncommitted changes
+    TMP/workspace/branch1/red-herring: not part of system branch
+    test:external-strata: uncommitted changes
+    test:stratum2-hello: unexpected ref checked out "master"

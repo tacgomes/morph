@@ -30,10 +30,10 @@ fi
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
 
 # Edit chunk.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
 # See what effect the editing had.
-"$SRCDIR/scripts/run-git-in" "newbranch/baserock:morphs" diff
+"$SRCDIR/scripts/run-git-in" "newbranch/test:morphs" diff

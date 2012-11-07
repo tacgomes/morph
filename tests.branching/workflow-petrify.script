@@ -31,44 +31,44 @@ fi
 . "$SRCDIR/scripts/setup-3rd-party-strata"
 
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/petrify
+"$SRCDIR/scripts/test-morph" branch test:morphs test/petrify
 
 cd test/petrify
 "$SRCDIR/scripts/test-morph" petrify
 
 echo "test/petrify after petrifying:"
-cat baserock:morphs/hello-system.morph
-cat baserock:external-strata/stratum2.morph
-cat baserock:external-strata/stratum3.morph
+cat test:morphs/hello-system.morph
+cat test:external-strata/stratum2.morph
+cat test:external-strata/stratum3.morph
 
 "$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
 
 echo
 echo "test/petrify after editing a chunk:"
-cat baserock:morphs/hello-system.morph
-cat baserock:external-strata/stratum2.morph
-cat baserock:external-strata/stratum3.morph
+cat test:morphs/hello-system.morph
+cat test:external-strata/stratum2.morph
+cat test:external-strata/stratum3.morph
 
-# me/readme-fixes in baserock:stratum2-hello should be 'master', but
+# me/readme-fixes in test:stratum2-hello should be 'master', but
 # that's the only ref upstream so we can infer that it is if we got here
 
-cd baserock:morphs
+cd test:morphs
 git commit --quiet --all -m "Petrify branch test/petrify"
 git push --quiet origin test/petrify
-cd ../baserock:external-strata
+cd ../test:external-strata
 git commit --quiet --all -m "Petrify branch test/petrify"
 git push --quiet origin test/petrify
 
 # unpetrify is easy enough. Let's try unpetrifying a different branch that
 # was forked off the original while it was petrified, instead.
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/unpetrify test/petrify
+"$SRCDIR/scripts/test-morph" branch test:morphs test/unpetrify test/petrify
 
 cd test/unpetrify
 "$SRCDIR/scripts/test-morph" unpetrify
 
 echo
 echo "test/unpetrify after unpetrifying:"
-cat baserock:morphs/hello-system.morph
-cat baserock:external-strata/stratum2.morph
-cat baserock:external-strata/stratum3.morph
+cat test:morphs/hello-system.morph
+cat test:external-strata/stratum2.morph
+cat test:external-strata/stratum3.morph

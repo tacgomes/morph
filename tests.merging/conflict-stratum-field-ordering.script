@@ -36,19 +36,19 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # Create stable branch to merge TO
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable
-cd test/stable/baserock:morphs
+"$SRCDIR/scripts/test-morph" branch test:morphs test/stable
+cd test/stable/test:morphs
 git push --quiet origin test/stable
 
 # Create feature branch to merge FROM
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/feature test/stable
+"$SRCDIR/scripts/test-morph" branch test:morphs test/feature test/stable
 
 # Need 2 chunks!
 
 # Make a change in TO
 cd "$DATADIR/workspace/test/stable"
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
-cd baserock:morphs
+cd test:morphs
 cat <<EOF > "hello-stratum.morph"
 {
     "name": "hello-stratum",
@@ -56,14 +56,14 @@ cat <<EOF > "hello-stratum.morph"
     "chunks": [
         {
             "name": "hello-runtime",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "morph": "hello",
             "build-depends": []
         },
         {
             "name": "hello-devel",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "morph": "hello",
             "build-depends": []
@@ -76,7 +76,7 @@ git commit --quiet --all -m "Split up 'hello' chunk into runtime and devel"
 # Make a change in FROM that isn't very mergable
 cd "$DATADIR/workspace/test/feature"
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
-cd baserock:morphs
+cd test:morphs
 cat <<EOF > "hello-stratum.morph"
 {
     "name": "hello-stratum",
@@ -84,14 +84,14 @@ cat <<EOF > "hello-stratum.morph"
     "chunks": [
         {
             "name": "hello-devel",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "morph": "hello",
             "build-depends": []
         },
         {
             "name": "hello-runtime",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "morph": "hello",
             "build-depends": []

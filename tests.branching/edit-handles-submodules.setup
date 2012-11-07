@@ -34,7 +34,7 @@ git commit -m "Use Foolib submodule"
 cat <<EOF > "$DATADIR/hello/.gitmodules"
 [submodule "foolib"]
         path = foolib
-        url = baserock:foolib
+        url = test:foolib
 EOF
 git add .gitmodules
-git commit -m "Use Foolib from baserock: prefix"
+git commit -m "Use Foolib from test: prefix"

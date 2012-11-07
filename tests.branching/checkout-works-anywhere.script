@@ -22,7 +22,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # First, check out the master branch from the workspace directory.
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 echo "Workspace after checking out master from the workspace directory:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
@@ -38,9 +38,9 @@ cd workspace
 
 # This time, create a new branch and check out the master branch
 # from within that branch.
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
-cd newbranch/baserock:morphs
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
+cd newbranch/test:morphs
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 echo "Workspace after checking out master from within a new branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |

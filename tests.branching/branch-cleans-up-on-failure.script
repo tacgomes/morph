@@ -23,6 +23,6 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # This will fail because we're trying to branch off a ref that doesn't exist
-"$SRCDIR/scripts/test-morph" branch baserock:morphs foo/bar invalid-ref || true
+"$SRCDIR/scripts/test-morph" branch test:morphs foo/bar invalid-ref || true
 
 [ ! -d "$DATADIR/workspace/foo" ]

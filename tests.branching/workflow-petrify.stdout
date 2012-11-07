@@ -8,17 +8,17 @@ test/petrify after petrifying:
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "baserock:morphs",
+            "repo": "test:morphs",
             "ref": "test/petrify"
         },
         {
             "morph": "stratum2",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/petrify"
         },
         {
             "morph": "stratum3",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/petrify"
         }
     ]
@@ -29,7 +29,7 @@ test/petrify after petrifying:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum2-hello",
+            "repo": "test:stratum2-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
             "build-depends": [],
             "unpetrify-ref": "master"
@@ -42,7 +42,7 @@ test/petrify after petrifying:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum3-hello",
+            "repo": "test:stratum3-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
             "build-depends": [],
             "unpetrify-ref": "master"
@@ -60,17 +60,17 @@ test/petrify after editing a chunk:
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "baserock:morphs",
+            "repo": "test:morphs",
             "ref": "test/petrify"
         },
         {
             "morph": "stratum2",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/petrify"
         },
         {
             "morph": "stratum3",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/petrify"
         }
     ]
@@ -81,7 +81,7 @@ test/petrify after editing a chunk:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum2-hello",
+            "repo": "test:stratum2-hello",
             "ref": "test/petrify",
             "build-depends": []
         }
@@ -93,7 +93,7 @@ test/petrify after editing a chunk:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum3-hello",
+            "repo": "test:stratum3-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
             "build-depends": [],
             "unpetrify-ref": "master"
@@ -111,17 +111,17 @@ test/unpetrify after unpetrifying:
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "baserock:morphs",
+            "repo": "test:morphs",
             "ref": "test/unpetrify"
         },
         {
             "morph": "stratum2",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/unpetrify"
         },
         {
             "morph": "stratum3",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "test/unpetrify"
         }
     ]
@@ -132,7 +132,7 @@ test/unpetrify after unpetrifying:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum2-hello",
+            "repo": "test:stratum2-hello",
             "ref": "test/petrify",
             "build-depends": []
         }
@@ -144,7 +144,7 @@ test/unpetrify after unpetrifying:
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:stratum3-hello",
+            "repo": "test:stratum3-hello",
             "ref": "master",
             "build-depends": []
         }

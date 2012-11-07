@@ -22,7 +22,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # First, create a branch.
-"$SRCDIR/scripts/test-morph" branch baserock:morphs branch1
+"$SRCDIR/scripts/test-morph" branch test:morphs branch1
 
 echo "Workspace after creating the first branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
@@ -30,7 +30,7 @@ echo "Workspace after creating the first branch:"
     grep -v 'cache/gits/file_[^/]*/'
 
 # Now, create a nother branch from the workspace.
-"$SRCDIR/scripts/test-morph" branch baserock:morphs branch2
+"$SRCDIR/scripts/test-morph" branch test:morphs branch2
 
 echo "Workspace after creating the second branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
@@ -41,7 +41,7 @@ echo "Workspace after creating the second branch:"
 # should not be created in the working directory but in the
 # workspace directory.
 cd "$DATADIR/workspace/branch1"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs branch3
+"$SRCDIR/scripts/test-morph" branch test:morphs branch3
 
 echo "Workspace after creating the third branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
@@ -51,8 +51,8 @@ echo "Workspace after creating the third branch:"
 # Now, go into the morphs repository of that third branch and
 # create a fourth system branch from in there. This, too, should
 # end up being created in the toplevel workspace directory.
-cd "$DATADIR/workspace/branch3/baserock:morphs"
-"$SRCDIR/scripts/test-morph" branch baserock:morphs branch4
+cd "$DATADIR/workspace/branch3/test:morphs"
+"$SRCDIR/scripts/test-morph" branch test:morphs branch4
 
 echo "Workspace after creating the fourth branch:"
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |

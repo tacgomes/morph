@@ -22,7 +22,7 @@ set -eu
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 cd master
 
 # 'From' branch is not checked out (and also doesn't exist, but that

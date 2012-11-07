@@ -21,11 +21,11 @@ set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
 
 # Submodules should be set up automatically
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
-cd "$DATADIR/workspace/newbranch/baserock:hello"
+cd "$DATADIR/workspace/newbranch/test:hello"
 [ -e foolib/README ]
 
