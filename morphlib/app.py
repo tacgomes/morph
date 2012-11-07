@@ -139,6 +139,10 @@ class Morph(cliapp.Application):
                              'build chunks with prefix PREFIX',
                              metavar='PREFIX', default=defaults['prefix'],
                              group=group_build)
+        self.settings.boolean(['push-build-branches'],
+                              'always push temporary build branches to the '
+                              'remote repository',
+                              group=group_build)
         self.settings.boolean(['staging-chroot'],
                               'build things in an isolated chroot '
                               '(default: true)',

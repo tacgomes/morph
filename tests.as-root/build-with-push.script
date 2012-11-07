@@ -1,0 +1,39 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Test 'morph build' when build without push is disabled, i.e. everything is
+# built from the remote repositories instead of the local checkouts.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    cat "$SRCDIR/tests.as-root/build-with-push.stdout"
+    exit 0
+fi
+
+source "$SRCDIR/tests.as-root/setup-build"
+
+cd "$DATADIR/workspace/branch1"
+"$SRCDIR/scripts/test-morph" --push-build-branches build linux-system
+
+# Test that the chunk was built from test:kernel-repo and not a local branch
+cd "$DATADIR/cache/artifacts"
+tar xf *.chunk.linux baserock/linux.meta
+grep -q "\"repo\": \"file://$DATADIR/kernel-repo\"" baserock/linux.meta
+
+

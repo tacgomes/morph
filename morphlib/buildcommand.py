@@ -38,6 +38,7 @@ class BuildCommand(object):
         self.ckc = self.new_cache_key_computer(self.build_env)
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
+        self.supports_local_build = True
 
     def build(self, args):
         '''Build triplets specified on command line.'''

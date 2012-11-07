@@ -1116,7 +1116,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                       'parameter: the system to build')
 
         system_name = args[0]
-        push = False
 
         # Deduce workspace and system branch and branch root repository.
         workspace = self.deduce_workspace()
@@ -1126,6 +1125,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Generate a UUID for the build.
         build_uuid = uuid.uuid4().hex
+
+        build_command = morphlib.buildcommand.BuildCommand(self.app)
+        build_command = self.app.hookmgr.call('new-build-command',
+                                              build_command)
+        push = self.app.settings['push-build-branches']
 
         self.app.status(msg='Starting build %(uuid)s', uuid=build_uuid)
 
@@ -1154,9 +1158,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             build_branch_root = urlparse.urljoin('file://', dirname)
 
         # Run the build.
-        build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command = self.app.hookmgr.call('new-build-command',
-                                              build_command)
         build_command.build([build_branch_root,
                              build_repos[branch_root]['build-ref'],
                              system_name])
