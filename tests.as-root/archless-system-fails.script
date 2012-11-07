@@ -21,7 +21,7 @@
 set -eu
 
 cache="$DATADIR/cache/artifacts"
-morphsrepo="$DATADIR/morphs-repo"
+morphsrepo="$DATADIR/morphs"
 
 cd "$morphsrepo"
 git checkout --quiet -b archless master
@@ -33,7 +33,7 @@ cat <<EOF >archless-system.morph
   "strata": [
     {
       "morph": "hello-stratum",
-      "repo": "tests:morphs-repo",
+      "repo": "tests:morphs",
       "ref": "archless"
     }
   ]
@@ -43,4 +43,4 @@ git add archless-system.morph
 git commit --quiet -m "add archless system"
 
 "$SRCDIR/scripts/test-morph" \
-    build-morphology test:morphs-repo archless archless-system
+    build-morphology test:morphs archless archless-system

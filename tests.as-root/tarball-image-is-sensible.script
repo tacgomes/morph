@@ -27,7 +27,7 @@ esac
 . "$SRCDIR/scripts/fix-committer-info"
 
 tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
-    build-morphology test:morphs-repo tarball-links hello-tarball)
+    build-morphology test:morphs tarball-links hello-tarball)
 
 extracted="$DATADIR/extracted"
 mkdir -p "$extracted"

@@ -27,25 +27,7 @@ then
     exit 0
 fi
 
-source "$SRCDIR/scripts/fix-committer-info"
-
-# Initialise the workspace.
-cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init
-
-# Create a new local system branch.
-"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
-
-# Edit linux.
-"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
-
-# Fix the UUIDs being used for the temporary refs.
-git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
-    branch.uuid 123456789
-git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
-    morph.uuid 987654321
-git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
-    morph.uuid AABBCCDDE
+source "$SRCDIR/tests.as-root/setup-build"
 
 # Build the linux system from the system branch.
 cd "$DATADIR/workspace"
@@ -53,7 +35,7 @@ cd "$DATADIR/workspace"
 
 # Print tree SHA1s of the build ref of morphs and kernel.
 echo "Tree of morphs repo build branch after first build:"
-cd "$DATADIR/workspace/branch1/test:morphs-repo"
+cd "$DATADIR/workspace/branch1/test:morphs"
 git log -1 --format=%T baserock/builds/123456789/987654321
 echo "Tree of kernel repo build branch after first build:"
 cd "$DATADIR/workspace/branch1/test:kernel-repo"
@@ -70,11 +52,11 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" build linux-system
 
 # Print tree SHA1s of the build ref of morphs and kernel again.
-# This time the tree SHA1 of morphs-repo should be the same
+# This time the tree SHA1 of morphs should be the same
 # but that of the kernel repo should be different because we
 # made a change.
 echo "Tree of morphs repo build branch after second build:"
-cd "$DATADIR/workspace/branch1/test:morphs-repo"
+cd "$DATADIR/workspace/branch1/test:morphs"
 git log -1 --format=%T baserock/builds/123456789/987654321
 echo "Tree of kernel repo build branch after second build:"
 cd "$DATADIR/workspace/branch1/test:kernel-repo"

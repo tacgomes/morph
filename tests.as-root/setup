@@ -86,7 +86,7 @@ git checkout --quiet master
 
 # Create morph repository.
 
-morphsrepo="$DATADIR/morphs-repo"
+morphsrepo="$DATADIR/morphs"
 mkdir "$morphsrepo"
 cd "$morphsrepo"
 git init --quiet
@@ -117,7 +117,7 @@ cat <<EOF > hello-system.morph
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "test:morphs-repo",
+            "repo": "test:morphs",
             "ref": "master"
         }
     ]
@@ -135,7 +135,7 @@ cat <<EOF > linux-system.morph
     "strata": [
         {
             "morph": "linux-stratum",
-            "repo": "test:morphs-repo",
+            "repo": "test:morphs",
             "ref": "master"
         }
     ]

@@ -22,7 +22,7 @@ set -eu
 
 cache="$DATADIR/cache/artifacts"
 chunkrepo="$DATADIR/chunk-repo"
-morphsrepo="$DATADIR/morphs-repo"
+morphsrepo="$DATADIR/morphs"
 
 cd "$morphsrepo"
 git checkout --quiet -b overlap master
@@ -36,12 +36,12 @@ cat <<EOF >overlap-system.morph
   "strata": [
     {
       "morph": "foo-baz-stratum",
-      "repo": "test:morphs-repo",
+      "repo": "test:morphs",
       "ref": "overlap"
     },
     {
       "morph": "foo-barqux-stratum",
-      "repo": "test:morphs-repo",
+      "repo": "test:morphs",
       "ref": "overlap"
     }
   ]
@@ -132,7 +132,7 @@ git add overlap-*.morph
 git commit --quiet -m 'Add overlapping chunks'
 
 "$SRCDIR/scripts/test-morph" \
-    build-morphology test:morphs-repo overlap overlap-system > /dev/null
+    build-morphology test:morphs overlap overlap-system > /dev/null
 "$SRCDIR/scripts/list-overlaps" groups \
     "$cache"/*.system.overlap-system*.overlaps |
 while IFS='\n' read overlaps; do

@@ -27,7 +27,7 @@ cd "$DATADIR/workspace"
 
 # Verify that the right temporary refs were created.
 echo "Refs of morphs repo after first build:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs" \
     show-ref | cut -d' ' -f2
 echo "Refs of kernel repo after first build:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \
@@ -40,7 +40,7 @@ cd "$DATADIR/workspace"
 
 # Verify that the right temporary refs were created.
 echo "Refs of morphs repo after second build:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs" \
     show-ref | cut -d' ' -f2
 echo "Refs of kernel repo after second build:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \
