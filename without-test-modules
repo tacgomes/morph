@@ -17,3 +17,4 @@ morphlib/plugins/branch_and_merge_plugin.py
 morphlib/buildcommand.py
 morphlib/plugins/build_plugin.py
 
+morphlib/plugins/expand_repo_plugin.py
