@@ -106,7 +106,7 @@ class LookupBuildSystemTests(unittest.TestCase):
         return morphlib.buildsystem.lookup_build_system(name)
 
     def test_raises_keyerror_for_unknown_name(self):
-        self.assertRaises(KeyError, self.lookup, 'unkonwn')
+        self.assertRaises(KeyError, self.lookup, 'unknown')
 
     def test_looks_up_manual(self):
         self.assertEqual(type(self.lookup('manual')),
