@@ -1,0 +1,62 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# "morph build" with strata outside the branch root repository.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    cat "$SRCDIR/tests.as-root/build-with-external-strata.stdout"
+    exit 0
+fi
+
+. "$SRCDIR/scripts/setup-3rd-party-strata"
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" branch test:morphs branch1
+
+# System will fail to build unless we add linux to it -- make the change but
+# don't commit it, in one of the external strata, as a challenge for
+# 'morph build'.
+cd "branch1"
+"$SRCDIR/scripts/test-morph" edit hello-system stratum2
+cd "test:external-strata"
+cat stratum2.morph | \
+    head -n $(expr $(wc -l < stratum2.morph) - 3) > stratum2.morph
+cat <<EOF >> stratum2.morph
+        },
+        {
+            "name": "linux",
+            "repo": "test:kernel-repo",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+
+# Ignore Morph's output for now because it gives us:
+# 2012-11-07 16:26:12 Overlaps in system artifact hello-system-rootfs detected
+#
+# This is due to having a chunk named 'hello' in more than one stratum. It's
+# a bug that this generates overlaps (the chunk's .meta file needs to be called
+# $stratum.$chunk.meta rather than $chunk.meta to avoid the overlap) and the
+# redirection should be removed once this bug is fixed.
+"$SRCDIR/scripts/test-morph" build hello-system > /dev/null
+
+[ $("$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" | wc -l) -eq 23 ]

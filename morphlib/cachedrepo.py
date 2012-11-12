@@ -102,6 +102,7 @@ class CachedRepo(object):
         self.original_name = original_name
         self.url = url
         self.path = path
+        self.is_mirror = not url.startswith('file://')
 
     def resolve_ref(self, ref):
         '''Attempts to resolve a ref into its SHA1 and tree SHA1.
@@ -223,6 +224,9 @@ class CachedRepo(object):
 
         '''
 
+        if not self.is_mirror:
+            return
+
         try:
             self._update()
         except cliapp.AppException, e:
@@ -260,7 +264,8 @@ class CachedRepo(object):
 
     def _copy_repository(self, source_dir, target_dir):  # pragma: no cover
         try:
-            morphlib.git.copy_repository(self._runcmd, source_dir, target_dir)
+            morphlib.git.copy_repository(
+                self._runcmd, source_dir, target_dir, self.is_mirror)
         except cliapp.AppException:
             raise CopyError(self, target_dir)
 

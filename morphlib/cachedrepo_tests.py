@@ -246,6 +246,12 @@ class CachedRepoTests(unittest.TestCase):
         self.repo._update = self.update_with_failure
         self.assertRaises(cachedrepo.UpdateError, self.repo.update)
 
+    def test_no_update_if_local(self):
+        self.repo = cachedrepo.CachedRepo(
+            object(), 'local:repo', 'file:///local/repo/', '/local/repo/')
+        self.repo._update = self.update_with_failure
+        self.repo.update()
+
     def test_clone_checkout(self):
         self.repo.clone_checkout('master', '/.DOES_NOT_EXIST')
         self.assertEqual(self.clone_target, '/.DOES_NOT_EXIST')

@@ -193,9 +193,13 @@ class LocalRepoCache(object):
         return quote_url(url)
 
     def _cache_name(self, url):
-        basename = self._escape(url)
-        path = os.path.join(self._cachedir, basename)
-        return path
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
+        if scheme == 'file':
+            return path
+        else:
+            basename = self._escape(url)
+            path = os.path.join(self._cachedir, basename)
+            return path
 
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''

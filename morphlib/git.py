@@ -175,13 +175,18 @@ def set_remote(runcmd, gitdir, name, url):
     return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)
 
 
-def copy_repository(runcmd, repo, destdir):
+def copy_repository(runcmd, repo, destdir, is_mirror=True):
     '''Copies a cached repository into a directory using cp.
 
     This also fixes up the repository afterwards, so that it can contain
     code etc.  It does not leave any given branch ready for use.
 
     '''
+    if is_mirror == False:
+        runcmd(['cp', '-a', os.path.join(repo, '.git'),
+                os.path.join(destdir, '.git')])
+        return
+
     runcmd(['cp', '-a', repo, os.path.join(destdir, '.git')])
     # core.bare should be false so that git believes work trees are possible
     runcmd(['git', 'config', 'core.bare', 'false'], cwd=destdir)

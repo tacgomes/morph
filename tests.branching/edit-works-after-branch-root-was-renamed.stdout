@@ -2,8 +2,6 @@ d .
 d ./.morph
 d ./.morph/cache
 d ./.morph/cache/gits
-d ./.morph/cache/gits/file_hello
-d ./.morph/cache/gits/file_morphs
 d ./master
 d ./master/.morph-system-branch
 d ./master/my-renamed-morphs

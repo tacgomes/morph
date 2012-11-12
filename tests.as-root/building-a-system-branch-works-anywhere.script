@@ -52,11 +52,10 @@ cd "$DATADIR/workspace/branch1/test:kernel-repo"
 "$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts" > "$DATADIR/output4"
 rm -rf "$DATADIR/cache/artifacts"/*
 
-# Verify that we're always building the same and that we're building
-# the right things after all.
-cat "$DATADIR/output1"
+# Verify that we build the right number of artifacts
+[ $(wc < "$DATADIR/output1" -l) -eq 10 ]
 
-# Print diffs of the build results, all of which should be empty.
+# List of files in the artifact cache should be identical after each build
 diff "$DATADIR/output1" "$DATADIR/output2"
 diff "$DATADIR/output2" "$DATADIR/output3"
 diff "$DATADIR/output3" "$DATADIR/output4"
