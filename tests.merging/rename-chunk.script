@@ -28,11 +28,11 @@ fi
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs baserock/newbranch
 
 # Rename the chunk, and then commit a seperate change
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd baserock/newbranch/baserock:hello
+cd baserock/newbranch/test:hello
 
 cat hello.morph | sed -e 's/"name": "hello"/"name": "goodbye"/' > goodbye.morph
 git rm -q hello.morph
@@ -44,19 +44,19 @@ git add newfile.txt
 git commit -m "Add new file" --quiet
 
 # Update stratum to point at the renamed chunk
-cd ../baserock:morphs
+cd ../test:morphs
 sed -ie 's/"name": "hello"/"name": "goodbye"/' hello-stratum.morph
 git commit --all --quiet -m "Update morph refs for baserock/newbranch"
 
 # Merge changes back to master
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch
 
 # Morph should have realised that 'goodbye' is not a new chunk,
 # and pulled in the changes from 'hello' in the old branch
-cd baserock:hello
+cd test:hello
 [ ! -e hello.morph ]
 [ -e goodbye.morph ]
 [ -e newfile.txt ]

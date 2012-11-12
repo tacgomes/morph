@@ -37,13 +37,13 @@ git commit --quiet -am "Rename hello-system"
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs release
+"$SRCDIR/scripts/test-morph" branch test:morphs release
 
 # Create an extra ref to confuse any users of git show-ref
-cd release/baserock:morphs
+cd release/test:morphs
 git checkout --quiet -b alpha/master HEAD~1
 git checkout --quiet release
 
 # The petrify will fail if we resolved 'master' as 'alpha/master' by mistake.
-cd "$DATADIR/workspace/release/baserock:morphs"
+cd "$DATADIR/workspace/release/test:morphs"
 "$SRCDIR/scripts/test-morph" petrify

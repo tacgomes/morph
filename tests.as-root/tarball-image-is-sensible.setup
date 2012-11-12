@@ -39,7 +39,7 @@ EOF
 git add links.morph
 git commit --quiet -m 'Add link adding chunk'
 
-morphsrepo="$DATADIR/morphs-repo"
+morphsrepo="$DATADIR/morphs"
 cd "$morphsrepo"
 git checkout -b tarball-links
 cat <<EOF > hello-tarball.morph
@@ -51,17 +51,17 @@ cat <<EOF > hello-tarball.morph
     "strata": [
         {
             "morph": "link-stratum",
-            "repo": "test:morphs-repo",
+            "repo": "test:morphs",
             "ref": "tarball-links"
         },
         {
             "morph": "hello-stratum",
-            "repo": "test:morphs-repo",
+            "repo": "test:morphs",
             "ref": "tarball-links"
         },
         {
             "morph": "linux-stratum",
-            "repo": "test:morphs-repo",
+            "repo": "test:morphs",
             "ref": "tarball-links"
         }
     ]

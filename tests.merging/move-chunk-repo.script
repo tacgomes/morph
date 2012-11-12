@@ -29,32 +29,32 @@ fi
 # Create system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs baserock/newbranch
 
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
 # Chunk moves to a new location (we manually update the ref back to master
 # here, so 'morph edit' can create a system branch in the new repo from it).
 git clone -q "$DATADIR/hello" "$DATADIR/hello-lorried"
-cd "$DATADIR/workspace/baserock/newbranch/baserock:morphs"
-sed -e 's/"repo": "baserock:hello"/"repo": "baserock:hello-lorried"/' \
+cd "$DATADIR/workspace/baserock/newbranch/test:morphs"
+sed -e 's/"repo": "test:hello"/"repo": "test:hello-lorried"/' \
     -e 's/"ref": "baserock\/newbranch"/"ref": "master"/' \
     -i hello-stratum.morph
 git commit -q --all -m "'hello' repository has moved"
 
 # Now we further edit the chunk, just for fun.
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd "$DATADIR/workspace/baserock/newbranch/baserock:hello-lorried"
+cd "$DATADIR/workspace/baserock/newbranch/test:hello-lorried"
 touch newfile.txt
 git add newfile.txt
 git commit -m "Add new file" --quiet
 
-cd "$DATADIR/workspace/baserock/newbranch/baserock:morphs"
+cd "$DATADIR/workspace/baserock/newbranch/test:morphs"
 git commit -q --all -m "Update system branch refs"
 
 # Try to merge changes back to master (should fail, because we don't support
 # adding chunks inside branches yet).
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge baserock/newbranch

@@ -21,6 +21,6 @@ set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init .
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test
+"$SRCDIR/scripts/test-morph" branch test:morphs test
 
 "$SRCDIR/scripts/test-morph" status

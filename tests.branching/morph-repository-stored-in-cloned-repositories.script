@@ -24,18 +24,18 @@ set -eu
 cd "$DATADIR/workspace"
 
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
 
 echo "morph.repository in branch root repository:"
-cd "$DATADIR/workspace/newbranch/baserock:morphs"
+cd "$DATADIR/workspace/newbranch/test:morphs"
 git config morph.repository
 echo
 
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 echo "morph.repository in branch root repository of a checkout:"
-cd "$DATADIR/workspace/master/baserock:morphs"
+cd "$DATADIR/workspace/master/test:morphs"
 git config morph.repository
 echo
 
@@ -43,5 +43,5 @@ cd "$DATADIR/workspace/master"
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
 echo "morph.repository of an edited repository:"
-cd "$DATADIR/workspace/master/baserock:hello"
+cd "$DATADIR/workspace/master/test:hello"
 git config morph.repository

@@ -23,17 +23,17 @@ set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs me/readme-fix
+"$SRCDIR/scripts/test-morph" branch test:morphs me/readme-fix
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd me/readme-fix/baserock:hello
+cd me/readme-fix/test:hello
 echo > README yoyoyo
 git add README
 git commit -m "Fix README, yo!" --quiet
 
-cd ../baserock:morphs
+cd ../test:morphs
 git commit --quiet --all -m "Commit changes for system branch"
 
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 cd master
 "$SRCDIR/scripts/test-morph" merge me/readme-fix

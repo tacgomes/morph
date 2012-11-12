@@ -24,7 +24,7 @@ set -eu
 # Create a workspace and a system branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs first/branch
+"$SRCDIR/scripts/test-morph" branch test:morphs first/branch
 
 # Show the branch even when outside the branch.
 cd "$DATADIR/workspace"

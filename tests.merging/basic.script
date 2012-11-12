@@ -29,17 +29,17 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # Create stable branch to merge TO
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable
-cd test/stable/baserock:morphs
+"$SRCDIR/scripts/test-morph" branch test:morphs test/stable
+cd test/stable/test:morphs
 git push --quiet origin test/stable
 
 # Create feature branch to merge FROM
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/feature test/stable
+"$SRCDIR/scripts/test-morph" branch test:morphs test/feature test/stable
 cd "$DATADIR/workspace/test/feature"
 
 # Edit hello in FROM
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
-cd baserock:hello
+cd test:hello
 touch newfile.txt
 git add newfile.txt
 git commit -m foo --quiet
@@ -47,7 +47,7 @@ git commit -m foo --quiet
 # Commit in morphs repo
 # FIXME: this should become unnecessary since only the refs have
 # changed.
-cd ../baserock:morphs
+cd ../test:morphs
 git commit --all --quiet -m "Update morph refs for test/feature"
 
 # Merge changes back to test/stable
@@ -57,7 +57,7 @@ cd test/stable
 
 # Check results: changes to 'hello' should have been merged back to
 # test/stable.
-cd baserock:hello
+cd test:hello
 [ -e newfile.txt ]
 
 # Make sure all changes are committed and to the correct branch ('hello'
@@ -67,7 +67,7 @@ git status --short
 [ $(git rev-parse master) = $(git rev-parse HEAD) ]
 
 # Changes here should be on test/stable.
-cd ../baserock:morphs
+cd ../test:morphs
 git status --short
 [ $(git rev-parse test/stable) = $(git rev-parse HEAD) ]
 
@@ -76,11 +76,11 @@ git status --short
 
 # The only change here was the branch refs, which have now been
 # changed back - so there should not be any new commits.
-echo "Commit message for baserock:morphs"
+echo "Commit message for test:morphs"
 git cat-file commit HEAD | tail -n 1
 
 echo
-echo "Commit message for baserock:hello"
-cd ../baserock:hello
+echo "Commit message for test:hello"
+cd ../test:hello
 git cat-file commit HEAD | tail -n 1
 

@@ -24,7 +24,7 @@ set -eu
 # Create a workspace and branch.
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 # Try to print the branch root repository.
 "$SRCDIR/scripts/test-morph" show-branch-root

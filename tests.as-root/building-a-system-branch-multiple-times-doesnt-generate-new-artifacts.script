@@ -27,26 +27,7 @@ then
     exit 0
 fi
 
-source "$SRCDIR/scripts/fix-committer-info"
-
-# Initialise the workspace.
-cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init
-
-# Create a new local system branch.
-"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
-
-# Edit linux.
-"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
-
-# Fix the UUIDs being used for the temporary refs.
-git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
-    branch.uuid 123456789
-git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
-    morph.uuid 987654321
-git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
-    morph.uuid AABBCCDDE
-
+source "$SRCDIR/tests.as-root/setup-build"
 
 # Build once.
 cd "$DATADIR/workspace"
@@ -59,6 +40,6 @@ cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts"
 
 # Build thrice, and that should be enough.
-cd "$DATADIR/workspace/branch1/test:morphs-repo"
+cd "$DATADIR/workspace/branch1/test:morphs"
 "$SRCDIR/scripts/test-morph" build linux-system
 "$SRCDIR/scripts/list-tree" "$DATADIR/cache/artifacts"

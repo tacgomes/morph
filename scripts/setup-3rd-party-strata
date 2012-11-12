@@ -53,7 +53,7 @@ cat <<EOF > "$1/$2.morph"
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:$2-hello",
+            "repo": "test:$2-hello",
             "ref": "master",
             "build-depends": []
         }
@@ -62,7 +62,7 @@ cat <<EOF > "$1/$2.morph"
 EOF
 }
 
-# Create two more strata outside the baserock:morphs repository
+# Create two more strata outside the test:morphs repository
 
 EXTERNAL_STRATA_REPO="$DATADIR/external-strata"
 mkdir "$EXTERNAL_STRATA_REPO"
@@ -88,9 +88,9 @@ create_chunk "$DATADIR/stratum3-hello" "hello"
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs me/add-external-strata
+"$SRCDIR/scripts/test-morph" branch test:morphs me/add-external-strata
 
-cd "$DATADIR/workspace/me/add-external-strata/baserock:morphs"
+cd "$DATADIR/workspace/me/add-external-strata/test:morphs"
 
 cat <<EOF > "hello-system.morph"
 {
@@ -102,17 +102,17 @@ cat <<EOF > "hello-system.morph"
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "baserock:morphs",
+            "repo": "test:morphs",
             "ref": "master"
         },
         {
             "morph": "stratum2",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "master"
         },
         {
             "morph": "stratum3",
-            "repo": "baserock:external-strata",
+            "repo": "test:external-strata",
             "ref": "master"
         }
     ]
@@ -122,8 +122,8 @@ git commit --quiet --all -m "Add two more external strata"
 
 # Merge to master
 cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
-cd master/baserock:morphs
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
+cd master/test:morphs
 "$SRCDIR/scripts/test-morph" merge me/add-external-strata
 
 # In reality the user would do: 'git push origin master' here,
@@ -131,6 +131,6 @@ cd master/baserock:morphs
 # We should consider a separate fixture for the workflow tests.
 cd "$DATADIR/morphs"
 git pull -q \
-    "file://$DATADIR/workspace/master/baserock:morphs" master
+    "file://$DATADIR/workspace/master/test:morphs" master
 
 cd "$DATADIR/workspace"

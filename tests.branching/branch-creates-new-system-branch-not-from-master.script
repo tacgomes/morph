@@ -21,7 +21,7 @@ set -eu
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
-"$SRCDIR/scripts/test-morph" branch baserock:morphs newbranch alfred
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch alfred
 
 echo "File tree:"
 "$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
@@ -29,8 +29,8 @@ echo "File tree:"
     grep -v 'cache/gits/file_[^/]*/'
 
 echo "Current branches:"
-"$SRCDIR/scripts/run-git-in" newbranch/baserock:morphs branch
+"$SRCDIR/scripts/run-git-in" newbranch/test:morphs branch
 
 echo "Current origin:"
-"$SRCDIR/scripts/run-git-in" newbranch/baserock:morphs remote show origin |
+"$SRCDIR/scripts/run-git-in" newbranch/test:morphs remote show origin |
     sed 's,\(TMP/workspace/\.morph/cache/gits/file_\).*_,\1,g'

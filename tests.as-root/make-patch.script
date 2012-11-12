@@ -22,7 +22,7 @@ set -eu
 . "$SRCDIR/tests.as-root/lib"
 
 # Make a stratum that include hello and kernel chunks.
-cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
+cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
 {
     "name": "hello-stratum",
     "kind": "stratum",
@@ -42,12 +42,12 @@ cat <<EOF > "$DATADIR/morphs-repo/hello-stratum.morph"
     ]
 }
 EOF
-"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" commit --quiet -am foo \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs" commit --quiet -am foo \
     > /dev/null
 
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-system
+    test:morphs master hello-system
 img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*-rootfs')
 
 # Modify the chunk, in a new branch.
@@ -59,23 +59,23 @@ sed -i s/hello/goodbye/ "$DATADIR/chunk-repo/hello.c"
     
 # Modify the morphs repo to use the new chunk branch, creating a new 
 # branch for the morphs repo.
-"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" checkout --quiet -b alfred
-sed -i 's/farrokh/alfred/' "$DATADIR/morphs-repo/hello-stratum.morph"
-sed -i 's/master/alfred/' "$DATADIR/morphs-repo/hello-system.morph"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs-repo" commit -am goodbye \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs" checkout --quiet -b alfred
+sed -i 's/farrokh/alfred/' "$DATADIR/morphs/hello-stratum.morph"
+sed -i 's/master/alfred/' "$DATADIR/morphs/hello-system.morph"
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs" commit -am goodbye \
     > /dev/null
 
 # Build second image.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo alfred hello-system
+    test:morphs alfred hello-system
 img2=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*' \
             ! -name $(basename "$img1"))
 
 # Make the patch.
 patch="$DATADIR/patch"
 "$SRCDIR/scripts/test-morph" make-patch "$patch" \
-    test:morphs-repo master hello-system.morph \
-    test:morphs-repo alfred hello-system.morph
+    test:morphs master hello-system.morph \
+    test:morphs alfred hello-system.morph
 
 # Big Scary WARNING:  The test from here-on down is disabled
 # Not because of bugs in Morph but because the images are compressed

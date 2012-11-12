@@ -15,7 +15,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Verify that "morph checkout baserock:morphs master" works.
+# Verify that "morph checkout test:morphs master" works.
 
 
 set -eu
@@ -23,7 +23,7 @@ set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 echo "File tree:"
 "$SRCDIR/scripts/list-tree" . | grep -v '/\.git/' |
@@ -31,4 +31,4 @@ echo "File tree:"
     grep -v 'cache/gits/file_[^/]*/'
 
 echo "Current branches:"
-"$SRCDIR/scripts/run-git-in" master/baserock:morphs branch
+"$SRCDIR/scripts/run-git-in" master/test:morphs branch

@@ -50,13 +50,13 @@ cat <<EOF > hello-stratum.morph
     "chunks": [
         {
             "name": "hello",
-            "repo": "baserock:hello",
+            "repo": "test:hello",
             "ref": "master",
             "build-depends": []
         },
         {
             "name": "goodbye",
-            "repo": "baserock:goodbye",
+            "repo": "test:goodbye",
             "ref": "master",
             "build-depends": []
         }

@@ -6,11 +6,11 @@ d ./.morph/cache/gits/file_hello
 d ./.morph/cache/gits/file_morphs
 d ./master
 d ./master/.morph-system-branch
-d ./master/baserock:hello
-d ./master/baserock:hello/.git
 d ./master/my-renamed-morphs
 d ./master/my-renamed-morphs/.git
+d ./master/test:hello
+d ./master/test:hello/.git
 f ./master/.morph-system-branch/config
-f ./master/baserock:hello/hello.morph
 f ./master/my-renamed-morphs/hello-stratum.morph
 f ./master/my-renamed-morphs/hello-system.morph
+f ./master/test:hello/hello.morph

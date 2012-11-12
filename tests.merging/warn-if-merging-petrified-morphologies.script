@@ -21,12 +21,12 @@ set -eu
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/petrified
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
+"$SRCDIR/scripts/test-morph" branch test:morphs test/petrified
 
-cd "$DATADIR/workspace/test/petrified/baserock:morphs"
+cd "$DATADIR/workspace/test/petrified/test:morphs"
 "$SRCDIR/scripts/test-morph" petrify
 git commit --quiet --all -m "Petrify branch"
 
-cd "$DATADIR/workspace/master/baserock:morphs"
+cd "$DATADIR/workspace/master/test:morphs"
 "$SRCDIR/scripts/test-morph" merge test/petrified

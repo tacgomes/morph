@@ -23,7 +23,7 @@ set -eu
 
 cache="$DATADIR/cache/artifacts"
 kernelrepo="$DATADIR/kernel-repo"
-morphsrepo="$DATADIR/morphs-repo"
+morphsrepo="$DATADIR/morphs"
 
 arch=$(uname -m)
 
@@ -39,7 +39,7 @@ cat <<EOF >system.morph
   "strata": [
     {
       "morph": "stratum",
-      "repo": "test:morphs-repo",
+      "repo": "test:morphs",
       "ref": "custom"
     }
   ]
@@ -86,7 +86,7 @@ git add linux.morph
 git commit --quiet -m 'Make the kernel create a dummy zImage'
 
 rootfs=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
-    build-morphology test:morphs-repo custom system)
+    build-morphology test:morphs custom system)
 
 for suffix in kernel rootfs
 do

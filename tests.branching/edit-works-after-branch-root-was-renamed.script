@@ -23,10 +23,10 @@ set -eu
 cd "$DATADIR/workspace"
 
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs master
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
 
 cd "$DATADIR/workspace/master"
-mv baserock:morphs my-renamed-morphs
+mv test:morphs my-renamed-morphs
 
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 

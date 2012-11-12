@@ -1,14 +1,14 @@
 Current branches:
-baserock:morphs
+test:morphs
   master
 * newbranch
 
-baserock:hello
+test:hello
   master
 * newbranch
 
 Current origins:
-baserock:morphs
+test:morphs
 * remote origin
   Fetch URL: file://TMP/morphs
   Push  URL: file://TMP/morphs
@@ -21,7 +21,7 @@ baserock:morphs
   Local ref configured for 'git push':
     master pushes to master (up to date)
 
-baserock:hello
+test:hello
 * remote origin
   Fetch URL: file://TMP/hello
   Push  URL: file://TMP/hello

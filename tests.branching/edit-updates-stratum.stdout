@@ -1,24 +1,24 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 006a96c..68fcbff 100644
+index 3b7be17..febfa60 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
 @@ -5,7 +5,7 @@
          {
              "name": "hello",
-             "repo": "baserock:hello",
+             "repo": "test:hello",
 -            "ref": "master",
 +            "ref": "newbranch",
              "build-depends": []
          }
      ]
 diff --git a/hello-system.morph b/hello-system.morph
-index 1a33ed6..9cca1bf 100644
+index f3f64b4..99516e3 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
 @@ -8,7 +8,7 @@
          {
              "morph": "hello-stratum",
-             "repo": "baserock:morphs",
+             "repo": "test:morphs",
 -            "ref": "master"
 +            "ref": "newbranch"
          }

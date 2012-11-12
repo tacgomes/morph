@@ -19,25 +19,7 @@
 
 set -eu
 
-source "$SRCDIR/scripts/fix-committer-info"
-
-# Initialise the workspace.
-cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init
-
-# Create a new local system branch.
-"$SRCDIR/scripts/test-morph" branch test:morphs-repo branch1
-
-# Edit linux.
-"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
-
-# Fix the UUIDs being used for the temporary refs.
-git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
-    branch.uuid 123456789
-git config -f "$DATADIR/workspace/branch1/test:morphs-repo/.git/config" \
-    morph.uuid 987654321
-git config -f "$DATADIR/workspace/branch1/test:kernel-repo/.git/config" \
-    morph.uuid AABBCCDDE
+source "$SRCDIR/tests.as-root/setup-build"
 
 # Build the linux system from the system branch.
 cd "$DATADIR/workspace"
@@ -45,7 +27,7 @@ cd "$DATADIR/workspace"
 
 # Verify that the right temporary refs were created.
 echo "Refs of morphs repo after first build:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs" \
     show-ref | cut -d' ' -f2
 echo "Refs of kernel repo after first build:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \
@@ -58,7 +40,7 @@ cd "$DATADIR/workspace"
 
 # Verify that the right temporary refs were created.
 echo "Refs of morphs repo after second build:"
-"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs-repo" \
+"$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:morphs" \
     show-ref | cut -d' ' -f2
 echo "Refs of kernel repo after second build:"
 "$SRCDIR/scripts/run-git-in" "$DATADIR/workspace/branch1/test:kernel-repo" \

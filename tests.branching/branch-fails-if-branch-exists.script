@@ -28,11 +28,11 @@ cd "$DATADIR/workspace"
 # We create a valid branch inside the same prefix first so we can check it
 # doesn't get caught up in the deletion of the invalid branch directory
 
-"$SRCDIR/scripts/test-morph" branch baserock:morphs baserock/new-branch
+"$SRCDIR/scripts/test-morph" branch test:morphs baserock/new-branch
 
 [ -d "$DATADIR/workspace/baserock/new-branch" ]
 
-"$SRCDIR/scripts/test-morph" branch baserock:morphs \
+"$SRCDIR/scripts/test-morph" branch test:morphs \
     baserock/existing-branch || true
 
 [ -d "$DATADIR/workspace/baserock/new-branch" ]

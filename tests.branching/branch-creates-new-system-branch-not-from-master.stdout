@@ -6,12 +6,12 @@ d ./.morph/cache/gits
 d ./.morph/cache/gits/file_morphs
 d ./newbranch
 d ./newbranch/.morph-system-branch
-d ./newbranch/baserock:morphs
-d ./newbranch/baserock:morphs/.git
+d ./newbranch/test:morphs
+d ./newbranch/test:morphs/.git
 f ./newbranch/.morph-system-branch/config
-f ./newbranch/baserock:morphs/hello-stratum.morph
-f ./newbranch/baserock:morphs/hello-system.morph
-f ./newbranch/baserock:morphs/this.is.alfred
+f ./newbranch/test:morphs/hello-stratum.morph
+f ./newbranch/test:morphs/hello-system.morph
+f ./newbranch/test:morphs/this.is.alfred
 Current branches:
   alfred
 * newbranch

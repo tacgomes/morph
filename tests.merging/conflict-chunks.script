@@ -30,12 +30,12 @@ fi
 . "$SRCDIR/scripts/setup-3rd-party-strata"
 
 # Create stable branch to merge TO
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/stable
-cd test/stable/baserock:morphs
+"$SRCDIR/scripts/test-morph" branch test:morphs test/stable
+cd test/stable/test:morphs
 git push --quiet origin test/stable
 
 # Create feature branch to merge FROM
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/feature test/stable
+"$SRCDIR/scripts/test-morph" branch test:morphs test/feature test/stable
 
 add_text_in_repo() {
     REPO="$1"
@@ -52,24 +52,24 @@ add_text_in_repo() {
 cd "$DATADIR/workspace/test/stable"
 "$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
 "$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
-add_text_in_repo "baserock:stratum2-hello" "xyzzy"
-add_text_in_repo "baserock:stratum3-hello" "xyzzy"
+add_text_in_repo "test:stratum2-hello" "xyzzy"
+add_text_in_repo "test:stratum3-hello" "xyzzy"
 
 cd "$DATADIR/workspace/test/feature"
 "$SRCDIR/scripts/test-morph" edit hello-system stratum2 hello
 "$SRCDIR/scripts/test-morph" edit hello-system stratum3 hello
-add_text_in_repo "baserock:stratum2-hello" "plugh"
-add_text_in_repo "baserock:stratum3-hello" "plover"
+add_text_in_repo "test:stratum2-hello" "plugh"
+add_text_in_repo "test:stratum3-hello" "plover"
 
 # This should not be necessary, one day
-cd "$DATADIR/workspace/test/stable/baserock:morphs"
+cd "$DATADIR/workspace/test/stable/test:morphs"
 git commit --quiet --all --message "Commit refs for branch"
-cd "$DATADIR/workspace/test/stable/baserock:external-strata"
+cd "$DATADIR/workspace/test/stable/test:external-strata"
 git commit --quiet --all --message "Commit refs for branch"
 
-cd "$DATADIR/workspace/test/feature/baserock:morphs"
+cd "$DATADIR/workspace/test/feature/test:morphs"
 git commit --quiet --all --message "Commit refs for branch"
-cd "$DATADIR/workspace/test/feature/baserock:external-strata"
+cd "$DATADIR/workspace/test/feature/test:external-strata"
 git commit --quiet --all --message "Commit refs for branch"
 
 # Merge changes from test/feature to test/stable
@@ -77,8 +77,8 @@ cd "$DATADIR/workspace/test/stable"
 "$SRCDIR/scripts/test-morph" merge test/feature || true
 
 # Check that the repos are all clean
-for repo in "baserock:morphs" "baserock:external-strata" \
-            "baserock:stratum2-hello" "baserock:stratum3-hello"; do
+for repo in "test:morphs" "test:external-strata" \
+            "test:stratum2-hello" "test:stratum3-hello"; do
     cd "$DATADIR/workspace/test/stable/$repo"
     git status --porcelain
     [ $(git rev-parse HEAD) = $(git rev-parse test/stable) ]

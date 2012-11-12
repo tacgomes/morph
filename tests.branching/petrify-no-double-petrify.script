@@ -31,9 +31,9 @@ fi
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch baserock:morphs test/petrify
+"$SRCDIR/scripts/test-morph" branch test:morphs test/petrify
 
-cd test/petrify/baserock:morphs
+cd test/petrify/test:morphs
 "$SRCDIR/scripts/test-morph" petrify
 "$SRCDIR/scripts/test-morph" petrify
 "$SRCDIR/scripts/test-morph" petrify

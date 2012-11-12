@@ -22,6 +22,6 @@ set -eu
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
-"$SRCDIR/scripts/test-morph" checkout baserock:morphs i/do/not/exist || true
+"$SRCDIR/scripts/test-morph" checkout test:morphs i/do/not/exist || true
 
 [ ! -d "$DATADIR/workspace/i" ]
