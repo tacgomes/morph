@@ -163,3 +163,8 @@ class LocalRepoCacheTests(unittest.TestCase):
     def test_noremote_error_message_contains_repo_name(self):
         e = morphlib.localrepocache.NoRemote(self.repourl, [])
         self.assertTrue(self.repourl in str(e))
+
+    def test_avoids_caching_local_repo(self):
+        self.lrc.cache_repo('file:///local/repo')
+        cached = self.lrc.get_repo('file:///local/repo')
+        assert cached.path == '/local/repo'
