@@ -1,7 +1,4 @@
-#!/bin/sh
-#
-# Test that 'morph update-gits' caches all the submodules needed by
-# a chunk. 
+#!/bin/bash
 #
 # Copyright (C) 2012  Codethink Limited
 # 
@@ -18,22 +15,33 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# Test that 'morph update-gits' caches all the submodules needed by
+# a chunk.
+
 set -eu
 
-# create a repo to use as a submodule
+# Local repos do not get cached, so we need to fake some remote repositories
+git daemon --port=9419 --pid-file="$DATADIR/git.pid" --reuseaddr \
+    --export-all --base-path="$DATADIR" 2> /dev/null &
+trap 'kill $(cat "$DATADIR/git.pid")' INT TERM ERR
+REPO_ALIAS='test=git://localhost:9419/%s#git://localhost:9419/%s'
+
+# Create a repo to use as a submodule
 submodule="$DATADIR/submodule-repo"
 "$SRCDIR/scripts/cmd-filter" git init --quiet "$submodule"
 "$SRCDIR/scripts/run-git-in" "$submodule" commit --quiet --allow-empty \
                                           --allow-empty-message -m ""
-
-# create an empty commit in a chunk repository
+# Create an empty commit in a chunk repository
 chunkrepo="$DATADIR/chunk-repo"
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" checkout --quiet farrokh
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" submodule --quiet add "$submodule" \
     > /dev/null
 "$SRCDIR/scripts/run-git-in" "$chunkrepo" commit --quiet -m "add submodule"
 
-"$SRCDIR/scripts/test-morph" update-gits test:morphs-repo master hello-stratum
+"$SRCDIR/scripts/test-morph" --repo-alias=$REPO_ALIAS update-gits \
+    test:morphs-repo master hello-stratum
+
+kill $(cat "$DATADIR/git.pid")
 
 test -d "$DATADIR/cache/gits/"*chunk?repo* && echo chunk-repo cached
 test -d "$DATADIR/cache/gits/"*morphs?repo* && echo morphs-repo cached

@@ -1,7 +1,4 @@
-#!/bin/sh
-#
-# Test that 'morph update-gits' updates every chunk listed on the
-# command line 
+#!/bin/bash
 #
 # Copyright (C) 2012  Codethink Limited
 # 
@@ -18,16 +15,28 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# Test that 'morph update-gits' updates every chunk listed on the
+# command line.
+
 set -eu
 
-# create an empty commit in a chunk repository
+# Local repos do not get cached, so we need to fake some remote repositories
+git daemon --port=9419 --pid-file="$DATADIR/git.pid" --reuseaddr \
+    --export-all --base-path="$DATADIR" 2> /dev/null &
+trap 'kill $(cat "$DATADIR/git.pid")' INT TERM ERR
+REPO_ALIAS='test=git://localhost:9419/%s#git://localhost:9419/%s'
+
+# Create an empty commit in a chunk repository
 cd "$DATADIR/chunk-repo"
 git checkout --quiet farrokh
 git commit --quiet --allow-empty --allow-empty-message -m ""
 NEWREF="$(git show-ref --hash farrokh)"
 
-"$SRCDIR/scripts/test-morph" update-gits test:chunk-repo farrokh hello
+"$SRCDIR/scripts/test-morph" --repo-alias=$REPO_ALIAS update-gits \
+    test:chunk-repo farrokh hello
 
-# check the top commit of the cached repo's farrokh branch
+kill $(cat "$DATADIR/git.pid")
+
+# Check the top commit of the cached repo's farrokh branch
 cd "$DATADIR/cache/gits/"*chunk?repo*
 test "$(git show-ref --hash refs/heads/farrokh)" = "$NEWREF"
