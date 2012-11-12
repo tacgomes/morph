@@ -712,7 +712,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                             (stratum_name, chunk_name, system_branch))
 
         self.print_changelog('The following changes were made but have not '
-                             'been comitted')
+                             'been committed')
 
     def petrify(self, args):
         '''Convert all chunk refs in a system branch to be fixed SHA1s
@@ -783,7 +783,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.save_morphology(repo_dir, morph, stratum)
 
         self.print_changelog('The following changes were made but have not '
-                             'been comitted')
+                             'been committed')
 
     def unpetrify(self, args):
         '''Reverse the process of petrification'''
@@ -823,7 +823,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.save_morphology(root_repo_dir, name, morphology)
 
         self.print_changelog('The following changes were made but have not '
-                             'been comitted')
+                             'been committed')
 
     # When 'merge' is unset, git doesn't try to resolve conflicts itself in
     # those files.

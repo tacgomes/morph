@@ -93,7 +93,7 @@ class TrebuchetPlugin(cliapp.Plugin):
 
         if len(args) != 7:
             raise cliapp.AppException('make-patch requires arguments: '
-                                      'name of output file plus two triplest')
+                                      'name of output file plus two triplets')
 
         output = args[0]
         repo_name1, ref1, filename1 = args[1:4]
