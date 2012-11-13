@@ -103,7 +103,7 @@ class AutotoolsBuildSystem(BuildSystem):
             'if [ -e autogen ]; then ./autogen; ' +
             'elif [ -e autogen.sh ]; then ./autogen.sh; ' +
             'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
-            './configure --prefix="$PREFIX" --sysconfdir=/etc',
+            './configure --prefix="$PREFIX"',
         ]
         self.build_commands = [
             'make',
