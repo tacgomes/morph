@@ -21,11 +21,7 @@
 set -eu
 
 # Disable test on versions of Python before 2.7.
-if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
-then
-    cat "$SRCDIR/tests.branching/edit-updates-stratum.stdout"
-    exit 0
-fi
+. "$SRCDIR/scripts/python-check"
 
 # Create system branch.
 cd "$DATADIR/workspace"
