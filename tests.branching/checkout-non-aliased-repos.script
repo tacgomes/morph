@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,14 +16,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Verify that "morph checkout" works with repos that are not aliased.
-# This test in particular verifies that URI schemes are stripped off
-# and that the .git suffix is only removed at the end if it is actually
-# present.
-
+## Verify that "morph checkout" works with repos that are not aliased.
+## This test in particular verifies that URI schemes are stripped off
+## and that the .git suffix is only removed at the end if it is actually
+## present.
 
 set -eu
-
 
 REPO_WITH_SUFFIX="file://$DATADIR/morphs.git"
 REPO_WITHOUT_SUFFIX="file://$DATADIR/morphs"

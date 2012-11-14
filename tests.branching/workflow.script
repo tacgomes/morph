@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,11 +16,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Do a complete workflow test with Morph branching and merging.
-
+## Do a complete workflow test with Morph branching and merging.
 
 set -eu
-
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init

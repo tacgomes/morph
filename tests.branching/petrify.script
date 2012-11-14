@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,12 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Verify "morph petrify", and ensure it doesn't petrify chunks that have
-# already been edited.
-
+## Verify "morph petrify", and ensure it doesn't petrify chunks that have
+## already been edited.
 
 set -eu
-
 
 # Disable test on versions of Python before 2.7.
 . "$SRCDIR/scripts/python-check"
