@@ -16,63 +16,24 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# A system-kind of rootfs-tarball should build both kernel image and
-# a tarball with the root filesystem.
+## A system-kind of rootfs-tarball should build both kernel image and
+## a tarball with the root filesystem.
 
 set -eu
 
 . "$SRCDIR/scripts/python-check"
 
 cache="$DATADIR/cache/artifacts"
-kernelrepo="$DATADIR/kernel-repo"
-morphsrepo="$DATADIR/morphs"
-log="$DATADIR/morph.log"
 
 arch=$(uname -m)
 
-cd "$morphsrepo"
-git checkout --quiet -b custom master
-cat <<EOF >system.morph
-{
-  "name": "system",
-  "kind": "system",
-  "system-kind": "rootfs-tarball",
-  "arch": "$arch",
-  "disk-size": "1G",
-  "strata": [
-    {
-      "morph": "stratum",
-      "repo": "test:morphs",
-      "ref": "custom"
-    }
-  ]
-}
-EOF
-cat <<EOF >stratum.morph
-{
-  "name": "stratum",
-  "kind": "stratum",
-  "chunks": [
-    {
-      "name": "hello",
-      "repo": "test:chunk-repo",
-      "ref": "farrokh",
-      "build-depends": []
-    },
-    {
-      "name": "linux",
-      "repo": "test:kernel-repo",
-      "ref": "custom",
-      "build-depends": ["hello"]
-    }
-  ]
-}
-EOF
-git add system.morph stratum.morph
-git commit --quiet -m "add custom system"
+cd "$DATADIR/morphs"
+sed -e 's/"system-kind": "syslinux-disk"/"system-kind": "rootfs-tarball"/' \
+    -i linux-system.morph
+git add linux-system.morph
+git commit --quiet -m "Build rootfs tarball system"
 
-cd "$kernelrepo"
-git checkout --quiet -b custom master
+cd "$DATADIR/kernel-repo"
 cat <<EOF >linux.morph
 {
   "name": "linux",
@@ -84,17 +45,16 @@ cat <<EOF >linux.morph
 }
 EOF
 git add linux.morph
-
 git commit --quiet -m 'Make the kernel create a dummy zImage'
 
 "$SRCDIR/scripts/test-morph" \
-    build-morphology test:morphs custom system > /dev/null
+    build-morphology test:morphs master linux-system > /dev/null
 
 for suffix in kernel rootfs
 do
-    if [ ! -e "$cache"/*system.system-$suffix ]
+    if [ ! -e "$cache"/*system.linux-system-$suffix ]
     then
-        echo "can't find $cache/*system.system-$suffix" 1>&2
+        echo "can't find $cache/*system.linux-system-$suffix" 1>&2
         find "$cache" 1>&2
         exit 1
     fi

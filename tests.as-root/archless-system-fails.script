@@ -20,10 +20,7 @@
 
 set -eu
 
-cache="$DATADIR/cache/artifacts"
-morphsrepo="$DATADIR/morphs"
-
-cd "$morphsrepo"
+cd "$DATADIR/morphs"
 git checkout --quiet -b archless master
 cat <<EOF >archless-system.morph
 {

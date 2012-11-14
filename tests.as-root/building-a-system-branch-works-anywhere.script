@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -50,7 +51,7 @@ cd "$DATADIR/workspace/branch1/test:kernel-repo"
 rm -rf "$DATADIR/cache/artifacts"/*
 
 # Verify that we build the right number of artifacts
-[ $(wc < "$DATADIR/output1" -l) -eq 10 ]
+[ $(wc < "$DATADIR/output1" -l) -eq 16 ]
 
 # List of files in the artifact cache should be identical after each build
 diff "$DATADIR/output1" "$DATADIR/output2"
