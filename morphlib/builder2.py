@@ -706,7 +706,6 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                                              mount_point)
                     self._install_bootloader(mount_point)
                     self.copy_kernel_into_artifact_cache(factory_path)
-                    self._unmount(mount_point)
                 except BaseException, e:
                     logging.error(traceback.format_exc())
                     self.app.status(msg='Error while building system',
@@ -715,6 +714,7 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                     self._undo_device_mapping(image_name)
                     raise
 
+                self._unmount(mount_point)
                 self._undo_device_mapping(image_name)
 
                 self.app.status(msg='Compressing disk image',
