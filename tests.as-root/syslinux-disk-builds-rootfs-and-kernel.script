@@ -16,8 +16,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# A system kind of syslinux-disk should create the disk image, plus a kernel
-# file.
+## A system kind of syslinux-disk should create the disk image, plus a kernel
+## file.
 
 set -eu
 
@@ -31,77 +31,15 @@ case "$arch" in
 esac
 
 cache="$DATADIR/cache/artifacts"
-kernelrepo="$DATADIR/kernel-repo"
-morphsrepo="$DATADIR/morphs"
-log="$DATADIR/morph.log"
-
-cd "$morphsrepo"
-git checkout --quiet -b custom master
-cat <<EOF >system.morph
-{
-  "name": "system",
-  "kind": "system",
-  "system-kind": "syslinux-disk",
-  "arch": "$arch",
-  "disk-size": "1G",
-  "strata": [
-    {
-      "morph": "stratum",
-      "repo": "test:morphs",
-      "ref": "custom"
-    }
-  ]
-}
-EOF
-cat <<EOF >stratum.morph
-{
-  "name": "stratum",
-  "kind": "stratum",
-  "chunks": [
-    {
-      "name": "hello",
-      "repo": "test:chunk-repo",
-      "ref": "farrokh",
-      "build-depends": []
-    },
-    {
-      "name": "linux",
-      "repo": "test:kernel-repo",
-      "ref": "custom",
-      "build-depends": ["hello"]
-    }
-  ]
-}
-EOF
-git add system.morph stratum.morph
-git commit --quiet -m "foo"
-
-cd "$kernelrepo"
-git checkout --quiet -b custom master
-cat <<EOF >linux.morph
-{
-  "name": "linux",
-  "kind": "chunk",
-  "install-commands": [
-      "mkdir -p \"\$DESTDIR/boot\"",
-      "touch \"\$DESTDIR\"/boot/vmlinuz",
-      "touch \"\$DESTDIR\"/boot/System.map"
-  ]
-}
-EOF
-git add linux.morph
-
-git commit --quiet -m 'Make the kernel create a dummy zImage'
-
 
 rootfs=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
-    build-morphology test:morphs custom system)
+    build-morphology test:morphs master linux-system)
 
 for suffix in kernel rootfs
 do
-    if [ ! -e "$cache"/*system.system-"$suffix" ];
+    if [ ! -e "$cache"/*system.linux-system-"$suffix" ];
     then
-        echo "No .system.system-$suffix" 1>&2
+        echo "No .system.linux-system-$suffix" 1>&2
         find "$cache" 1>&2
         exit 1
     fi

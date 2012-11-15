@@ -22,33 +22,9 @@ set -eu
 
 . "$SRCDIR/tests.as-root/lib"
 
-# Make a stratum that include hello and kernel chunks.
-cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:chunk-repo",
-            "ref": "farrokh",
-            "build-depends": []
-        },
-        {
-            "name": "linux",
-            "repo": "test:kernel-repo",
-            "ref": "master",
-            "build-depends": ["hello"]
-        }
-    ]
-}
-EOF
-"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs" commit --quiet -am foo \
-    > /dev/null
-
 # Build first image. Remember the stratum.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs master hello-system
+    test:morphs master linux-system
 img1=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*-rootfs')
 
 # Modify the chunk, in a new branch.
@@ -68,15 +44,15 @@ sed -i 's/master/alfred/' "$DATADIR/morphs/hello-system.morph"
 
 # Build second image.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs alfred hello-system
+    test:morphs alfred linux-system
 img2=$(find "$DATADIR/cache/artifacts" -maxdepth 1 -name '*.system.*' \
             ! -name $(basename "$img1"))
 
 # Make the patch.
 patch="$DATADIR/patch"
 "$SRCDIR/scripts/test-morph" make-patch "$patch" \
-    test:morphs master hello-system.morph \
-    test:morphs alfred hello-system.morph
+    test:morphs master linux-system.morph \
+    test:morphs alfred linux-system.morph
 
 # Big Scary WARNING:  The test from here-on down is disabled
 # Not because of bugs in Morph but because the images are compressed

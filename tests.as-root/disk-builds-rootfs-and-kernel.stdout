@@ -5,10 +5,11 @@
 ./factory
 ./factory-run
 ./factory-run/baserock
+./factory-run/baserock/hello-stratum.meta
 ./factory-run/baserock/hello.meta
+./factory-run/baserock/linux-stratum.meta
+./factory-run/baserock/linux-system-rootfs.meta
 ./factory-run/baserock/linux.meta
-./factory-run/baserock/stratum.meta
-./factory-run/baserock/system-rootfs.meta
 ./factory-run/bin
 ./factory-run/bin/hello
 ./factory-run/boot
@@ -17,11 +18,13 @@
 ./factory-run/etc
 ./factory-run/etc/fstab
 ./factory-run/etc/os-release
+./factory-run/extlinux.conf
 ./factory/baserock
+./factory/baserock/hello-stratum.meta
 ./factory/baserock/hello.meta
+./factory/baserock/linux-stratum.meta
+./factory/baserock/linux-system-rootfs.meta
 ./factory/baserock/linux.meta
-./factory/baserock/stratum.meta
-./factory/baserock/system-rootfs.meta
 ./factory/bin
 ./factory/bin/hello
 ./factory/boot
@@ -30,4 +33,5 @@
 ./factory/etc
 ./factory/etc/fstab
 ./factory/etc/os-release
-Baserock system, built from ref custom
+./factory/extlinux.conf
+Baserock linux-system, built from ref master
