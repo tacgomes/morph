@@ -15,6 +15,7 @@
 
 
 import datetime
+import errno
 import json
 import logging
 import os
@@ -715,7 +716,12 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                                     error=True)
                     self._unmount(mount_point)
                     self._undo_device_mapping(image_name)
-                    raise
+                    if type(e) is IOError and e.errno==errno.ENOSPC:
+                        raise cliapp.AppException(
+                            'Ran out of space on %s disk image. Please '
+                            'increase the system\'s disk-size.' % rootfs_name)
+                    else:
+                        raise
 
                 self._unmount(mount_point)
                 self._undo_device_mapping(image_name)
