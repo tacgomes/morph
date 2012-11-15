@@ -26,7 +26,22 @@ import os
 import re
 import errno
 import stat
+import shutil
 import tarfile
+
+
+# Work around http://bugs.python.org/issue16477
+def safe_makefile(self, tarinfo, targetpath):
+    '''Create a file, closing correctly in case of exception'''
+
+    source = self.extractfile(tarinfo)
+    try:
+        with open(targetpath, "wb") as target:
+            shutil.copyfileobj(source, target)
+    finally:
+        source.close()
+
+tarfile.TarFile.makefile = safe_makefile
 
 
 def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
