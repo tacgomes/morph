@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Copyright (C) 2011, 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## Handle target disk image being too small for its contents.
+
+set -eu
+
+. "$SRCDIR/tests.as-root/lib"
+
+# Shrink linux-system to the minimum btrfs will allow.
+cd "$DATADIR/morphs"
+sed -e 's/"system-kind": "syslinux-disk"/"system-kind": "disk"/' \
+    -e 's/"disk-size": "1G"/"disk-size": "512M"/' \
+    -i linux-system.morph
+git add linux-system.morph
+git commit -q -m "Make linux-system as small as possible"
+
+# Grow hello-chunk to be absurdly large.
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+cat <<'EOF' > hello.morph
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-system": "dummy",
+    "install-commands": [
+        "dd if=/dev/zero of=\"$DESTDIR\"/huge-file seek=1048580 count=0"
+    ]
+}
+EOF
+git add hello.morph
+git commit -q -m "Make hello be very big"
+
+# Ignore stdout - Morph logs a timestamped error
+"$SRCDIR/scripts/test-morph" build-morphology test:morphs master linux-system \
+    > /dev/null

@@ -15,6 +15,7 @@
 
 
 import datetime
+import errno
 import json
 import logging
 import os
@@ -488,6 +489,24 @@ class SystemKindBuilder(BuilderBase):  # pragma: no cover
 
     '''
 
+    def unpack_one_stratum(self, stratum_artifact, target):
+        '''Unpack a single stratum into a target directory'''
+
+        cache = self.local_artifact_cache
+        with cache.get(stratum_artifact) as stratum_file:
+            artifact_list = json.load(stratum_file)
+            for chunk in (ArtifactCacheReference(a) for a in artifact_list):
+                self.app.status(msg='Unpacking chunk %(basename)s',
+                                basename=chunk.basename(), chatty=True)
+                with cache.get(chunk) as chunk_file:
+                    morphlib.bins.unpack_binary_from_file(chunk_file, target)
+
+        target_metadata = os.path.join(
+                target, 'baserock', '%s.meta' % stratum_artifact.name)
+        with cache.get_artifact_metadata(stratum_artifact, 'meta') as meta_src:
+            with morphlib.savefile.SaveFile(target_metadata, 'w') as meta_dst:
+                shutil.copyfileobj(meta_src, meta_dst)
+
     def unpack_strata(self, path):
         '''Unpack strata into a directory.'''
 
@@ -523,22 +542,7 @@ class SystemKindBuilder(BuilderBase):  # pragma: no cover
 
             # unpack it from the local artifact cache
             for stratum_artifact in self.artifact.dependencies:
-                f = self.local_artifact_cache.get(stratum_artifact)
-                for chunk in (ArtifactCacheReference(a) for a in json.load(f)):
-                    self.app.status(msg='Unpacking chunk %(basename)s',
-                                    basename=chunk.basename(), chatty=True)
-                    chunk_handle = self.local_artifact_cache.get(chunk)
-                    morphlib.bins.unpack_binary_from_file(chunk_handle, path)
-                    chunk_handle.close()
-                f.close()
-                meta = self.local_artifact_cache.get_artifact_metadata(
-                    stratum_artifact, 'meta')
-                dst = morphlib.savefile.SaveFile(
-                    os.path.join(path, 'baserock',
-                                 '%s.meta' % stratum_artifact.name), 'w')
-                shutil.copyfileobj(meta, dst)
-                dst.close()
-                meta.close()
+                self.unpack_one_stratum(stratum_artifact, path)
 
             ldconfig(self.app.runcmd, path)
 
@@ -706,15 +710,20 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                                              mount_point)
                     self._install_bootloader(mount_point)
                     self.copy_kernel_into_artifact_cache(factory_path)
-                    self._unmount(mount_point)
                 except BaseException, e:
                     logging.error(traceback.format_exc())
                     self.app.status(msg='Error while building system',
                                     error=True)
                     self._unmount(mount_point)
                     self._undo_device_mapping(image_name)
-                    raise
+                    if type(e) is IOError and e.errno==errno.ENOSPC:
+                        raise cliapp.AppException(
+                            'Ran out of space on %s disk image. Please '
+                            'increase the system\'s disk-size.' % rootfs_name)
+                    else:
+                        raise
 
+                self._unmount(mount_point)
                 self._undo_device_mapping(image_name)
 
                 self.app.status(msg='Compressing disk image',
@@ -819,5 +828,3 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                         filename=image_name, chatty=True)
         with self.build_watch('undo-device-mapper'):
             morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
-
-
