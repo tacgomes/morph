@@ -187,11 +187,12 @@ def unpack_binary_from_file(f, dirname):  # pragma: no cover
     tf.makedev = monkey_patcher(tf.makedev)
     tf.makelink = monkey_patcher(tf.makelink)
 
-    tf.extractall(path=dirname)
-    tf.close
+    try:
+        tf.extractall(path=dirname)
+    finally:
+        tf.close()
 
 
 def unpack_binary(filename, dirname):
-    f = open(filename, "rb")
-    unpack_binary_from_file(f, dirname)
-    f.close()
+    with open(filename, "rb") as f:
+        unpack_binary_from_file(f, dirname)
