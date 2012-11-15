@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,12 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Do a complete workflow test, with strata outside the main morphologies
-# repository.
-
+## Do a complete workflow test, with strata outside the main morphologies
+## repository.
 
 set -eu
-
 
 . "$SRCDIR/scripts/setup-3rd-party-strata"
 

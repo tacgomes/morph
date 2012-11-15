@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,13 +15,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Conflict caused by two equivalent strata having different order in two
-# different branches
 
-# Morph should possibly resolve this conflict automatically in the future,
-# because the meaning of the morphologies is unambiguious if not the
-# contents. It depends on how much weight we give to the sort order of
-# the morphology from a developer's point of view.
+## Conflict caused by two equivalent strata having different order in two
+## different branches
+
+## Morph should possibly resolve this conflict automatically in the future,
+## because the meaning of the morphologies is unambiguious if not the
+## contents. It depends on how much weight we give to the sort order of
+## the morphology from a developer's point of view.
 
 set -eu
 

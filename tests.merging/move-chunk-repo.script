@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,8 +15,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# "morph merge" should detect changes in a repo that was added as part of the
-# branch and warn the user that the changes will not be merged automatically
+
+## "morph merge" should detect changes in a repo that was added as part of the
+## branch and warn the user that the changes will not be merged automatically
 
 set -eu
 

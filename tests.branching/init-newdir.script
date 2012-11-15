@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # Copyright (C) 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,10 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-set -eu
+## Test that "morph init" works if given a directory that
+## does not exist yet.
 
-# Test that "morph init" works if given a directory that
-# does not exist yet.
+set -eu
 
 "$SRCDIR/scripts/test-morph" init "$DATADIR/foo"
 "$SRCDIR/scripts/list-tree" "$DATADIR/foo"
