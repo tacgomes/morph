@@ -730,7 +730,8 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                                 chatty=True)
                 with os.fdopen(image_file_fd, "rb") as ifh:
                     ofh = gzip.GzipFile(
-                        fileobj=handle, mode="wb", compresslevel=1)
+                        fileobj=handle, filename='', mode="wb",
+                        compresslevel=1)
                     shutil.copyfileobj(ifh, ofh, 1024 * 1024)
                     ofh.close()
 
