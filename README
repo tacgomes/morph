@@ -201,12 +201,12 @@ Example system:
         "strata": [
             {
                 "morph": "foundation",
-                "repo": "baserock:morphs",
+                "repo": "baserock:baserock/morphs",
                 "ref": "master"
             },
             {
                 "morph": "linux-stratum",
-                "repo": "baserock:morphs",
+                "repo": "baserock:baserock/morphs",
                 "ref": "master"
             }
         ]
