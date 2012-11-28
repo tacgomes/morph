@@ -259,53 +259,30 @@ class ChunkBuilder(BuilderBase):
 
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
-            mounted = self.do_mounts()
+            
+            builddir, destdir = self.staging_area.chroot_open(self.artifact.source)
             log_name = None
             try:
-                builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
-                destdir = self.staging_area.destdir(self.artifact.source)
                 with self.local_artifact_cache.put_source_metadata(
                         self.artifact.source, self.artifact.cache_key,
                         'build-log') as log:
                     log_name = log.real_filename
                     self.run_commands(builddir, destdir, log)
             except:
-                self.do_unmounts(mounted)
+                self.staging_area.chroot_close()
                 if log_name:
                     with open(log_name) as f:
                         for line in f:
                             logging.error('OUTPUT FROM FAILED BUILD: %s' %
                                           line.rstrip('\n'))
                 raise
-            self.do_unmounts(mounted)
+            self.staging_area.chroot_close()
             built_artifacts = self.assemble_chunk_artifacts(destdir)
 
         self.save_build_times()
         return built_artifacts
 
-    to_mount = (
-        ('proc',    'proc',  'none'),
-        ('dev/shm', 'tmpfs', 'none'),
-    )
-
-    def do_mounts(self):  # pragma: no cover
-        mounted = []
-        if not self.setup_mounts:
-            return mounted
-        for mount_point, mount_type, source in ChunkBuilder.to_mount:
-            logging.debug('Mounting %s in staging area' % mount_point)
-            path = os.path.join(self.staging_area.dirname, mount_point)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            self.app.runcmd(['mount', '-t', mount_type, source, path])
-            mounted.append(path)
-        return mounted
-
-    def do_unmounts(self, mounted):  # pragma: no cover
-        for path in mounted:
-            logging.debug('Unmounting %s in staging area' % path)
-            morphlib.fsutils.unmount(self.app.runcmd, path)
 
     def get_sources(self, srcdir):  # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
@@ -392,10 +369,12 @@ class ChunkBuilder(BuilderBase):
                         # buffers, but flush handles both
                         logfile.write('# # %s\n' % cmd)
                         logfile.flush()
-                        self.runcmd(['sh', '-c', cmd],
-                                    cwd=relative_builddir,
-                                    stdout=logfile,
-                                    stderr=subprocess.STDOUT)
+
+                        self.staging_area.runcmd(['sh', '-c', cmd],
+                                                cwd=relative_builddir,
+                                                stdout=logfile,
+                                                stderr=subprocess.STDOUT)
+
                         logfile.flush()
                     except cliapp.AppException, e:
                         logfile.flush()
