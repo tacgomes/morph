@@ -370,12 +370,10 @@ class ChunkBuilder(BuilderBase):
                         # buffers, but flush handles both
                         logfile.write('# # %s\n' % cmd)
                         logfile.flush()
-
-                        self.staging_area.runcmd(['sh', '-c', cmd],
-                                                cwd=relative_builddir,
-                                                stdout=logfile,
-                                                stderr=subprocess.STDOUT)
-
+                        self.runcmd(['sh', '-c', cmd],
+                                    cwd=relative_builddir,
+                                    stdout=logfile,
+                                    stderr=subprocess.STDOUT)
                         logfile.flush()
                     except cliapp.AppException, e:
                         logfile.flush()
