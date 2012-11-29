@@ -93,16 +93,20 @@ class StagingArea(object):
         logging.debug('Installing artifact %s' %
                       getattr(handle, 'name', 'unknown name'))
 
-        decompressed_artifact = os.path.join(self._app.settings['cachedir'],'artifacts',os.path.basename(handle.name) + '.d')
-        if not os.path.exists(decompressed_artifact):
-            self._mkdir(decompressed_artifact)
-            morphlib.bins.unpack_binary_from_file(handle, decompressed_artifact + "/")
+        unpacked_artifact = os.path.join(
+            self._app.settings['cachedir'],
+            'artifacts',
+            os.path.basename(handle.name) + '.d')
+        if not os.path.exists(unpacked_artifact):
+            self._mkdir(unpacked_artifact)
+            morphlib.bins.unpack_binary_from_file(
+                handle, unpacked_artifact + '/')
             
         if not os.path.exists(self.dirname):
             self._mkdir(self.dirname)
 
-        self._app.runcmd(["cp -al " + decompressed_artifact+"/* " + self.dirname+"/"],shell=True)
-
+        self._app.runcmd(
+            ['cp', '-al', unpacked_artifact + '/.', self.dirname + '/.'])
 
     def remove(self):
         '''Remove the entire staging area.
@@ -115,7 +119,7 @@ class StagingArea(object):
 
         shutil.rmtree(self.dirname)
 
-    def chroot_open(self, source):
+    def chroot_open(self, source): # pragma: no cover
         # After setup, and before it's use as a chroot
 
         assert self.builddirname == None and self.destdirname == None
@@ -132,7 +136,7 @@ class StagingArea(object):
 
         return builddir, destdir
 
-    def chroot_close(self):
+    def chroot_close(self): # pragma: no cover
         # After it's use as a chroot is complete.
         pass
 
