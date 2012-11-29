@@ -40,6 +40,8 @@ class StagingArea(object):
         self._app = app
         self.dirname = dirname
         self.tempdir = tempdir
+        self.builddirname = None
+        self.destdirname = None        
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
@@ -90,7 +92,21 @@ class StagingArea(object):
 
         logging.debug('Installing artifact %s' %
                       getattr(handle, 'name', 'unknown name'))
-        morphlib.bins.unpack_binary_from_file(handle, self.dirname)
+
+        unpacked_artifact = os.path.join(
+            self._app.settings['cachedir'],
+            'artifacts',
+            os.path.basename(handle.name) + '.d')
+        if not os.path.exists(unpacked_artifact):
+            self._mkdir(unpacked_artifact)
+            morphlib.bins.unpack_binary_from_file(
+                handle, unpacked_artifact + '/')
+            
+        if not os.path.exists(self.dirname):
+            self._mkdir(self.dirname)
+
+        self._app.runcmd(
+            ['cp', '-al', unpacked_artifact + '/.', self.dirname + '/.'])
 
     def remove(self):
         '''Remove the entire staging area.
@@ -103,14 +119,61 @@ class StagingArea(object):
 
         shutil.rmtree(self.dirname)
 
+    def chroot_open(self, source): # pragma: no cover
+        '''Setup staging area for use as a chroot.'''
+
+        assert self.builddirname == None and self.destdirname == None
+
+        builddir = self.builddir(source)
+        destdir = self.destdir(source)
+        self.builddirname = self.relative(builddir).lstrip('/')
+        self.destdirname = self.relative(destdir).lstrip('/')
+
+        for mount_point in ['proc','dev/shm']:
+            path = os.path.join(self.dirname, mount_point)
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+        return builddir, destdir
+
+    def chroot_close(self): # pragma: no cover
+        '''Undo changes by chroot_open.
+        
+        This should be called after the staging area is no longer needed.
+        
+        '''
+
     def runcmd(self, argv, **kwargs):  # pragma: no cover
-        '''Run a command in a chroot in the staging area.'''
+        '''Run a command in the staging area.'''
+
         cwd = kwargs.get('cwd') or '/'
         if 'cwd' in kwargs:
             cwd = kwargs['cwd']
             del kwargs['cwd']
         else:
             cwd = '/'
-        real_argv = ['chroot', self.dirname, 'sh', '-c',
-                     'cd "$1" && shift && exec "$@"', '--', cwd] + argv
+
+        if self._app.settings['staging-chroot']:
+            entries = os.listdir(self.dirname)
+
+            friends = [self.builddirname, self.destdirname,
+                       'dev', 'proc', 'tmp']
+            for friend in friends:
+                if friend in friends:
+                    entries.remove(friend)
+
+            real_argv = ['linux-user-chroot']
+
+            for entry in entries:
+                real_argv += ['--mount-readonly',"/"+entry]
+            
+            real_argv += ['--mount-proc','/proc']
+            real_argv += ['--mount-bind','/dev/shm','/dev/shm']
+            real_argv += [self.dirname]
+        else:
+            real_argv = ['chroot', '/']
+
+        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+        real_argv += argv
+
         return self._app.runcmd(real_argv, **kwargs)
