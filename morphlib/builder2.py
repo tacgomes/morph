@@ -260,7 +260,8 @@ class ChunkBuilder(BuilderBase):
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
             
-            builddir, destdir = self.staging_area.chroot_open(self.artifact.source)
+            builddir, destdir = \
+                self.staging_area.chroot_open(self.artifact.source)
             log_name = None
             try:
                 self.get_sources(builddir)

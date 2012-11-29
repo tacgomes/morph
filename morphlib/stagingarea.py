@@ -141,7 +141,8 @@ class StagingArea(object):
         pass
 
     def runcmd(self, argv, **kwargs):  # pragma: no cover
-        '''Run a command in a chroot in the staging area.'''
+        '''Run a command in the staging area.'''
+
         cwd = kwargs.get('cwd') or '/'
         if 'cwd' in kwargs:
             cwd = kwargs['cwd']
@@ -149,23 +150,27 @@ class StagingArea(object):
         else:
             cwd = '/'
 
-        entries = os.listdir(self.dirname)
-    
-        for friend in [self.builddirname,self.destdirname,'dev','proc','tmp']:
-            try:
-                entries.remove(friend)
-            except:
-                pass
+        if self._app.settings['staging-chroot']:
+            entries = os.listdir(self.dirname)
 
-        real_argv = ['linux-user-chroot']
+            friends = [self.builddirname, self.destdirname,
+                       'dev', 'proc', 'tmp']
+            for friend in friends:
+                if friend in friends:
+                    entries.remove(friend)
 
-        for entry in entries:
-            real_argv += ['--mount-readonly',"/"+entry]
+            real_argv = ['linux-user-chroot']
+
+            for entry in entries:
+                real_argv += ['--mount-readonly',"/"+entry]
             
-        real_argv += ['--mount-proc','/proc']
-        real_argv += ['--mount-bind','/dev/shm','/dev/shm']
-        real_argv += [self.dirname, 'sh', '-c',
-                     'cd "$1" && shift && exec "$@"', '--', cwd]
+            real_argv += ['--mount-proc','/proc']
+            real_argv += ['--mount-bind','/dev/shm','/dev/shm']
+            real_argv += [self.dirname]
+        else:
+            real_argv = ['chroot', '/']
+
+        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
         real_argv += argv
 
         return self._app.runcmd(real_argv, **kwargs)
