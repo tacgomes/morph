@@ -91,6 +91,14 @@ class CacheKeyComputer(object):
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
             le_dict = dict((k, morphology[k]) for k in morphology.keys())
+
+            # Disregard all fields of a morphology that aren't important
+            ignored_fields = ('strata', 'build-depends', 'description',
+                              'chunks')
+            for ignored_field in ignored_fields:
+                if ignored_field in le_dict:
+                    del le_dict[ignored_field]
+
             checksum = hashlib.sha1()
             self._hash_thing(checksum, le_dict)
             keys['morphology-sha1'] = checksum.hexdigest()
