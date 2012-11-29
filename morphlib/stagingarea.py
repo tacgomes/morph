@@ -120,7 +120,7 @@ class StagingArea(object):
         shutil.rmtree(self.dirname)
 
     def chroot_open(self, source): # pragma: no cover
-        # After setup, and before it's use as a chroot
+        '''Setup staging area for use as a chroot.'''
 
         assert self.builddirname == None and self.destdirname == None
 
@@ -137,8 +137,11 @@ class StagingArea(object):
         return builddir, destdir
 
     def chroot_close(self): # pragma: no cover
-        # After it's use as a chroot is complete.
-        pass
+        '''Undo changes by chroot_open.
+        
+        This should be called after the staging area is no longer needed.
+        
+        '''
 
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in the staging area.'''
