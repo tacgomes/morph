@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import cliapp
 import os
 import shutil
 import tarfile
@@ -32,28 +31,14 @@ class FakeSource(object):
         }
 
 
-class FakeApplication(object):
-
-    def __init__(self, cachedir):
-        self.settings = {
-            'cachedir': cachedir,
-        }
-
-    def runcmd(self, *args, **kwargs):
-        cliapp.runcmd(*args, **kwargs)
-
-
 class StagingAreaTests(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
-        self.cachedir = os.path.join(self.tempdir, 'cachedir')
-        os.mkdir(self.cachedir)
-        os.mkdir(os.path.join(self.cachedir, 'artifacts'))
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
-        self.sa = morphlib.stagingarea.StagingArea(
-            FakeApplication(self.cachedir), self.staging, self.staging)
+        self.sa = morphlib.stagingarea.StagingArea(object(), self.staging,
+                                                   self.staging)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
