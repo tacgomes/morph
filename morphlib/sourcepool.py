@@ -30,8 +30,9 @@ class SourcePool(object):
         key = self._key(source.repo_name,
                         source.original_ref,
                         source.filename)
-        self._sources[key] = source
-        self._order.append(source)
+        if key not in self._sources:
+            self._sources[key] = source
+            self._order.append(source)
 
     def lookup(self, repo_name, original_ref, filename):
         '''Find a source in the pool.
