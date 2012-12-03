@@ -173,8 +173,13 @@ class CacheKeyComputerTests(unittest.TestCase):
         new_source = morphlib.source.Source('repo', 'original/ref', 'newsha',
                                             'tree', morphology,
                                             old_artifact.source.filename)
-        self.source_pool.add(new_source)
-        artifacts = self.artifact_resolver.resolve_artifacts(self.source_pool)
+        sp = morphlib.sourcepool.SourcePool()
+        for source in self.source_pool:
+            if source == old_artifact.source:
+                sp.add(new_source)
+            else:
+                sp.add(source)
+        artifacts = self.artifact_resolver.resolve_artifacts(sp)
         for new_artifact in artifacts:
             if new_artifact.source == new_source:
                 break
