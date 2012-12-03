@@ -189,3 +189,12 @@ class CacheKeyComputerTests(unittest.TestCase):
         old_sha = self.ckc.compute_key(old_artifact)
         new_sha = self.ckc.compute_key(new_artifact)
         self.assertEqual(old_sha, new_sha)
+
+    def test_same_morphology_added_to_source_pool_only_appears_once(self):
+        src = morphlib.source.Source('repo', 'original/ref', 'sha', 'tree',
+                                     '{"name": "chunk", "kind": "chunk"}',
+                                     'chunk.morph')
+        sp = morphlib.sourcepool.SourcePool()
+        sp.add(src)
+        sp.add(src)
+        self.assertEqual(1, len([s for s in sp if s == src]))
