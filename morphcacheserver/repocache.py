@@ -72,7 +72,7 @@ class RepoCache(object):
         if not self._is_valid_sha1(ref):
             raise InvalidReferenceError(repo_url, ref)
         try:
-            sha = self._rev_list(ref).strip()
+            sha = self._rev_list(repo_dir, ref).strip()
             return sha, self._tree_from_commit(repo_dir, sha)
         except:
             raise InvalidReferenceError(repo_url, ref)
