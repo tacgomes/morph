@@ -1,0 +1,58 @@
+test:morphs
+example-tag
+tagged-tag
+test:morphs
+tag tagged-tag
+Tagger: developer <developer@example.com>
+Date:   Tue Jul 31 16:51:54 2012 +0000
+
+Second
+
+commit f7f04d63ec5e494cf5b4fd2e94ad5f2f26265c3f
+Author: developer <developer@example.com>
+Date:   Tue Jul 31 16:51:54 2012 +0000
+
+    Second
+
+diff --git a/hello-stratum.morph b/hello-stratum.morph
+index 3b7be17..87561c1 100644
+--- a/hello-stratum.morph
++++ b/hello-stratum.morph
+@@ -5,8 +5,9 @@
+         {
+             "name": "hello",
+             "repo": "test:hello",
+-            "ref": "master",
+-            "build-depends": []
++            "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
++            "build-depends": [],
++            "unpetrify-ref": "master"
+         }
+     ]
+ }
+diff --git a/hello-system.morph b/hello-system.morph
+index f3f64b4..2981e9b 100644
+--- a/hello-system.morph
++++ b/hello-system.morph
+@@ -8,7 +8,8 @@
+         {
+             "morph": "hello-stratum",
+             "repo": "test:morphs",
+-            "ref": "master"
++            "ref": "tagged-tag",
++            "unpetrify-ref": "master"
+         }
+     ]
+ }
+test:morphs
+commit f7f04d63ec5e494cf5b4fd2e94ad5f2f26265c3f
+Author: developer <developer@example.com>
+Date:   Tue Jul 31 16:51:54 2012 +0000
+
+    Second
+
+commit 48d38ef3f39857d7dba4ed1ffc51653c6bed4906
+Author: developer <developer@example.com>
+Date:   Tue Jul 31 16:51:54 2012 +0000
+
+    initial

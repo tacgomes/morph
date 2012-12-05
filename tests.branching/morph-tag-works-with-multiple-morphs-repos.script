@@ -1,0 +1,123 @@
+#!/bin/sh
+#
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## Check that "morph tag" works if morphologies are spread across multiple
+## repositories. In this case, it should copy all petrified morphologies
+## into the branch root repository and only create the tag there.
+
+set -eu
+
+# Make sure the commits always have the same SHA1s.
+source "$SRCDIR/scripts/fix-committer-info"
+
+# Create new directory for repos used in this test.
+mkdir -p "$DATADIR/repos"
+
+# Create the first morphs repository.
+mkdir "$DATADIR/repos/morphs1"
+
+# Create system morphology in first morphs repository.
+cat <<EOF > "$DATADIR/repos/morphs1/test-system.morph"
+{
+    "name": "test-system",
+    "kind": "system",
+    "system-kind": "syslinux-disk",
+    "arch": "$(uname -m)",
+    "disk-size": "1G",
+    "strata": [
+        {
+            "morph": "stratum1",
+            "repo": "repos:morphs1",
+            "ref": "master"
+        },
+        {
+            "morph": "stratum2",
+            "repo": "repos:morphs2",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+
+# Create stratum that depends on another stratum.
+cat <<EOF > "$DATADIR/repos/morphs1/stratum1.morph"
+{
+    "name": "stratum1",
+    "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "stratum3",
+            "repo": "repos:morphs2",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+
+# Commit all files to the first repository.
+scripts/run-git-in "$DATADIR/repos/morphs1" init
+scripts/run-git-in "$DATADIR/repos/morphs1" add .
+scripts/run-git-in "$DATADIR/repos/morphs1" commit -m initial
+
+# Create second morphs repository.
+mkdir "$DATADIR/repos/morphs2"
+
+# Create two strata in the second repository.
+cat <<EOF > "$DATADIR/repos/morphs2/stratum2.morph"
+{
+    "name": "stratum2",
+    "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "stratum3",
+            "repo": "repos:morphs2",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+cat <<EOF > "$DATADIR/repos/morphs2/stratum3.morph"
+{
+    "name": "stratum3",
+    "kind": "stratum"
+}
+EOF
+
+# Commit all files to the second repository.
+"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" init
+"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" add .
+"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" commit -m initial
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+
+# Check out the master system branch.
+"$SRCDIR/scripts/test-morph" \
+    --repo-alias=repos="file://$DATADIR/repos/%s#file://$DATADIR/%s" \
+    checkout repos:morphs1 master
+
+# Tag the master system branch.
+"$SRCDIR/scripts/test-morph" \
+    --repo-alias=repos="file://$DATADIR/repos/%s#file://$DATADIR/%s" \
+    tag tag-across-multiple-repos -- -m "create tag"
+
+# Show the tag.
+GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
+    git show tag-across-multiple-repos
+GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
+    git log -n1 -p --stat tag-across-multiple-repos

@@ -170,6 +170,19 @@ def get_user_name(runcmd):
             '    git config --global user.email "me@example.com"\n')
 
 
+def get_user_email(runcmd):
+    '''Get user.email configuration setting. Complain if none was found.'''
+    if 'GIT_AUTHOR_EMAIL' in os.environ:
+        return os.environ['GIT_AUTHOR_EMAIL'].strip()
+    try:
+        return runcmd(['git', 'config', 'user.email']).strip()
+    except cliapp.AppException:
+        raise cliapp.AppException(
+            'No git user info found. Please set your identity, using: \n'
+            '    git config --global user.email "My Name"\n'
+            '    git config --global user.email "me@example.com"\n')
+
+
 def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
     return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)

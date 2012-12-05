@@ -1,0 +1,3 @@
+ERROR: Command failed: git tag -a example-tag -m Second 70d7adfe89033309e0494efbe6df3e4a5604e558
+fatal: tag 'example-tag' already exists
+
