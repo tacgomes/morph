@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+## Some contents of morphologies (description, build-depends, chunks)
+## should not change the cache keys of those morphs because they are
+## either already considered (build-depends and chunks) or do not affect
+## building (description). This test checks that changes to these parts
+## of a morphology do not force rebuilds.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+source "$SRCDIR/scripts/python-check"
+
+source "$SRCDIR/tests.as-root/setup-build"
+
+# Build once.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" build linux-system
+ARTIFACT_COUNT="$(ls "$DATADIR/cache/artifacts" | wc -l)"
+
+# Petrify the refs, so the morphologies will be different
+"$SRCDIR/scripts/test-morph" petrify
+
+# Build with the petrified morphologies.
+"$SRCDIR/scripts/test-morph" build linux-system
+[ "$ARTIFACT_COUNT" -eq $(ls "$DATADIR/cache/artifacts" | wc -l) ]
