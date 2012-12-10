@@ -88,14 +88,12 @@ class BuildEnvironment():
 # FIXME: we should set CCACHE_BASEDIR so any objects that refer to their
 #        current directory get corrected. This improve the cache hit rate
 #            env['CCACHE_BASEDIR'] = self.tempdir.dirname
+            env['CCACHE_DIR'] = '/tmp/ccache'
             env['CCACHE_EXTRAFILES'] = ':'.join(
                 f for f in ('/baserock/binutils.meta',
                             '/baserock/eglibc.meta',
                             '/baserock/gcc.meta') if os.path.exists(f)
             )
-            if settings['ccache-remotedir'] != '':
-                env['CCACHE_REMOTEDIR'] = settings['ccache-remotedir']
-            env['CCACHE_REMOTENLEVELS'] = str(settings['ccache-remotenlevels'])
             if not settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
 

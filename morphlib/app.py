@@ -43,8 +43,6 @@ defaults = {
     'max-jobs': morphlib.util.make_concurrency(),
     'prefix': '/usr',
     'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
-    'ccache-remotedir': '',
-    'ccache-remotenlevels': 2,
     'build-ref-prefix': 'baserock/builds'
 }
 
@@ -61,6 +59,11 @@ class Morph(cliapp.Application):
                              'cache git repositories and build results in DIR',
                              metavar='DIR',
                              default=defaults['cachedir'])
+        self.settings.string(['compiler-cache-dir'],
+                             'cache compiled objects in CCDIR/REPO_NAME',
+                             metavar='CCDIR',
+                             default=os.path.join(self.settings['cachedir'],
+                                                  'ccache'))
         self.settings.string(['build-ref-prefix'],
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
@@ -108,18 +111,6 @@ class Morph(cliapp.Application):
                               'build stuff in bootstrap mode; this is '
                               'DANGEROUS and will install stuff on your '
                               'system',
-                              group=group_build)
-        self.settings.string(['ccache-remotedir'],
-                             'allow ccache to download objects from REMOTEDIR '
-                             'if they are not cached locally',
-                             metavar='REMOTEDIR',
-                             default=defaults['ccache-remotedir'],
-                             group=group_build)
-        self.settings.integer(['ccache-remotenlevels'],
-                              'assume ccache directory objects are split into '
-                              'NLEVELS levels of subdirectories',
-                              metavar='NLEVELS',
-                              default=defaults['ccache-remotenlevels'],
                               group=group_build)
         self.settings.boolean(['keep-path'],
                               'do not touch the PATH environment variable',

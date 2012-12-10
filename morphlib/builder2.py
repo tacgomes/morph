@@ -289,6 +289,28 @@ class ChunkBuilder(BuilderBase):
         ('dev/shm', 'tmpfs', 'none'),
     )
 
+    def mount_ccachedir(self): #pragma: no cover
+        ccache_dir = self.app.settings['compiler-cache-dir']
+        if not os.path.isdir(ccache_dir):
+            os.makedirs(ccache_dir)
+        # Get a path for the repo's ccache
+        ccache_repobase = os.path.basename(self.artifact.source.repo.path)
+        ccache_repodir = os.path.join(ccache_dir,
+                                      ccache_repobase)
+        # Make sure that directory exists
+        if not os.path.isdir(ccache_repodir):
+            os.mkdir(ccache_repodir)
+        # Get the destination path
+        ccache_destdir= os.path.join(self.staging_area.tempdir,
+                                     'tmp', 'ccache')
+        # Make sure that the destination exists
+        if not os.path.isdir(ccache_destdir):
+            os.mkdir(ccache_destdir)
+        # Mount it into the staging-area
+        self.app.runcmd(['mount', '--bind', ccache_repodir,
+                         ccache_destdir])
+        return ccache_destdir
+
     def do_mounts(self):  # pragma: no cover
         mounted = []
         if not self.setup_mounts:
@@ -300,6 +322,8 @@ class ChunkBuilder(BuilderBase):
                 os.makedirs(path)
             self.app.runcmd(['mount', '-t', mount_type, source, path])
             mounted.append(path)
+        if not self.app.settings['no-ccache']:
+            mounted.append(self.mount_ccachedir())
         return mounted
 
     def do_unmounts(self, mounted):  # pragma: no cover
