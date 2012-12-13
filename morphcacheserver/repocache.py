@@ -59,23 +59,13 @@ class RepoCache(object):
             if not os.path.exists(repo_dir):
                 raise RepositoryNotFoundError(repo_url)
         try:
-            refs = self._show_ref(repo_dir, ref).split('\n')
-            if self.direct_mode:
-                refs = [x.split() for x in refs]
-            else:
-                refs = [x.split() for x in refs if 'origin' in x]
-            return refs[0][0], self._tree_from_commit(repo_dir, refs[0][0])
+            if not self.direct_mode and not refs.startswith('refs/origin/'):
+                ref = 'refs/origin/' + ref
+            sha1 = self._rev_parse(repo_dir, ref)
+            return sha1, self._tree_from_commit(repo_dir, sha1)
 
         except cliapp.AppException:
             pass
-
-        if not self._is_valid_sha1(ref):
-            raise InvalidReferenceError(repo_url, ref)
-        try:
-            sha = self._rev_list(repo_dir, ref).strip()
-            return sha, self._tree_from_commit(repo_dir, sha)
-        except:
-            raise InvalidReferenceError(repo_url, ref)
 
     def _tree_from_commit(self, repo_dir, commitsha):
         commit_info = self.app.runcmd(['git', 'log', '-1',
@@ -95,7 +85,7 @@ class RepoCache(object):
         if not os.path.exists(repo_dir):
             raise RepositoryNotFoundError(repo_url)
         try:
-            sha1 = self._rev_list(repo_dir, ref).strip()
+            sha1 = self._rev_parse(repo_dir, ref)
         except:
             raise InvalidReferenceError(repo_url, ref)
 
@@ -114,7 +104,7 @@ class RepoCache(object):
             raise RepositoryNotFoundError(repo_url)
 
         try:
-            sha1 = self._rev_list(repo_dir, ref).strip()
+            sha1 = self._rev_parse(repo_dir, ref)
         except:
             raise InvalidReferenceError(repo_url, ref)
 
@@ -146,12 +136,9 @@ class RepoCache(object):
             transl = lambda x: x if x in valid_chars else '_'
             return ''.join([transl(x) for x in url])
 
-    def _show_ref(self, repo_dir, ref):
-        return self.app.runcmd(['git', 'show-ref', ref], cwd=repo_dir)
-
-    def _rev_list(self, repo_dir, ref):
-        return self.app.runcmd(
-                ['git', 'rev-list', '--no-walk', ref], cwd=repo_dir)
+    def _rev_parse(self, repo_dir, ref):
+        return self.app.runcmd(['git', 'rev-parse', '--verify', ref],
+                               cwd=repo_dir)[0:40]
 
     def _cat_file(self, repo_dir, sha1, filename):
         return self.app.runcmd(
