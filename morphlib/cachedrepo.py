@@ -104,6 +104,15 @@ class CachedRepo(object):
         self.path = path
         self.is_mirror = not url.startswith('file://')
 
+    def ref_exists(self, ref):
+        '''Returns True if the given ref exists in the repo'''
+
+        try:
+            self._rev_parse(ref)
+        except cliapp.AppException:
+            return False
+        return True
+
     def resolve_ref(self, ref):
         '''Attempts to resolve a ref into its SHA1 and tree SHA1.
 

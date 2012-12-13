@@ -129,6 +129,12 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(self.repo.url, self.repo_url)
         self.assertEqual(self.repo.path, self.repo_path)
 
+    def test_ref_exists(self):
+        self.assertEqual(self.repo.ref_exists('master'), True)
+
+    def test_ref_does_not_exist(self):
+        self.assertEqual(self.repo.ref_exists('non-existant-ref'), False)
+
     def test_resolve_named_ref_master(self):
         sha1, tree = self.repo.resolve_ref('master')
         self.assertEqual(sha1, 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9')
