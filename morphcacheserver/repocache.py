@@ -65,7 +65,7 @@ class RepoCache(object):
             return sha1, self._tree_from_commit(repo_dir, sha1)
 
         except cliapp.AppException:
-            pass
+            raise
 
     def _tree_from_commit(self, repo_dir, commitsha):
         commit_info = self.app.runcmd(['git', 'log', '-1',
