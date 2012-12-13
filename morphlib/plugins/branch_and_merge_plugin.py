@@ -48,6 +48,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('unpetrify', self.unpetrify)
+        self.app.add_subcommand('tag', self.tag)
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('status', self.status)
@@ -824,6 +825,208 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         self.print_changelog('The following changes were made but have not '
                              'been committed')
+
+    def tag(self, args):
+        if len(args) < 1:
+            raise cliapp.AppException('morph tag expects a tag name')
+
+        tagname = args[0]
+
+        # Deduce workspace, system branch and branch root repository.
+        workspace = self.deduce_workspace()
+        branch, branch_dir = self.deduce_system_branch()
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
+        branch_root_dir = self.find_repository(branch_dir, branch_root)
+
+        # Define the committer.
+        committer_name = morphlib.git.get_user_name(self.app.runcmd)
+        committer_email = morphlib.git.get_user_email(self.app.runcmd)
+
+        # Prepare an environment for our internal index file.
+        # This index file allows us to commit changes to a tree without
+        # git noticing any change in the working tree or its own index.
+        env = dict(os.environ)
+        env['GIT_INDEX_FILE'] = os.path.join(
+                branch_root_dir, '.git', 'morph-tag-index')
+        env['GIT_COMMITTER_NAME'] = committer_name
+        env['GIT_COMMITTER_EMAIL'] = committer_email
+
+        # Extract git arguments that deal with the commit message.
+        # This is so that we can use them for creating the tag commit.
+        msg_args = []
+        for i in xrange(0, len(args)):
+            if args[i] == '-m' or args[i] == '-F':
+                if i < len(args)-1:
+                    msg_args.append(args[i])
+                    msg_args.append(args[i+1])
+            elif args[i].startswith('--message='):
+                msg_args.append(args[i])
+
+        # Fail if no commit message was provided.
+        if not msg_args:
+            raise cliapp.AppException(
+                    'Commit message expected. Please run one of '
+                    'the following commands to provide one:\n'
+                    '  morph tag NAME -- -m "Message"\n'
+                    '  morph tag NAME -- --message="Message"\n'
+                    '  morph tag NAME -- -F <message file>')
+
+        # Abort if the tag already exists.
+        try:
+            morphlib.git.rev_parse(self.app.runcmd, branch_root_dir,
+                                   'refs/tags/%s' % tagname)
+            raise cliapp.AppException('%s: Tag \"%s\" already exists' %
+                                      (branch_root, tagname))
+        except:
+            pass
+
+        self.app.status(msg='%(repo)s: Preparing tag commit',
+                        repo=branch_root)
+
+        # Read current tree into the internal index.
+        parent_sha1 = self.resolve_ref(branch_root_dir, branch)
+        self.app.runcmd(['git', 'read-tree', parent_sha1],
+                        cwd=branch_root_dir, env=env)
+
+        self.app.status(msg='%(repo)s: Petrifying everything',
+                        repo=branch_root)
+
+        # Petrify everything.
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
+        self.petrify_everything(branch, branch_dir,
+                                branch_root, branch_root_dir,
+                                tagname, env)
+
+        self.app.status(msg='%(repo)s: Creating tag commit',
+                       repo=branch_root)
+
+        # Create a dangling commit.
+        commit = self.create_tag_commit(
+                branch_root_dir, tagname, msg_args, env)
+
+        self.app.status(msg='%(repo)s: Creating annotated tag "%(tag)s"',
+                        repo=branch_root, tag=tagname)
+
+        # Create an annotated tag for this commit.
+        self.create_annotated_tag(branch_root_dir, commit, env, args)
+
+    def petrify_everything(self, branch, branch_dir,
+            branch_root, branch_root_dir, tagref, env):
+        petrified_morphologies = set()
+        resolved_refs = {}
+        for f in sorted(glob.iglob(os.path.join(branch_root_dir, '*.morph'))):
+            name = os.path.basename(f)[:-len('.morph')]
+            morphology = self.load_morphology(branch_root_dir, name)
+            self.petrify_morphology(branch, branch_dir,
+                                    branch_root, branch_root_dir,
+                                    branch_root, branch_root_dir,
+                                    tagref, name, morphology,
+                                    petrified_morphologies, resolved_refs, env)
+
+    def petrify_morphology(self, branch, branch_dir,
+                           branch_root, branch_root_dir, repo, repo_dir,
+                           tagref, name, morphology,
+                           petrified_morphologies, resolved_refs, env):
+        self.app.status(msg='%(repo)s: Petrifying morphology \"%(morph)s\"',
+                        repo=repo, morph=name)
+
+        # Mark morphology as petrified_morphologies so we don't petrify it twice.
+        petrified_morphologies.add(morphology)
+
+        # Resolve the refs of all build dependencies (strata) and strata
+        # in the morphology into commit SHA1s.
+        strata = []
+        if 'build-depends' in morphology and morphology['build-depends']:
+            strata += morphology['build-depends']
+        if 'strata' in morphology and morphology['strata']:
+            strata += morphology['strata']
+        for info in strata:
+            # Obtain the commit SHA1 this stratum would be built from.
+            commit, tree = self.resolve_info(info, resolved_refs)
+            stratum_repo_dir = self.edit_stratum(
+                    branch, branch_dir, repo, repo_dir, info)
+
+            # Load the stratum morphology and petrify it recursively if
+            # that hasn't happened yet.
+            stratum = self.load_morphology(stratum_repo_dir, info['morph'])
+            if not stratum in petrified_morphologies:
+                self.petrify_morphology(branch, branch_dir,
+                                        branch_root, branch_root_dir,
+                                        info['repo'], stratum_repo_dir,
+                                        tagref, info['morph'], stratum,
+                                        petrified_morphologies,
+                                        resolved_refs, env)
+
+            # Change the ref for this morphology to the tag we're creating.
+            if info['ref'] != tagref:
+                info['unpetrify-ref'] = info['ref']
+                info['ref'] = tagref
+
+            # We'll be copying all systems/strata into the tag commit
+            # in the branch root repo, so make sure to note what repos
+            # they all came from
+            if info['repo'] != branch_root:
+                info['unpetrify-repo'] = info['repo']
+                info['repo'] = branch_root
+
+        # If this morphology is a stratum, resolve the refs of all its
+        # chunks into SHA1s.
+        if morphology['kind'] == 'stratum':
+            for info in morphology['chunks']:
+                commit, tree = self.resolve_info(info, resolved_refs)
+                if info['ref'] != commit:
+                    info['unpetrify-ref'] = info['ref']
+                    info['ref'] = commit
+
+        # Write the petrified morphology to a temporary file in the
+        # branch root repository for inclusion in the tag commit.
+        handle, tmpfile = tempfile.mkstemp(suffix='.morph')
+        self.save_morphology(branch_root_dir, tmpfile, morphology)
+
+        # Hash the petrified morphology and add it to the index
+        # for the tag commit.
+        sha1 = self.app.runcmd(
+                ['git', 'hash-object', '-t', 'blob', '-w', tmpfile],
+                cwd=branch_root_dir, env=env)
+        self.app.runcmd(
+                ['git', 'update-index', '--add', '--cacheinfo',
+                 '100644', sha1, '%s.morph' % name],
+                cwd=branch_root_dir, env=env)
+
+        # Delete the temporary file again.
+        os.remove(tmpfile)
+
+    def resolve_info(self, info, resolved_refs):
+        '''Takes a morphology info and resolves its ref with cache support.'''
+
+        key = (info['repo'], info['ref'])
+        if not key in resolved_refs:
+            commit_sha1, tree_sha1 = self.app.resolve_ref(
+                    self.lrc, self.rrc, info['repo'], info['ref'],
+                    update=not self.app.settings['no-git-update'])
+            resolved_refs[key] = (commit_sha1, tree_sha1)
+        return resolved_refs[key]
+
+    def create_tag_commit(self, repo_dir, tagname, args, env):
+        self.app.status(msg='%(repo)s: Creating commit for the tag',
+                        repo=repo_dir)
+
+        # Write and commit the tree.
+        tree = self.app.runcmd(
+                ['git', 'write-tree'], cwd=repo_dir, env=env).strip()
+        commit = self.app.runcmd(
+                ['git', 'commit-tree', tree, '-p', 'HEAD'] + args,
+                cwd=repo_dir, env=env).strip()
+        return commit
+
+    def create_annotated_tag(self, repo_dir, commit, env, args=[]):
+        self.app.status(msg='%(repo)s: Creating annotated tag for '
+                            'commit %(commit)s',
+                        repo=repo_dir, commit=commit)
+
+        # Create an annotated tag for the commit
+        self.app.runcmd(['git', 'tag', '-a'] + args + [commit],
+                        cwd=repo_dir, env=env)
 
     # When 'merge' is unset, git doesn't try to resolve conflicts itself in
     # those files.

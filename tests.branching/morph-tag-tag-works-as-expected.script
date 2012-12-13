@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## Check that tagging an existing tag commit with 'morph tag' preserves
+## the unpetrify-ref and does not "double-petrify" apart from updating
+## references to "example-tag" to "tagged-tag".
+
+set -eu
+
+# Make sure the commits always have the same SHA1s.
+source "$SRCDIR/scripts/fix-committer-info"
+
+# Create a workspace and branch.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" checkout test:morphs master
+
+# Tag the system branch.
+"$SRCDIR/scripts/test-morph" tag example-tag -- -m First
+
+# Check out the tag.
+"$SRCDIR/scripts/run-git-in" master/test:morphs checkout -b example-tag \
+    2>/dev/null
+
+# Tag the tag.
+"$SRCDIR/scripts/test-morph" tag tagged-tag -- -m Second
+
+# List all tags and show the second one.
+"$SRCDIR/scripts/test-morph" foreach -- git tag -l
+"$SRCDIR/scripts/test-morph" foreach -- git show tagged-tag
+"$SRCDIR/scripts/test-morph" foreach -- git log tagged-tag
