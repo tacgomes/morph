@@ -16,8 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## 'git show-ref master' sorts its output alphabetically, so we can't rely on
-## it to resolve 'master': we might get 'alpha/master' instead.
+## Guard against a bug that occurs if 'git show-ref' is used to resolve refs
+## instead of 'git rev-parse --verify': show-ref returns a list of partial
+## matches sorted alphabetically, so any code using it may resolve refs
+## incorrectly.
 
 set -eu
 

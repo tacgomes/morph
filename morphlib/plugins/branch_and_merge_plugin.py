@@ -194,8 +194,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def resolve_ref(self, repodir, ref):
         try:
-            return self.app.runcmd(['git', 'show-ref', ref],
-                                   cwd=repodir).split()[0]
+            return self.app.runcmd(['git', 'rev-parse', '--verify', ref],
+                                   cwd=repodir)[0:40]
         except:
             return None
 
