@@ -853,17 +853,23 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Extract git arguments that deal with the commit message.
         # This is so that we can use them for creating the tag commit.
+        msg = None
         msg_args = []
         for i in xrange(0, len(args)):
             if args[i] == '-m' or args[i] == '-F':
                 if i < len(args)-1:
                     msg_args.append(args[i])
                     msg_args.append(args[i+1])
+                    if args[i] == '-m':
+                        msg = args[i+1]
+                    else:
+                        msg = open(args[i+1]).read()
             elif args[i].startswith('--message='):
                 msg_args.append(args[i])
+                msg = args[i][len('--message='):]
 
         # Fail if no commit message was provided.
-        if not msg_args:
+        if not msg or not msg_args:
             raise cliapp.AppException(
                     'Commit message expected. Please run one of '
                     'the following commands to provide one:\n'
@@ -872,13 +878,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     '  morph tag NAME -- -F <message file>')
 
         # Abort if the tag already exists.
-        try:
-            morphlib.git.rev_parse(self.app.runcmd, branch_root_dir,
-                                   'refs/tags/%s' % tagname)
-            raise cliapp.AppException('%s: Tag \"%s\" already exists' %
+        # FIXME At the moment this only checks the local repo in the
+        # workspace, not the remote repo cache or the local repo cache.
+        if self.ref_exists_locally(branch_root_dir, 'refs/tags/%s' % tagname):
+            raise cliapp.AppException('%s: Tag "%s" already exists' %
                                       (branch_root, tagname))
-        except:
-            pass
 
         self.app.status(msg='%(repo)s: Preparing tag commit',
                         repo=branch_root)
@@ -902,13 +906,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Create a dangling commit.
         commit = self.create_tag_commit(
-                branch_root_dir, tagname, msg_args, env)
+                branch_root_dir, tagname, msg, env)
 
         self.app.status(msg='%(repo)s: Creating annotated tag "%(tag)s"',
                         repo=branch_root, tag=tagname)
 
         # Create an annotated tag for this commit.
         self.create_annotated_tag(branch_root_dir, commit, env, args)
+
+    def ref_exists_locally(self, repo_dir, ref):
+        try:
+            morphlib.git.rev_parse(self.app.runcmd, repo_dir, ref)
+            return True
+        except cliapp.AppException:
+            return False
 
     def petrify_everything(self, branch, branch_dir,
             branch_root, branch_root_dir, tagref, env):
@@ -930,7 +941,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.status(msg='%(repo)s: Petrifying morphology \"%(morph)s\"',
                         repo=repo, morph=name)
 
-        # Mark morphology as petrified_morphologies so we don't petrify it twice.
+        # Mark morphology as petrified so we don't petrify it twice.
         petrified_morphologies.add(morphology)
 
         # Resolve the refs of all build dependencies (strata) and strata
@@ -1007,7 +1018,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             resolved_refs[key] = (commit_sha1, tree_sha1)
         return resolved_refs[key]
 
-    def create_tag_commit(self, repo_dir, tagname, args, env):
+    def create_tag_commit(self, repo_dir, tagname, msg, env):
         self.app.status(msg='%(repo)s: Creating commit for the tag',
                         repo=repo_dir)
 
@@ -1015,8 +1026,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         tree = self.app.runcmd(
                 ['git', 'write-tree'], cwd=repo_dir, env=env).strip()
         commit = self.app.runcmd(
-                ['git', 'commit-tree', tree, '-p', 'HEAD'] + args,
-                cwd=repo_dir, env=env).strip()
+                ['git', 'commit-tree', tree, '-p', 'HEAD'],
+                feed_stdin=msg, cwd=repo_dir, env=env).strip()
         return commit
 
     def create_annotated_tag(self, repo_dir, commit, env, args=[]):
