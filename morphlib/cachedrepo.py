@@ -104,6 +104,15 @@ class CachedRepo(object):
         self.path = path
         self.is_mirror = not url.startswith('file://')
 
+    def ref_exists(self, ref):
+        '''Returns True if the given ref exists in the repo'''
+
+        try:
+            self._rev_parse(ref)
+        except cliapp.AppException:
+            return False
+        return True
+
     def resolve_ref(self, ref):
         '''Attempts to resolve a ref into its SHA1 and tree SHA1.
 
@@ -112,18 +121,10 @@ class CachedRepo(object):
 
         '''
 
-        if not morphlib.git.is_valid_sha1(ref):
-            try:
-                refs = self._show_ref(ref).split('\n')
-                refs = [x.split() for x in refs]
-                absref = refs[0][0]
-            except cliapp.AppException:
-                raise InvalidReferenceError(self, ref)
-        else:
-            try:
-                absref = self._rev_list(ref).strip()
-            except cliapp.AppException:
-                raise InvalidReferenceError(self, ref)
+        try:
+            absref = self._rev_parse(ref)
+        except cliapp.AppException:
+            raise InvalidReferenceError(self, ref)
 
         tree = self._show_tree_hash(absref)
         return absref, tree
@@ -141,7 +142,7 @@ class CachedRepo(object):
         if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
-            sha1 = self._rev_list(ref).strip()
+            sha1 = self._rev_parse(ref)
         except cliapp.AppException:
             raise InvalidReferenceError(self, ref)
 
@@ -193,7 +194,7 @@ class CachedRepo(object):
         '''Loads a morphology from a given ref'''
 
         if not morphlib.git.is_valid_sha1(ref):
-            ref = self._rev_list(ref).strip()
+            ref = self._rev_parse(ref)
         text = self.cat(ref, '%s.morph' % name)
         morphology = morphlib.morph2.Morphology(text)
         return morphology
@@ -210,7 +211,7 @@ class CachedRepo(object):
         if not morphlib.git.is_valid_sha1(ref):
             raise UnresolvedNamedReferenceError(self, ref)
         try:
-            sha1 = self._rev_list(ref).strip()
+            sha1 = self._rev_parse(ref)
         except cliapp.AppException:
             raise InvalidReferenceError(self, ref)
 
@@ -237,15 +238,12 @@ class CachedRepo(object):
             kwargs['cwd'] = self.path
         return self.app.runcmd(*args, **kwargs)
 
-    def _show_ref(self, ref):  # pragma: no cover
-        return self._runcmd(['git', 'show-ref', ref])
+    def _rev_parse(self, ref):  # pragma: no cover
+        return self._runcmd(['git', 'rev-parse', '--verify', ref])[0:40]
 
     def _show_tree_hash(self, absref):  # pragma: no cover
         return self._runcmd(
                 ['git', 'log', '-1', '--format=format:%T', absref]).strip()
-
-    def _rev_list(self, ref):  # pragma: no cover
-        return self._runcmd(['git', 'rev-list', '--no-walk', ref])
 
     def _ls_tree(self, ref):  # pragma: no cover
         result = self._runcmd(['git', 'ls-tree', '--name-only', ref])

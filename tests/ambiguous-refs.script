@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2011, 2012  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,31 +19,14 @@
 ## Guard against a bug that occurs if 'git show-ref' is used to resolve refs
 ## instead of 'git rev-parse --verify': show-ref returns a list of partial
 ## matches sorted alphabetically, so any code using it may resolve refs
-## incorrectly.
 
 set -eu
 
-# Disable test on versions of Python before 2.7.
-. "$SRCDIR/scripts/python-check"
+# Create a ref that will show up in 'git show-ref' before the real master ref
+cd "$DATADIR/morphs-repo"
+git checkout -q -b alpha/master
+git rm -q hello-stratum.morph
+git commit -q -m "This ref will not build correctly"
 
-. "$SRCDIR/scripts/fix-committer-info"
-
-cd "$DATADIR/morphs"
-git mv hello-stratum.morph goodbye-stratum.morph
-sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/' \
-    -i hello-system.morph
-
-git commit --quiet -am "Rename hello-system"
-
-cd "$DATADIR/workspace"
-"$SRCDIR/scripts/test-morph" init
-"$SRCDIR/scripts/test-morph" branch test:morphs release
-
-# Create an extra ref to confuse any users of git show-ref
-cd release/test:morphs
-git checkout --quiet -b alpha/master HEAD~1
-git checkout --quiet release
-
-# The petrify will fail if we resolved 'master' as 'alpha/master' by mistake.
-cd "$DATADIR/workspace/release/test:morphs"
-"$SRCDIR/scripts/test-morph" petrify
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-stratum

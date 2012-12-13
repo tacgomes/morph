@@ -31,19 +31,19 @@ class CachedRepoTests(unittest.TestCase):
         "kind": "chunk"
     }'''
 
-    def show_ref(self, ref):
+    def rev_parse(self, ref):
         output = {
-            'master':
-            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9'
-            ' refs/heads/master',
-            'baserock/morph':
-            '8b780e2e6f102fcf400ff973396566d36d730501'
-            ' refs/heads/baserock/morph',
+            'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
+                    'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
+                    'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+            'master': 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
+            'baserock/morph': '8b780e2e6f102fcf400ff973396566d36d730501'
         }
         try:
             return output[ref]
         except:
-            raise cliapp.AppException('git show-ref %s' % ref)
+            raise cliapp.AppException('git rev-parse --verify %s' % ref)
 
     def show_tree_hash(self, absref):
         output = {
@@ -59,19 +59,6 @@ class CachedRepoTests(unittest.TestCase):
         except:
             raise cliapp.AppException('git log -1 --format=format:%%T %s' %
                                       absref)
-
-    def rev_list(self, ref):
-        output = {
-            'master': 'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
-            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
-            'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
-            'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
-            'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-        }
-        try:
-            return output[ref]
-        except:
-            raise cliapp.AppException('git rev-list %s' % ref)
 
     def cat_file(self, ref, filename):
         output = {
@@ -125,9 +112,8 @@ class CachedRepoTests(unittest.TestCase):
         self.repo_path = '/tmp/foo'
         self.repo = cachedrepo.CachedRepo(
             object(), self.repo_name, self.repo_url, self.repo_path)
-        self.repo._show_ref = self.show_ref
+        self.repo._rev_parse = self.rev_parse
         self.repo._show_tree_hash = self.show_tree_hash
-        self.repo._rev_list = self.rev_list
         self.repo._cat_file = self.cat_file
         self.repo._copy_repository = self.copy_repository
         self.repo._checkout_ref = self.checkout_ref
@@ -142,6 +128,12 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(self.repo.original_name, self.repo_name)
         self.assertEqual(self.repo.url, self.repo_url)
         self.assertEqual(self.repo.path, self.repo_path)
+
+    def test_ref_exists(self):
+        self.assertEqual(self.repo.ref_exists('master'), True)
+
+    def test_ref_does_not_exist(self):
+        self.assertEqual(self.repo.ref_exists('non-existant-ref'), False)
 
     def test_resolve_named_ref_master(self):
         sha1, tree = self.repo.resolve_ref('master')

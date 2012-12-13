@@ -269,4 +269,4 @@ def is_valid_sha1(ref):
 
 def rev_parse(runcmd, gitdir, ref):
     '''Find the sha1 for the given ref'''
-    return runcmd(['git', 'rev-parse', ref], cwd=gitdir)[0:40]
+    return runcmd(['git', 'rev-parse', '--verify', ref], cwd=gitdir)[0:40]

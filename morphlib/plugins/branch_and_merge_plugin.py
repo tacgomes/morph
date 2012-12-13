@@ -195,8 +195,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def resolve_ref(self, repodir, ref):
         try:
-            return self.app.runcmd(['git', 'show-ref', ref],
-                                   cwd=repodir).split()[0]
+            return self.app.runcmd(['git', 'rev-parse', '--verify', ref],
+                                   cwd=repodir)[0:40]
         except:
             return None
 
@@ -517,11 +517,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
         new_branch = args[1]
         commit = 'master' if len(args) == 2 else args[2]
 
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
+        if self.lrc.get_repo(repo).ref_exists(new_branch):
+            raise cliapp.AppException('branch %s already exists in '
+                                      'repository %s' % (new_branch, repo))
+
         # Create the system branch directory.
         workspace = self.deduce_workspace()
         branch_dir = os.path.join(workspace, new_branch)
         os.makedirs(branch_dir)
-        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
 
         try:
             # Create a .morph-system-branch directory to clearly identify
@@ -540,11 +544,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             # Clone into system branch directory.
             repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
             self.clone_to_directory(repo_dir, repo, commit)
-
-            # Check if branch already exists locally or in a remote
-            if self.resolve_ref(repo_dir, new_branch) is not None:
-                raise cliapp.AppException('branch %s already exists in '
-                                          'repository %s' % (new_branch, repo))
 
             # Create a new branch in the local morphs repository.
             self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
