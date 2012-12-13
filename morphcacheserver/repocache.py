@@ -59,7 +59,7 @@ class RepoCache(object):
             if not os.path.exists(repo_dir):
                 raise RepositoryNotFoundError(repo_url)
         try:
-            if not self.direct_mode and not refs.startswith('refs/origin/'):
+            if not self.direct_mode and not ref.startswith('refs/origin/'):
                 ref = 'refs/origin/' + ref
             sha1 = self._rev_parse(repo_dir, ref)
             return sha1, self._tree_from_commit(repo_dir, sha1)
