@@ -292,15 +292,29 @@ class Morph(cliapp.Application):
                                                                      self)
         queue = collections.deque(triplets)
         updated_repos = set()
+        resolved_refs = {}
+        resolved_morphologies = {}
 
         while queue:
             reponame, ref, filename = queue.popleft()
             update_repo = update and reponame not in updated_repos
-            absref, tree = self.resolve_ref(lrc, rrc, reponame, ref,
-                                            update_repo)
+
+            # Resolve the (repo, ref) reference, cache result.
+            reference = (reponame, ref)
+            if not reference in resolved_refs:
+                resolved_refs[reference] = self.resolve_ref(
+                        lrc, rrc, reponame, ref, update_repo)
+            absref, tree = resolved_refs[reference]
+
             updated_repos.add(reponame)
-            morphology = morph_factory.get_morphology(
-                reponame, absref, filename)
+
+            # Fetch the (repo, ref, filename) morphology, cache result.
+            reference = (reponame, absref, filename)
+            if not reference in resolved_morphologies:
+                resolved_morphologies[reference] = \
+                    morph_factory.get_morphology(reponame, absref, filename)
+            morphology = resolved_morphologies[reference]
+
             visit(reponame, ref, filename, absref, tree, morphology)
             if morphology['kind'] == 'system':
                 queue.extend((s['repo'], s['ref'], '%s.morph' % s['morph'])
