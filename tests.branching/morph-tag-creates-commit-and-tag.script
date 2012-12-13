@@ -22,7 +22,7 @@
 set -eu
 
 # Make sure the commits always have the same SHA1s.
-source "$SRCDIR/scripts/fix-committer-info"
+. "$SRCDIR/scripts/fix-committer-info"
 
 # Create a workspace and branch.
 cd "$DATADIR/workspace"
