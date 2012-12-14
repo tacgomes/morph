@@ -1,0 +1,553 @@
+#!/bin/sh
+
+# Build an intermediate build-essential stratum using the host's tools
+#  -- everything is installed into $PREFIX inside a chroot
+#  -- a "cross-compiler" toolchain is built first, as suggested by LFS, and
+#     this builds the actual build-essential tools.
+#  -- unlike LFS, the initial toolchain goes into a separate prefix. This is
+#     because programs in the target chroot cannot be executed outside of the
+#     chroot without creating a symlink in the root directory of the host
+#     system, which is not pleasant.
+#  -- this also means we effectively always cross-compile, because nothing in
+#     the chroot is executable during the build process. This is good, because
+#     build-essential must be cross-compilable so that we can port Baserock
+#     to new architectures.
+#  -- we can't build g++, because since it's effectively a cross build we can't
+#     bootstrap the compiler, and although theoretically we could build one in
+#     the temporary toolchain, that doesn't actually work. Since the next step
+#     is a native build we can get a c++ compiler in stage 2 of the bootstrap.
+
+# In future Morph will handle the build of build-essential that is currently
+# done by this script.
+
+# Disable hashing, so that newly built tools are picked up in PATH immediately
+set +h
+
+set -eu
+
+## Configuration
+
+# Installing to a different sysroot (e.g. /tools) is supported, but in order
+# to use the result as a staging filler Morph needs to know to create /bin and
+# /lib{64} symlinks in the staging area if not present (creating the symlinks
+# in the filler itself will conflict with the fhs-dirs chunk)
+PREFIX=/usr
+
+export MAKEFLAGS="-j 4"
+export CFLAGS="-O2"
+
+# i686
+#TARGET="i686-baserock-linux-gnu"
+#TARGET_GCC_CONFIG=
+#export ARCH=i386
+
+# x86_64
+TARGET="x86_64-baserock-linux-gnu"
+TARGET_GCC_CONFIG=
+export ARCH="x86_64"
+
+# Little-endian ARM
+#TARGET="armv7l-baserock-linux-gnueabi"
+#TARGET_GCC_CONFIG="--with-arch=armv7-a"
+#export ARCH="arm"
+
+# Big-endian ARM
+#   No stable GCC release as of January 2013 can default to big-endian linking.
+#   You must backport a patch from trunk to make this work. See:
+#       http://gcc.gnu.org/bugzilla/show_bug.cgi?id=16350
+#   Correct linking also depends on the correct --with-arch= flag being given.
+#TARGET="armv7leb-baserock-linux-gnueabi"
+#TARGET_GCC_CONFIG="--with-arch=armv7-a"
+#export ARCH="arm"
+
+
+## Setup
+
+if [ "$#" -ne "1" ]; then
+    echo "Usage: $0 BASE_DIR"
+    echo
+    echo "    Compiles a build-essential chroot in BASE_DIR. The directory"
+    echo "    BASE_DIR/gits is expected to contain checkouts of all source"
+    echo "    code required for the builds; you will currently have to"
+    echo "    assemble this yourself based on the source code of this script."
+    exit 1
+fi
+
+BASE_DIR="$1"
+
+if [ ! -d "$BASE_DIR" ]; then
+    echo "$BASE_DIR does not exist"
+    exit 1
+fi
+
+BASE_DIR="$(readlink -f $BASE_DIR)"
+
+TOOLCHAIN_DIR="$BASE_DIR"/toolchain
+CHROOT_DIR="$BASE_DIR"/chroot
+
+if [ ! -d "$BASE_DIR" ]; then
+    echo "$BASE_DIR does not exist"
+    exit 1
+fi
+
+if [ ! -d "$BASE_DIR/gits" ]; then
+    echo "$BASE_DIR/gits does not exist"
+    exit 1
+fi
+
+if [ ! -d "$TOOLCHAIN_DIR" ]; then
+    mkdir -p "$TOOLCHAIN_DIR"
+fi
+
+if [ ! -d "$CHROOT_DIR" ]; then
+    mkdir -p "$CHROOT_DIR"
+fi
+
+
+## Architecture-specific hacks
+
+fix_chroot_for_target() {
+    case "$TARGET" in
+        x86_64*)
+            # eglibc 2.15 is belligerant about putting things into /lib64,
+            # especially when prefix is /usr. Currently if PREFIX is NOT /usr
+            # we force ld.so to be in PREFIX/lib/ld.so; but eglibc installs it
+            # in /lib64 anyway.
+            if [ ! -e $CHROOT_DIR/lib64/ld-linux-x86-64.so.2 ]; then
+                mkdir -p $CHROOT_DIR$PREFIX/lib64
+                ln -sf $CHROOT_DIR$PREFIX/lib/ld-linux-x86-64.so.2 $CHROOT_DIR$PREFIX/lib64
+            fi ;;
+    esac
+}
+
+## Build process
+
+assert_branch() {
+    branch="$1"
+    if which git > /dev/null &&
+        [ $(git rev-parse HEAD) != $(git rev-parse "$branch") ]; then
+        echo "Expected to be building '$branch' branch in $(basename $(pwd))" \
+            >&2
+        exit 1
+    fi
+}
+
+touch_tree() {
+    # git doesn't preserve mtimes, but this causes rebuilds of things that
+    # haven't changed which breaks builds if the correct tools are not
+    # available
+    #date=$(date '+%C%y%m%d%H%M.%S')
+    #find -type f -exec touch -m -t $date \{} \;
+    return 0
+}
+
+# build-essential
+
+build_binutils() {
+    pass="$1"
+
+    source_dir="$BASE_DIR"/gits/binutils-redhat
+    build_dir="$BASE_DIR"/builds/binutils-"$pass"
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    # Note for shell escape purists: quotes around --with-lib-path's argument
+    # do not work correctly
+    if [ "$pass" == "pass1" ]; then
+        extra_config="--target=$TARGET --with-sysroot=\"$CHROOT_DIR\" \
+            --with-lib-path=$CHROOT_DIR$PREFIX/lib"
+    elif [ "$pass" == "pass2" ]; then
+        extra_config="--host=$TARGET --with-lib-path=$PREFIX/lib "
+    else
+        echo "Invalid pass for binutils: $pass"
+        exit 1
+    fi
+
+    # Note that the root configure script's --help doesn't display the
+    # arguments for sub-configure scripts, but it does pass on arguments to
+    # them
+    "$source_dir"/configure \
+        --prefix=$PREFIX --disable-nls --disable-werror \
+        $extra_config
+    make
+    make DESTDIR="$DESTDIR" install
+}
+
+build_busybox() {
+    source_dir="$BASE_DIR"/gits/busybox
+    build_dir="$BASE_DIR"/builds/busybox
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    # Busybox's default config includes basically everything
+    make KBUILD_SRC="$source_dir" -f "$source_dir"/Makefile defconfig
+
+    if [ "$PREFIX" != "/usr" ]; then
+        # Install everything into DESTDIR instead of putting some of it into
+        # DESTDIR/usr/. For compatibility with the old Baserock staging
+        # fillers, if the prefix is /usr we still do the traditional /bin vs.
+        # /usr/bin split for now.
+        sed -e 's/.*CONFIG_INSTALL_NO_USR.*/CONFIG_INSTALL_NO_USR=y/' -i \
+            .config
+    fi
+
+    sed -e 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' -i .config
+
+    # Requires stuff that was removed after eglibc 2.14
+    sed -e 's/.*CONFIG_INETD.*/# CONFIG_INETD is not set/' -i .config
+
+    # Disable all module tools. BusyBox's depmod isn't sufficient for Linux
+    # builds, but Linux will build OK if depmod isn't present at all. Also, we
+    # have kmod in Baserock which can do all this stuff anyway.
+    sed -e 's/.*MODPROBE_SMALL=.*/# CONFIG_MODPROBE_SMALL is not set/' -i .config
+    sed -e 's/.*INSMOD=.*/CONFIG_INSMOD=y/' -i .config
+    sed -e 's/.*RMMOD=.*/CONFIG_RMMOD=y/' -i .config
+    sed -e 's/.*LSMOD=.*/CONFIG_LSMOD=y/' -i .config
+    sed -e 's/.*DEPMOD=.*/CONFIG_DEPMOD=y/' -i .config
+    sed -e 's/.*MODPROBE=.*/CONFIG_MODPROBE=y/' -i .config
+
+    sed -e 's/.*CONFIG_INETD.*/# CONFIG_INETD is not set/' -i .config
+
+
+    make CROSS_COMPILE="$TARGET-"
+
+    if [ "$PREFIX" != "/usr" ]; then
+        make CROSS_COMPILE="$TARGET-" CONFIG_PREFIX="$DESTDIR$PREFIX" install
+    else
+        make CROSS_COMPILE="$TARGET-" CONFIG_PREFIX="$DESTDIR" install
+    fi
+}
+
+build_eglibc() {
+    source_dir="$BASE_DIR"/gits/eglibc2
+    build_dir="$BASE_DIR"/builds/eglibc
+
+    # Necessary for ARM port.
+    if [ ! -e "$source_dir/libc/ports" ]; then
+        ln -s "$source_dir/ports $source_dir/libc/ports"
+    fi
+
+    cd "$source_dir"
+    assert_branch "baserock/2.15-build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    # If prefix is set to /usr, eglibc otherwise decides to install its
+    # libraries in /usr/lib64 on some Linux
+    extra_config="--libdir=$PREFIX/lib"
+
+    # Suggested by Linux From Scratch. Is the default really to build with
+    # profiling??
+    extra_config="--disable-profile $extra_config"
+
+    # Minimum kernel version that this eglibc will be usable with.
+    extra_config="--enable-kernel=2.6.25 $extra_config"
+
+    # Location of headers
+    extra_config="--with-headers=$CHROOT_DIR$PREFIX/include $extra_config"
+
+    # Force configure flags of certain things that can't be detected in a
+    # cross-compile.
+    extra_config="$extra_config \
+        libc_cv_c_cleanup=yes libc_cv_ctors_header=yes \
+        libc_cv_forced_unwind=yes libc_cv_ssp=no"
+
+    # + --without-fp for ARM
+    "$source_dir"/libc/configure --prefix=$PREFIX --host="$TARGET" \
+        --build=$("$source_dir"/libc/scripts/config.guess) \
+        --enable-add-ons=nptl,ports $extra_config
+    make
+    make "install_root=$DESTDIR" install
+}
+
+build_gcc() {
+    pass="$1"
+    source_dir="$BASE_DIR"/gits/gcc-tarball
+    build_dir="$BASE_DIR"/builds/gcc-"$pass"
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    # This hack is to prevent the multilib configuration of the host OS
+    # leaking into Baserock, which does not use multilib at all. Without this,
+    # the pass2 gcc will install its libraries into $PREFIX/lib64 instead of
+    # $PREFIX/lib, because its configure script decides ${toolexeclibdir}
+    # based on the output of gcc -print-multi-os-directory
+    if [ "$(echo $TARGET | cut -c -6)" = "x86_64" ]; then
+        sed -i "$source_dir/gcc/config/i386/t-linux64" \
+            -e "/^MULTILIB_OSDIRNAMES/ c\
+                MULTILIB_OSDIRNAMES = ."
+    fi
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    if [ "$pass" == "pass1" ]; then
+        # In pass 1 we build a crosscompiler for $TARGET.
+        extra_config="--target=$TARGET"
+
+        # The pass 1 compiler needs to find the libraries we build in pass 2.
+        # Include path must be set explicility, because it defaults to
+        # $CHROOT_DIR/usr/include.
+        extra_config="$extra_config \
+            --with-sysroot="$CHROOT_DIR" \
+            --with-native-system-header-dir=\"$CHROOT_DIR$PREFIX/include\""
+
+        # Disable stuff that doesn't work when building a cross compiler
+        # without an existing libc, and generally try to keep this build as
+        # simple as possible.
+        extra_config="$extra_config \
+            --enable-languages=c \
+            --disable-decimal-float --disable-libmudflap \
+            --disable-libquadmath --disable-libssp --disable-shared \
+            --disable-threads --disable-target-libiberty \
+            --disable-target-zlib --without-headers --with-newlib \
+            --with-system-zlib"
+
+        # way too slow with this, but it maybe a good idea / required
+        extra_config="--disable-bootstrap $extra_config"
+    elif [ "$pass" == "pass2" ]; then
+        # Pass 1 gcc's fixincludes process created a limits.h before there was
+        # a real limits.h available for the target. This step (taken from
+        # Linux From Scratch) creates a better one so gcc can compile.
+        libgcc_dir=$(dirname $($TARGET-gcc -print-libgcc-file-name))
+        cat "$source_dir/gcc/limitx.h" "$source_dir/gcc/glimits.h" \
+                "$source_dir/gcc/limity.h" \
+            > "$libgcc_dir/include-fixed/limits.h"
+
+        # This time we are creating a native compiler running on $TARGET
+        extra_config="--host=$TARGET"
+
+        # I'm not sure why this is needed. target should default to host,
+        # but if we don't pass this explicitly some of the files that should
+        # go in $PREFIX/lib/gcc/$TARGET/4.6.2 end up in
+        # $PREFIX/lib/gcc/$TARGET/4.6.3 instead. Weird.
+        extra_config="--target=$TARGET $extra_config"
+
+        # The two-step compiler process means we don't need to bootstrap now
+        # (and couldn't anyway, since build != host for pass 2).
+        extra_config="--disable-bootstrap $extra_config"
+
+        # C++ doesn't build without a C++ compiler, I think, so we still
+        # can't have that yet. We don't need one anyway.
+        extra_config="$extra_config \
+            --enable-clocale=gnu \
+            --enable-languages=c --enable-shared \
+            --enable-threads=posix"
+    else
+        echo "Invalid pass for gcc: $pass"
+        exit 1
+    fi
+
+    # An attempt to stop anything going in $PREFIX/lib64
+    extra_config=" --libdir=$PREFIX/lib $extra_config"
+
+    # Disable searching /usr/local/include for headers
+    extra_config="--with-local-prefix=$PREFIX $extra_config"
+
+    # It makes no sense for Baserock to use multilib.
+    extra_config="--disable-multilib $extra_config"
+
+    # General stuff that we don't need / won't work right now
+    extra_config="$extra_config \
+        --disable-libgomp --without-cloog --without-ppl"
+
+    # mpfr is built as part of gcc, but we need to point latter components
+    # to the result of this build.
+    extra_config="$extra_config \
+        --with-mpfr-include="$source_dir"/mpfr/src \
+        --with-mpfr-lib="$build_dir"/mpfr/src/.libs"
+
+    "$source_dir"/configure --prefix=$PREFIX --disable-nls \
+        $TARGET_GCC_CONFIG $extra_config
+    make
+    make DESTDIR="$DESTDIR" install
+}
+
+build_linux_api_headers() {
+    source_dir="$BASE_DIR"/gits/linux
+    build_dir="$BASE_DIR"/builds/linux-api-headers
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+
+    # We don't achieve a real out of tree build here :(
+    make O="$build_dir" mrproper
+    #make O="$build_dir" headers_check
+    make O="$build_dir" INSTALL_HDR_PATH="$DESTDIR$PREFIX" headers_install
+}
+
+# build-essential-plus
+
+build_gawk() {
+    source_dir="$BASE_DIR"/gits/gawk
+    build_dir="$BASE_DIR"/builds/gawk
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    $source_dir/configure --prefix=$PREFIX --host=$TARGET --disable-nls
+    make
+    make DESTDIR="$DESTDIR" install
+}
+
+build_make() {
+    source_dir="$BASE_DIR"/gits/make
+    build_dir="$BASE_DIR"/builds/make
+
+    cd "$source_dir"
+    assert_branch "baserock/build-essential"
+    touch_tree
+
+    rm -Rf "$build_dir" && mkdir -p "$build_dir"
+    cd "$build_dir"
+
+    $source_dir/configure --prefix=$PREFIX --host=$TARGET --disable-nls
+    make
+    make DESTDIR="$DESTDIR" install
+}
+
+
+## 1. Build a "cross-compiler"
+#
+# We always do two builds of the compiler for now; hopefully the rebootstrap
+# process in Baserock will allow us to optimise this out when not
+# cross-compiling (we will never be cross-compiling except when bootstrapping
+# a new architecture).
+
+DESTDIR="$TOOLCHAIN_DIR"
+export CC="gcc"
+export PATH="$TOOLCHAIN_DIR$PREFIX/bin":"$PATH"
+
+build_binutils pass1
+build_gcc pass1
+
+if ! [ -x "$(which $TARGET-gcc)" ]; then
+    echo "Missing $TARGET-gcc in PATH: something went wrong"
+    exit 1
+fi
+
+# A hack so that we can build eglibc with a no-shared-libs gcc; libgcc_eh is
+# referenced in the eglibc build, but its static version contains all of the
+# necessary symbols anyway.
+for f in `find "$TOOLCHAIN_DIR" -name libgcc.a`; do \
+    EH="`echo "$f" | sed 's/libgcc/&_eh/'`" && if [ ! -e "$EH" ]; then
+        ln -s libgcc.a "$EH";
+    fi;
+done
+
+## 2. Build the actual intermediate build-essential chroot
+##
+DESTDIR="$CHROOT_DIR"
+export CC=
+
+# We don't want to customise the specs until we actually have eglibc installed.
+specs_dir="$(dirname $($TARGET-gcc --print-libgcc-file-name))"
+rm -f "$specs_dir/specs"
+
+build_linux_api_headers
+build_eglibc
+
+# Passing --with-lib-path to our pass1 linker gives it the correct library
+# search path, but this doesn't work for the startup files. The startup files
+# (crt*.o) are searched for by gcc itself, and passed to ld as absolute paths
+# if found or just filenames if not (in which case, ld will not search for
+# them either because they are .o files, not libraries).
+#
+# One alternative to this hack is to pass -B $CHROOT_DIR$PREFIX/lib to gcc, but
+# that option often gets eaten by libtool and by gcc's nested configure
+# scripts so it's not fully effective.
+$TARGET-gcc -dumpspecs | \
+    sed -e "s@\(crt1\|gcrt1\|Scrt1\|crti\|crtn\)\.o@$CHROOT_DIR$PREFIX/lib/&@g" \
+    > "$specs_dir/specs"
+
+if [ "$PREFIX" != "/usr" ]; then
+    # eglibc (in sysdeps/unix/sysv/linux/configure) puts some files in /lib64
+    # if PREFIX is /usr, so for now we go with this and avoid doing any fixups.
+    # For other prefixes, everything is installed correctly into the sysroot.
+    #
+    # In the future we should fix eglibc to put all files into PREFIX/lib at
+    # which point this fix will always be necessary, until GCC grows a better
+    # way to specify the location of ld.so.
+    sed -i "$specs_dir/specs" -e "s@/lib\(64\)\?/ld@$PREFIX/&@g"
+fi
+
+fix_chroot_for_target
+
+echo
+echo "Testing pass 1 compiler and chroot ..."
+
+cat <<EOF > $CHROOT_DIR/build-test.c
+#include <stdio.h>
+int main() { printf("OK"); return 0; }
+EOF
+$TARGET-gcc $CFLAGS "$CHROOT_DIR/build-test.c" -o "$CHROOT_DIR/build-test"
+
+if [ "$PREFIX" != "/usr" ]; then
+    # Check that we successfully forced use of the ld.so inside the sysroot
+    if ! readelf -l "$CHROOT_DIR"/build-test | grep -q "interpreter: $PREFIX" ;
+        then
+        echo "Wrong interpreter in output of pass 1 C compiler"
+        exit 1
+    fi
+fi
+
+rm "$CHROOT_DIR/build-test" "$CHROOT_DIR/build-test.c"
+
+export CC=$TARGET-gcc
+export AR=$TARGET-ar
+export RANLIB=$TARGET-ranlib
+
+build_binutils pass2
+build_busybox
+
+# This is hardcoded into gcc as NATIVE_SYSTEM_HEADERS. It's used only when
+# running fixincludes, which only makes sense when cross-compiling anyway.
+# Compilation fails if this directory is missing anyway, unfortunately.
+created_native_system_header_dir="no"
+if [ ! -d /usr/include ]; then
+    mkdir -p /usr/include
+    created_native_system_header_dir="yes"
+fi
+
+build_gcc pass2
+
+if [ ! -e "$DESTDIR$PREFIX/bin/cc" ]; then
+    ln -s gcc "$DESTDIR$PREFIX/bin/cc"
+fi
+
+if [ "$created_native_system_header_dir" == "yes" ]; then
+    rm /usr/include
+    rm /usr
+fi
+
+build_gawk
+build_make
+
+echo
+echo "Complete! You now have a build-essential for $TARGET in "
+echo "$CHROOT_DIR."
+echo
+echo "Before it can be used as a staging filler for Morph, you need to "
+echo "manually run the install-commands from the 'fhs-dirs' chunk as root to "
+echo "set up the necessary files and device nodes."
