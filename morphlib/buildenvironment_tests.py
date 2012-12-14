@@ -30,8 +30,6 @@ class BuildEnvironmentTests(unittest.TestCase):
             'target-cflags': '',
             'prefix': '/usr',
             'no-ccache': True,
-            'ccache-remotedir': '',
-            'ccache-remotenlevels': 2,
             'no-distcc': True,
             'staging-chroot': False,
         }
@@ -39,7 +37,6 @@ class BuildEnvironmentTests(unittest.TestCase):
             'PATH': '/fake_bin',
         }
         self.default_path = 'no:such:path'
-        self.remote_ccache = 'http://example.com/ccache'
 
     def test_arch_defaults_to_host(self):
         buildenv = buildenvironment.BuildEnvironment(self.settings)
@@ -128,12 +125,7 @@ class BuildEnvironmentTests(unittest.TestCase):
 
     def test_ccache_vars_set(self):
         self.settings['no-ccache'] = False
-        self.settings['ccache-remotedir'] = self.remote_ccache
         self.settings['no-distcc'] = False
         buildenv = buildenvironment.BuildEnvironment(self.settings)
         self.assertTrue(buildenv._ccache_path in buildenv.env['PATH'])
-        self.assertEqual(buildenv.env['CCACHE_REMOTEDIR'],
-                         self.remote_ccache)
-        self.assertEqual(buildenv.env['CCACHE_REMOTENLEVELS'],
-                         str(self.settings['ccache-remotenlevels']))
         self.assertEqual(buildenv.env['CCACHE_PREFIX'], 'distcc')

@@ -60,10 +60,10 @@ class Morph(cliapp.Application):
                              metavar='DIR',
                              default=defaults['cachedir'])
         self.settings.string(['compiler-cache-dir'],
-                             'cache compiled objects in CCDIR/REPO_NAME',
-                             metavar='CCDIR',
-                             default=os.path.join(self.settings['cachedir'],
-                                                  'ccache'))
+                             'cache compiled objects in DIR/REPO. If not '
+                             'provided, defaults to CACHEDIR/ccache/',
+                             metavar='DIR',
+                             default=None)
         self.settings.string(['build-ref-prefix'],
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
@@ -186,6 +186,9 @@ class Morph(cliapp.Application):
         if self.settings['tarball-server'] is None:
             self.settings['tarball-server'] = 'http://%s/tarballs/' % (
                 self.settings['trove-host'])
+        if self.settings['compiler-cache-dir'] is None:
+            self.settings['compiler-cache-dir'] = os.path.join(
+                    self.settings['cachedir'], 'ccache')
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
