@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## Verify that "morph edit" clones a chunk repository into a system branch.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+. "$SRCDIR/scripts/python-check"
+
+# Add a second stratum that build-depends on the first. We can ignore the fact
+# that both strata contain the same chunk for this test.
+cd "$DATADIR/morphs"
+
+cat <<EOF > xyzzy-stratum.morph
+{
+    "name": "xyzzy-stratum",
+    "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ],
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "test:hello",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+
+cat hello-system.morph | head -n $(expr $(wc -l < hello-system.morph) - 3) \
+    > hello-system.morph
+cat <<EOF >> hello-system.morph
+         },
+         {
+            "morph": "xyzzy-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+         }
+    ]
+}
+EOF
+
+git add xyzzy-stratum.morph hello-system.morph
+git commit -q -m "Add 2nd stratum with a build dependency"
+
+# Create system branch.
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch test:morphs newbranch
+
+# Edit chunk.
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
+
+# See what effect the editing had.
+"$SRCDIR/scripts/run-git-in" "newbranch/test:morphs" diff
