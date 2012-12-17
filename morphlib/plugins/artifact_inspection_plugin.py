@@ -18,6 +18,7 @@ import cliapp
 import glob
 import json
 import os
+import re
 
 import morphlib
 
@@ -33,10 +34,142 @@ class NotASystemArtifactError(cliapp.AppException):
                 self, '%s is not a system artifact' % artifact)
 
 
+class ProjectVersionGuesser(object):
+
+    def __init__(self, app, lrc, rrc, interesting_files):
+        self.app = app
+        self.lrc = lrc
+        self.rrc = rrc
+        self.interesting_files = interesting_files
+
+    def file_contents(self, repo, ref, tree):
+        filenames = [x for x in self.interesting_files if x in tree]
+        if filenames:
+            if self.lrc.has_repo(repo):
+                repository = self.lrc.get_repo(repo)
+                for filename in filenames:
+                    yield filename, repository.cat(ref, filename)
+            elif self.rrc:
+                for filename in filenames:
+                    yield filename, self.rrc.cat_file(repo, ref, filename)
+
+
+class AutotoolsVersionGuesser(ProjectVersionGuesser):
+
+    def __init__(self, app, lrc, rrc):
+        ProjectVersionGuesser.__init__(self, app, lrc, rrc, [
+            'configure.ac',
+            'configure.in',
+            'configure.ac.in',
+            'configure.in.in',
+        ])
+
+    def guess_version(self, repo, ref, tree):
+        version = None
+        for filename, data in self.file_contents(repo, ref, tree):
+            # First, try to grep for AC_INIT()
+            version = self._check_ac_init(data)
+            if version:
+                self.app.status(
+                        msg='%(repo)s: Version of %(ref)s detected '
+                            'via %(filename)s:AC_INIT: %(version)s',
+                        repo=repo, ref=ref, filename=filename,
+                        version=version, chatty=True)
+                break
+
+            # Then, try running autoconf against the configure script
+            version = self._check_autoconf_package_version(filename, data)
+            if version:
+                self.app.status(
+                        msg='%(repo)s: Version of %(ref)s detected '
+                            'by processing %(filename)s: %(version)s',
+                        repo=repo, ref=ref, filename=filename,
+                        version=version, chatty=True)
+                break
+        return version
+
+    def _check_ac_init(self, data):
+        data = data.replace('\n', ' ')
+        for macro in ['AC_INIT', 'AM_INIT_AUTOMAKE']:
+            pattern = r'.*%s\((.*?)\).*' % macro
+            if not re.match(pattern, data):
+                continue
+            acinit = re.sub(pattern, r'\1', data)
+            if acinit:
+                version = acinit.split(',')
+                if macro == 'AM_INIT_AUTOMAKE' and len(version) == 1:
+                    continue
+                version = version[0] if len(version) == 1 else version[1]
+                version = re.sub('[\[\]]', '', version).strip()
+                version = version.split()[0]
+                if version:
+                    if version and version[0].isdigit():
+                        return version
+        return None
+
+    def _check_autoconf_package_version(self, filename, data):
+        tempdir = morphlib.tempdir.Tempdir(self.app.settings['tempdir'])
+        with open(tempdir.join(filename), 'w') as f:
+            f.write(data)
+        exit_code, output, errors = self.app.runcmd_unchecked(
+                ['autoconf', filename],
+                ['grep', '^PACKAGE_VERSION='],
+                ['cut', '-d=', '-f2'],
+                ['sed', "s/'//g"],
+                cwd=tempdir.dirname)
+        tempdir.remove()
+        version = None
+        if output:
+            output = output.strip()
+            if output and output[0].isdigit():
+                version = output
+        if exit_code != 0:
+            self.app.status(
+                    msg='%(repo)s: Failed to detect version from '
+                        '%(ref)s:%(filename)s',
+                    repo=repo, ref=ref, filename=filename, chatty=True)
+        return version
+
+
+class VersionGuesser(object):
+
+    def __init__(self, app):
+        self.app = app
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(app)
+        self.guessers = [
+            AutotoolsVersionGuesser(app, self.lrc, self.rrc)
+        ]
+
+    def guess_version(self, repo, ref):
+        self.app.status(msg='%(repo)s: Guessing version of %(ref)s',
+                        repo=repo, ref=ref, chatty=True)
+        version = None
+        try:
+            if self.lrc.has_repo(repo):
+                repository = self.lrc.get_repo(repo)
+                if not self.app.settings['no-git-update']:
+                    repository.update()
+                tree = repository.ls_tree(ref)
+            elif self.rrc:
+                repository = None
+                tree = self.rrc.ls_tree(repo, ref)
+            else:
+                return None
+            for guesser in self.guessers:
+                version = guesser.guess_version(repo, ref, tree)
+                if version:
+                    break
+        except cliapp.AppException, err:
+            self.app.status(msg='%(repo)s: Failed to list files in %(ref)s',
+                            repo=repo, ref=ref, chatty=True)
+        return version
+
+
 class ManifestGenerator(object):
 
     def __init__(self, app):
         self.app = app
+        self.version_guesser = VersionGuesser(app)
 
     def generate(self, artifact, dirname):
         # Try to find a directory with baserock metadata files.
@@ -55,6 +188,10 @@ class ManifestGenerator(object):
         for basename in glob.glob(os.path.join(metadir, '*.meta')):
             metafile = os.path.join(metadir, basename)
             metadata = json.load(open(metafile))
+
+            # Try to guess the version of this artifact
+            version = self.version_guesser.guess_version(
+                    metadata['repo'], metadata['sha1']) or '-'
         
             artifacts.append({
                 'cache-key': metadata['cache-key'],
@@ -63,7 +200,8 @@ class ManifestGenerator(object):
                 'sha1': metadata['sha1'],
                 'original_ref': metadata['original_ref'],
                 'repo': metadata['repo'],
-                'morphology': metadata['morphology']
+                'morphology': metadata['morphology'],
+                'version': version,
             })
         
         # Generate a format string for dumping the information.
