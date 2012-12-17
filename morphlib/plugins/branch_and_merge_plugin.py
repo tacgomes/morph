@@ -1453,6 +1453,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
             for info in morphology['strata']:
                 inject_build_ref(info)
         elif morphology['kind'] == 'stratum':
+            if morphology['build-depends'] is not None:
+                for info in morphology['build-depends']:
+                    inject_build_ref(info)
             for info in morphology['chunks']:
                 inject_build_ref(info)
 
