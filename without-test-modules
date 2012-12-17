@@ -5,6 +5,7 @@ morphlib/tester.py
 morphlib/git.py
 morphlib/fsutils.py
 morphlib/app.py
+morphlib/mountableimage.py
 morphlib/plugins/hello_plugin.py
 morphlib/plugins/graphing_plugin.py
 morphlib/plugins/syslinux-disk-systembuilder_plugin.py

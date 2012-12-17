@@ -57,6 +57,7 @@ import fsutils
 import git
 import localartifactcache
 import localrepocache
+import mountableimage
 import morph2
 import morphologyfactory
 import remoteartifactcache
