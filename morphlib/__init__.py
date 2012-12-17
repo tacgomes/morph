@@ -53,6 +53,7 @@ import builder2
 import cachedir
 import cachedrepo
 import cachekeycomputer
+import extractedtarball
 import fsutils
 import git
 import localartifactcache
