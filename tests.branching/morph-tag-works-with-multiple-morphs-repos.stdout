@@ -14,7 +14,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 create tag
 
-commit 8fe8196c4eb87e5967d7b08eb8da9d7d0764c25d
+commit ddcf257bd01b46424dc570e72aa8946b6dfdbc5f
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -89,9 +89,11 @@ index 27806c1..c5e4d98 100644
          }
      ]
  }
-commit 8fe8196c4eb87e5967d7b08eb8da9d7d0764c25d
-Author: developer <developer@example.com>
-Date:   Tue Jul 31 16:51:54 2012 +0000
+commit ddcf257bd01b46424dc570e72aa8946b6dfdbc5f
+Author:     developer <developer@example.com>
+AuthorDate: Tue Jul 31 16:51:54 2012 +0000
+Commit:     developer <developer@example.com>
+CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     create tag
 ---

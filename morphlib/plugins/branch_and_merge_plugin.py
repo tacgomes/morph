@@ -837,18 +837,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
         branch_root = self.get_branch_config(branch_dir, 'branch.root')
         branch_root_dir = self.find_repository(branch_dir, branch_root)
 
-        # Define the committer.
-        committer_name = morphlib.git.get_user_name(self.app.runcmd)
-        committer_email = morphlib.git.get_user_email(self.app.runcmd)
-
         # Prepare an environment for our internal index file.
         # This index file allows us to commit changes to a tree without
         # git noticing any change in the working tree or its own index.
         env = dict(os.environ)
         env['GIT_INDEX_FILE'] = os.path.join(
                 branch_root_dir, '.git', 'morph-tag-index')
-        env['GIT_COMMITTER_NAME'] = committer_name
-        env['GIT_COMMITTER_EMAIL'] = committer_email
 
         # Extract git arguments that deal with the commit message.
         # This is so that we can use them for creating the tag commit.

@@ -43,4 +43,4 @@ cd "$DATADIR/workspace"
 # List all tags and show the second one.
 "$SRCDIR/scripts/test-morph" foreach -- git tag -l
 "$SRCDIR/scripts/test-morph" foreach -- git show tagged-tag
-"$SRCDIR/scripts/test-morph" foreach -- git log tagged-tag
+"$SRCDIR/scripts/test-morph" foreach -- git log --format=fuller tagged-tag

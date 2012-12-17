@@ -8,7 +8,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit f7f04d63ec5e494cf5b4fd2e94ad5f2f26265c3f
+commit a96154002b3ffe71bd120e38682edbbe40b8453b
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -45,14 +45,18 @@ index f3f64b4..2981e9b 100644
      ]
  }
 test:morphs
-commit f7f04d63ec5e494cf5b4fd2e94ad5f2f26265c3f
-Author: developer <developer@example.com>
-Date:   Tue Jul 31 16:51:54 2012 +0000
+commit a96154002b3ffe71bd120e38682edbbe40b8453b
+Author:     developer <developer@example.com>
+AuthorDate: Tue Jul 31 16:51:54 2012 +0000
+Commit:     developer <developer@example.com>
+CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
 commit 48d38ef3f39857d7dba4ed1ffc51653c6bed4906
-Author: developer <developer@example.com>
-Date:   Tue Jul 31 16:51:54 2012 +0000
+Author:     developer <developer@example.com>
+AuthorDate: Tue Jul 31 16:51:54 2012 +0000
+Commit:     developer <developer@example.com>
+CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     initial

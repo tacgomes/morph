@@ -36,4 +36,4 @@ cd "$DATADIR/workspace"
 # including that the commit and tag are created, that the commit message is
 # set correctly and that all references are petrified.
 "$SRCDIR/scripts/test-morph" foreach -- git show example-tag
-"$SRCDIR/scripts/test-morph" foreach -- git log example-tag
+"$SRCDIR/scripts/test-morph" foreach -- git log --format=fuller example-tag

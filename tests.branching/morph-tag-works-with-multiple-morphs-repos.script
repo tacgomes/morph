@@ -120,4 +120,4 @@ cd "$DATADIR/workspace"
 GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
     git show tag-across-multiple-repos
 GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
-    git log -n1 -p --stat tag-across-multiple-repos
+    git log --format=fuller -n1 -p --stat tag-across-multiple-repos
