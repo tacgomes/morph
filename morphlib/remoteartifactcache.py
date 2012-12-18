@@ -67,18 +67,18 @@ class RemoteArtifactCache(object):
         filename = '%s.%s' % (cachekey, name)
         return self._has_file(filename)
 
-    def get(self, artifact):
+    def get(self, artifact, log=logging.error):
         try:
             return self._get_file(artifact.basename())
         except urllib2.URLError, e:
-            logging.error(str(e))
+            log(str(e))
             raise GetError(self, artifact)
 
-    def get_artifact_metadata(self, artifact, name):
+    def get_artifact_metadata(self, artifact, name, log=logging.error):
         try:
             return self._get_file(artifact.metadata_basename(name))
         except urllib2.URLError, e:
-            logging.error(str(e))
+            log(str(e))
             raise GetArtifactMetadataError(self, artifact, name)
 
     def get_source_metadata(self, source, cachekey, name):

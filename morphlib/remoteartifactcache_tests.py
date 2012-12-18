@@ -123,7 +123,8 @@ class RemoteArtifactCacheTests(unittest.TestCase):
 
     def test_fails_to_get_a_non_existent_artifact(self):
         self.assertRaises(morphlib.remoteartifactcache.GetError,
-                          self.cache.get, self.doc_artifact)
+                          self.cache.get, self.doc_artifact,
+                          log=lambda *args: None)
 
     def test_get_existing_artifact_metadata(self):
         handle = self.cache.get_artifact_metadata(
@@ -137,7 +138,8 @@ class RemoteArtifactCacheTests(unittest.TestCase):
             morphlib.remoteartifactcache.GetArtifactMetadataError,
             self.cache.get_artifact_metadata,
             self.runtime_artifact,
-            'non-existent-meta')
+            'non-existent-meta',
+            log=lambda *args: None)
 
     def test_get_existing_source_metadata(self):
         handle = self.cache.get_source_metadata(
