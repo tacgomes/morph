@@ -129,6 +129,13 @@ cat <<EOF > linux-stratum.morph
 {
     "name": "linux-stratum",
     "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ],
     "chunks": [
         {
             "name": "linux",
