@@ -1,0 +1,41 @@
+#!/bin/bash
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+## "morph build" should update the build-depends fields of strata correctly.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+. "$SRCDIR/scripts/python-check"
+
+. "$SRCDIR/tests.as-root/setup-build"
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" branch test:morphs test/stratum-build-depends
+
+cd test/stratum-build-depends/test:morphs
+
+# Both 'linux-system' and the build-depends field of 'linux-stratum' need to
+# be updated here. If they are not, the build command will fail.
+"$SRCDIR/scripts/test-morph" edit linux-system hello-stratum
+
+# Likewise, this command must update build-depends or the 'repo' field will
+# not be changed in the temporary build branch, leading to:
+#
+#   ERROR: Ref test/stratum-build-depends is an invalid reference for
+#   repo file://TMP/morphs
+#
+"$SRCDIR/scripts/test-morph" build linux-system

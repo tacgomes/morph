@@ -69,6 +69,12 @@ cat <<EOF > hello-tarball.morph
 EOF
 git add hello-tarball.morph
 
+# Change build-depends ref of hello-stratum from master to tarball-links
+sed -i linux-stratum.morph \
+    -e '/"build-depends": \[/,/\]/ s/"ref": "master"/"ref": "tarball-links"/'
+
+git add linux-stratum.morph
+
 cat <<EOF > link-stratum.morph
 {
     "name": "link-stratum",

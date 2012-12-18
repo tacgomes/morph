@@ -102,14 +102,33 @@ class BuildCommand(object):
         return order
 
     def _validate_cross_morphology_references(self, srcpool):
+        '''Perform validation across all morphologies involved in the build'''
+
+        stratum_names = []
+
         for src in srcpool:
             kind = src.morphology['kind']
+
+            # Verify that chunks pointed to by strata really are chunks, etc.
             method_name = '_validate_cross_refs_for_%s' % kind
             if hasattr(self, method_name):
                 logging.debug('Calling %s' % method_name)
                 getattr(self, method_name)(src, srcpool)
             else:
                 logging.warning('No %s' % method_name)
+
+            # Verify stratum build-depends agree with the system's contents.
+            # It's not an error to build-depend on a stratum that isn't
+            # included in the target system, but if it is included, the repo
+            # and ref fields must match.
+            if src.morphology['kind'] == 'stratum':
+                name = src.morphology['name']
+                if name in stratum_names:
+                    raise morphlib.Error(
+                        "Conflicting versions of stratum '%s' appear in the "
+                        "build. Check the contents of the system against the "
+                        "build-depends of the strata." % name)
+                stratum_names.append(name)
 
     def _validate_cross_refs_for_system(self, src, srcpool):
         self._validate_cross_refs_for_xxx(

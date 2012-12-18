@@ -1,0 +1,48 @@
+diff --git a/hello-stratum.morph b/hello-stratum.morph
+index 3b7be17..febfa60 100644
+--- a/hello-stratum.morph
++++ b/hello-stratum.morph
+@@ -5,7 +5,7 @@
+         {
+             "name": "hello",
+             "repo": "test:hello",
+-            "ref": "master",
++            "ref": "newbranch",
+             "build-depends": []
+         }
+     ]
+diff --git a/hello-system.morph b/hello-system.morph
+index 87a47f0..75b0f90 100644
+--- a/hello-system.morph
++++ b/hello-system.morph
+@@ -8,12 +8,12 @@
+         {
+             "morph": "hello-stratum",
+             "repo": "test:morphs",
+-            "ref": "master"
+-         },
+-         {
++            "ref": "newbranch"
++        },
++        {
+             "morph": "xyzzy-stratum",
+             "repo": "test:morphs",
+-            "ref": "master"
+-         }
++            "ref": "newbranch"
++        }
+     ]
+ }
+diff --git a/xyzzy-stratum.morph b/xyzzy-stratum.morph
+index 8f83beb..e0a895a 100644
+--- a/xyzzy-stratum.morph
++++ b/xyzzy-stratum.morph
+@@ -5,7 +5,7 @@
+         {
+             "morph": "hello-stratum",
+             "repo": "test:morphs",
+-            "ref": "master"
++            "ref": "newbranch"
+         }
+     ],
+     "chunks": [
