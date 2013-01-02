@@ -16,7 +16,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import base64
 import cliapp
+import json
 import logging
 import os
 import urllib
@@ -197,6 +199,31 @@ class MorphCacheServer(cliapp.Application):
             except Exception, e:
                 response.status = 404
                 logging.debug('%s' % e)
+
+        @app.post('/sha1s')
+        def sha1s():
+            result = []
+            for pair in request.json:
+                repo = pair['repo']
+                ref = pair['ref']
+                try:
+                    sha1, tree = repo_cache.resolve_ref(repo, ref)
+                    result.append({
+                        'repo': '%s' % repo,
+                        'ref': '%s' % ref,
+                        'sha1': '%s' % sha1,
+                        'tree': '%s' % tree
+                    })
+                except Exception, e:
+                    logging.debug('%s' % e)
+                    result.append({
+                        'repo': '%s' % repo,
+                        'ref': '%s' % ref,
+                        'error': '%s' % e
+                    })
+            response.set_header('Cache-Control', 'no-cache')
+            response.set_header('Content-Type', 'application/json')
+            return json.dumps(result)
         
         @app.get('/files')
         def file():
@@ -210,6 +237,32 @@ class MorphCacheServer(cliapp.Application):
             except Exception, e:
                 response.status = 404
                 logging.debug('%s' % e)
+
+        @app.post('/files')
+        def files():
+            result = []
+            for pair in request.json:
+                repo = pair['repo']
+                ref = pair['ref']
+                filename = pair['filename']
+                try:
+                    content = repo_cache.cat_file(repo, ref, filename)
+                    result.append({
+                        'repo': '%s' % repo,
+                        'ref': '%s' % ref,
+                        'filename': '%s' % filename,
+                        'data': '%s' % base64.b64encode(content),
+                    })
+                except Exception, e:
+                    logging.debug('%s' % e)
+                    result.append({
+                        'repo': '%s' % repo,
+                        'ref': '%s' % ref,
+                        'filename': '%s' % filename,
+                        'error': '%s' % e
+                    })
+            response.set_header('Content-Type', 'application/json')
+            return json.dumps(result)
 
         @app.get('/trees')
         def tree():
