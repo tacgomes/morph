@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ import traceback
 import subprocess
 import tempfile
 import gzip
+from urlparse import urlparse
 
 import cliapp
 
@@ -294,9 +295,19 @@ class ChunkBuilder(BuilderBase):
         if not os.path.isdir(ccache_dir):
             os.makedirs(ccache_dir)
         # Get a path for the repo's ccache
-        ccache_repobase = os.path.basename(self.artifact.source.repo.path)
-        ccache_repodir = os.path.join(ccache_dir,
-                                      ccache_repobase)
+        ccache_url = self.artifact.source.repo.url
+        ccache_path = urlparse(ccache_url).path
+        ccache_repobase = os.path.basename(ccache_path)
+        if ':' in ccache_repobase: # the basename is a repo-alias
+            resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self.app.settings['repo-alias'])
+            ccache_url = resolver.pull_url(ccache_repobase)
+            ccache_path = urlparse(ccache_url).path
+            ccache_repobase = os.path.basename(ccache_path)
+        if ccache_repobase.endswith('.git'):
+            ccache_repobase = ccache_repobase[:-len('.git')]
+
+        ccache_repodir = os.path.join(ccache_dir, ccache_repobase)
         # Make sure that directory exists
         if not os.path.isdir(ccache_repodir):
             os.mkdir(ccache_repodir)
