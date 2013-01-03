@@ -810,7 +810,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         root_repo = self.get_branch_config(branch_path, 'branch.root')
         root_repo_dir = self.find_repository(branch_path, root_repo)
 
-        for f in glob.glob(os.path.join(root_repo_dir, '*.morph')):
+        for f in sorted(glob.iglob(os.path.join(root_repo_dir, '*.morph'))):
             name = os.path.basename(f)[:-len('.morph')]
             morphology = self.load_morphology(root_repo_dir, name)
             if morphology['kind'] != 'system':
@@ -1296,7 +1296,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 from_branch_dir, root_repo, from_branch,
                 to_branch_dir, root_repo, to_branch)
 
-            for f in glob.glob(os.path.join(to_root_dir, '*.morph')):
+            for f in sorted(glob.iglob(os.path.join(to_root_dir, '*.morph'))):
                 name = os.path.basename(f)[:-len('.morph')]
                 merge_system(name)
 
