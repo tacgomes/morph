@@ -21,8 +21,6 @@
 
 set -eu
 
-. "$SRCDIR/scripts/python-check"
-
 . "$SRCDIR/scripts/fix-committer-info"
 
 tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \

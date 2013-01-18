@@ -18,9 +18,6 @@
 
 set -eu
 
-# Disable test on versions of Python before 2.7.
-. "$SRCDIR/scripts/python-check"
-
 . "$SRCDIR/tests.as-root/setup-build"
 
 cd "$DATADIR/workspace"
