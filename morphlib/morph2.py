@@ -17,6 +17,7 @@
 import copy
 import re
 
+import morphlib
 from morphlib.util import OrderedDict, json
 
 class Morphology(object):
@@ -52,8 +53,26 @@ class Morphology(object):
         ]
     }
 
+    @staticmethod
+    def _load_json(text):
+        return json.loads(text, object_pairs_hook=OrderedDict)
+
+    @staticmethod
+    def _dump_json(obj, f):
+        text = json.dumps(obj, indent=4)
+        text = re.sub(" \n", "\n", text)
+        f.write(text)
+        f.write('\n')
+
     def __init__(self, text):
-        self._dict = json.loads(text, object_pairs_hook=OrderedDict)
+        # Load as JSON first, then try YAML, so morphologies
+        # that read as JSON are dumped as JSON, likewise with YAML.
+        try:
+            self._dict = self._load_json(text)
+            self._dumper = self._dump_json
+        except Exception, e:
+            self._dict = morphlib.yamlparse.load(text)
+            self._dumper = morphlib.yamlparse.dump
         self._set_defaults()
         self._validate_children()
 
@@ -156,7 +175,4 @@ class Morphology(object):
                 value = self[key]
             if value and key[0] != '_':
                 as_dict[key] = value
-        text = json.dumps(as_dict, indent=4)
-        text = re.sub(" \n", "\n", text)
-        f.write(text)
-        f.write('\n')
+        self._dumper(as_dict, f)

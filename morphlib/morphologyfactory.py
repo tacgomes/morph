@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+import yaml
 
 import morphlib
 import cliapp
@@ -81,7 +83,7 @@ class MorphologyFactory(object):
 
         try:
             morphology = morphlib.morph2.Morphology(text)
-        except ValueError as e:
+        except yaml.YAMLError as e:
             raise morphlib.Error("Error parsing %s: %s" %
                                  (filename, str(e)))
 

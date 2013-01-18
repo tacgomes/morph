@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,5 +56,6 @@ import stagingarea
 import stopwatch
 import tempdir
 import util
+import yamlparse
 
 import app  # this needs to be last
