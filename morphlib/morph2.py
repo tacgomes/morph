@@ -17,16 +17,7 @@
 import copy
 import re
 
-# It is intentional that if collections does not have OrderedDict that
-# simplejson is also used in preference to json, as OrderedDict became
-# a member of collections in the same release json got its object_pairs_hook
-try: # pragma: no cover
-    from collections import OrderedDict
-    import json
-except ImportError: # pragma: no cover
-    from ordereddict import OrderedDict
-    import simplejson as json
-
+from morphlib.util import OrderedDict, json
 
 class Morphology(object):
 

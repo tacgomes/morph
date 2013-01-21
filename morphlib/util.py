@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,16 @@ import morphlib
 
 '''Utility functions for morph.'''
 
+
+# It is intentional that if collections does not have OrderedDict that
+# simplejson is also used in preference to json, as OrderedDict became
+# a member of collections in the same release json got its object_pairs_hook
+try: # pragma: no cover
+    from collections import OrderedDict
+    import json
+except ImportError: # pragma: no cover
+    from ordereddict import OrderedDict
+    import simplejson as json
 
 try:
     from multiprocessing import cpu_count
