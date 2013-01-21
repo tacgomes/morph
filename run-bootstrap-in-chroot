@@ -128,6 +128,7 @@ if ! "$snapshot" || ! has_pass pass1a; then
         EXTRAPACKAGES="build-essential,gawk,bison,flex,python,autoconf"
         EXTRAPACKAGES="$EXTRAPACKAGES,autopoint,automake,gettext,libtool"
         EXTRAPACKAGES="$EXTRAPACKAGES,help2man,texinfo,sudo,ccache,gperf"
+        EXTRAPACKAGES="$EXTRAPACKAGES,python-pip,python-simplejson"
 
         EXTRAARGS=
         if [ -n $ARCH]; then
@@ -156,6 +157,7 @@ EOF
         "./do-squeeze-chroot" \
             sh -c 'cd /src/cliapp && "$@"' -- python setup.py install
         
+        "./do-squeeze-chroot" pip install ordereddict
     
         if "$snapshot"
         then

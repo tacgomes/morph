@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,9 +20,6 @@
 ## in the branch
 
 set -eu
-
-# Disable test on versions of Python before 2.7.
-. "$SRCDIR/scripts/python-check"
 
 # Create system branch.
 cd "$DATADIR/workspace"

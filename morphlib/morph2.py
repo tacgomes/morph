@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,15 +14,18 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import sys
-have_python27 = sys.version_info >= (2,7)
-
-import collections
-if not hasattr(collections, 'OrderedDict'): # pragma: no cover
-    collections.OrderedDict = dict
 import copy
-import json
 import re
+
+# It is intentional that if collections does not have OrderedDict that
+# simplejson is also used in preference to json, as OrderedDict became
+# a member of collections in the same release json got its object_pairs_hook
+try: # pragma: no cover
+    from collections import OrderedDict
+    import json
+except ImportError: # pragma: no cover
+    from ordereddict import OrderedDict
+    import simplejson as json
 
 
 class Morphology(object):
@@ -58,19 +61,8 @@ class Morphology(object):
         ]
     }
 
-    if have_python27: # pragma: no cover
-        @staticmethod
-        def _order_keys(pairs):
-            result = collections.OrderedDict()
-            for k,v in pairs:
-                result[k] = v
-            return result
-
     def __init__(self, text):
-        if have_python27: # pragma: no cover
-            self._dict = json.loads(text, object_pairs_hook=self._order_keys)
-        else: # pragma: no cover
-            self._dict = json.loads(text)
+        self._dict = json.loads(text, object_pairs_hook=OrderedDict)
         self._set_defaults()
         self._validate_children()
 
@@ -158,7 +150,7 @@ class Morphology(object):
         # Recreate dict without the empty default values, with a few kind
         # specific hacks to try and edit standard morphologies as
         # non-destructively as possible
-        as_dict = collections.OrderedDict()
+        as_dict = OrderedDict()
         for key in self.keys():
             if self['kind'] == 'stratum' and key == 'chunks':
                 value = copy.copy(self[key])
