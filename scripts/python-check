@@ -1,5 +1,4 @@
 #!/bin/sh
-#
 # Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,23 +14,23 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# When sourced by scripts, if the python version is too old
+# fake the output and exit.
 
-# A system kind of 'rootfs-tarball' should create a tarball containing
-# all the required files.
-
-set -eu
-
-# Disable test on versions of Python before 2.7.
-. "$SRCDIR/scripts/python-check"
-
-. "$SRCDIR/scripts/fix-committer-info"
-
-tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
-    build-morphology test:morphs tarball-links hello-tarball)
-
-extracted="$DATADIR/extracted"
-mkdir -p "$extracted"
-cd "$extracted"
-tar -xf "$tar"
-find . -mindepth 1 | xargs ls -dF | LC_ALL=C sort -u
-sed -e 's/ on [0-9\-]\+//' "$extracted/etc/os-release"
+if ! python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null
+then
+    outpath="$(dirname "$0")/$(basename "$0" .script).stdout"
+    errpath="$(dirname "$0")/$(basename "$0" .script).stderr"
+    exitpath="$(dirname "$0")/$(basename "$0" .script).exit"
+    if [ -r "$outpath" ]; then
+        cat "$outpath"
+    fi
+    if [ -r "$errpath" ]; then
+        cat "$errpath" >&2
+    fi
+    if [ -r "$exitpath" ]; then
+        exit "$(cat "$exitpath")"
+    else
+        exit 0
+    fi
+fi
