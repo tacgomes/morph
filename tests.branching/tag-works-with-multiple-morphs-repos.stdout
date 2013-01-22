@@ -1,13 +1,3 @@
-Initialized empty Git repository in TMP/repos/morphs1/.git/
-[master (root-commit) 0bfadac] initial
- 2 files changed, 30 insertions(+), 0 deletions(-)
- create mode 100644 stratum1.morph
- create mode 100644 test-system.morph
-Initialized empty Git repository in TMP/repos/morphs2/.git/
-[master (root-commit) 06b1b9c] initial
- 2 files changed, 15 insertions(+), 0 deletions(-)
- create mode 100644 stratum2.morph
- create mode 100644 stratum3.morph
 tag tag-across-multiple-repos
 Tagger: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
