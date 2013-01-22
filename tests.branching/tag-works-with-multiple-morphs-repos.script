@@ -70,9 +70,9 @@ cat <<EOF > "$DATADIR/repos/morphs1/stratum1.morph"
 EOF
 
 # Commit all files to the first repository.
-scripts/run-git-in "$DATADIR/repos/morphs1" init
+scripts/run-git-in "$DATADIR/repos/morphs1" init -q
 scripts/run-git-in "$DATADIR/repos/morphs1" add .
-scripts/run-git-in "$DATADIR/repos/morphs1" commit -m initial
+scripts/run-git-in "$DATADIR/repos/morphs1" commit -q -m initial
 
 # Create second morphs repository.
 mkdir "$DATADIR/repos/morphs2"
@@ -99,9 +99,9 @@ cat <<EOF > "$DATADIR/repos/morphs2/stratum3.morph"
 EOF
 
 # Commit all files to the second repository.
-"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" init
+"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" init -q
 "$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" add .
-"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" commit -m initial
+"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" commit -q -m initial
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
