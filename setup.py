@@ -1,4 +1,4 @@
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011, 2012, 2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,23 +23,58 @@ from distutils.command.build import build
 from distutils.command.clean import clean
 import glob
 import os
+import os.path
 import shutil
 import subprocess
+
+import cliapp
 
 import morphlib
 
 
-class GenerateManpage(build):
+class GenerateResources(build):
 
     def run(self):
+        if not self.dry_run:
+            self.generate_manpages()
+            self.generate_version()
         build.run(self)
-        print 'building manpages'
+
+    def generate_manpages(self):
+        self.announce('building manpages')
         for x in ['morph']:
             with open('%s.1' % x, 'w') as f:
                 subprocess.check_call(['python', x,
                                        '--generate-manpage=%s.1.in' % x,
                                        '--output=%s.1' % x], stdout=f)
 
+    def generate_version(self):
+        target_dir = os.path.join(self.build_lib, 'morphlib')
+
+        self.mkpath(target_dir)
+
+        def save_git_info(filename, *args):
+            path = os.path.join(target_dir, filename)
+            command = ['git'] + list(args)
+
+            self.announce('generating %s with %s' %
+                          (path, ' '.join(command)))
+
+            with open(os.path.join(target_dir, filename), 'w') as f:
+                p = subprocess.Popen(command,
+                                     cwd=os.path.dirname(__file__),
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+                o = p.communicate()
+                if p.returncode:
+                    raise subprocess.CalledProcessError(p.returncode, command)
+                f.write(o[0].strip())
+
+        save_git_info('version', 'describe', '--always',
+                      '--dirty=-unreproducible')
+        save_git_info('commit', 'rev-parse', 'HEAD^{commit}')
+        save_git_info('tree', 'rev-parse', 'HEAD^{tree}')
+        save_git_info('ref', 'rev-parse', '--symbolic-full-name', 'HEAD')
 
 class Clean(clean):
 
@@ -104,10 +139,18 @@ FIXME
       url='http://www.baserock.org/',
       scripts=['morph'],
       packages=['morphlib'],
-      package_data={'morphlib': ['plugins/*_plugin.py']},
+      package_data={
+          'morphlib': [
+              'plugins/*_plugin.py',
+              'version',
+              'commit',
+              'tree',
+              'ref',
+          ]
+      },
       data_files=[('share/man/man1', glob.glob('*.[1-8]'))],
       cmdclass={
-          'build': GenerateManpage,
+          'build': GenerateResources,
           'check': Check,
           'clean': Clean,
       })
