@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Copyright (C) 2013  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+set -eu
+
+source "$SRCDIR/scripts/fix-committer-info"
+
+morphsrepo="$DATADIR/morphs"
+cd "$morphsrepo"
+git checkout -b tarball
+cat <<EOF > hello-tarball.morph
+{
+    "name": "hello-tarball",
+    "kind": "system",
+    "system-kind": "rootfs-tarball",
+    "arch": "$(uname -m)",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        },
+        {
+            "morph": "linux-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git add hello-tarball.morph
+
+git commit --quiet -m "add tarball system"

@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# Copyright (C) 2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# All the metadata files in /baserock of a system contain morph's version
+# information
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+. "$SRCDIR/scripts/python-check"
+
+. "$SRCDIR/scripts/fix-committer-info"
+
+# get git version info
+cd "$SRCDIR"
+description="$(git describe --always --dirty=-unreproducible)"
+commit="$(git rev-parse 'HEAD^{commit}')"
+tree="$(git rev-parse 'HEAD^{tree}')"
+ref="$(git rev-parse --symbolic-full-name 'HEAD')"
+
+tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
+    build-morphology test:morphs tarball hello-tarball)
+
+extracted="$DATADIR/extracted"
+mkdir -p "$extracted"
+tar -xf "$tar" -C "$extracted"
+cd "$extracted/baserock"
+for f in *.meta; do
+    # Check for git describe output
+    grep -q -F -e "$description" "$f"
+    # Check the Sha-1 commit is included
+    grep -q -F -e "$commit" "$f"
+    # Check the Sha-1 of the commit's tree is included
+    grep -q -F -e "$tree" "$f"
+    # Check the ref (e.g. branch) is included
+    grep -q -F -e "$ref" "$f"
+done
