@@ -17,7 +17,6 @@
 import cliapp
 import copy
 import glob
-import json
 import logging
 import os
 import shutil

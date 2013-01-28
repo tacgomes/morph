@@ -128,7 +128,7 @@ if ! "$snapshot" || ! has_pass pass1a; then
         EXTRAPACKAGES="build-essential,gawk,bison,flex,python,autoconf"
         EXTRAPACKAGES="$EXTRAPACKAGES,autopoint,automake,gettext,libtool"
         EXTRAPACKAGES="$EXTRAPACKAGES,help2man,texinfo,sudo,ccache,gperf"
-        EXTRAPACKAGES="$EXTRAPACKAGES,python-pip,python-simplejson"
+        EXTRAPACKAGES="$EXTRAPACKAGES,python-pip,python-simplejson,python-yaml"
 
         EXTRAARGS=
         if [ -n $ARCH]; then

@@ -57,5 +57,6 @@ import stagingarea
 import stopwatch
 import tempdir
 import util
+import yamlparse
 
 import app  # this needs to be last

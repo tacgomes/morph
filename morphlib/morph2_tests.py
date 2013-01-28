@@ -22,13 +22,30 @@ from morphlib.morph2 import Morphology
 
 class MorphologyTests(unittest.TestCase):
 
-    def test_parses_simple_chunk(self):
+    def test_parses_simple_json_chunk(self):
         m = Morphology('''
             {
                 "name": "foo",
                 "kind": "chunk",
                 "build-system": "manual"
             }
+        ''')
+
+        self.assertEqual(m['name'], 'foo')
+        self.assertEqual(m['kind'], 'chunk')
+        self.assertEqual(m['build-system'], 'manual')
+        self.assertEqual(m['configure-commands'], None)
+        self.assertEqual(m['build-commands'], None)
+        self.assertEqual(m['test-commands'], None)
+        self.assertEqual(m['install-commands'], None)
+        self.assertEqual(m['max-jobs'], None)
+        self.assertEqual(m['chunks'], [])
+
+    def test_parses_simple_yaml_chunk(self):
+        m = Morphology('''
+            name: foo
+            kind: chunk
+            build-system: manual
         ''')
 
         self.assertEqual(m['name'], 'foo')

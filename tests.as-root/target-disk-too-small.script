@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ set -eu
 
 # Shrink linux-system to the minimum btrfs will allow.
 cd "$DATADIR/morphs"
-sed -e 's/"system-kind": "syslinux-disk"/"system-kind": "disk"/' \
-    -e 's/"disk-size": "1G"/"disk-size": "512M"/' \
+sed -e 's/system-kind: syslinux-disk/system-kind: disk/' \
+    -e 's/disk-size: 1G/disk-size: 512M/' \
     -i linux-system.morph
 git add linux-system.morph
 git commit -q -m "Make linux-system as small as possible"

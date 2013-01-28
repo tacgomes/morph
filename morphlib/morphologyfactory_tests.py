@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,9 +65,7 @@ class FakeLocalRepo(object):
                 "system-kind": "%(system_kind)s",
                 "arch": "%(arch)s"
             }''',
-        'parse-error.morph': '''{
-                "name"
-            }''',
+        'parse-error.morph': '''{ "name"''',
     }
 
     def __init__(self):
