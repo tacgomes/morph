@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,14 +24,11 @@ class BuildEnvironmentTests(unittest.TestCase):
 
     def setUp(self):
         self.settings = {
-            'keep-path': False,
-            'bootstrap': False,
             'toolchain-target': '%s-baserock-linux-gnu' % morphlib.util.arch(),
             'target-cflags': '',
             'prefix': '/usr',
             'no-ccache': True,
-            'no-distcc': True,
-            'staging-chroot': False,
+            'no-distcc': True
         }
         self.fake_env = {
             'PATH': '/fake_bin',
@@ -48,39 +45,16 @@ class BuildEnvironmentTests(unittest.TestCase):
         self.assertEqual(buildenv.arch, 'noarch')
 
     def test_sets_default_path(self):
-        self.settings['keep-path'] = False
-        self.settings['bootstrap'] = False
         olddefaultpath = buildenvironment.BuildEnvironment._default_path
         buildenvironment.BuildEnvironment._default_path = self.default_path
         buildenv = buildenvironment.BuildEnvironment(self.settings)
         buildenvironment.BuildEnvironment._default_path = olddefaultpath
         self.assertTrue(self.default_path in buildenv.env['PATH'])
 
-    def test_uses_env_path_with_keep_path(self):
-        self.settings['keep-path'] = True
-
-        old_osenv = buildenvironment.BuildEnvironment._osenv
-        buildenvironment.BuildEnvironment._osenv = self.fake_env
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
-        buildenvironment.BuildEnvironment._osenv = old_osenv
-
-        self.assertEqual(buildenv.env['PATH'], self.fake_env['PATH'])
-
-    def test_uses_env_path_with_bootstrap(self):
-        self.settings['bootstrap'] = True
-
-        old_osenv = buildenvironment.BuildEnvironment._osenv
-        buildenvironment.BuildEnvironment._osenv = self.fake_env
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
-        buildenvironment.BuildEnvironment._osenv = old_osenv
-
-        self.assertEqual(buildenv.env['PATH'], self.fake_env['PATH'])
-
     def test_copies_whitelist_vars(self):
         env = self.fake_env
         safe = {
             'DISTCC_HOSTS': 'example.com:example.co.uk',
-            'TMPDIR': '/buildenv/tmp/dir',
             'LD_PRELOAD': '/buildenv/lib/libbuildenv.so',
             'LD_LIBRARY_PATH': '/buildenv/lib:/buildenv/lib64',
             'FAKEROOTKEY': 'b011de73',
@@ -120,8 +94,6 @@ class BuildEnvironmentTests(unittest.TestCase):
                          self.settings['target-cflags'])
         self.assertEqual(buildenv.env['PREFIX'],
                          self.settings['prefix'])
-        self.assertEqual(buildenv.env['BOOTSTRAP'],
-                         'true' if self.settings['bootstrap'] else 'false')
 
     def test_ccache_vars_set(self):
         self.settings['no-ccache'] = False

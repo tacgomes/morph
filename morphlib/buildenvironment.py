@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@ class BuildEnvironment():
 
         # copy a set of white-listed variables from the original env
         copied_vars = dict.fromkeys([
-            'BOOTSTRAP_TOOLS',
             'DISTCC_HOSTS',
             'LD_PRELOAD',
             'LD_LIBRARY_PATH',
@@ -62,10 +61,6 @@ class BuildEnvironment():
             if copied_vars[name] is not None:
                 env[name] = copied_vars[name]
 
-        if settings['bootstrap'] or not settings['staging-chroot']:
-            if 'TMPDIR' in self._osenv:
-                env['TMPDIR'] = self._osenv['TMPDIR']
-
         env['TERM'] = self._override_term
         env['SHELL'] = self._override_shell
         env['USER'] = \
@@ -74,15 +69,12 @@ class BuildEnvironment():
         env['LC_ALL'] = self._override_locale
         env['HOME'] = self._override_home
 
-        if settings['keep-path'] or settings['bootstrap']:
-            env['PATH'] = path
-        else:
-            env['PATH'] = self._default_path
+        env['PATH'] = self._default_path
 
         env['TOOLCHAIN_TARGET'] = settings['toolchain-target']
         env['CFLAGS'] = settings['target-cflags']
         env['PREFIX'] = settings['prefix']
-        env['BOOTSTRAP'] = 'true' if settings['bootstrap'] else 'false'
+        env['BOOTSTRAP'] = 'false'
         if not settings['no-ccache']:
             env['PATH'] = ('%s:%s' % (self._ccache_path, env['PATH']))
 # FIXME: we should set CCACHE_BASEDIR so any objects that refer to their

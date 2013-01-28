@@ -200,7 +200,6 @@ cat <<EOF > "$DATADIR/morph.conf"
 repo-alias = test=file://$DATADIR/#file://$DATADIR/
 cachedir = $DATADIR/cache
 log = $DATADIR/morph.log
-keep-path = true
 no-distcc = true
 quiet = true
 log = /tmp/morph.log

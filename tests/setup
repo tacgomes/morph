@@ -10,7 +10,7 @@
 # The stratum repository contains a single branch, "master", with a
 # stratum and a system morphology that include the chunk above.
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -128,7 +128,6 @@ cat <<EOF > "$DATADIR/morph.conf"
 repo-alias = test=file://$DATADIR/%s#file://$DATADIR/%s
 cachedir = $DATADIR/cache
 log = $DATADIR/morph.log
-keep-path = true
 no-distcc = true
 quiet = true
 EOF

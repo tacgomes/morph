@@ -219,18 +219,14 @@ class BuildCommand(object):
             deps = self.get_recursive_deps(artifact)
             self.cache_artifacts_locally(deps)
             staging_area = self.create_staging_area(artifact)
-            if self.app.settings['staging-chroot']:
-                if artifact.source.morphology.needs_staging_area:
-                    self.install_fillers(staging_area)
-                    self.install_chunk_artifacts(staging_area,
-                                                 deps, artifact)
-                    morphlib.builder2.ldconfig(self.app.runcmd,
-                                               staging_area.tempdir)
+            if artifact.source.morphology.needs_staging_area:
+                self.install_fillers(staging_area)
+                self.install_chunk_artifacts(staging_area,
+                                             deps, artifact)
+                morphlib.builder2.ldconfig(self.app.runcmd,
+                                           staging_area.tempdir)
 
             self.build_and_cache(staging_area, artifact)
-            if self.app.settings['bootstrap']:
-                self.install_chunk_artifacts(staging_area,
-                                             (artifact,))
             self.remove_staging_area(staging_area)
         self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
                         kind=artifact.source.morphology['kind'],
@@ -319,12 +315,8 @@ class BuildCommand(object):
     def create_staging_area(self, artifact):
         '''Create the staging area for building a single artifact.'''
 
-        if self.app.settings['staging-chroot']:
-            staging_root = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
-            staging_temp = staging_root
-        else:
-            staging_root = '/'
-            staging_temp = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        staging_root = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        staging_temp = staging_root
 
         self.app.status(msg='Creating staging area')
         staging_area = morphlib.stagingarea.StagingArea(self.app,
@@ -387,5 +379,5 @@ class BuildCommand(object):
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
-            self.build_env, self.app.settings['max-jobs'], setup_mounts)
+            self.build_env, self.app.settings['max-jobs'], True)
         return builder.build_and_cache(artifact)
