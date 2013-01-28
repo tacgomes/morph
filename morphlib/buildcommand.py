@@ -62,16 +62,15 @@ class BuildCommand(object):
         return morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
     def new_artifact_caches(self):
-        return morphlib.util.new_artifact_caches(self.app.settings)
+        '''Create interfaces for the build artifact caches.
 
-    def create_artifact_cachedir(self):
-        return morphlib.util.create_artifact_cachedir(self.app.settings)
+        This includes creating the directories on disk if they are missing.
+
+        '''
+        return morphlib.util.new_artifact_caches(self.app.settings)
 
     def new_repo_caches(self):
         return morphlib.util.new_repo_caches(self.app)
-
-    def create_cachedir(self):
-        return morphlib.util.create_cachedir(self.app.settings)
 
     def compute_build_order(self, repo_name, ref, filename):
         '''Compute build order for a triplet.'''

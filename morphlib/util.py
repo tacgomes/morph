@@ -76,7 +76,7 @@ def make_concurrency(cores=None):
 
 
 def create_cachedir(settings):  # pragma: no cover
-    '''Create a new cache directory.'''
+    '''Return cache directory, creating it if necessary.'''
 
     cachedir = settings['cachedir']
     if not os.path.exists(cachedir):
@@ -84,21 +84,17 @@ def create_cachedir(settings):  # pragma: no cover
     return cachedir
 
 
-def create_artifact_cachedir(settings):  # pragma: no cover
-    '''Create a new directory for the local artifact cache.'''
+def new_artifact_caches(settings):  # pragma: no cover
+    '''Create new objects for local and remote artifact caches.
 
-    artifact_cachedir = os.path.join(
-        settings['cachedir'], 'artifacts')
+    This includes creating the directories on disk, if missing.
+
+    '''
+
+    cachedir = create_cachedir(settings)
+    artifact_cachedir = os.path.join(cachedir, 'artifacts')
     if not os.path.exists(artifact_cachedir):
         os.mkdir(artifact_cachedir)
-    return artifact_cachedir
-
-
-def new_artifact_caches(settings):  # pragma: no cover
-    '''Create new objects for local, remote artifact caches.'''
-
-    create_cachedir(settings)
-    artifact_cachedir = create_artifact_cachedir(settings)
 
     lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
 
@@ -108,6 +104,7 @@ def new_artifact_caches(settings):  # pragma: no cover
     else:
         rac = None
     return lac, rac
+
 
 def combine_aliases(app):  # pragma: no cover
     '''Create a full repo-alias set from the app's settings.'''
