@@ -20,6 +20,7 @@ import os
 import shutil
 import tarfile
 import tempfile
+import urlparse
 import uuid
 
 import morphlib
@@ -34,6 +35,7 @@ class DeployPlugin(cliapp.Plugin):
             arg_synopsis='TYPE SYSTEM LOCATION [KEY=VALUE]')
         self.other = \
             morphlib.plugins.branch_and_merge_plugin.BranchAndMergePlugin()
+        self.other.app = self.app
 
     def disable(self):
         pass
@@ -134,7 +136,7 @@ class DeployPlugin(cliapp.Plugin):
             names = m['configuration-extensions']
             for name in names:
                 self._run_extension(
-                    build_branch_root,
+                    branch_dir,
                     build_ref,
                     name,
                     '.configure',
@@ -144,9 +146,9 @@ class DeployPlugin(cliapp.Plugin):
         # Run write extension.
         self.app.status(msg='Writing to device')
         self._run_extension(
-            build_branch_root,
+            branch_dir,
             build_ref,
-            name,
+            deployment_type,
             '.write',
             [system_tree, location],
             env)
@@ -174,7 +176,7 @@ class DeployPlugin(cliapp.Plugin):
             ext_filename = os.path.join(code_dir, 'exts', name + kind)
             if not os.path.exists(ext_filename):
                 raise morphlib.Error(
-                    'Could not find extenstion %s%s' % (name, kind))
+                    'Could not find extension %s%s' % (name, kind))
             delete_ext = False
         else:
             fd, ext_filename = tempfile.mkstemp()
@@ -192,7 +194,7 @@ class DeployPlugin(cliapp.Plugin):
     def _cat_file(self, repo_dir, ref, pathname):
         '''Retrieve contents of a file from a git repository.'''
         
-        argv = ['git', 'cat-file', 'blob', '%s:%s' % (ref, filename)]
+        argv = ['git', 'cat-file', 'blob', '%s:%s' % (ref, pathname)]
         try:
             return self.app.runcmd(argv, cwd=repo_dir)
         except cliapp.AppException:

@@ -23,6 +23,7 @@ python setup.py clean check
 cmdtest tests
 cmdtest tests.branching
 cmdtest tests.merging
+cmdtest tests.deploy
 if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
     python -c "
 import morphlib, sys

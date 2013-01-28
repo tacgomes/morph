@@ -1,0 +1,204 @@
+#!/bin/bash
+#
+# Create git repositories for tests. The chunk repository will contain a 
+# simple "hello, world" C program, and two branches ("master", "farrokh"), 
+# with the master branch containing just a README. The two branches are there
+# so that we can test building a branch that hasn't been checked out.
+# The branches are different so that we know that if the wrong branch
+# is uses, the build will fail.
+#
+# The stratum repository contains a single branch, "master", with a
+# stratum and a system morphology that include the chunk above.
+#
+# Copyright (C) 2011, 2012, 2013  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+set -eu
+
+source "$SRCDIR/scripts/fix-committer-info"
+
+# The $DATADIR should be empty at the beginnig of each test.
+find "$DATADIR" -mindepth 1 -delete
+
+# Create an empty directory to be used as a morph workspace
+mkdir "$DATADIR/workspace"
+
+# Create chunk repository.
+
+chunkrepo="$DATADIR/chunk-repo"
+mkdir "$chunkrepo"
+cd "$chunkrepo"
+git init --quiet
+
+cat <<EOF > README
+This is a sample README.
+EOF
+git add README
+git commit --quiet -m "add README"
+
+git checkout --quiet -b farrokh
+
+cat <<EOF > hello.c
+#include <stdio.h>
+int main(void)
+{
+    puts("hello, world");
+    return 0;
+}
+EOF
+git add hello.c
+
+cat <<EOF > hello.morph
+{
+    "name": "hello",
+    "kind": "chunk",
+    "build-system": "dummy",
+    "build-commands": [
+        "gcc -o hello hello.c"
+    ],
+    "install-commands": [
+        "install -d \\"\$DESTDIR\\"/etc",
+        "install -d \\"\$DESTDIR\\"/bin",
+        "install hello \\"\$DESTDIR\\"/bin/hello"
+    ]
+}
+EOF
+git add hello.morph
+
+git commit --quiet -m "add a hello world program and morph"
+
+git checkout --quiet master
+
+
+
+# Create morph repository.
+
+morphsrepo="$DATADIR/morphs"
+mkdir "$morphsrepo"
+cd "$morphsrepo"
+git init --quiet
+
+cat <<EOF > hello-stratum.morph
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "test:chunk-repo",
+            "ref": "farrokh",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+git add hello-stratum.morph
+
+cat <<EOF > hello-system.morph
+{
+    "name": "hello-system",
+    "kind": "system",
+    "system-kind": "rootfs-tarball",
+    "arch": "$(uname -m)",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git add hello-system.morph
+
+cat <<EOF > linux-stratum.morph
+{
+    "name": "linux-stratum",
+    "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ],
+    "chunks": [
+        {
+            "name": "linux",
+            "repo": "test:kernel-repo",
+            "ref": "master",
+            "build-depends": []
+        }
+    ]
+}
+EOF
+git add linux-stratum.morph
+
+cat <<EOF > linux-system.morph
+{
+    "name": "linux-system",
+    "kind": "system",
+    "system-kind": "rootfs-tarball",
+    "arch": "$(uname -m)",
+    "strata": [
+        {
+            "morph": "hello-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        },
+        {
+            "morph": "linux-stratum",
+            "repo": "test:morphs",
+            "ref": "master"
+        }
+    ]
+}
+EOF
+git add linux-system.morph
+
+git commit --quiet -m "add morphs"
+
+# Make a dummy kernel chunk.
+mkdir "$DATADIR/kernel-repo"
+cat <<EOF > "$DATADIR/kernel-repo/linux.morph"
+{
+    "name": "linux",
+    "kind": "chunk",
+    "install-commands": [
+        "mkdir -p \"\$DESTDIR/boot\"",
+        "touch \"\$DESTDIR\"/extlinux.conf",
+        "touch \"\$DESTDIR\"/boot/vmlinuz",
+        "touch \"\$DESTDIR\"/boot/System.map"
+    ]
+}
+EOF
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" init --quiet
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" add .
+"$SRCDIR/scripts/run-git-in" "$DATADIR/kernel-repo" commit --quiet -m foo \
+    > /dev/null
+
+# Create a morph configuration file.
+cat <<EOF > "$DATADIR/morph.conf"
+[config]
+repo-alias = test=file://$DATADIR/#file://$DATADIR/
+cachedir = $DATADIR/cache
+log = $DATADIR/morph.log
+keep-path = true
+no-distcc = true
+quiet = true
+log = /tmp/morph.log
+EOF
+
