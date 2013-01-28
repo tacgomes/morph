@@ -33,6 +33,7 @@ import cliapp
 
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
+import morphlib.gitversion
 
 
 def ldconfig(runcmd, rootdir):  # pragma: no cover
@@ -204,6 +205,12 @@ class BuilderBase(object):
             'morphology': self.artifact.source.filename,
             'cache-key': self.artifact.cache_key,
             'cache-id': self.artifact.cache_id,
+            'morph-version': {
+                'ref': morphlib.gitversion.ref,
+                'tree': morphlib.gitversion.tree,
+                'commit': morphlib.gitversion.commit,
+                'version': morphlib.gitversion.version,
+            },
         }
 
         return meta

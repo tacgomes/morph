@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +19,9 @@
 
 import cliapp
 
+import gitversion
 
-__version__ = '0.1'
+__version__ = gitversion.version
 
 
 class Error(cliapp.AppException):
