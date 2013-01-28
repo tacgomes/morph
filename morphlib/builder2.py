@@ -321,9 +321,10 @@ class ChunkBuilder(BuilderBase):
         # Get the destination path
         ccache_destdir= os.path.join(self.staging_area.tempdir,
                                      'tmp', 'ccache')
-        # Make sure that the destination exists
+        # Make sure that the destination exists. We'll create /tmp if necessary
+        # to avoid breaking when faced with an empty staging area.
         if not os.path.isdir(ccache_destdir):
-            os.mkdir(ccache_destdir)
+            os.makedirs(ccache_destdir)
         # Mount it into the staging-area
         self.app.runcmd(['mount', '--bind', ccache_repodir,
                          ccache_destdir])
