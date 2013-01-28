@@ -208,6 +208,9 @@ class BuildCommand(object):
                     self.install_fillers(staging_area)
                     self.install_chunk_artifacts(staging_area,
                                                  deps)
+                    morphlib.builder2.ldconfig(self.app.runcmd,
+                                               staging_area.tempdir)
+
             self.build_and_cache(staging_area, artifact)
             if self.app.settings['bootstrap']:
                 self.install_chunk_artifacts(staging_area,
