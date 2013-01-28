@@ -1486,9 +1486,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
             # Obtain parent SHA1 for the temporary ref tree to be committed.
             # This will either be the current commit of the temporary ref or
             # HEAD in case the temporary ref does not exist yet.
+            system_branch_sha1 = self.resolve_ref(repo_dir, system_branch)
             parent_sha1 = self.resolve_ref(repo_dir, build_ref)
             if not parent_sha1:
-                parent_sha1 = self.resolve_ref(repo_dir, system_branch)
+                parent_sha1 = system_branch_sha1
 
             # Prepare an environment with our internal index file.
             # This index file allows us to commit changes to a tree without
@@ -1499,8 +1500,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             env['GIT_COMMITTER_NAME'] = committer_name
             env['GIT_COMMITTER_EMAIL'] = committer_email
 
-            # Read tree from parent or current HEAD into the morph index.
-            self.app.runcmd(['git', 'read-tree', parent_sha1],
+            # Read tree from current HEAD into the morph index.
+            self.app.runcmd(['git', 'read-tree', system_branch_sha1],
                             cwd=repo_dir, env=env)
 
             self.app.status(msg='%(repo)s: Adding uncommitted changes to '
