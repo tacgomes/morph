@@ -51,6 +51,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('status', self.status)
+        self.app.add_subcommand('branch-from-image', self.branch_from_image,
+                                 arg_synopsis='REPO BRANCH [METADATADIR]')
 
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
@@ -478,6 +480,36 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if max_subdirs > 0 and len(subdirs) > max_subdirs:
                 break
 
+    def read_metadata(self, metadata_path):
+        '''Load every metadata file in `metadata_path`.
+        
+           Given a directory containing metadata, load them into memory
+           and retain the id of the system.
+
+           Returns the cache_key of the system and a mapping of cache_key
+           to metadata.
+        '''
+        self.app.status(msg='Reading metadata', chatty=True)
+        metadata_cache_id_lookup = {}
+        system_key = None
+        for path in sorted(glob.iglob(os.path.join(metadata_path, '*.meta'))):
+            with open(path) as f:
+                metadata = morphlib.util.json.load(f)
+                cache_key = metadata['cache-key']
+                metadata_cache_id_lookup[cache_key] = metadata
+
+                if metadata['kind'] == 'system':
+                    if system_key is not None:
+                        raise morphlib.Error(
+                            "Metadata directory contains multiple systems.")
+                    system_key = cache_key
+
+        if system_key is None:
+            raise morphlib.Error(
+               "Metadata directory does not contain any systems.")
+
+        return system_key, metadata_cache_id_lookup
+
     def init(self, args):
         '''Initialize a workspace directory.'''
 
@@ -536,6 +568,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if original_ref != branch_name:
                 self.app.runcmd(['git', 'checkout', '-b', branch_name,
                                  original_ref], cwd=repo_dir)
+
+            return branch_dir
         except:
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
@@ -710,6 +744,100 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         self.print_changelog('The following changes were made but have not '
                              'been committed')
+
+    def _get_repo_name(self, alias_resolver, metadata):
+        '''Attempt to find the best name for the repository.
+
+           A defined repo-alias is preferred, but older builds may
+           not have it.
+
+           A guessed repo-alias is the next best thing, but there may
+           be none or more alilases that would resolve to that URL, so
+           if there are any, use the shortest as it is likely to be
+           the most specific.
+
+           If all else fails just use the URL.
+        '''
+        if 'repo-alias' in metadata:
+            return metadata['repo-alias']
+
+        repo_url = metadata['repo']
+        aliases = alias_resolver.aliases_from_url(repo_url)
+
+        if len(aliases) >= 1:
+            # If there are multiple valid aliases, use the shortest
+            return min(aliases, key=len)
+
+        # If there are no aliases, just return the url
+        return repo_url
+            
+    def _resolve_refs_from_metadata(self, alias_resolver,
+                                    metadata_cache_id_lookup):
+        '''Pre-resolve a set of refs from metadata.
+        
+           Resolved refs are a dict as {(repo, ref): sha1}.
+
+           If the metadata contains the repo-alias then every
+           metadata item adds the mapping of its repo-alias and ref
+           to the commit it was built with.
+
+           If the repo-alias does not exist, such as if the image was
+           built before that field was added, then mappings of every
+           possible repo url are added.
+        '''
+        resolved_refs = {}
+        for md in metadata_cache_id_lookup.itervalues():
+            if 'repo-alias' in md:
+                repourls = [md['repo-alias']]
+            else:
+                repourls = [md['repo']] 
+                repourls.extend(alias_resolver.aliases_from_url(md['repo']))
+            for repourl in repourls:
+                resolved_refs[repourl, md['original_ref']] = md['sha1']
+        return resolved_refs
+
+    def branch_from_image(self, args):
+        '''Given the contents of a /baserock directory, produce a branch
+           of the System, petrified to when the System was made.
+        '''
+        if len(args) not in (2, 3):
+            raise cliapp.AppException(
+                'branch-from-image needs repository, ref and path to metadata')
+        root_repo = args[0]
+        branch = args[1]
+        metadata_path = '/baserock' if len(args) == 2 else args[2]
+        workspace = self.deduce_workspace()
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
+
+        alias_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            self.app.settings['repo-alias'])
+
+        system_key, metadata_cache_id_lookup = self.read_metadata(
+            metadata_path)
+        
+        system_metadata = metadata_cache_id_lookup[system_key]
+        repo = self._get_repo_name(alias_resolver, system_metadata)
+
+        # Which repo to use? Specified or deduced?
+        branch_dir = self._create_branch(workspace, branch, repo,
+                                         system_metadata['sha1'])
+
+        # Resolve refs from metadata so petrify substitutes these refs
+        # into morphologies instead of the current state of the branches
+        resolved_refs = self._resolve_refs_from_metadata(
+            alias_resolver,
+            metadata_cache_id_lookup)
+
+        branch_root_dir = self.find_repository(branch_dir, repo)
+        name = system_metadata['morphology'][:-len('.morph')]
+        morphology = self.load_morphology(branch_root_dir, name)
+        self.petrify_morphology(branch, branch_dir,
+                                repo, branch_root_dir,
+                                repo, branch_root_dir, # not a typo
+                                branch, name, morphology,
+                                petrified_morphologies=set(),
+                                resolved_refs=resolved_refs,
+                                update_working_tree=True)
 
     def petrify(self, args):
         '''Convert all chunk refs in a system branch to be fixed SHA1s
