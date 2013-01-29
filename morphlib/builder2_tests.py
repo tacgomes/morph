@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@ class FakeSource(object):
 
         self.repo = morphlib.cachedrepo.CachedRepo(FakeApp(), 'repo',
                                                    'url', 'path')
+        self.repo_name = 'url'
         self.original_ref = 'e'
         self.sha1 = 'f'
         self.filename = 'g'

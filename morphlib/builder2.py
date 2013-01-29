@@ -200,6 +200,7 @@ class BuilderBase(object):
             'kind': self.artifact.source.morphology['kind'],
             'description': self.artifact.source.morphology['description'],
             'repo': self.artifact.source.repo.url,
+            'repo-alias': self.artifact.source.repo_name,
             'original_ref': self.artifact.source.original_ref,
             'sha1': self.artifact.source.sha1,
             'morphology': self.artifact.source.filename,
