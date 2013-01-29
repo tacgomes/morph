@@ -26,6 +26,19 @@ class RepoAlias(object):
         self.pullpat = pullpat
         self.pushpat = pushpat
 
+    def _pattern_to_regex(self, pattern):
+        if '%s' in pattern:
+            return r'(?P<path>.+)'.join(map(re.escape, pattern.split('%s')))
+        else:
+            return re.escape(pattern) + r'(?P<path>.+)'
+
+    def match_url(self,  url):
+        '''Given a URL, return what its alias would be if it matches'''
+        for pat in (self.pullpat, self.pushpat):
+            m = re.match(self._pattern_to_regex(pat), url)
+            if m:
+                return '%s:%s' % (self.prefix, m.group('path'))
+        return None
 
 class RepoAliasResolver(object):
 
@@ -54,6 +67,17 @@ class RepoAliasResolver(object):
     def push_url(self, reponame):
         '''Expand a possibly shortened repo name to a push url.'''
         return self._expand_reponame(reponame, 'pushpat')
+
+    def aliases_from_url(self, url):
+        '''Find aliases the url could have expanded from.
+
+           Returns an ascii-betically sorted list.
+        '''
+        potential_matches = (repo_alias.match_url(url)
+                             for repo_alias in self.aliases.itervalues())
+        known_aliases = (url_alias for url_alias in potential_matches
+                         if url_alias is not None)
+        return sorted(known_aliases)
 
     def _expand_reponame(self, reponame, patname):
         logging.debug('expanding: reponame=%s' % reponame)
