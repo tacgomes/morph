@@ -61,8 +61,9 @@ class GenerateResources(build):
                           (path, ' '.join(command)))
 
             with open(os.path.join(target_dir, filename), 'w') as f:
+                cwd = os.path.dirname(__file__) or '.'
                 p = subprocess.Popen(command,
-                                     cwd=os.path.dirname(__file__),
+                                     cwd=cwd,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT)
                 o = p.communicate()
