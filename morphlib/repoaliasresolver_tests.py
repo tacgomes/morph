@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,3 +81,10 @@ class RepoAliasResolverTests(unittest.TestCase):
             self.resolver.pull_url('append:bar'), 'git://append/bar')
         self.assertEqual(
             self.resolver.push_url('append:bar'), 'git@append/bar')
+
+    def test_ignores_malformed_aliases(self):
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver([
+            'malformed=git://git.malformed.url.org'
+        ])
+        self.assertEqual(resolver.pull_url('malformed:foo'), 'malformed:foo')
+        self.assertEqual(resolver.push_url('malformed:foo'), 'malformed:foo')
