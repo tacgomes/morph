@@ -23,9 +23,16 @@ python setup.py clean check
 cmdtest tests
 cmdtest tests.branching
 cmdtest tests.merging
-if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null
+if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
+    python -c "
+import morphlib, sys
+if not morphlib.got_yaml:
+    sys.exit(1)
+" > /dev/null 2>&1
 then
     cmdtest tests.as-root
+else
+    echo "NOT RUNNING tests.as-root"
 fi
 
 if [ -d .git ];

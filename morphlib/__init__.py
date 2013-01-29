@@ -17,6 +17,19 @@
 '''Baserock library.'''
 
 
+# Import yaml if available. This can go away once Baserock has made a
+# release that includes yaml (also in its staging filler).
+try:
+    import yaml
+except ImportError:
+    got_yaml = False
+    class YAMLError(Exception):
+        pass
+else:
+    got_yaml = True
+    YAMLError = yaml.YAMLError
+
+
 import cliapp
 
 import gitversion
@@ -57,6 +70,7 @@ import stagingarea
 import stopwatch
 import tempdir
 import util
+
 import yamlparse
 
 import app  # this needs to be last

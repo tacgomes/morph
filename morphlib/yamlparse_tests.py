@@ -15,16 +15,19 @@
 
 import unittest
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-import yaml
-
+import morphlib
 import morphlib.yamlparse as yamlparse
+from morphlib.util import OrderedDict
+
+if morphlib.got_yaml:
+    yaml = morphlib.yaml
 
 
 class YAMLParseTests(unittest.TestCase):
+
+    def run(self, *args, **kwargs):
+        if morphlib.got_yaml:
+            return unittest.TestCase.run(self, *args, **kwargs)
 
     example_text = '''\
 name: foo
