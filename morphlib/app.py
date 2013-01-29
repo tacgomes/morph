@@ -124,8 +124,9 @@ class Morph(cliapp.Application):
                               group=group_build)
         self.settings.boolean(['no-ccache'], 'do not use ccache',
                               group=group_build)
-        self.settings.boolean(['no-distcc'], 'do not use distcc',
-                              group=group_build)
+        self.settings.boolean(['no-distcc'],
+                              'do not use distcc (default: true)',
+                              group=group_build, default=True)
         self.settings.string(['prefix'],
                              'build chunks with prefix PREFIX',
                              metavar='PREFIX', default=defaults['prefix'],
