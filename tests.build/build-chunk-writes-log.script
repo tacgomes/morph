@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011,2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +16,22 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test building with a bad reference.
+## Test building a chunk - build log should be saved.
 
-"$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo non-existent-branch hello
+set -eu
+
+"$SRCDIR/scripts/test-morph" build-morphology test:chunk-repo farrokh hello
+
+SOURCES="$DATADIR/cached-sources"
+find "$DATADIR/cache/artifacts" -name '*.chunk.*' |
+    sed 's|\.chunk\..*||' | sort -u >"$SOURCES"
+
+found=false
+# list of sources in cache is not piped because while loop changes variable
+while read source; do
+    [ -e "$source".build-log ] || continue
+    found=true
+    break
+done <"$SOURCES"
+"$found"
 

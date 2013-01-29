@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,22 +16,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test building a chunk - build log should be saved.
+## Test that temporary directories are created in the dir specified
+## by --tempdir rather than specified in the environment by TMPDIR.
 
 set -eu
-
-"$SRCDIR/scripts/test-morph" build-morphology test:chunk-repo farrokh hello
-
-SOURCES="$DATADIR/cached-sources"
-find "$DATADIR/cache/artifacts" -name '*.chunk.*' |
-    sed 's|\.chunk\..*||' | sort -u >"$SOURCES"
-
-found=false
-# list of sources in cache is not piped because while loop changes variable
-while read source; do
-    [ -e "$source".build-log ] || continue
-    found=true
-    break
-done <"$SOURCES"
-"$found"
-
+export TMPDIR
+TMPDIR="$DATADIR"/unwritable-tmp
+install -m 000 -d "$TMPDIR"
+mkdir "$DATADIR"/tmp
+"$SRCDIR/scripts/test-morph" build-morphology --tempdir "$DATADIR"/tmp \
+    test:morphs-repo master hello-stratum

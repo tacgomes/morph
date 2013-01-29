@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,24 +16,14 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test that the autotools build system fails if it runs autogen.sh and that
-## fails.
+## Test build a simple stratum.
 
 set -eu
 
-x="$DATADIR/autogen-chunk"
-mkdir "$x"
-cat <<EOF > "$x/autogen.sh"
-#!/bin/sh
-echo "in failing autogen.sh"
-exit 1
-EOF
-chmod a+x "$x/autogen.sh"
-"$SRCDIR/scripts/run-git-in" "$x" init --quiet
-"$SRCDIR/scripts/run-git-in" "$x" add .
-"$SRCDIR/scripts/run-git-in" "$x" commit --quiet -m initial
-
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:autogen-chunk master detected \
-    >/dev/null 2> /dev/null
+    test:morphs-repo master hello-stratum
+"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
+                                   "$DATADIR/cache/artifacts/"*.hello-stratum \
+                                   "$DATADIR/stratum.tar" hello-stratum
+tar -tf "$DATADIR/stratum.tar" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
 

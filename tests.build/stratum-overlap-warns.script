@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,17 +16,24 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Guard against a bug that occurs if 'git show-ref' is used to resolve refs
-## instead of 'git rev-parse --verify': show-ref returns a list of partial
-## matches sorted alphabetically, so any code using it may resolve refs
+## If a stratum has multiple chunks that have the same files in them,
+## then this should be noted.
 
 set -eu
 
-# Create a ref that will show up in 'git show-ref' before the real master ref
-cd "$DATADIR/morphs-repo"
-git checkout -q -b alpha/master
-git rm -q hello-stratum.morph
-git commit -q -m "This ref will not build correctly"
+log="$DATADIR/morph.log"
+warnings="$DATADIR/warnings"
+cache="$DATADIR/cache/artifacts"
 
-"$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum
+warning_mentions(){
+    grep -F "$1" <"$warnings" >/dev/null 2>/dev/null
+}
+
+"$SRCDIR/scripts/test-morph" build-morphology --log=$log \
+    test:morphs-repo overlap overlap-stratum > /dev/null
+grep WARNING "$log" >"$warnings"
+for str in overlap-stratum \
+           overlap-foo-baz overlap-foobar bin/bar \
+           overlap-fooqux bin/foo; do
+    warning_mentions 'overlap-stratum' || exit $?
+done

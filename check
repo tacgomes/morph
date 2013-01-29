@@ -37,6 +37,7 @@ if not morphlib.got_yaml:
     sys.exit(1)
 " > /dev/null 2>&1
 then
+    cmdtest tests.build
     cmdtest tests.as-root
 else
     echo "NOT RUNNING tests.as-root"
