@@ -236,7 +236,7 @@ build_eglibc() {
 
     # Necessary for ARM port.
     if [ ! -e "$source_dir/libc/ports" ]; then
-        ln -s "$source_dir/ports $source_dir/libc/ports"
+        ln -s "$source_dir/ports" "$source_dir/libc/ports"
     fi
 
     cd "$source_dir"
