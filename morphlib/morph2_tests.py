@@ -17,6 +17,7 @@
 import StringIO
 import unittest
 
+import morphlib
 from morphlib.morph2 import Morphology
 
 
@@ -41,22 +42,23 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(m['max-jobs'], None)
         self.assertEqual(m['chunks'], [])
 
-    def test_parses_simple_yaml_chunk(self):
-        m = Morphology('''
-            name: foo
-            kind: chunk
-            build-system: manual
-        ''')
+    if morphlib.got_yaml:
+        def test_parses_simple_yaml_chunk(self):
+            m = Morphology('''
+                name: foo
+                kind: chunk
+                build-system: manual
+            ''')
 
-        self.assertEqual(m['name'], 'foo')
-        self.assertEqual(m['kind'], 'chunk')
-        self.assertEqual(m['build-system'], 'manual')
-        self.assertEqual(m['configure-commands'], None)
-        self.assertEqual(m['build-commands'], None)
-        self.assertEqual(m['test-commands'], None)
-        self.assertEqual(m['install-commands'], None)
-        self.assertEqual(m['max-jobs'], None)
-        self.assertEqual(m['chunks'], [])
+            self.assertEqual(m['name'], 'foo')
+            self.assertEqual(m['kind'], 'chunk')
+            self.assertEqual(m['build-system'], 'manual')
+            self.assertEqual(m['configure-commands'], None)
+            self.assertEqual(m['build-commands'], None)
+            self.assertEqual(m['test-commands'], None)
+            self.assertEqual(m['install-commands'], None)
+            self.assertEqual(m['max-jobs'], None)
+            self.assertEqual(m['chunks'], [])
 
     def test_sets_stratum_chunks_repo_and_morph_from_name(self):
         m = Morphology('''
