@@ -924,9 +924,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
             return False
 
     def petrify_everything(self, branch, branch_dir,
-            branch_root, branch_root_dir, tagref, env):
+            branch_root, branch_root_dir, tagref, env=os.environ,
+            resolved_refs=None, update_working_tree=False):
         petrified_morphologies = set()
-        resolved_refs = {}
+        resolved_refs = resolved_refs or {}
         for f in sorted(glob.iglob(os.path.join(branch_root_dir, '*.morph'))):
             name = os.path.basename(f)[:-len('.morph')]
             morphology = self.load_morphology(branch_root_dir, name)
@@ -934,12 +935,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                     branch_root, branch_root_dir,
                                     branch_root, branch_root_dir,
                                     tagref, name, morphology,
-                                    petrified_morphologies, resolved_refs, env)
+                                    petrified_morphologies, resolved_refs,
+                                    env, update_working_tree)
 
     def petrify_morphology(self, branch, branch_dir,
                            branch_root, branch_root_dir, repo, repo_dir,
                            tagref, name, morphology,
-                           petrified_morphologies, resolved_refs, env):
+                           petrified_morphologies, resolved_refs,
+                           env=os.environ, update_working_tree=False):
         self.app.status(msg='%(repo)s: Petrifying morphology \"%(morph)s\"',
                         repo=repo, morph=name)
 
@@ -955,7 +958,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             strata += morphology['strata']
         for info in strata:
             # Obtain the commit SHA1 this stratum would be built from.
-            commit, tree = self.resolve_info(info, resolved_refs)
+            commit = self.resolve_info(info, resolved_refs)
             stratum_repo_dir = self.make_available(
                     info, branch, branch_dir, repo, repo_dir)
             info['ref'] = branch
@@ -969,7 +972,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                         info['repo'], stratum_repo_dir,
                                         tagref, info['morph'], stratum,
                                         petrified_morphologies,
-                                        resolved_refs, env)
+                                        resolved_refs, env,
+                                        update_working_tree)
 
             # Change the ref for this morphology to the tag we're creating.
             if info['ref'] != tagref:
@@ -987,7 +991,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # chunks into SHA1s.
         if morphology['kind'] == 'stratum':
             for info in morphology['chunks']:
-                commit, tree = self.resolve_info(info, resolved_refs)
+                commit = self.resolve_info(info, resolved_refs)
                 if info['ref'] != commit:
                     info['unpetrify-ref'] = info['ref']
                     info['ref'] = commit
@@ -1007,6 +1011,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
                  '100644', sha1, '%s.morph' % name],
                 cwd=branch_root_dir, env=env)
 
+        # Update the working tree if requested. This can be done with
+        # git-checkout-index, but we still have the file, so use that
+        if update_working_tree:
+            shutil.copy(tmpfile,
+                        os.path.join(branch_root_dir, '%s.morph' % name))
+
         # Delete the temporary file again.
         os.remove(tmpfile)
 
@@ -1018,7 +1028,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             commit_sha1, tree_sha1 = self.app.resolve_ref(
                     self.lrc, self.rrc, info['repo'], info['ref'],
                     update=not self.app.settings['no-git-update'])
-            resolved_refs[key] = (commit_sha1, tree_sha1)
+            resolved_refs[key] = commit_sha1
         return resolved_refs[key]
 
     def create_tag_commit(self, repo_dir, tagname, msg, env):
