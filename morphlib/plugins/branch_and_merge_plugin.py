@@ -505,6 +505,41 @@ class BranchAndMergePlugin(cliapp.Plugin):
         os.mkdir(os.path.join(dirname, '.morph'))
         self.app.status(msg='Initialized morph workspace', chatty=True)
 
+    def _create_branch(self, workspace, branch_name, repo, original_ref):
+        '''Create a branch called branch_name based off original_ref.
+           
+           NOTE: self.lrc and self.rrc need to be initialized before
+                 calling since clone_to_directory uses them indirectly via
+                 get_cached_repo
+        '''
+        branch_dir = os.path.join(workspace, branch_name)
+        os.makedirs(branch_dir)
+        try:
+            # Create a .morph-system-branch directory to clearly identify
+            # this directory as a morph system branch.
+            os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
+
+            # Remember the system branch name and the repository we branched
+            # off from initially.
+            self.set_branch_config(branch_dir, 'branch.name', branch_name)
+            self.set_branch_config(branch_dir, 'branch.root', repo)
+
+            # Generate a UUID for the branch. We will use this for naming
+            # temporary refs, e.g. building.
+            self.set_branch_config(branch_dir, 'branch.uuid', uuid.uuid4().hex)
+
+            # Clone into system branch directory.
+            repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
+            self.clone_to_directory(repo_dir, repo, original_ref)
+
+            # Create a new branch in the local morphs repository.
+            if original_ref != branch_name:
+                self.app.runcmd(['git', 'checkout', '-b', branch_name,
+                                 original_ref], cwd=repo_dir)
+        except:
+            self.remove_branch_dir_safe(workspace, branch_name)
+            raise
+
     def branch(self, args):
         '''Create a new system branch.'''
 
@@ -523,33 +558,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Create the system branch directory.
         workspace = self.deduce_workspace()
-        branch_dir = os.path.join(workspace, new_branch)
-        os.makedirs(branch_dir)
-
-        try:
-            # Create a .morph-system-branch directory to clearly identify
-            # this directory as a morph system branch.
-            os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
-
-            # Remember the system branch name and the repository we branched
-            # off from initially.
-            self.set_branch_config(branch_dir, 'branch.name', new_branch)
-            self.set_branch_config(branch_dir, 'branch.root', repo)
-
-            # Generate a UUID for the branch. We will use this for naming
-            # temporary refs, e.g. building.
-            self.set_branch_config(branch_dir, 'branch.uuid', uuid.uuid4().hex)
-
-            # Clone into system branch directory.
-            repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-            self.clone_to_directory(repo_dir, repo, commit)
-
-            # Create a new branch in the local morphs repository.
-            self.app.runcmd(['git', 'checkout', '-b', new_branch, commit],
-                            cwd=repo_dir)
-        except:
-            self.remove_branch_dir_safe(workspace, new_branch)
-            raise
+        self._create_branch(workspace, new_branch, repo, commit)
 
     def checkout(self, args):
         '''Check out an existing system branch.'''
@@ -561,31 +570,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
         repo = args[0]
         system_branch = args[1]
 
-        # Create the system branch directory.
-        workspace = self.deduce_workspace()
-        branch_dir = os.path.join(workspace, system_branch)
-        os.makedirs(branch_dir)
         self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
 
-        try:
-            # Create a .morph-system-branch directory to clearly identify
-            # this directory as a morph system branch.
-            os.mkdir(os.path.join(branch_dir, '.morph-system-branch'))
-
-            # Remember the system branch name and the repository we
-            # branched off from.
-            self.set_branch_config(branch_dir, 'branch.name', system_branch)
-            self.set_branch_config(branch_dir, 'branch.root', repo)
-
-            # Generate a UUID for the branch.
-            self.set_branch_config(branch_dir, 'branch.uuid', uuid.uuid4().hex)
-
-            # Clone into system branch directory.
-            repo_dir = os.path.join(branch_dir, self.convert_uri_to_path(repo))
-            self.clone_to_directory(repo_dir, repo, system_branch)
-        except:
-            self.remove_branch_dir_safe(workspace, system_branch)
-            raise
+        # Create the system branch directory.
+        workspace = self.deduce_workspace()
+        self._create_branch(workspace, system_branch, repo, system_branch)
 
     def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
         '''Make a chunk or stratum repository available for a system branch
