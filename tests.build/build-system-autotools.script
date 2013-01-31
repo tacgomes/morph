@@ -47,7 +47,8 @@ EOF
 git add hello.morph
 git commit --quiet -m "Convert hello to an autotools project"
 
-"$SRCDIR/scripts/test-morph" build-morphology test:chunk-repo farrokh hello
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do

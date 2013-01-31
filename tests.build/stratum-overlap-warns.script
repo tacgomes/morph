@@ -30,10 +30,10 @@ warning_mentions(){
 }
 
 "$SRCDIR/scripts/test-morph" build-morphology --log=$log \
-    test:morphs-repo overlap overlap-stratum > /dev/null
+    test:morphs-repo overlap hello-system > /dev/null
 grep WARNING "$log" >"$warnings"
-for str in overlap-stratum \
+for str in hello-stratum \
            overlap-foo-baz overlap-foobar bin/bar \
            overlap-fooqux bin/foo; do
-    warning_mentions 'overlap-stratum' || exit $?
+    warning_mentions 'hello-stratum' || exit $?
 done

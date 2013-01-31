@@ -25,9 +25,9 @@ morphsrepo="$DATADIR/morphs-repo"
 
 cd "$morphsrepo"
 git checkout --quiet -b overlap master
-cat <<EOF >overlap-stratum.morph
+cat <<EOF >hello-stratum.morph
 {
-  "name": "overlap-stratum",
+  "name": "hello-stratum",
   "kind": "stratum",
   "chunks": [
     {
@@ -57,8 +57,9 @@ cat <<EOF >overlap-stratum.morph
   ]
 }
 EOF
-git add overlap-stratum.morph
-git commit --quiet -m "add overlapping stratum"
+sed -i 's/master/overlap/' hello-system.morph
+git add hello-stratum.morph hello-system.morph
+git commit --quiet -m "Make hello stratum contain overlaps"
 
 cd "$chunkrepo"
 git checkout --quiet -b overlap master

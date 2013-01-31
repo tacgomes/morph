@@ -16,11 +16,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test building a chunk - build log should be saved.
+## Build log should be saved when a chunk is built.
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" build-morphology test:chunk-repo farrokh hello
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system
 
 SOURCES="$DATADIR/cached-sources"
 find "$DATADIR/cache/artifacts" -name '*.chunk.*' |

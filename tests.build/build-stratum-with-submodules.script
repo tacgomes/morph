@@ -46,9 +46,9 @@ EOF
 # Modify the stratum to refer to the parent, not the submodule.
 
 morphs="$DATADIR/morphs-repo"
-cat <<EOF > "$morphs/submod-stratum.morph"
+cat <<EOF > "$morphs/hello-stratum.morph"
 {
-    "name": "submod-stratum",
+    "name": "hello-stratum",
     "kind": "stratum",
     "chunks": [
         {
@@ -60,16 +60,15 @@ cat <<EOF > "$morphs/submod-stratum.morph"
     ]
 }
 EOF
-"$SRCDIR/scripts/run-git-in" "$morphs" add submod-stratum.morph
+"$SRCDIR/scripts/run-git-in" "$morphs" add hello-stratum.morph
 "$SRCDIR/scripts/run-git-in" "$morphs" commit --quiet -m 'foo'
 
 
-# No build and verify we got a stratum.
+# Now build and verify we got a stratum.
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master submod-stratum
-"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
-                                   "$DATADIR/cache/artifacts/"*submod-stratum \
-                                   "$DATADIR/stratum.tar" submod-stratum
-tar -tf "$DATADIR/stratum.tar" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    test:morphs-repo master hello-system
+
+system=$(ls "$DATADIR/cache/artifacts/"*hello-system-rootfs)
+tar tf $system | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
 

@@ -1,7 +1,10 @@
 ./
 baserock/
 baserock/hello-stratum.meta
+baserock/hello-system-rootfs.meta
 baserock/hello.meta
 bin/
 bin/hello
 etc/
+etc/fstab
+etc/os-release

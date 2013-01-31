@@ -21,19 +21,21 @@
 
 set -eu
 
-x="$DATADIR/autogen-chunk"
-mkdir "$x"
-cat <<EOF > "$x/autogen.sh"
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+
+cat <<EOF > autogen.sh
 #!/bin/sh
 echo "in failing autogen.sh"
 exit 1
 EOF
-chmod a+x "$x/autogen.sh"
-"$SRCDIR/scripts/run-git-in" "$x" init --quiet
-"$SRCDIR/scripts/run-git-in" "$x" add .
-"$SRCDIR/scripts/run-git-in" "$x" commit --quiet -m initial
+chmod a+x autogen.sh
+
+git add autogen.sh
+git rm -q hello.morph
+git commit -q -m "Convert hello to a broken autotools project"
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:autogen-chunk master detected \
+    test:morphs-repo master hello-system \
     >/dev/null 2> /dev/null
 

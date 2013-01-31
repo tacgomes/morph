@@ -20,12 +20,13 @@
 
 set -eu
 
+# Make 'hello' chunk fail to build
 chunkrepo="$DATADIR/chunk-repo"
 cd "$chunkrepo"
-git checkout --quiet master
-cat <<EOF >false.morph
+git checkout --quiet farrokh
+cat <<EOF >hello.morph
 {
-    "name": "false",
+    "name": "hello",
     "kind": "chunk",
     "build-system": "dummy",
     "build-commands": [
@@ -34,9 +35,8 @@ cat <<EOF >false.morph
     ]
 }
 EOF
-git add false.morph
-git commit --quiet -m "Make a morphology that fails." 
+git add hello.morph
+git commit --quiet -m "Make morphology fail to build."
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo master false \
-    2>/dev/null
+    test:morphs-repo master hello-system 2>/dev/null

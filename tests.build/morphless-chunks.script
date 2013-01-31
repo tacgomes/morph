@@ -20,10 +20,10 @@
 
 set -eu
 
-# Create an auto-detectable chunk.
+# Make 'hello' chunk into an auto-detectable chunk.
 
-mkdir "$DATADIR/morphless"
-cd  "$DATADIR/morphless"
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
 
 touch configure
 chmod +x configure
@@ -34,34 +34,13 @@ cat << EOF > Makefile
 all install:
 EOF
 
-git init --quiet
-git add *
-git commit --quiet -m initial
+git rm -q hello.morph
+git add Makefile configure
+git commit -q -m "Convert hello into an autodetectable chunk"
 
 
-# Create a stratum that refers to the morphless chunk.
-
-mkdir "$DATADIR/stratum"
-cd  "$DATADIR/stratum"
-cat << EOF > alfred.morph
-{
-    "name": "alfred",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "morphless",
-            "repo": "test:morphless",
-            "ref": "master",
-            "build-depends": []
-        }
-    ]
-}
-EOF
-git init --quiet
-git add alfred.morph
-git commit --quiet -m initial
-
-"$SRCDIR/scripts/test-morph" build-morphology test:stratum master alfred
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do

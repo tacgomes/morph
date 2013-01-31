@@ -25,11 +25,11 @@ cache="$DATADIR/cache/artifacts"
 
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo overlap overlap-stratum > /dev/null
+    test:morphs-repo overlap hello-system > /dev/null
 "$SRCDIR/scripts/list-overlaps" groups \
-        "$cache"/*.stratum.overlap-stratum.overlaps |
+        "$cache"/*.stratum.hello-stratum.overlaps |
 while IFS='\n' read overlaps; do
     echo $overlaps
     "$SRCDIR/scripts/list-overlaps" list-files \
-        "$cache"/*.stratum.overlap-stratum.overlaps $overlaps
+        "$cache"/*.stratum.hello-stratum.overlaps $overlaps
 done

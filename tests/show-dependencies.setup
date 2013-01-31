@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -321,3 +321,21 @@ cat <<EOF > xfce-core.morph
 EOF
 git add xfce-core.morph
 git commit --quiet -m "add xfce-core.morph stratum"
+
+cat <<EOF > xfce-system.morph
+{
+  "name": "xfce-system",
+  "kind": "system",
+  "system-kind": "rootfs-tarball",
+  "arch": "$(uname -m)",
+  "strata": [
+    {
+      "repo": "test:test-repo",
+      "ref": "master",
+      "morph": "xfce-core"
+    }
+  ]
+}
+EOF
+git add xfce-system.morph
+git commit --quiet -m "add xfce-system"

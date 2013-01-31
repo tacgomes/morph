@@ -35,11 +35,12 @@ cache="$DATADIR/cache/artifacts"
 (cd "$DATADIR/morphs-repo" &&
  git checkout --quiet -b rebuild-cached-stratum &&
  sed -i 's/farrokh/rebuild-cached-stratum/' hello-stratum.morph &&
+ sed -i 's/master/rebuild-cached-stratum/' hello-system.morph &&
  git commit --quiet -m "rebuild-cached-stratum" -a)
 
 # Build the first time.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo rebuild-cached-stratum hello-stratum
+    test:morphs-repo rebuild-cached-stratum hello-system
 echo "first build:"
 (cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)
@@ -51,7 +52,7 @@ echo "first build:"
 
 # Rebuild.
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo rebuild-cached-stratum hello-stratum
+    test:morphs-repo rebuild-cached-stratum hello-system
 echo "second build:"
 (cd "$cache" && ls *.chunk.*  *hello-stratum | sed 's/^[^.]*\./ /' | 
  LC_ALL=C sort)

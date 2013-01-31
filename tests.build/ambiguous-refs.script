@@ -25,8 +25,8 @@ set -eu
 # Create a ref that will show up in 'git show-ref' before the real master ref
 cd "$DATADIR/morphs-repo"
 git checkout -q -b alpha/master
-git rm -q hello-stratum.morph
+git rm -q hello-system.morph
 git commit -q -m "This ref will not build correctly"
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum
+    test:morphs-repo master hello-system

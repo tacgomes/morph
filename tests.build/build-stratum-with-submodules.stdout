@@ -1,4 +1,8 @@
 ./
 baserock/
+baserock/hello-stratum.meta
+baserock/hello-system-rootfs.meta
 baserock/parent.meta
-baserock/submod-stratum.meta
+etc/
+etc/fstab
+etc/os-release

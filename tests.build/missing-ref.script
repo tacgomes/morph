@@ -19,5 +19,5 @@
 ## Test building with a bad reference.
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo non-existent-branch hello
+    test:morphs-repo non-existent-branch hello-system
 
