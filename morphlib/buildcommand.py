@@ -224,8 +224,7 @@ class BuildCommand(object):
                 self.install_chunk_artifacts(staging_area,
                                              deps, artifact)
                 morphlib.builder2.ldconfig(self.app.runcmd,
-                                           staging_area.tempdir)
-
+                                           staging_area.dirname)
             self.build_and_cache(staging_area, artifact)
             self.remove_staging_area(staging_area)
         self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
@@ -315,32 +314,19 @@ class BuildCommand(object):
     def create_staging_area(self, artifact):
         '''Create the staging area for building a single artifact.'''
 
-        staging_root = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
-        staging_temp = staging_root
-
         self.app.status(msg='Creating staging area')
-        staging_area = morphlib.stagingarea.StagingArea(self.app,
-                                                        staging_root,
-                                                        staging_temp)
+        staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        staging_area = morphlib.stagingarea.StagingArea(self.app, staging_dir)
         return staging_area
 
     def remove_staging_area(self, staging_area):
         '''Remove the staging area.'''
 
-        if staging_area.dirname != '/':
-            self.app.status(msg='Removing staging area')
-            staging_area.remove()
-        temp_path = staging_area.tempdir
-        if temp_path != '/' and os.path.exists(temp_path):
-            self.app.status(msg='Removing temporary staging directory')
-            shutil.rmtree(temp_path)
+        self.app.status(msg='Removing staging area')
+        staging_area.remove()
 
     def install_fillers(self, staging_area):
-        '''Install staging fillers into the staging area.
-
-        This must not be called in bootstrap mode.
-
-        '''
+        '''Install staging fillers into the staging area.'''
 
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
         logging.debug('Fillers: %s' %

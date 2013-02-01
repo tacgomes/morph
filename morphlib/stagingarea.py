@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,21 +27,17 @@ class StagingArea(object):
 
     '''Represent the staging area for building software.
 
-    The build dependencies of what will be built will be installed in the
-    staging area. The staging area may be a dedicated part of the
-    filesystem, used with chroot, or it can be the actual root of the
-    filesystem, which is needed when bootstrap building Baserock. The
-    caller chooses this by providing the root directory of the staging
-    area when the object is created. The directory must already exist.
-
-    The staging area can also install build artifacts.
+    The staging area is a temporary directory. In normal operation the build
+    dependencies of the artifact being built are installed into the staging
+    area and then 'chroot' is used to isolate the build processes from the host
+    system. Chunks built in 'test' or 'build-essential' mode have an empty
+    staging area and are allowed to use the tools of the host.
 
     '''
 
-    def __init__(self, app, dirname, tempdir):
+    def __init__(self, app, dirname):
         self._app = app
         self.dirname = dirname
-        self.tempdir = tempdir
         self.builddirname = None
         self.destdirname = None
         self.mounted = None
@@ -52,7 +48,7 @@ class StagingArea(object):
         os.mkdir(dirname)
 
     def _dir_for_source(self, source, suffix):
-        dirname = os.path.join(self.tempdir,
+        dirname = os.path.join(self.dirname,
                                '%s.%s' % (source.morphology['name'], suffix))
         self._mkdir(dirname)
         return dirname

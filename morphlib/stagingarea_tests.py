@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,8 +57,7 @@ class StagingAreaTests(unittest.TestCase):
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
         self.sa = morphlib.stagingarea.StagingArea(
-            FakeApplication(self.cachedir, self.tempdir),
-            self.staging, self.staging)
+            FakeApplication(self.cachedir, self.tempdir), self.staging)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -88,10 +87,6 @@ class StagingAreaTests(unittest.TestCase):
 
     def test_remembers_specified_directory(self):
         self.assertEqual(self.sa.dirname, self.staging)
-
-    def test_accepts_root_directory(self):
-        sa = morphlib.stagingarea.StagingArea(object(), '/', '/tmp')
-        self.assertEqual(sa.dirname, '/')
 
     def test_creates_build_directory(self):
         source = FakeSource()
