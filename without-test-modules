@@ -20,3 +20,4 @@ morphlib/gitversion.py
 morphlib/plugins/expand_repo_plugin.py
 morphlib/plugins/deploy_plugin.py
 morphlib/plugins/__init__.py
+morphlib/writeexts.py

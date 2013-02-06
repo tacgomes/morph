@@ -73,4 +73,6 @@ import util
 
 import yamlparse
 
+import writeexts
+
 import app  # this needs to be last
