@@ -220,12 +220,6 @@ class Morph(cliapp.Application):
             yield args[0], args[1], args[2] + ".morph"
             args = args[3:]
 
-    def _itertriplets(self, *args):
-        warnings.warn('_itertriplets is deprecated, '
-                      'use itertriplets instead', stacklevel=1,
-                      category=DeprecationWarning)
-        return self.itertriplets(*args)
-
     def create_source_pool(self, lrc, rrc, triplet):
         pool = morphlib.sourcepool.SourcePool()
 
@@ -238,12 +232,6 @@ class Morph(cliapp.Application):
                              update=not self.settings['no-git-update'],
                              visit=add_to_pool)
         return pool
-
-    def _create_source_pool(self, *args):
-        warnings.warn('_create_source_pool is deprecated, '
-                      'use create_source_pool instead', stacklevel=1,
-                      category=DeprecationWarning)
-        return self.create_source_pool(*args)
 
     def resolve_ref(self, lrc, rrc, reponame, ref, update=True):
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
@@ -321,12 +309,6 @@ class Morph(cliapp.Application):
                 queue.extend((c['repo'], c['ref'], '%s.morph' % c['morph'])
                              for c in morphology['chunks'])
 
-    def _traverse_morphs(self, *args):
-        warnings.warn('_traverse_morphs is deprecated, '
-                      'use traverse_morphs instead', stacklevel=1,
-                      category=DeprecationWarning)
-        return self.traverse_morphs(*args)
-
     def cache_repo_and_submodules(self, cache, url, ref, done):
         subs_to_process = set()
         subs_to_process.add((url, ref))
@@ -346,12 +328,6 @@ class Morph(cliapp.Application):
                 for submod in submodules:
                     if (submod.url, submod.commit) not in done:
                         subs_to_process.add((submod.url, submod.commit))
-
-    def _cache_repo_and_submodules(self, *args):
-        warnings.warn('_cache_repo_and_submodules is deprecated, '
-                      'use cache_repo_and_submodules instead', stacklevel=1,
-                      category=DeprecationWarning)
-        return self.cache_repo_and_submodules(*args)
 
     def status(self, **kwargs):
         '''Show user a status update.
