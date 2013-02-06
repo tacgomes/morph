@@ -37,7 +37,8 @@ class StagingArea(object):
 
     _base_path = ['/sbin', '/usr/sbin', '/bin', '/usr/bin']
 
-    def __init__(self, app, dirname, build_env, use_chroot=True, extra_env={}):
+    def __init__(self, app, dirname, build_env, use_chroot=True, extra_env={},
+                 extra_path=[]):
         self._app = app
         self.dirname = dirname
         self.builddirname = None
@@ -52,7 +53,8 @@ class StagingArea(object):
         if use_chroot:
             path = build_env.extra_path + self._base_path
         else:
-            full_path = [self.relative(p) for p in build_env.extra_path]
+            rel_path = build_env.extra_path
+            full_path = [os.path.normpath(dirname + p) for p in rel_path]
             path = full_path + os.environ['PATH'].split(':')
         self.env['PATH'] = ':'.join(path)
 

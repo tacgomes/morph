@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import copy
 import cliapp
 import os
 
@@ -20,6 +21,16 @@ import morphlib
 
 
 class BuildEnvironment():
+
+    '''Represents the build environment for an artifact
+
+       This should be as consistent as possible across builds, but some
+       artifacts will require tweaks. The intention of this object is
+       to create one once and call populate() to create an initial state
+       and when changes are required, call clone() to get another instance
+       which can be modified.
+
+    '''
 
     def __init__(self, settings, target, arch=None):
         '''Create a new BuildEnvironment object'''
@@ -88,7 +99,6 @@ class BuildEnvironment():
 
         if not settings['no-ccache']:
             self.extra_path.append(self._ccache_path)
-
 # FIXME: we should set CCACHE_BASEDIR so any objects that refer to their
 #        current directory get corrected. This improve the cache hit rate
 #            env['CCACHE_BASEDIR'] = self.tempdir.dirname

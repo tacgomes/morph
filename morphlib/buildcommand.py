@@ -226,13 +226,24 @@ class BuildCommand(object):
         self.get_sources(artifact)
         deps = self.get_recursive_deps(artifact)
         self.cache_artifacts_locally(deps)
-        staging_area = self.create_staging_area()
-        if artifact.source.morphology.needs_staging_area:
+
+        setup_mounts = False
+        if artifact.source.morphology['kind'] == 'chunk':
+            build_mode = artifact.source.build_mode
+
+            if build_mode not in ['bootstrap', 'staging', 'test']:
+                raise morphlib.Error(
+                    'Unknown build mode for chunk %s: %s' %
+                    (artifact.name, build_mode))
+
+            use_chroot = build_mode=='staging'
+            staging_area = self.create_staging_area(use_chroot)
             self.install_fillers(staging_area)
-            self.install_chunk_artifacts(staging_area, deps, artifact)
-            morphlib.builder2.ldconfig(self.app.runcmd,
-                                       staging_area.dirname)
-        self.build_and_cache(staging_area, artifact)
+            self.install_dependencies(staging_area, deps, artifact)
+        else:
+            staging_area = self.create_staging_area()
+
+        self.build_and_cache(staging_area, artifact, setup_mounts)
         self.remove_staging_area(staging_area)
 
     def get_recursive_deps(self, artifact):
@@ -301,13 +312,13 @@ class BuildCommand(object):
                     copy(self.rac.get_artifact_metadata(artifact, 'meta'),
                          self.lac.put_artifact_metadata(artifact, 'meta'))
 
-    def create_staging_area(self):
+    def create_staging_area(self, use_chroot=True):
         '''Create the staging area for building a single artifact.'''
 
         self.app.status(msg='Creating staging area')
         staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
         staging_area = morphlib.stagingarea.StagingArea(
-            self.app, staging_dir, self.build_env, False, {})
+            self.app, staging_dir, self.build_env, use_chroot, {})
         return staging_area
 
     def remove_staging_area(self, staging_area):
@@ -328,7 +339,7 @@ class BuildCommand(object):
                                 filename=filename)
                 staging_area.install_artifact(f)
 
-    def install_chunk_artifacts(self, staging_area, artifacts, parent_art):
+    def install_dependencies(self, staging_area, artifacts, target_artifact):
         '''Install chunk artifacts into staging area.
 
         We only ever care about chunk artifacts as build dependencies,
@@ -343,12 +354,15 @@ class BuildCommand(object):
             if artifact.source.morphology['kind'] != 'chunk':
                 continue
             self.app.status(msg='[%(name)s] Installing chunk %(chunk_name)s',
-                            name=parent_art.name,
+                            name=target_artifact.name,
                             chunk_name=artifact.name)
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
 
-    def build_and_cache(self, staging_area, artifact):
+        if target_artifact.source.build_mode == 'staging':
+            morphlib.builder2.ldconfig(self.app.runcmd, staging_area.dirname)
+
+    def build_and_cache(self, staging_area, artifact, setup_mounts):
         '''Build an artifact and put it into the local artifact cache.'''
 
         self.app.status(msg='Starting actual build: %(name)s',
@@ -356,5 +370,5 @@ class BuildCommand(object):
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
-            self.app.settings['max-jobs'], True)
+            self.app.settings['max-jobs'], setup_mounts)
         return builder.build_and_cache(artifact)

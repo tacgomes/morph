@@ -95,6 +95,7 @@ cat <<EOF > hello-stratum.morph
             "name": "hello",
             "repo": "test:chunk-repo",
             "ref": "farrokh",
+            "build-mode": "test",
             "build-depends": []
         }
     ]

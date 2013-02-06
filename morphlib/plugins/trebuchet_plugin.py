@@ -46,7 +46,8 @@ class TrebuchetPlugin(cliapp.Plugin):
         repo_name2, ref2, filename2 = args[4:7]
 
         app = self.app
-        build_env = morphlib.buildenvironment.BuildEnvironment(app.settings)
+        build_env = morphlib.buildenvironment.BuildEnvironment(
+            app.settings, morphlib.util.target(self.app.runcmd))
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
         lac, rac = morphlib.util.new_artifact_caches(app.settings)
         lrc, rrc = morphlib.util.new_repo_caches(app)

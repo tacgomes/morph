@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -219,6 +219,9 @@ class ArtifactResolver(object):
 
             for other_stratum in strata:
                 chunk_artifact.add_dependency(other_stratum)
+
+            # Resolve now to avoid a search for the parent morphology later
+            chunk_source.build_mode = info['build-mode']
 
             build_depends = info.get('build-depends', None)
 

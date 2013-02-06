@@ -84,6 +84,7 @@ cat <<EOF > link-stratum.morph
             "name": "links",
             "repo": "test:chunk-repo",
             "ref": "tarball-links",
+            "build-mode": "test",
             "build-depends": []
         }
     ]

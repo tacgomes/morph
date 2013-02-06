@@ -100,7 +100,8 @@ cat <<EOF > hello-stratum.morph
             "name": "hello",
             "repo": "test:chunk-repo",
             "ref": "farrokh",
-            "build-depends": []
+            "build-depends": [],
+            "build-mode": "test"
         }
     ]
 }
@@ -140,7 +141,8 @@ cat <<EOF > linux-stratum.morph
             "name": "linux",
             "repo": "test:kernel-repo",
             "ref": "master",
-            "build-depends": []
+            "build-depends": [],
+            "build-mode": "test"
         }
     ]
 }

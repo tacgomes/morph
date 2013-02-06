@@ -110,6 +110,7 @@ chunks:
     - name: hello
       repo: test:chunk-repo
       ref: farrokh
+      build-mode: test
       build-depends: []
 EOF
 git add hello-stratum.morph
@@ -125,6 +126,7 @@ chunks:
     - name: tools
       repo: test:tools-repo
       ref: master
+      build-mode: test
       build-depends: []
 EOF
 git add tools-stratum.morph
@@ -153,6 +155,7 @@ chunks:
     - name: linux
       repo: test:kernel-repo
       ref: master
+      build-mode: test
       build-depends: []
 EOF
 git add linux-stratum.morph
