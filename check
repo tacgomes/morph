@@ -2,7 +2,7 @@
 #
 # Run test suite for morph.
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,9 +23,16 @@ python setup.py clean check
 cmdtest tests
 cmdtest tests.branching
 cmdtest tests.merging
-if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null
+if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
+    python -c "
+import morphlib, sys
+if not morphlib.got_yaml:
+    sys.exit(1)
+" > /dev/null 2>&1
 then
     cmdtest tests.as-root
+else
+    echo "NOT RUNNING tests.as-root"
 fi
 
 if [ -d .git ];

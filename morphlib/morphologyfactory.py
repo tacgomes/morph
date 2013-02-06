@@ -13,7 +13,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import yaml
 
 import morphlib
 import cliapp
@@ -83,7 +82,7 @@ class MorphologyFactory(object):
 
         try:
             morphology = morphlib.morph2.Morphology(text)
-        except yaml.YAMLError as e:
+        except morphlib.YAMLError as e: # pragma: no cover
             raise morphlib.Error("Error parsing %s: %s" %
                                  (filename, str(e)))
 
