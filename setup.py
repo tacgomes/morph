@@ -143,6 +143,7 @@ FIXME
       package_data={
           'morphlib': [
               'plugins/*_plugin.py',
+              'exts/*',
               'version',
               'commit',
               'tree',
