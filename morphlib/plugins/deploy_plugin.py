@@ -47,11 +47,11 @@ class DeployPlugin(cliapp.Plugin):
         pass
 
     def deploy(self, args):
-        '''Build a system from the current system branch'''
+        '''Deploy a built system image.'''
 
         if len(args) < 3:
-            raise cliapp.AppException('morph build expects exactly one '
-                                      'parameter: the system to build')
+            raise cliapp.AppException(
+                'Too few arguments to deploy command (see help)')
 
         deployment_type = args[0]
         system_name = args[1]
