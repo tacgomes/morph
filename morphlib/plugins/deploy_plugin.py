@@ -137,17 +137,15 @@ class DeployPlugin(cliapp.Plugin):
 
         # Run configuration extensions.
         self.app.status(msg='Configure system')
-        m = artifact.source.morphology
-        if 'configuration-extensions' in m:
-            names = m['configuration-extensions']
-            for name in names:
-                self._run_extension(
-                    branch_dir,
-                    build_ref,
-                    name,
-                    '.configure',
-                    [system_tree],
-                    env)
+        names = artifact.source.morphology['configuration-extensions']
+        for name in names:
+            self._run_extension(
+                branch_dir,
+                build_ref,
+                name,
+                '.configure',
+                [system_tree],
+                env)
         
         # Run write extension.
         self.app.status(msg='Writing to device')
