@@ -174,8 +174,10 @@ class DeployPlugin(cliapp.Plugin):
         
         '''
         
+        # Look for extension in the system morphology's repository.
         ext = self._cat_file(repo_dir, ref, name + kind)
         if ext is None:
+            # Not found: look for it in the Morph code.
             code_dir = os.path.dirname(morphlib.__file__)
             ext_filename = os.path.join(code_dir, 'exts', name + kind)
             if not os.path.exists(ext_filename):
@@ -183,6 +185,7 @@ class DeployPlugin(cliapp.Plugin):
                     'Could not find extension %s%s' % (name, kind))
             delete_ext = False
         else:
+            # Found it in the system morphology's repository.
             fd, ext_filename = tempfile.mkstemp()
             os.write(fd, ext)
             os.close(fd)
