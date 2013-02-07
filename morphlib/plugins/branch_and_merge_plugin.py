@@ -361,7 +361,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             
         known = required[kind] + also_known[kind]
         for field in morphology.keys():
-            if field not in known:
+            if field not in known and not field.startswith('_orig_'):
                 msg = 'Unknown field "%s" in %s' % (field, basename)
                 logging.warning(msg)
                 self.app.status(msg=msg)
@@ -378,18 +378,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              (repo_dir, error))
 
     @staticmethod
-    def save_morphology(repo_dir, name, morphology):
+    def update_morphology(repo_dir, name, morphology, output_fd=None):
         if not name.endswith('.morph'):
             name = '%s.morph' % name
-        if os.path.isabs(name):
-            filename = name
-        else:
-            filename = os.path.join(repo_dir, name)
         filename = os.path.join(repo_dir, '%s' % name)
-        with morphlib.savefile.SaveFile(filename, 'w') as f:
-            morphology.write_to_file(f)
+        morphology.update_file(filename, output_fd=output_fd)
 
-        if name != morphology['name']:
+        if name != morphology['name'] + '.morph':
             logging.warning('%s: morphology "name" should match filename' %
                             filename)
 
@@ -657,7 +652,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 # Bring the morphology forward from its ref to the current HEAD
                 repo = self.lrc.get_repo(root_repo)
                 m = repo.load_morphology(spec['ref'], spec['morph'])
-                self.save_morphology(root_repo_dir, spec['morph'], m)
+                self.update_morphology(root_repo_dir, spec['morph'], m)
                 self.log_change(spec['repo'],
                     '"%s" copied from "%s" to "%s"' %
                     (spec['morph'], spec['ref'], branch))
@@ -731,8 +726,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                          stratum_spec['morph']))
             # Correct the System Morphology's reference
             stratum_spec['ref'] = branch
-            self.save_morphology(stratum_repo_dir, stratum_spec['morph'],
-                                 stratum_morphology)
+            self.update_morphology(stratum_repo_dir, stratum_spec['morph'],
+                                   stratum_morphology)
             self.log_change(root_repo,
                 '"%s" now includes "%s" from "%s"' %
                 (system_name, stratum_name, branch))
@@ -767,14 +762,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                         # Update the System morphology to use
                         # the modified version of the Stratum
                         stratum_spec['ref'] = branch
-                        self.save_morphology(stratum_repo_dir,
-                                             stratum_spec['morph'],
-                                             stratum_morphology)
+                        self.update_morphology(stratum_repo_dir,
+                                               stratum_spec['morph'],
+                                               stratum_morphology)
                         self.log_change(root_repo,
                             '"%s" now includes "%s" from "%s"' %
                             (system_name, stratum_name, branch))
 
-        self.save_morphology(root_repo_dir, system_name, system_morphology)
+        self.update_morphology(root_repo_dir, system_name, system_morphology)
 
         self.print_changelog('The following changes were made but have not '
                              'been committed')
@@ -921,7 +916,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 else:
                     strata[key] = stratum_info['ref']
                     stratum_info['ref'] = branch
-            self.save_morphology(root_repo_dir, name, morphology)
+            self.update_morphology(root_repo_dir, name, morphology)
 
         for (repo, morph), ref in strata.iteritems():
             repo_dir = self.make_available(
@@ -939,7 +934,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                         update=not self.app.settings['no-git-update'])
                     chunk_info['unpetrify-ref'] = chunk_info['ref']
                     chunk_info['ref'] = commit_sha1
-            self.save_morphology(repo_dir, morph, stratum)
+            self.update_morphology(repo_dir, morph, stratum)
 
         self.print_changelog('The following changes were made but have not '
                              'been committed')
@@ -978,9 +973,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     if 'unpetrify-ref' in chunk_info:
                         chunk_info['ref'] = chunk_info['unpetrify-ref']
                         del chunk_info['unpetrify-ref']
-                self.save_morphology(repo_dir, stratum_info['morph'], stratum)
+                self.update_morphology(repo_dir, stratum_info['morph'],
+                                       stratum)
 
-            self.save_morphology(root_repo_dir, name, morphology)
+            self.update_morphology(root_repo_dir, name, morphology)
 
         self.print_changelog('The following changes were made but have not '
                              'been committed')
@@ -1149,27 +1145,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Write the petrified morphology to a temporary file in the
         # branch root repository for inclusion in the tag commit.
-        handle, tmpfile = tempfile.mkstemp(suffix='.morph')
-        self.save_morphology(branch_root_dir, tmpfile, morphology)
+        with tempfile.NamedTemporaryFile(suffix='.morph') as f:
+            self.update_morphology(
+                    repo_dir, name, morphology, output_fd=f.file)
 
-        # Hash the petrified morphology and add it to the index
-        # for the tag commit.
-        sha1 = self.app.runcmd(
-                ['git', 'hash-object', '-t', 'blob', '-w', tmpfile],
-                cwd=branch_root_dir, env=env)
-        self.app.runcmd(
-                ['git', 'update-index', '--add', '--cacheinfo',
-                 '100644', sha1, '%s.morph' % name],
-                cwd=branch_root_dir, env=env)
+            # Hash the petrified morphology and add it to the index
+            # for the tag commit.
+            sha1 = self.app.runcmd(
+                    ['git', 'hash-object', '-t', 'blob', '-w', f.name],
+                    cwd=branch_root_dir, env=env)
+            self.app.runcmd(
+                    ['git', 'update-index', '--add', '--cacheinfo',
+                     '100644', sha1, '%s.morph' % name],
+                    cwd=branch_root_dir, env=env)
 
-        # Update the working tree if requested. This can be done with
-        # git-checkout-index, but we still have the file, so use that
-        if update_working_tree:
-            shutil.copy(tmpfile,
-                        os.path.join(branch_root_dir, '%s.morph' % name))
-
-        # Delete the temporary file again.
-        os.remove(tmpfile)
+            # Update the working tree if requested. This can be done with
+            # git-checkout-index, but we still have the file, so use that
+            if update_working_tree:
+                shutil.copy(f.name,
+                            os.path.join(branch_root_dir, '%s.morph' % name))
 
     def resolve_info(self, info, resolved_refs):
         '''Takes a morphology info and resolves its ref with cache support.'''
@@ -1414,7 +1408,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 ci['ref'] = old_ci['ref']
                 merge_chunk(path, old_ci, ci)
             if changed:
-                self.save_morphology(to_repo_dir, si['morph'], to_morph)
+                self.update_morphology(to_repo_dir, si['morph'], to_morph)
                 self.app.runcmd(['git', 'add', si['morph'] + '.morph'],
                                 cwd=to_repo_dir)
 
@@ -1447,7 +1441,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 si['ref'] = old_si['ref']
                 merge_stratum(name, old_si, si)
             if changed:
-                self.save_morphology(to_root_dir, name, to_morph)
+                self.update_morphology(to_root_dir, name, to_morph)
                 self.app.runcmd(['git', 'add', f], cwd=to_root_dir)
 
         merged_repos = {}
@@ -1684,20 +1678,18 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 # Inject temporary refs in the right places in each morphology.
                 morphology = self.load_morphology(repo_dir, filename)
                 self.inject_build_refs(morphology, build_repos, will_push)
-                handle, tmpfile = tempfile.mkstemp(suffix='.morph')
-                self.save_morphology(repo_dir, tmpfile, morphology)
+                with tempfile.NamedTemporaryFile(suffix='.morph') as f:
+                    self.update_morphology(
+                            repo_dir, filename, morphology, output_fd=f.file)
 
-                morphology_sha1 = self.app.runcmd(
-                        ['git', 'hash-object', '-t', 'blob', '-w', tmpfile],
-                        cwd=repo_dir, env=env)
+                    morphology_sha1 = self.app.runcmd(
+                            ['git', 'hash-object', '-t', 'blob', '-w', f.name],
+                            cwd=repo_dir, env=env)
 
-                self.app.runcmd(
-                        ['git', 'update-index', '--cacheinfo',
-                         '100644', morphology_sha1, '%s.morph' % filename],
-                        cwd=repo_dir, env=env)
-
-                # Remove the temporary morphology file.
-                os.remove(tmpfile)
+                    self.app.runcmd(
+                            ['git', 'update-index', '--cacheinfo',
+                             '100644', morphology_sha1, '%s.morph' % filename],
+                            cwd=repo_dir, env=env)
 
             # Create a commit message including the build UUID. This allows us
             # to collect all commits of a build across repositories and thereby
