@@ -29,10 +29,10 @@ class FakeRemoteRepoCache(object):
     def cat_file(self, reponame, sha1, filename):
         if filename.endswith('.morph'):
             return '''{
-                 "name": "remote-foo",
+                 "name": "%s",
                  "kind": "chunk",
                  "build-system": "bar"
-             }'''
+             }''' % filename[:-len('.morph')]
         return 'text'
 
     def ls_tree(self, reponame, sha1):
@@ -42,30 +42,34 @@ class FakeLocalRepo(object):
 
     morphologies = {
         'chunk.morph': '''{
-                "name": "local-foo",
+                "name": "chunk",
                 "kind": "chunk",
                 "build-system": "bar"
             }''',
         'chunk-split.morph': '''{
-                "name": "local-foo",
+                "name": "chunk-split",
                 "kind": "chunk",
                 "build-system": "bar",
                 "chunks": {
-                    "local-foo-runtime": [],
-                    "local-foo-devel": []
+                    "chunk-split-runtime": [],
+                    "chunk-split-devel": []
                 }
             }''',
         'stratum.morph': '''{
-                "name": "foo-stratum",
+                "name": "stratum",
                 "kind": "stratum"
             }''',
         'system.morph': '''{
-                "name": "foo-system",
+                "name": "system",
                 "kind": "system",
                 "system-kind": "%(system_kind)s",
                 "arch": "%(arch)s"
             }''',
         'parse-error.morph': '''{ "name"''',
+        'name-mismatch.morph': '''{
+                "name": "fred",
+                "kind": "stratum"
+            }''',
     }
 
     def __init__(self):
@@ -81,10 +85,10 @@ class FakeLocalRepo(object):
             return self.morphologies[filename] % values
         elif filename.endswith('.morph'):
             return '''{
-                "name": "local-foo",
+                "name": "%s",
                 "kind": "chunk",
                 "build-system": "bar"
-            }'''
+            }''' % filename[:-len('.morph')]
         return 'text'
 
     def ls_tree(self, sha1):
@@ -118,7 +122,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         raise CatFileError('reponame', 'ref', 'filename')
 
     def localmorph(self, *args):
-        return ['foo.morph']
+        return ['chunk.morph']
 
     def nolocalmorph(self, *args):
         if args[-1].endswith('.morph'):
@@ -129,7 +133,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         return ['configure.in']
 
     def remotemorph(self, *args):
-        return ['foo.morph']
+        return ['remote-chunk.morph']
 
     def noremotemorph(self, *args):
         if args[-1].endswith('.morph'):
@@ -142,21 +146,21 @@ class MorphologyFactoryTests(unittest.TestCase):
     def test_gets_morph_from_local_repo(self):
         self.lr.ls_tree = self.localmorph
         morph = self.mf.get_morphology('reponame', 'sha1',
-                                       'foo.morph')
-        self.assertEqual('local-foo', morph['name'])
+                                       'chunk.morph')
+        self.assertEqual('chunk', morph['name'])
 
     def test_gets_morph_from_remote_repo(self):
         self.rrc.ls_tree = self.remotemorph
         self.lrc.has_repo = self.doesnothaverepo
         morph = self.mf.get_morphology('reponame', 'sha1',
-                                       'foo.morph')
-        self.assertEqual('remote-foo', morph['name'])
+                                       'remote-chunk.morph')
+        self.assertEqual('remote-chunk', morph['name'])
 
     def test_autodetects_local_morphology(self):
         self.lr.cat = self.nolocalmorph
         self.lr.ls_tree = self.autotoolsbuildsystem
         morph = self.mf.get_morphology('reponame', 'sha1',
-                                        'assumed-local.morph')
+                                       'assumed-local.morph')
         self.assertEqual('assumed-local', morph['name'])
 
     def test_autodetects_remote_morphology(self):
@@ -179,11 +183,15 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertRaises(AutodetectError, self.mf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
+    def test_raises_error_when_name_mismatches(self):
+        self.assertRaises(morphlib.Error, self.mf.get_morphology,
+                          'reponame', 'sha1', 'name-mismatch.morph')
+
     def test_looks_locally_with_no_remote(self):
         self.lr.ls_tree = self.localmorph
         morph = self.lmf.get_morphology('reponame', 'sha1',
-                                        'foo.morph')
-        self.assertEqual('local-foo', morph['name'])
+                                        'chunk.morph')
+        self.assertEqual('chunk', morph['name'])
 
     def test_autodetects_locally_with_no_remote(self):
         self.lr.cat = self.nolocalmorph
@@ -199,27 +207,27 @@ class MorphologyFactoryTests(unittest.TestCase):
 
     def test_sets_builds_artifacts_for_simple_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
-        self.assertEqual(morph.builds_artifacts, ['local-foo'])
+        self.assertEqual(morph.builds_artifacts, ['chunk'])
 
     def test_sets_builds_artifacts_for_split_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk-split.morph')
         self.assertEqual(morph.builds_artifacts,
-                         ['local-foo-runtime', 'local-foo-devel'])
+                         ['chunk-split-runtime', 'chunk-split-devel'])
 
     def test_sets_builds_artifacts_for_stratum(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
-        self.assertEqual(morph.builds_artifacts, ['foo-stratum'])
+        self.assertEqual(morph.builds_artifacts, ['stratum'])
 
     def test_sets_builds_artifacts_for_x86_64_system(self):
         self.lr.arch = 'x86_64'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
-        self.assertEqual(morph.builds_artifacts, ['foo-system-rootfs'])
+        self.assertEqual(morph.builds_artifacts, ['system-rootfs'])
 
     def test_sets_builds_artifacts_for_arm_system(self):
         self.lr.arch = 'armv7'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(sorted(morph.builds_artifacts),
-                         sorted(['foo-system-rootfs', 'foo-system-kernel']))
+                         sorted(['system-rootfs', 'system-kernel']))
 
     def test_sets_needs_staging_for_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
