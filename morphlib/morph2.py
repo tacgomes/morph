@@ -234,7 +234,7 @@ class Morphology(object):
                 result = live_dict[key]
         return result
 
-    def update_text(self, text, output_fd):
+    def update_text(self, text, output_fd, convert_to=None):
         '''Write out in-memory changes to loaded morphology text
 
         Similar in function to update_file().
@@ -242,11 +242,15 @@ class Morphology(object):
         '''
         original_dict, dumper = self._load_morphology_dict(text)
 
-        output_dict = self._apply_changes(self._dict, original_dict)
+        if convert_to == 'json': # pragma: no cover
+            dumper = self._dump_json
+        elif convert_to == 'yaml': # pragma: no cover
+            dumper = morphlib.yamlparse.dump
 
+        output_dict = self._apply_changes(self._dict, original_dict)
         dumper(output_dict, output_fd)
 
-    def update_file(self, filename, output_fd=None): # pragma: no cover
+    def update_file(self, filename, output_fd=None, **kws): # pragma: no cover
         '''Write out in-memory changes to on-disk morphology file
 
         This function reads the original morphology text from 'filename', so
@@ -258,4 +262,4 @@ class Morphology(object):
             text = f.read()
 
         with output_fd or morphlib.savefile.SaveFile(filename, 'w') as f:
-            self.update_text(text, f)
+            self.update_text(text, f, **kws)
