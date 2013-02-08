@@ -74,6 +74,10 @@ class Morphology(object):
         except ValueError as e:  # pragma: no cover
             self._dict = morphlib.yamlparse.load(text)
             self._dumper = morphlib.yamlparse.dump
+
+        if data is None:
+            raise morphlib.YAMLError("Morphology is empty")
+
         self._set_defaults()
         self._validate_children()
 

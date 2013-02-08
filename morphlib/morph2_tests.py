@@ -164,6 +164,11 @@ class MorphologyTests(unittest.TestCase):
 
     ## Validation tests
 
+    def test_morphology_must_not_be_empty(self):
+        # Causes crashes if not handled, because code expecting a dict gets
+        # None instead.
+        self.assertRaises(morphlib.YAMLError, Morphology, '')
+
     def test_makes_max_jobs_be_an_integer(self):
         m = Morphology('''
             {
