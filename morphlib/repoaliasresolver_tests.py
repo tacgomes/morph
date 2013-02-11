@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +15,14 @@
 
 
 import morphlib
+import logging
 import unittest
 
 
 class RepoAliasResolverTests(unittest.TestCase):
 
     def setUp(self):
+        logging.disable(logging.critical)
         self.aliases = [
             ('upstream='
                 'git://gitorious.org/baserock-morphs/%s#'
@@ -81,3 +83,49 @@ class RepoAliasResolverTests(unittest.TestCase):
             self.resolver.pull_url('append:bar'), 'git://append/bar')
         self.assertEqual(
             self.resolver.push_url('append:bar'), 'git@append/bar')
+
+    def test_ignores_malformed_aliases(self):
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver([
+            'malformed=git://git.malformed.url.org'
+        ])
+        self.assertEqual(resolver.pull_url('malformed:foo'), 'malformed:foo')
+        self.assertEqual(resolver.push_url('malformed:foo'), 'malformed:foo')
+
+    def test_gets_aliases_from_interpolated_patterns(self):
+        self.assertEqual(
+            self.resolver.aliases_from_url('git://gitorious.org/baserock/foo'),
+            ['baserock:foo'])
+        self.assertEqual(
+            self.resolver.aliases_from_url(
+                'git@gitorious.org:baserock/foo.git'),
+            ['baserock:foo'])
+        self.assertEqual(
+            self.resolver.aliases_from_url(
+                'git://gitorious.org/baserock-morphs/bar'),
+            ['upstream:bar'])
+        self.assertEqual(
+            self.resolver.aliases_from_url(
+                'git@gitorious.org:baserock-morphs/bar.git'),
+            ['upstream:bar'])
+
+    def test_gets_aliases_from_append_pattern(self):
+        self.assertEqual(
+            ['append:foo'], self.resolver.aliases_from_url('git://append/foo'))
+        self.assertEqual(
+            ['append:foo'], self.resolver.aliases_from_url('git@append/foo'))
+
+        self.assertEqual(
+            ['append:bar'], self.resolver.aliases_from_url('git://append/bar'))
+        self.assertEqual(
+            ['append:bar'], self.resolver.aliases_from_url('git@append/bar'))
+
+    def test_handles_multiple_possible_aliases(self):
+        resolver = morphlib.repoaliasresolver.RepoAliasResolver([
+            'trove=git://git.baserock.org/#ssh://git@git.baserock.org/',
+            'baserock=git://git.baserock.org/baserock/'
+                     '#ssh://git@git.baserock.org/baserock/',
+        ])
+        self.assertEqual(
+            ['baserock:baserock/morphs', 'trove:baserock/baserock/morphs'],
+            resolver.aliases_from_url(
+                'git://git.baserock.org/baserock/baserock/morphs'))

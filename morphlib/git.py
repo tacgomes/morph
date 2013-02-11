@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -256,8 +256,12 @@ def reset_workdir(runcmd, gitdir):
 
 def clone_into(runcmd, srcpath, targetpath, ref=None):
     '''Clones a repo in srcpath into targetpath, optionally directly at ref.'''
+    
     if ref is None:
         runcmd(['git', 'clone', srcpath, targetpath])
+    elif is_valid_sha1(ref):
+        runcmd(['git', 'clone', srcpath, targetpath])
+        runcmd(['git', 'checkout', ref], cwd=targetpath)
     else:
         runcmd(['git', 'clone', '-b', ref, srcpath, targetpath])
 

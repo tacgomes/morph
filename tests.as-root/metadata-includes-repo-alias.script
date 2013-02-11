@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Copyright (C) 2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+# All the metadata files in /baserock of a system contain the repository
+# alias they were built from.
+
+set -eu
+
+# Disable test on versions of Python before 2.7.
+. "$SRCDIR/scripts/python-check"
+
+. "$SRCDIR/scripts/fix-committer-info"
+
+# get git version info
+cd "$SRCDIR"
+
+tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
+    build-morphology test:morphs tarball hello-tarball)
+
+extracted="$DATADIR/extracted"
+mkdir -p "$extracted"
+tar -xf "$tar" -C "$extracted"
+cd "$extracted/baserock"
+
+# Check for test:morphs in System and Stratum
+#grep -q -F -e test:morphs hello-tarball.meta # tarball bug
+grep -q -F -e test:morphs hello-stratum.meta
+grep -q -F -e test:morphs linux-stratum.meta
+
+# Check for test:kernel-repo in linux
+grep -q -F -e test:kernel-repo linux.meta
+
+# Check for test:chunk-repo in hello
+grep -q -F -e test:chunk-repo hello.meta

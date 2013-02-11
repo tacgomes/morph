@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,10 +18,47 @@ import logging
 import re
 
 
+class RepoAlias(object):
+
+    def __init__(self, alias, prefix, pullpat, pushpat):
+        self.alias = alias
+        self.prefix = prefix
+        self.pullpat = pullpat
+        self.pushpat = pushpat
+
+    def _pattern_to_regex(self, pattern):
+        if '%s' in pattern:
+            return r'(?P<path>.+)'.join(map(re.escape, pattern.split('%s')))
+        else:
+            return re.escape(pattern) + r'(?P<path>.+)'
+
+    def match_url(self,  url):
+        '''Given a URL, return what its alias would be if it matches'''
+        for pat in (self.pullpat, self.pushpat):
+            m = re.match(self._pattern_to_regex(pat), url)
+            if m:
+                return '%s:%s' % (self.prefix, m.group('path'))
+        return None
+
 class RepoAliasResolver(object):
 
     def __init__(self, aliases):
-        self.aliases = aliases
+        self.aliases = {}
+
+        alias_pattern = (r'^(?P<prefix>[a-z0-9]+)'
+                         r'=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)$')
+        for alias in aliases:
+            logging.debug('expanding: alias="%s"' % alias)
+            m = re.match(alias_pattern, alias)
+            logging.debug('expanding: m=%s' % repr(m))
+            if not m:
+                logging.warning('Alias %s is malformed' % alias)
+                continue
+            prefix = m.group('prefix')
+            logging.debug('expanding: prefix group=%s' % prefix)
+            self.aliases[prefix] = RepoAlias(alias, prefix, m.group('pullpat'),
+                                             m.group('pushpat'))
+
 
     def pull_url(self, reponame):
         '''Expand a possibly shortened repo name to a pull url.'''
@@ -30,6 +67,17 @@ class RepoAliasResolver(object):
     def push_url(self, reponame):
         '''Expand a possibly shortened repo name to a push url.'''
         return self._expand_reponame(reponame, 'pushpat')
+
+    def aliases_from_url(self, url):
+        '''Find aliases the url could have expanded from.
+
+           Returns an ascii-betically sorted list.
+        '''
+        potential_matches = (repo_alias.match_url(url)
+                             for repo_alias in self.aliases.itervalues())
+        known_aliases = (url_alias for url_alias in potential_matches
+                         if url_alias is not None)
+        return sorted(known_aliases)
 
     def _expand_reponame(self, reponame, patname):
         logging.debug('expanding: reponame=%s' % reponame)
@@ -44,22 +92,15 @@ class RepoAliasResolver(object):
             logging.debug('expanding: no prefix')
             return reponame
 
-        pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)$'
-        for alias in self.aliases:
-            logging.debug('expanding: alias="%s"' % alias)
-            m = re.match(pat, alias)
-            logging.debug('expanding: m=%s' % repr(m))
-            if m:
-                logging.debug('expanding: prefix group=%s' % m.group('prefix'))
-            if m and m.group('prefix') == prefix:
-                pullpat = m.group(patname)
-                logging.debug('expanding: pullpat=%s' % pullpat)
-                return self._apply_url_pattern(pullpat, suffix)
+        if prefix not in self.aliases:
+            # Unknown prefix. Which means it may be a real URL instead.
+            # Let the caller deal with it.
+            logging.debug('expanding: unknown prefix')
+            return reponame
 
-        # Unknown prefix. Which means it may be a real URL instead.
-        # Let the caller deal with it.
-        logging.debug('expanding: unknown prefix')
-        return reponame
+        pat = getattr(self.aliases[prefix], patname)
+        return self._apply_url_pattern(pat, suffix)
+
 
     def _split_reponame(self, reponame):
         '''Split reponame into prefix and suffix.
