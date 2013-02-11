@@ -15,12 +15,14 @@
 
 
 import morphlib
+import logging
 import unittest
 
 
 class RepoAliasResolverTests(unittest.TestCase):
 
     def setUp(self):
+        logging.disable(logging.critical)
         self.aliases = [
             ('upstream='
                 'git://gitorious.org/baserock-morphs/%s#'
