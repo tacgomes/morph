@@ -23,7 +23,7 @@ if morphlib.got_yaml: # pragma: no cover
 
 if morphlib.got_yaml: # pragma: no cover
 
-    class OrderedDictYAMLLoader(yaml.Loader):
+    class OrderedDictYAMLLoader(yaml.SafeLoader):
         """A YAML loader that loads mappings into ordered dictionaries.
 
        When YAML is loaded with this Loader, it loads mappings as ordered
@@ -35,7 +35,7 @@ if morphlib.got_yaml: # pragma: no cover
         """
 
         def __init__(self, *args, **kwargs):
-            yaml.Loader.__init__(self, *args, **kwargs)
+            yaml.SafeLoader.__init__(self, *args, **kwargs)
 
             # When YAML encounters a mapping (which YAML identifies with
             # the given tag), it will use construct_yaml_map to read it as
@@ -72,7 +72,7 @@ if morphlib.got_yaml: # pragma: no cover
                 mapping[key] = value
             return mapping
 
-    class OrderedDictYAMLDumper(yaml.Dumper):
+    class OrderedDictYAMLDumper(yaml.SafeDumper):
         """A YAML dumper that will dump OrderedDicts as mappings.
 
        When YAML is dumped with this Dumper, it dumps OrderedDicts as
@@ -85,7 +85,7 @@ if morphlib.got_yaml: # pragma: no cover
         """
 
         def __init__(self, *args, **kwargs):
-            yaml.Dumper.__init__(self, *args, **kwargs)
+            yaml.SafeDumper.__init__(self, *args, **kwargs)
 
             # When YAML sees an OrderedDict, use represent_ordered_dict to
             # dump it
