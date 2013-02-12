@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright (C) 2013  Codethink Limited
 #
@@ -22,7 +22,14 @@
 set -eu
 
 
-. "$SRCDIR/tests.as-root/setup-build"
+# Disable if Python is 2.6.
+if python --version 2>&1 | grep ' 2\.6\.' > /dev/null
+then
+    exit 0
+fi
+
+
+. "$SRCDIR/tests.deploy/setup-build"
 cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/test-morph" build linux-system
 "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
