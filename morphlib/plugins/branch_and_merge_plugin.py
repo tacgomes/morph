@@ -331,6 +331,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'description',
                 'disk-size',
                 '_disk-size',
+                'configuration-extensions',
             ],
             'stratum': [
                 'kind',

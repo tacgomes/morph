@@ -17,5 +17,7 @@ morphlib/plugins/branch_and_merge_plugin.py
 morphlib/buildcommand.py
 morphlib/plugins/build_plugin.py
 morphlib/gitversion.py
-
 morphlib/plugins/expand_repo_plugin.py
+morphlib/plugins/deploy_plugin.py
+morphlib/plugins/__init__.py
+morphlib/writeexts.py
