@@ -79,6 +79,22 @@ git commit --quiet -m "add a hello world program and morph"
 git checkout --quiet master
 
 
+# Create tools repository, so there is an extra layer of build-depends
+toolsrepo="$DATADIR/tools-repo"
+mkdir -p "$toolsrepo"
+cd "$toolsrepo"
+git init --quiet
+cat <<'EOF' >tools.morph
+name: tools
+kind: chunk
+build-commands:
+    - echo 'echo dummy strace' >strace
+install-commands:
+    - mkdir -p "$DESTDIR/bin"
+    - install strace "$DESTDIR/bin/strace"
+EOF
+git add tools.morph
+git commit --quiet -m "add morphology"
 
 # Create morph repository.
 
@@ -97,6 +113,21 @@ chunks:
       build-depends: []
 EOF
 git add hello-stratum.morph
+
+cat <<EOF > tools-stratum.morph
+name: tools-stratum
+kind: stratum
+build-depends:
+    - morph: linux-stratum
+      repo: test:morphs
+      ref: master
+chunks:
+    - name: tools
+      repo: test:tools-repo
+      ref: master
+      build-depends: []
+EOF
+git add tools-stratum.morph
 
 cat <<EOF > hello-system.morph
 name: hello-system
@@ -137,6 +168,9 @@ strata:
       repo: test:morphs
       ref: master
     - morph: linux-stratum
+      repo: test:morphs
+      ref: master
+    - morph: tools-stratum
       repo: test:morphs
       ref: master
 EOF

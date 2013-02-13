@@ -695,51 +695,84 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Test that the specified stratum exists in the system
         self.get_edit_info(system_name, system_morphology, stratum_name)
 
-        for stratum_spec in system_morphology['strata']:
+        all_strata = system_morphology['strata']
+        stratum_refs_to_correct = set()
+
+        # Petrify the chunk
+        for stratum_spec in (s for s in all_strata
+                             if s['morph'] == stratum_name):
             stratum_repo_dir = self.make_available(
                 stratum_spec, branch, branch_dir, root_repo, root_repo_dir)
             stratum_morphology = self.load_morphology(
                 stratum_repo_dir, stratum_spec['morph'])
-            changed = False
 
-            if stratum_spec['morph'] == stratum_name:
-                if chunk_name is not None:
-                    # Change the stratum's ref to the chunk
-                    chunk_spec = self.get_edit_info(
-                        stratum_name, stratum_morphology, chunk_name,
-                        collection='chunks')
+            if chunk_name is not None:
+                # Change the stratum's ref to the chunk
+                chunk_spec = self.get_edit_info(
+                    stratum_name, stratum_morphology, chunk_name,
+                    collection='chunks')
 
-                    if 'unpetrify-ref' in chunk_spec:
-                        chunk_spec['ref'] = chunk_spec['unpetrify-ref']
-                        del chunk_spec['unpetrify-ref']
+                if 'unpetrify-ref' in chunk_spec:
+                    chunk_spec['ref'] = chunk_spec['unpetrify-ref']
+                    del chunk_spec['unpetrify-ref']
 
-                    self.make_available(
-                        chunk_spec, branch, branch_dir, root_repo,
-                        root_repo_dir)
+                self.make_available(
+                    chunk_spec, branch, branch_dir, root_repo,
+                    root_repo_dir)
 
-                    if chunk_spec['ref'] != branch:
-                        chunk_spec['ref'] = branch
+                if chunk_spec['ref'] != branch:
+                    chunk_spec['ref'] = branch
 
-                    self.log_change(stratum_spec['repo'],
-                        '"%s" now includes "%s" from "%s"' %
-                        (stratum_name, chunk_name, branch))
-                changed = True
-            else:
-                # Update build-depends in other strata that point to this one
-                if stratum_morphology['build-depends'] is not None:
+                self.log_change(stratum_spec['repo'],
+                    '"%s" now includes "%s" from "%s"' %
+                    (stratum_name, chunk_name, branch))
+            stratum_refs_to_correct.add((stratum_spec['repo'],
+                                         stratum_spec['ref'],
+                                         stratum_spec['morph']))
+            # Correct the System Morphology's reference
+            stratum_spec['ref'] = branch
+            self.save_morphology(stratum_repo_dir, stratum_spec['morph'],
+                                 stratum_morphology)
+            self.log_change(root_repo,
+                '"%s" now includes "%s" from "%s"' %
+                (system_name, stratum_name, branch))
+
+        # Correct all references to altered strata
+        while stratum_refs_to_correct:
+            repo, ref, morph = stratum_refs_to_correct.pop()
+            spec = {"repo": repo, "ref": ref, "morph": morph}
+            for stratum_spec in all_strata:
+                changed = False
+                if repo == root_repo:
+                    stratum_repo_dir = root_repo_dir
+                else:
+                    stratum_repo_dir = self.checkout_repository(
+                        branch_dir, stratum_spec['repo'],
+                        branch, stratum_spec['ref'])
+                stratum_morphology = self.load_morphology(
+                    stratum_repo_dir, stratum_spec['morph'])
+                if ('build-depends' in stratum_morphology
+                    and stratum_morphology['build-depends'] is not None):
                     for bd_spec in stratum_morphology['build-depends']:
-                        if bd_spec['morph'] == stratum_name:
+                        bd_triplet = (bd_spec['repo'],
+                                      bd_spec['ref'],
+                                      bd_spec['morph'])
+                        if (bd_triplet == (repo, ref, morph)):
                             bd_spec['ref'] = branch
                             changed = True
-                            break
-
-            if changed:
-                stratum_spec['ref'] = branch
-                self.save_morphology(stratum_repo_dir, stratum_spec['morph'],
-                                     stratum_morphology)
-                self.log_change(root_repo,
-                    '"%s" now includes "%s" from "%s"' %
-                    (system_name, stratum_name, branch))
+                    if changed:
+                        stratum_refs_to_correct.add((stratum_spec['repo'],
+                                                     stratum_spec['ref'],
+                                                     stratum_spec['morph']))
+                        # Update the System morphology to use
+                        # the modified version of the Stratum
+                        stratum_spec['ref'] = branch
+                        self.save_morphology(stratum_repo_dir,
+                                             stratum_spec['morph'],
+                                             stratum_morphology)
+                        self.log_change(root_repo,
+                            '"%s" now includes "%s" from "%s"' %
+                            (system_name, stratum_name, branch))
 
         self.save_morphology(root_repo_dir, system_name, system_morphology)
 

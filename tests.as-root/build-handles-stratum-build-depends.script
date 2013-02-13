@@ -25,8 +25,10 @@ cd "$DATADIR/workspace"
 
 cd test/stratum-build-depends/test:morphs
 
-# Both 'linux-system' and the build-depends field of 'linux-stratum' need to
-# be updated here. If they are not, the build command will fail.
+# 'linux-system' and the build-depends fields of 'linux-stratum' need to
+# be updated here. Any build-depends of any altered strata also need to
+# be altered, such as the 'tools-stratum' which depends on linux-stratum
+# If they are not updated, the build command will fail.
 "$SRCDIR/scripts/test-morph" edit linux-system hello-stratum
 
 # Likewise, this command must update build-depends or the 'repo' field will

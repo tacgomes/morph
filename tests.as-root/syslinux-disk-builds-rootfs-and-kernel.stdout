@@ -11,8 +11,11 @@
 ./factory-run/baserock/linux-stratum.meta
 ./factory-run/baserock/linux-system-rootfs.meta
 ./factory-run/baserock/linux.meta
+./factory-run/baserock/tools-stratum.meta
+./factory-run/baserock/tools.meta
 ./factory-run/bin
 ./factory-run/bin/hello
+./factory-run/bin/strace
 ./factory-run/boot
 ./factory-run/boot/System.map
 ./factory-run/boot/vmlinuz
@@ -26,8 +29,11 @@
 ./factory/baserock/linux-stratum.meta
 ./factory/baserock/linux-system-rootfs.meta
 ./factory/baserock/linux.meta
+./factory/baserock/tools-stratum.meta
+./factory/baserock/tools.meta
 ./factory/bin
 ./factory/bin/hello
+./factory/bin/strace
 ./factory/boot
 ./factory/boot/System.map
 ./factory/boot/vmlinuz
