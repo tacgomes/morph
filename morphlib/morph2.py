@@ -71,7 +71,7 @@ class Morphology(object):
         try:
             self._dict = self._load_json(text)
             self._dumper = self._dump_json
-        except Exception, e: # pragma: no cover
+        except ValueError as e:  # pragma: no cover
             self._dict = morphlib.yamlparse.load(text)
             self._dumper = morphlib.yamlparse.dump
         self._set_defaults()
