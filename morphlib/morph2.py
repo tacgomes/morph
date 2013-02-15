@@ -77,6 +77,8 @@ class Morphology(object):
 
         if data is None:
             raise morphlib.YAMLError("Morphology is empty")
+        if type(data) not in [dict, OrderedDict]:
+            raise morphlib.YAMLError("Morphology did not parse as a dict")
 
         self._set_defaults()
         self._validate_children()
