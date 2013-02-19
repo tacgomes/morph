@@ -32,10 +32,18 @@ class BuildSystem(object):
     '''
 
     def __init__(self):
+        self.pre_configure_commands = []
         self.configure_commands = []
+        self.post_configure_commands = []
+        self.pre_build_commands = []
         self.build_commands = []
+        self.post_build_commands = []
+        self.pre_test_commands = []
         self.test_commands = []
+        self.post_test_commands = []
+        self.pre_install_commands = []
         self.install_commands = []
+        self.post_install_commands = []
 
     def __getitem__(self, key):
         key = '_'.join(key.split('-'))
@@ -82,6 +90,7 @@ class DummyBuildSystem(BuildSystem):
     name = 'dummy'
 
     def __init__(self):
+        BuildSystem.__init__(self)
         self.configure_commands = ['echo dummy configure']
         self.build_commands = ['echo dummy build']
         self.test_commands = ['echo dummy test']
@@ -98,6 +107,7 @@ class AutotoolsBuildSystem(BuildSystem):
     name = 'autotools'
 
     def __init__(self):
+        BuildSystem.__init__(self)
         self.configure_commands = [
             'export NOCONFIGURE=1; ' +
             'if [ -e autogen ]; then ./autogen; ' +
@@ -134,6 +144,7 @@ class PythonDistutilsBuildSystem(BuildSystem):
     name = 'python-distutils'
 
     def __init__(self):
+        BuildSystem.__init__(self)
         self.configure_commands = [
         ]
         self.build_commands = [
@@ -160,6 +171,7 @@ class CPANBuildSystem(BuildSystem):
     name = 'cpan'
 
     def __init__(self):
+        BuildSystem.__init__(self)
         self.configure_commands = [
             'perl Makefile.PL INSTALLDIRS=perl '
             'INSTALLARCHLIB="$PREFIX/lib/perl" '
