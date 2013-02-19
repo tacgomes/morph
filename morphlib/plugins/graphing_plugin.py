@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012, 2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ class GraphingPlugin(cliapp.Plugin):
                                 '%(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
             builder = morphlib.buildcommand.BuildCommand(self.app)
-            order = builder.compute_build_order(repo_name, ref, filename)
+            artifact = builder.get_artifact_object(repo_name, ref, filename)
 
             basename, ext = os.path.splitext(filename)
             dot_filename = basename + '.gv'
@@ -53,17 +53,17 @@ class GraphingPlugin(cliapp.Plugin):
 
             with open(dot_filename, 'w') as f:
                 f.write('digraph "%s" {\n' % basename)
-                for i, group in enumerate(order.groups):
-                    for artifact in group:
-                        f.write(
-                            '  "%s" [shape=%s];\n' %
-                            (artifact.name,
-                             shape_name[artifact.source.morphology['kind']]))
-                        for dep in artifact.dependencies:
-                            if artifact.source.morphology['kind'] == 'stratum':
-                                if dep.dependents == [artifact]:
-                                    f.write(dep_fmt %
-                                            (artifact.name, dep.name))
-                            else:
-                                f.write(dep_fmt % (artifact.name, dep.name))
+                for a in artifact.walk():
+                    f.write(
+                        '  "%s" [shape=%s];\n' %
+                        (a.name,
+                         shape_name[a.source.morphology['kind']]))
+                    for dep in a.dependencies:
+                        if a.source.morphology['kind'] == 'stratum':
+                            if dep.dependents == [a]:
+                                f.write(dep_fmt %
+                                        (a.name, dep.name))
+                        else:
+                            f.write(dep_fmt % (a.name, dep.name))
                 f.write('}\n')
+

@@ -100,11 +100,10 @@ class DeployPlugin(cliapp.Plugin):
 
         # Run the build.
         build_ref = build_repos[branch_root]['build-ref']
-        order = build_command.compute_build_order(
+        artifact = build_command.get_artifact_object(
             build_branch_root,
             build_ref,
             system_name + '.morph')
-        artifact = order.groups[-1][-1]
 
         if push:
             self.other.delete_remote_build_refs(build_repos)

@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012, 2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,3 +63,24 @@ class Artifact(object):
 
     def __str__(self):  # pragma: no cover
         return '%s|%s' % (self.source, self.name)
+
+    def walk(self): # pragma: no cover
+        '''Return list of an artifact and its build dependencies.
+        
+        The artifacts are returned in depth-first order: an artifact
+        is returned only after all of its dependencies.
+        
+        '''
+        
+        done = set()
+        
+        def depth_first(a):
+            for dep in a.dependencies:
+                for ret in depth_first(dep):
+                    yield ret
+            if a not in done:
+                done.add(a)
+                yield a
+
+        return list(depth_first(self))
+
