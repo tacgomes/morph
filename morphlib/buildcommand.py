@@ -75,12 +75,6 @@ class BuildCommand(object):
     def get_artifact_object(self, repo_name, ref, filename):
         '''Create an Artifact object representing the given triplet.'''
         
-        order = self._compute_build_order(repo_name, ref, filename)
-        artifact = order.groups[-1][-1]
-        return artifact
-
-    def _compute_build_order(self, repo_name, ref, filename):
-        '''Compute build order for a triplet.'''
         self.app.status(msg='Figuring out the right build order')
 
         self.app.status(msg='Creating source pool', chatty=True)
@@ -103,9 +97,9 @@ class BuildCommand(object):
             artifact.cache_id = self.ckc.get_cache_id(artifact)
 
         self.app.status(msg='Computing build order', chatty=True)
-        order = morphlib.buildorder.BuildOrder(artifacts)
+        root_artifact = self._find_root_artifact(artifacts)
 
-        return order
+        return root_artifact
 
     def _validate_cross_morphology_references(self, srcpool):
         '''Perform validation across all morphologies involved in the build'''
@@ -164,6 +158,21 @@ class BuildCommand(object):
                          filename,
                          other.morphology['kind'],
                          wanted))
+
+    def _find_root_artifact(self, artifacts):
+        '''Find the root artifact among a set of artifacts in a DAG.
+        
+        There can be only one.
+        
+        '''
+
+        maybe = set(artifacts)
+        for a in artifacts:
+            for dep in a.dependencies:
+                if dep in maybe:
+                    maybe.remove(dep)
+        assert len(maybe) == 1
+        return maybe.pop()
 
     def build_in_order(self, artifact):
         '''Build everything specified in a build order.'''
