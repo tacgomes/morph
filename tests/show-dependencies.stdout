@@ -1,54 +1,4 @@
 dependency graph for test-repo|master|xfce-core:
-  test-repo|master|cairo|cairo
-  test-repo|master|dbus-glib|dbus-glib
-    -> test-repo|master|dbus|dbus
-    -> test-repo|master|glib|glib
-  test-repo|master|dbus|dbus
-  test-repo|master|exo|exo
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4util|libxfce4util
-  test-repo|master|fontconfig|fontconfig
-  test-repo|master|freetype|freetype
-  test-repo|master|garcon|garcon
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4util|libxfce4util
-  test-repo|master|gdk-pixbuf|gdk-pixbuf
-    -> test-repo|master|glib|glib
-  test-repo|master|glib|glib
-  test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|cairo|cairo
-    -> test-repo|master|dbus-glib|dbus-glib
-    -> test-repo|master|dbus|dbus
-    -> test-repo|master|fontconfig|fontconfig
-    -> test-repo|master|freetype|freetype
-    -> test-repo|master|gdk-pixbuf|gdk-pixbuf
-    -> test-repo|master|glib|glib
-    -> test-repo|master|gtk|gtk
-    -> test-repo|master|pango|pango
-  test-repo|master|gtk-xfce-engine|gtk-xfce-engine
-    -> test-repo|master|garcon|garcon
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4ui|libxfce4ui
-    -> test-repo|master|xfconf|xfconf
-  test-repo|master|gtk|gtk
-    -> test-repo|master|cairo|cairo
-    -> test-repo|master|gdk-pixbuf|gdk-pixbuf
-    -> test-repo|master|glib|glib
-    -> test-repo|master|pango|pango
-  test-repo|master|libxfce4ui|libxfce4ui
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|xfconf|xfconf
-  test-repo|master|libxfce4util|libxfce4util
-    -> test-repo|master|gtk-stack|gtk-stack
-  test-repo|master|pango|pango
-    -> test-repo|master|fontconfig|fontconfig
-    -> test-repo|master|freetype|freetype
-  test-repo|master|thunar|thunar
-    -> test-repo|master|exo|exo
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4ui|libxfce4ui
-  test-repo|master|tumbler|tumbler
-    -> test-repo|master|gtk-stack|gtk-stack
   test-repo|master|xfce-core|xfce-core
     -> test-repo|master|exo|exo
     -> test-repo|master|garcon|garcon
@@ -65,16 +15,24 @@ dependency graph for test-repo|master|xfce-core:
     -> test-repo|master|xfconf|xfconf
     -> test-repo|master|xfdesktop|xfdesktop
     -> test-repo|master|xfwm4|xfwm4
+  test-repo|master|gtk-xfce-engine|gtk-xfce-engine
+    -> test-repo|master|garcon|garcon
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4ui|libxfce4ui
+    -> test-repo|master|xfconf|xfconf
   test-repo|master|xfce4-appfinder|xfce4-appfinder
     -> test-repo|master|garcon|garcon
     -> test-repo|master|gtk-stack|gtk-stack
     -> test-repo|master|libxfce4ui|libxfce4ui
     -> test-repo|master|xfconf|xfconf
-  test-repo|master|xfce4-panel|xfce4-panel
-    -> test-repo|master|exo|exo
-    -> test-repo|master|garcon|garcon
+  test-repo|master|xfdesktop|xfdesktop
     -> test-repo|master|gtk-stack|gtk-stack
     -> test-repo|master|libxfce4ui|libxfce4ui
+    -> test-repo|master|xfconf|xfconf
+  test-repo|master|xfwm4|xfwm4
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4ui|libxfce4ui
+    -> test-repo|master|xfconf|xfconf
   test-repo|master|xfce4-session|xfce4-session
     -> test-repo|master|exo|exo
     -> test-repo|master|gtk-stack|gtk-stack
@@ -85,49 +43,56 @@ dependency graph for test-repo|master|xfce-core:
     -> test-repo|master|gtk-stack|gtk-stack
     -> test-repo|master|libxfce4ui|libxfce4ui
     -> test-repo|master|xfconf|xfconf
+  test-repo|master|xfce4-panel|xfce4-panel
+    -> test-repo|master|exo|exo
+    -> test-repo|master|garcon|garcon
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4ui|libxfce4ui
+  test-repo|master|tumbler|tumbler
+    -> test-repo|master|gtk-stack|gtk-stack
+  test-repo|master|thunar|thunar
+    -> test-repo|master|exo|exo
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4ui|libxfce4ui
+  test-repo|master|garcon|garcon
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4util|libxfce4util
+  test-repo|master|exo|exo
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|libxfce4util|libxfce4util
+  test-repo|master|libxfce4ui|libxfce4ui
+    -> test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|xfconf|xfconf
   test-repo|master|xfconf|xfconf
     -> test-repo|master|gtk-stack|gtk-stack
     -> test-repo|master|libxfce4util|libxfce4util
-  test-repo|master|xfdesktop|xfdesktop
+  test-repo|master|libxfce4util|libxfce4util
     -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4ui|libxfce4ui
-    -> test-repo|master|xfconf|xfconf
-  test-repo|master|xfwm4|xfwm4
-    -> test-repo|master|gtk-stack|gtk-stack
-    -> test-repo|master|libxfce4ui|libxfce4ui
-    -> test-repo|master|xfconf|xfconf
-build order for test-repo|master|xfce-core:
-  group:
-    test-repo|master|glib|glib
-    test-repo|master|freetype|freetype
-    test-repo|master|fontconfig|fontconfig
-  group:
-    test-repo|master|cairo|cairo
-    test-repo|master|gdk-pixbuf|gdk-pixbuf
-    test-repo|master|pango|pango
-    test-repo|master|dbus|dbus
-  group:
-    test-repo|master|gtk|gtk
-    test-repo|master|dbus-glib|dbus-glib
-  group:
-    test-repo|master|gtk-stack|gtk-stack
-  group:
-    test-repo|master|libxfce4util|libxfce4util
-  group:
-    test-repo|master|xfconf|xfconf
-  group:
-    test-repo|master|exo|exo
-    test-repo|master|libxfce4ui|libxfce4ui
-    test-repo|master|garcon|garcon
-  group:
-    test-repo|master|thunar|thunar
-    test-repo|master|tumbler|tumbler
-    test-repo|master|xfce4-panel|xfce4-panel
-    test-repo|master|xfce4-settings|xfce4-settings
-    test-repo|master|xfce4-session|xfce4-session
-    test-repo|master|xfwm4|xfwm4
-    test-repo|master|xfdesktop|xfdesktop
-    test-repo|master|xfce4-appfinder|xfce4-appfinder
-    test-repo|master|gtk-xfce-engine|gtk-xfce-engine
-  group:
-    test-repo|master|xfce-core|xfce-core
+  test-repo|master|gtk-stack|gtk-stack
+    -> test-repo|master|cairo|cairo
+    -> test-repo|master|dbus-glib|dbus-glib
+    -> test-repo|master|dbus|dbus
+    -> test-repo|master|fontconfig|fontconfig
+    -> test-repo|master|freetype|freetype
+    -> test-repo|master|gdk-pixbuf|gdk-pixbuf
+    -> test-repo|master|glib|glib
+    -> test-repo|master|gtk|gtk
+    -> test-repo|master|pango|pango
+  test-repo|master|dbus-glib|dbus-glib
+    -> test-repo|master|dbus|dbus
+    -> test-repo|master|glib|glib
+  test-repo|master|dbus|dbus
+  test-repo|master|gtk|gtk
+    -> test-repo|master|cairo|cairo
+    -> test-repo|master|gdk-pixbuf|gdk-pixbuf
+    -> test-repo|master|glib|glib
+    -> test-repo|master|pango|pango
+  test-repo|master|gdk-pixbuf|gdk-pixbuf
+    -> test-repo|master|glib|glib
+  test-repo|master|glib|glib
+  test-repo|master|pango|pango
+    -> test-repo|master|fontconfig|fontconfig
+    -> test-repo|master|freetype|freetype
+  test-repo|master|cairo|cairo
+  test-repo|master|fontconfig|fontconfig
+  test-repo|master|freetype|freetype

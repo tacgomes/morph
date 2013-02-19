@@ -48,8 +48,8 @@ class BuildCommand(object):
         for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            order = self.compute_build_order(repo_name, ref, filename)
-            self.build_in_order(order)
+            artifact = self.get_artifact_object(repo_name, ref, filename)
+            self.build_in_order(artifact)
 
         self.app.status(msg='Build ends successfully', chatty=True)
 
@@ -72,8 +72,9 @@ class BuildCommand(object):
     def new_repo_caches(self):
         return morphlib.util.new_repo_caches(self.app)
 
-    def compute_build_order(self, repo_name, ref, filename):
-        '''Compute build order for a triplet.'''
+    def get_artifact_object(self, repo_name, ref, filename):
+        '''Create an Artifact object representing the given triplet.'''
+        
         self.app.status(msg='Figuring out the right build order')
 
         self.app.status(msg='Creating source pool', chatty=True)
@@ -96,9 +97,9 @@ class BuildCommand(object):
             artifact.cache_id = self.ckc.get_cache_id(artifact)
 
         self.app.status(msg='Computing build order', chatty=True)
-        order = morphlib.buildorder.BuildOrder(artifacts)
+        root_artifact = self._find_root_artifact(artifacts)
 
-        return order
+        return root_artifact
 
     def _validate_cross_morphology_references(self, srcpool):
         '''Perform validation across all morphologies involved in the build'''
@@ -158,24 +159,30 @@ class BuildCommand(object):
                          other.morphology['kind'],
                          wanted))
 
-    def build_in_order(self, order):
+    def _find_root_artifact(self, artifacts):
+        '''Find the root artifact among a set of artifacts in a DAG.
+        
+        It would be nice if the ArtifactResolver would return its results in a
+        more useful order to save us from needing to do this -- the root object
+        is known already since that's the one the user asked us to build.
+        
+        '''
+
+        maybe = set(artifacts)
+        for a in artifacts:
+            for dep in a.dependencies:
+                if dep in maybe:
+                    maybe.remove(dep)
+        assert len(maybe) == 1
+        return maybe.pop()
+
+    def build_in_order(self, artifact):
         '''Build everything specified in a build order.'''
         self.app.status(msg='Building according to build ordering',
                         chatty=True)
-        for group in order.groups:
-            self.build_artifacts(group)
 
-    def build_artifacts(self, artifacts):
-        '''Build a set of artifact.
-
-        Typically, this would be a build group, but might be anything.
-        At this level of abstraction we don't care.
-
-        '''
-
-        self.app.status(msg='Building a set of artifacts', chatty=True)
-        for artifact in artifacts:
-            self.build_artifact(artifact)
+        for a in artifact.walk():
+            self.build_artifact(a)
 
     def build_artifact(self, artifact):
         '''Build one artifact.
@@ -287,7 +294,9 @@ class BuildCommand(object):
                 self.app.status(msg='Fetching to local cache: '
                                     'artifact %(name)s',
                                 name=artifact.name)
-                copy(self.rac.get(artifact), self.lac.put(artifact))
+                rac_file = self.rac.get(artifact)
+                lac_file = self.lac.put(artifact)
+                copy(rac_file, lac_file)
 
             if artifact.source.morphology.needs_artifact_metadata_cached:
                 if not self.lac.has_artifact_metadata(artifact, 'meta'):

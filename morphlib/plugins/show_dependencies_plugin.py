@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,27 +46,19 @@ class ShowDependenciesPlugin(cliapp.Plugin):
                 self.app.settings['cache-server'], repo_resolver)
         else:
             rrc = None
+            
+        build_command = morphlib.buildcommand.BuildCommand(self.app)
 
         # traverse the morphs to list all the sources
         for repo, ref, filename in self.app.itertriplets(args):
             morph = filename[:-len('.morph')]
-            pool = self.app.create_source_pool(
-                lrc, rrc, (repo, ref, filename))
-
-            resolver = morphlib.artifactresolver.ArtifactResolver()
-            artifacts = resolver.resolve_artifacts(pool)
-
             self.app.output.write('dependency graph for %s|%s|%s:\n' %
                                   (repo, ref, morph))
-            for artifact in sorted(artifacts, key=str):
+
+            artifact = build_command.get_artifact_object(repo, ref, filename)
+
+            for artifact in reversed(artifact.walk()):
                 self.app.output.write('  %s\n' % artifact)
                 for dependency in sorted(artifact.dependencies, key=str):
                     self.app.output.write('    -> %s\n' % dependency)
 
-            order = morphlib.buildorder.BuildOrder(artifacts)
-            self.app.output.write('build order for %s|%s|%s:\n' %
-                                  (repo, ref, morph))
-            for group in order.groups:
-                self.app.output.write('  group:\n')
-                for artifact in group:
-                    self.app.output.write('    %s\n' % artifact)

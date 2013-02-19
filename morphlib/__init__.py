@@ -48,7 +48,6 @@ import artifactresolver
 import bins
 import buildcommand
 import buildenvironment
-import buildorder
 import buildsystem
 import builder2
 import cachedir
