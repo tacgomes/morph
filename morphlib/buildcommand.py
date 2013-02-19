@@ -162,7 +162,9 @@ class BuildCommand(object):
     def _find_root_artifact(self, artifacts):
         '''Find the root artifact among a set of artifacts in a DAG.
         
-        There can be only one.
+        It would be nice if the ArtifactResolver would return its results in a
+        more useful order to save us from needing to do this -- the root object
+        is known already since that's the one the user asked us to build.
         
         '''
 
