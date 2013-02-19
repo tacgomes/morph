@@ -173,6 +173,9 @@ class Morph(cliapp.Application):
             raise morphlib.Error(
                 'System time is far in the past, please set your system clock')
 
+    def setup(self):
+        self.status_prefix = ''
+
     def process_args(self, args):
         self.check_time()
 
@@ -342,11 +345,14 @@ class Morph(cliapp.Application):
         * ``error`` should be true when it is an error message
 
         All other keywords are ignored unless embedded in ``msg``.
+        
+        The ``self.status_prefix`` string is prepended to the output.
+        It is set to the empty string by default.
 
         '''
 
         assert 'msg' in kwargs
-        text = kwargs['msg'] % kwargs
+        text = self.status_prefix + (kwargs['msg'] % kwargs)
 
         error = kwargs.get('error', False)
         chatty = kwargs.get('chatty', False)

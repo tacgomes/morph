@@ -51,7 +51,7 @@ class BuildCommand(object):
             artifact = self.get_artifact_object(repo_name, ref, filename)
             self.build_in_order(artifact)
 
-        self.app.status(msg='Build ends successfully', chatty=True)
+        self.app.status(msg='Build ends successfully')
 
     def new_build_env(self):
         '''Create a new BuildEnvironment instance.'''
@@ -181,8 +181,13 @@ class BuildCommand(object):
         self.app.status(msg='Building according to build ordering',
                         chatty=True)
 
-        for a in artifact.walk():
+        artifacts = artifact.walk()
+        old_prefix = self.app.status_prefix
+        for i, a in enumerate(artifacts):
+            self.app.status_prefix = (
+                old_prefix + '[Build %d/%d] ' % ((i+1), len(artifacts)))
             self.build_artifact(a)
+        self.app.status_prefix = old_prefix
 
     def build_artifact(self, artifact):
         '''Build one artifact.
