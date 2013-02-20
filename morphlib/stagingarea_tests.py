@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012,2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import cliapp
 import os
 import shutil
 import tarfile
@@ -31,14 +32,33 @@ class FakeSource(object):
         }
 
 
+class FakeApplication(object):
+
+    def __init__(self, cachedir, tempdir):
+        self.settings = {
+            'cachedir': cachedir,
+            'tempdir': tempdir,
+        }
+
+    def runcmd(self, *args, **kwargs):
+        return cliapp.runcmd(*args, **kwargs)
+
+    def runcmd_unchecked(self, *args, **kwargs):
+        return cliapp.runcmd_unchecked(*args, **kwargs)
+
+
 class StagingAreaTests(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
+        self.cachedir = os.path.join(self.tempdir, 'cachedir')
+        os.mkdir(self.cachedir)
+        os.mkdir(os.path.join(self.cachedir, 'artifacts'))
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
-        self.sa = morphlib.stagingarea.StagingArea(object(), self.staging,
-                                                   self.staging)
+        self.sa = morphlib.stagingarea.StagingArea(
+            FakeApplication(self.cachedir, self.tempdir),
+            self.staging, self.staging)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)

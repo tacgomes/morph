@@ -27,7 +27,6 @@ import traceback
 import subprocess
 import tempfile
 import gzip
-from urlparse import urlparse
 
 import cliapp
 
@@ -268,88 +267,31 @@ class ChunkBuilder(BuilderBase):
 
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
-            mounted = self.do_mounts()
+
+            builddir, destdir = \
+                self.staging_area.chroot_open(self.artifact.source,
+                                              self.setup_mounts)
             log_name = None
             try:
-                builddir = self.staging_area.builddir(self.artifact.source)
                 self.get_sources(builddir)
-                destdir = self.staging_area.destdir(self.artifact.source)
                 with self.local_artifact_cache.put_source_metadata(
                         self.artifact.source, self.artifact.cache_key,
                         'build-log') as log:
                     log_name = log.real_filename
                     self.run_commands(builddir, destdir, log)
             except:
-                self.do_unmounts(mounted)
+                self.staging_area.chroot_close()
                 if log_name:
                     with open(log_name) as f:
                         for line in f:
                             logging.error('OUTPUT FROM FAILED BUILD: %s' %
                                           line.rstrip('\n'))
                 raise
-            self.do_unmounts(mounted)
+            self.staging_area.chroot_close()
             built_artifacts = self.assemble_chunk_artifacts(destdir)
 
         self.save_build_times()
         return built_artifacts
-
-    to_mount = (
-        ('proc',    'proc',  'none'),
-        ('dev/shm', 'tmpfs', 'none'),
-    )
-
-    def mount_ccachedir(self): #pragma: no cover
-        ccache_dir = self.app.settings['compiler-cache-dir']
-        if not os.path.isdir(ccache_dir):
-            os.makedirs(ccache_dir)
-        # Get a path for the repo's ccache
-        ccache_url = self.artifact.source.repo.url
-        ccache_path = urlparse(ccache_url).path
-        ccache_repobase = os.path.basename(ccache_path)
-        if ':' in ccache_repobase: # the basename is a repo-alias
-            resolver = morphlib.repoaliasresolver.RepoAliasResolver(
-                self.app.settings['repo-alias'])
-            ccache_url = resolver.pull_url(ccache_repobase)
-            ccache_path = urlparse(ccache_url).path
-            ccache_repobase = os.path.basename(ccache_path)
-        if ccache_repobase.endswith('.git'):
-            ccache_repobase = ccache_repobase[:-len('.git')]
-
-        ccache_repodir = os.path.join(ccache_dir, ccache_repobase)
-        # Make sure that directory exists
-        if not os.path.isdir(ccache_repodir):
-            os.mkdir(ccache_repodir)
-        # Get the destination path
-        ccache_destdir= os.path.join(self.staging_area.tempdir,
-                                     'tmp', 'ccache')
-        # Make sure that the destination exists. We'll create /tmp if necessary
-        # to avoid breaking when faced with an empty staging area.
-        if not os.path.isdir(ccache_destdir):
-            os.makedirs(ccache_destdir)
-        # Mount it into the staging-area
-        self.app.runcmd(['mount', '--bind', ccache_repodir,
-                         ccache_destdir])
-        return ccache_destdir
-
-    def do_mounts(self):  # pragma: no cover
-        mounted = []
-        if not self.setup_mounts:
-            return mounted
-        for mount_point, mount_type, source in ChunkBuilder.to_mount:
-            logging.debug('Mounting %s in staging area' % mount_point)
-            path = os.path.join(self.staging_area.dirname, mount_point)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            self.app.runcmd(['mount', '-t', mount_type, source, path])
-            mounted.append(path)
-        if not self.app.settings['no-ccache']:
-            mounted.append(self.mount_ccachedir())
-        return mounted
-
-    def do_unmounts(self, mounted):  # pragma: no cover
-        for path in mounted:
-            logging.debug('Unmounting %s in staging area' % path)
-            morphlib.fsutils.unmount(self.app.runcmd, path)
 
     def get_sources(self, srcdir):  # pragma: no cover
         '''Get sources from git to a source directory, for building.'''
