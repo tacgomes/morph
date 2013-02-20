@@ -218,16 +218,10 @@ class MorphologyFactoryTests(unittest.TestCase):
         morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
         self.assertEqual(morph.builds_artifacts, ['stratum'])
 
-    def test_sets_builds_artifacts_for_x86_64_system(self):
+    def test_sets_build_artifacts_for_system(self):
         self.lr.arch = 'x86_64'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph.builds_artifacts, ['system-rootfs'])
-
-    def test_sets_builds_artifacts_for_arm_system(self):
-        self.lr.arch = 'armv7'
-        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
-        self.assertEqual(sorted(morph.builds_artifacts),
-                         sorted(['system-rootfs', 'system-kernel']))
 
     def test_sets_needs_staging_for_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
