@@ -30,6 +30,16 @@ cmdtest tests
 cmdtest tests.branching
 cmdtest tests.merging
 cmdtest tests.deploy
+
+# Building systems requires the 'filter' parameter of tarfile.TarFile.add():
+# this was introduced in Python 2.7
+if python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null; then
+    cmdtest tests.build
+else
+    echo "NOT RUNNING tests.build (requires Python 2.7)"
+fi
+
+# The as-root tests use YAML morphologies, so they require the PyYAML module.
 if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
     python -c "
 import morphlib, sys
@@ -37,10 +47,9 @@ if not morphlib.got_yaml:
     sys.exit(1)
 " > /dev/null 2>&1
 then
-    cmdtest tests.build
     cmdtest tests.as-root
 else
-    echo "NOT RUNNING tests.as-root"
+    echo "NOT RUNNING tests.as-root (requires PyYAML)"
 fi
 
 if [ -d .git ];
