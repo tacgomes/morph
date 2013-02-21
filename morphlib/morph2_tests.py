@@ -14,6 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import copy
+import json
 import StringIO
 import unittest
 
@@ -164,6 +166,12 @@ class MorphologyTests(unittest.TestCase):
 
     ## Validation tests
 
+    def test_not_empty(self):
+        self.assertRaises(morphlib.YAMLError, Morphology, '')
+
+    def test_is_dict(self):
+        self.assertRaises(morphlib.YAMLError, Morphology, 'foo')
+
     def test_makes_max_jobs_be_an_integer(self):
         m = Morphology('''
             {
@@ -218,38 +226,9 @@ class MorphologyTests(unittest.TestCase):
                           Morphology,
                           text)
 
-    def test_writing_preserves_field_order(self):
-        text = '''{
-    "kind": "system",
-    "disk-size": 1073741824,
-    "description": "Some text",
-    "arch": "x86_64",
-    "system-kind": "syslinux-disk",
-    "strata": [
-        {
-            "morph": "foundation",
-            "repo": "morphs",
-            "ref": "ref"
-        },
-        {
-            "morph": "devel",
-            "repo": "morphs",
-            "ref": "ref"
-        }
-    ]
-}'''
-        morphology = Morphology(text)
-        output = StringIO.StringIO()
-        morphology.write_to_file(output)
+    ## Writing tests
 
-        text_lines = text.splitlines()
-        output_lines = output.getvalue().splitlines()
-
-        # Verify that input and output are equal.
-        self.assertEqual(text_lines, output_lines)
-
-    def test_writing_stratum_morphology_preserves_chunk_order(self):
-        text = '''{
+    stratum_text = '''{
     "kind": "stratum",
     "chunks": [
         {
@@ -262,33 +241,90 @@ class MorphologyTests(unittest.TestCase):
             "name": "bar",
             "repo": "morphs",
             "ref": "ref",
-            "build-depends": []
+            "build-depends": [
+                "foo"
+            ]
         }
     ]
 }'''
-        morphology = Morphology(text)
+
+    def test_writing_preserves_chunk_order(self):
+        text_lines = self.stratum_text.splitlines()
+        text_lines[6] = '            "ref": "new-ref",'
+
+        # Change one of the fields
+        morphology = Morphology(self.stratum_text)
+        morphology['chunks'][0]['ref'] = 'new-ref'
+
         output = StringIO.StringIO()
-        morphology.write_to_file(output)
-
-        text_lines = text.splitlines()
+        morphology.update_text(self.stratum_text, output)
         output_lines = output.getvalue().splitlines()
-
-        # Verify that input and output are equal.
         self.assertEqual(text_lines, output_lines)
 
-    def test_writing_preserves_disk_size(self):
-        text = '''{
+    def test_writing_handles_added_chunks(self):
+        text_lines = self.stratum_text.splitlines()
+        text_lines = text_lines[0:16] + text_lines[8:17] + text_lines[17:]
+        text_lines[18] = '            "name": "baz",'
+
+        # Add a new chunk to the list
+        morphology = Morphology(self.stratum_text)
+        morphology['chunks'].append(copy.copy(morphology['chunks'][1]))
+        morphology['chunks'][2]['name'] = 'baz'
+
+        output = StringIO.StringIO()
+        morphology.update_text(self.stratum_text, output)
+        output_lines = output.getvalue().splitlines()
+        self.assertEqual(text_lines, output_lines)
+
+    def test_writing_handles_deleted_chunks(self):
+        text_lines = self.stratum_text.splitlines()
+        text_lines = text_lines[0:3] + text_lines[9:]
+
+        # Delete a chunk
+        morphology = Morphology(self.stratum_text)
+        del morphology['chunks'][0]
+
+        output = StringIO.StringIO()
+        morphology.update_text(self.stratum_text, output)
+        output_lines = output.getvalue().splitlines()
+        self.assertEqual(text_lines, output_lines)
+
+    system_text = '''{
     "kind": "system",
     "disk-size": "1g",
     "arch": "x86_64",
     "system-kind": "syslinux-disk"
 }'''
-        morphology = Morphology(text)
+
+    def test_writing_preserves_disk_size(self):
+        text_lines = self.system_text.splitlines()
+        morphology = Morphology(self.system_text)
+
         output = StringIO.StringIO()
-        morphology.write_to_file(output)
-
-        text_lines = text.splitlines()
+        morphology.update_text(self.system_text, output)
         output_lines = output.getvalue().splitlines()
-
-        # Verify that in- and output are the same.
         self.assertEqual(text_lines, output_lines)
+
+    def test_writing_updates_disk_size(self):
+        text_lines = self.system_text.splitlines()
+        text_lines[2] = '    "disk-size": 512,'
+
+        morphology = Morphology(self.system_text)
+        morphology._dict['disk-size'] = 512
+
+        output = StringIO.StringIO()
+        morphology.update_text(self.system_text, output)
+        output_lines = output.getvalue().splitlines()
+        self.assertEqual(text_lines, output_lines)
+
+    def test_nested_dict(self):
+        # Real morphologies don't trigger this code path, so we test manually
+        original_dict = {
+            'dict': { '1': 'fee', '2': 'fie', '3': 'foe', '4': 'foo' }
+        }
+        live_dict = copy.deepcopy(original_dict)
+        live_dict['_orig_dict'] = live_dict['dict']
+
+        dummy = Morphology(self.stratum_text)
+        output_dict = dummy._apply_changes(live_dict, original_dict)
+        self.assertEqual(original_dict, output_dict)

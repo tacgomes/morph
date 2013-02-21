@@ -66,14 +66,7 @@ class Morphology(object):
         f.write('\n')
 
     def __init__(self, text):
-        # Load as JSON first, then try YAML, so morphologies
-        # that read as JSON are dumped as JSON, likewise with YAML.
-        try:
-            self._dict = self._load_json(text)
-            self._dumper = self._dump_json
-        except Exception, e: # pragma: no cover
-            self._dict = morphlib.yamlparse.load(text)
-            self._dumper = morphlib.yamlparse.dump
+        self._dict, self._dumper = self._load_morphology_dict(text)
         self._set_defaults()
         self._validate_children()
 
@@ -85,6 +78,23 @@ class Morphology(object):
 
     def keys(self):
         return self._dict.keys()
+
+    def _load_morphology_dict(self, text):
+        '''Load morphology, identifying whether it is JSON or YAML'''
+
+        try:
+            data = self._load_json(text)
+            dumper = self._dump_json
+        except ValueError as e:  # pragma: no cover
+            data = morphlib.yamlparse.load(text)
+            dumper = morphlib.yamlparse.dump
+
+        if data is None:
+            raise morphlib.YAMLError("Morphology is empty")
+        if type(data) not in [dict, OrderedDict]:
+            raise morphlib.YAMLError("Morphology did not parse as a dict")
+
+        return data, dumper
 
     def _validate_children(self):
         if self['kind'] == 'system':
@@ -101,6 +111,54 @@ class Morphology(object):
                 if name in names:
                    raise ValueError('Duplicate chunk "%s"' % name)
                 names.add(name)
+
+    def _set_default_value(self, target_dict, key, value):
+        '''Change a value in the in-memory representation of the morphology
+
+        Record the default value separately, so that when writing out the
+        morphology we can determine whether the change from the on-disk value
+        was done at load time, or later on (we want to only write back out
+        the later, deliberate changes).
+
+        '''
+        target_dict[key] = value
+        target_dict['_orig_' + key] = value
+
+    def _set_defaults(self):
+        if 'max-jobs' in self:
+            self._set_default_value(self._dict, 'max-jobs',
+                                    int(self['max-jobs']))
+
+        if 'disk-size' in self:
+            self._set_default_value(self._dict, 'disk-size',
+                                    self._parse_size(self['disk-size']))
+
+        for name, value in self.static_defaults[self['kind']]:
+            if name not in self._dict:
+                self._set_default_value(self._dict, name, value)
+
+        if self['kind'] == 'stratum':
+            self._set_stratum_defaults()
+
+    def _set_stratum_defaults(self):
+        for source in self['chunks']:
+            if 'repo' not in source:
+                self._set_default_value(source, 'repo', source['name'])
+            if 'morph' not in source:
+                self._set_default_value(source, 'morph', source['name'])
+            if 'build-depends' not in source:
+                self._set_default_value(source, 'build-depends', None)
+
+    def _parse_size(self, size):
+        if isinstance(size, basestring):
+            size = size.lower()
+            if size.endswith('g'):
+                return int(size[:-1]) * 1024 ** 3
+            elif size.endswith('m'):  # pragma: no cover
+                return int(size[:-1]) * 1024 ** 2
+            elif size.endswith('k'):  # pragma: no cover
+                return int(size[:-1]) * 1024
+        return int(size) # pragma: no cover
 
     def lookup_child_by_name(self, name):
         '''Find child reference by its name.
@@ -121,59 +179,83 @@ class Morphology(object):
                     return info
         raise KeyError('"%s" not found' % name)
 
-    def _set_defaults(self):
-        if 'max-jobs' in self:
-            self._dict['max-jobs'] = int(self['max-jobs'])
+    def _apply_changes(self, live_dict, original_dict):
+        '''Returns a new dict updated with changes from the in-memory object
 
-        if 'disk-size' in self:
-            size = self['disk-size']
-            self._dict['_disk-size'] = size
-            self._dict['disk-size'] = self._parse_size(size)
+        This allows us to write out a morphology including only the changes
+        that were done after the morphology was loaded -- not the changes done
+        to set default values during construction.
 
-        for name, value in self.static_defaults[self['kind']]:
-            if name not in self._dict:
-                self._dict[name] = value
+        '''
+        output_dict = OrderedDict()
 
-        if self['kind'] == 'stratum':
-            self._set_stratum_defaults()
+        for key in live_dict.keys():
+            if key.startswith('_orig_'):
+                continue
 
-    def _set_stratum_defaults(self):
-        for source in self['chunks']:
-            if 'repo' not in source:
-                source['repo'] = source['name']
-            if 'morph' not in source:
-                source['morph'] = source['name']
-            if 'build-depends' not in source:
-                source['build-depends'] = None
+            value = self._apply_changes_for_key(key, live_dict, original_dict)
+            if value is not None:
+                output_dict[key] = value
+        return output_dict
 
-    def _parse_size(self, size):
-        if isinstance(size, basestring):
-            size = size.lower()
-            if size.endswith('g'):
-                return int(size[:-1]) * 1024 ** 3
-            elif size.endswith('m'):  # pragma: no cover
-                return int(size[:-1]) * 1024 ** 2
-            elif size.endswith('k'):  # pragma: no cover
-                return int(size[:-1]) * 1024
-        return int(size) # pragma: no cover
+    def _apply_changes_for_key(self, key, live_dict, original_dict):
+        '''Return value to write out for one key, recursing if necessary'''
 
-    def write_to_file(self, f): # pragma: no cover
-        # Recreate dict without the empty default values, with a few kind
-        # specific hacks to try and edit standard morphologies as
-        # non-destructively as possible
-        as_dict = OrderedDict()
-        for key in self.keys():
-            if self['kind'] == 'stratum' and key == 'chunks':
-                value = copy.copy(self[key])
-                for chunk in value:
-                    if chunk["morph"] == chunk["name"]:
-                        del chunk["morph"]
-            if self['kind'] == 'system' and key == 'disk-size':
-                # Use human-readable value (assumes we never programmatically
-                # change this value within morph)
-                value = self['_disk-size']
+        live_value = live_dict.get(key, None)
+        orig_value = original_dict.get(key, None)
+
+        if type(live_value) in [dict, OrderedDict] and orig_value is not None:
+            # Recursively apply changes for dict
+            result = self._apply_changes(live_value, orig_value)
+        elif type(live_value) is list and orig_value is not None:
+            # Recursively apply changes for list (existing, then new items).
+            result = []
+            for i in range(0, min(len(orig_value), len(live_value))):
+                if type(live_value[i]) in [dict, OrderedDict]:
+                    item = self._apply_changes(live_value[i], orig_value[i])
+                else:
+                    item = live_value[i]
+                result.append(item)
+            for i in range(len(orig_value), len(live_value)):
+                if type(live_value[i]) in [dict, OrderedDict]:
+                    item = self._apply_changes(live_value[i], {})
+                else:
+                    item = live_value[i]
+                result.append(item)
+        else:
+            # Simple values. Use original value unless it has been changed from
+            # the default in memmory.
+            if live_dict[key] == live_dict.get('_orig_' + key, None):
+                if key in original_dict:
+                    result = original_dict[key]
+                else:
+                    result = None
             else:
-                value = self[key]
-            if value and key[0] != '_':
-                as_dict[key] = value
-        self._dumper(as_dict, f)
+                result = live_dict[key]
+        return result
+
+    def update_text(self, text, output_fd):
+        '''Write out in-memory changes to loaded morphology text
+
+        Similar in function to update_file().
+
+        '''
+        original_dict, dumper = self._load_morphology_dict(text)
+
+        output_dict = self._apply_changes(self._dict, original_dict)
+
+        dumper(output_dict, output_fd)
+
+    def update_file(self, filename, output_fd=None): # pragma: no cover
+        '''Write out in-memory changes to on-disk morphology file
+
+        This function reads the original morphology text from 'filename', so
+        that it can avoid writing out properties that are set in memory
+        to their default value but weren't specified by the user at all.
+
+        '''
+        with open(filename, 'r') as f:
+            text = f.read()
+
+        with output_fd or morphlib.savefile.SaveFile(filename, 'w') as f:
+            self.update_text(text, f)
