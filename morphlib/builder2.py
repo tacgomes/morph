@@ -461,13 +461,18 @@ class StratumBuilder(BuilderBase):
 
     '''Build stratum artifacts.'''
 
+    def is_constituent(self, artifact):  # pragma: no cover
+        '''True if artifact should be included in the stratum artifact'''
+        return (artifact.source.morphology['kind'] == 'chunk' and \
+                artifact.source.build_mode != 'bootstrap')
+
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
-            constituents = [dependency
-                            for dependency in self.artifact.dependencies
-                            if dependency.source.morphology['kind'] == 'chunk']
+            constituents = [d for d in self.artifact.dependencies
+                            if self.is_constituent(d)]
             if len(constituents) == 0:
                 logging.warning('Stratum %s is empty' % self.artifact.name)
+
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
             with self.build_watch('check-chunks'):

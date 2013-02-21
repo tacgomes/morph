@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# Copyright (C) 2011-2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## 'bootstrap' mode is similar to 'test' mode, but they should not be included
+## in the final stratum artifact. This feature is used to bootstrap the
+## build-essential stratum using the toolchain of the host.
+
+set -eu
+
+# Add a chunk in hello-stratum that is built in bootstrap mode
+
+cd "$DATADIR/morphs-repo"
+cat <<EOF > "hello-stratum.morph"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "stage1-hello",
+            "repo": "test:chunk-repo",
+            "ref": "farrokh",
+            "build-depends": [],
+            "build-mode": "bootstrap"
+        },
+        {
+            "name": "hello",
+            "repo": "test:chunk-repo",
+            "ref": "farrokh",
+            "build-depends": [
+                "stage1-hello"
+            ],
+            "build-mode": "test"
+        }
+    ]
+}
+EOF
+git add hello-stratum.morph
+git commit -q -m "Add bootstrap chunk in hello-stratum"
+
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+sed -e "s/\"hello\"/\"stage1-hello\"/g" hello.morph > stage1-hello.morph
+git add stage1-hello.morph
+git commit -q -m "Add stage1-hello morphology for bootstrapping test"
+
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system
+
+system=$(ls "$DATADIR/cache/artifacts/"*hello-system-rootfs)
+tar tf "$system" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
