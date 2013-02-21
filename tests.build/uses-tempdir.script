@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test building a chunk.
+## Test that temporary directories are created in the dir specified
+## by --tempdir rather than specified in the environment by TMPDIR.
 
 set -eu
-
-"$SRCDIR/scripts/test-morph" build-morphology test:chunk-repo farrokh hello
-
-for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
-do
-    echo "$chunk:" | sed 's/[^.]*//'
-    tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
-    echo
-done
+export TMPDIR
+TMPDIR="$DATADIR"/unwritable-tmp
+install -m 000 -d "$TMPDIR"
+mkdir "$DATADIR"/tmp
+"$SRCDIR/scripts/test-morph" build-morphology --tempdir "$DATADIR"/tmp \
+    test:morphs-repo master hello-system

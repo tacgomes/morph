@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Convert the hello-chunk project to perl with CPAN and build.
+## Convert the hello-chunk project to python with distutils and build.
 
 set -eu
 
@@ -26,40 +26,42 @@ cd "$chunkrepo"
 git checkout --quiet farrokh
 
 git rm --quiet hello.c
-
 cat <<EOF >hello
-#!/usr/bin/perl
-print "hello, world\n"
+#!/usr/bin/python
+print "hello, world"
 EOF
 git add hello
 
-cat <<EOF >Makefile.PL
-use strict;
-use warnings;
-use ExtUtils::MakeMaker;
-WriteMakefile(
-    EXE_FILES => ['hello'],
-)
+cat <<EOF >setup.py
+#!/usr/bin/python
+from distutils.core import setup
+setup(name='hello',
+      scripts=['hello'])
 EOF
-git add Makefile.PL
+git add setup.py
 
 cat <<EOF >hello.morph
 {
     "name": "hello",
     "kind": "chunk",
-    "build-system": "cpan"
+    "build-system": "python-distutils"
 }
 EOF
 git add hello.morph
 
-git commit --quiet -m 'convert hello into a perl cpan project'
+git commit --quiet -m 'convert hello into a python project'
 
-"$SRCDIR/scripts/test-morph" build-morphology --prefix=/ \
-    test:chunk-repo farrokh hello
+"$SRCDIR/scripts/test-morph" build-morphology --prefix= \
+    test:morphs-repo master hello-system
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
 do
     echo "$chunk:" | sed 's/[^.]*//'
-    tar -tf "$chunk" | LC_ALL=C sort |
-            sed -e '/^\.\/./s:^\./::' | grep -F "bin/hello"
-done
+    tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    echo
+done |
+sed -e 's:^local/::' \
+    -e 's:lib/python2.[6-9]/:lib/python2.x/:' \
+    -e 's:/hello-0\.0\.0[^/]*\.egg-info$:/hello.egg-info/:' \
+    -e 's:[^/]*-packages:packages:' \
+    -e '/^$/d'

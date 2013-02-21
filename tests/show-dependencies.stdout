@@ -1,4 +1,6 @@
-dependency graph for test-repo|master|xfce-core:
+dependency graph for test-repo|master|xfce-system:
+  test-repo|master|xfce-system|xfce-system-rootfs
+    -> test-repo|master|xfce-core|xfce-core
   test-repo|master|xfce-core|xfce-core
     -> test-repo|master|exo|exo
     -> test-repo|master|garcon|garcon

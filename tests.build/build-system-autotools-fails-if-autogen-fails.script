@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,14 +16,26 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test build a simple stratum.
+## Test that the autotools build system fails if it runs autogen.sh and that
+## fails.
 
 set -eu
 
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+
+cat <<EOF > autogen.sh
+#!/bin/sh
+echo "in failing autogen.sh"
+exit 1
+EOF
+chmod a+x autogen.sh
+
+git add autogen.sh
+git rm -q hello.morph
+git commit -q -m "Convert hello to a broken autotools project"
+
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum
-"$SRCDIR/scripts/assemble-stratum" --cachedir "$DATADIR/cache" \
-                                   "$DATADIR/cache/artifacts/"*.hello-stratum \
-                                   "$DATADIR/stratum.tar" hello-stratum
-tar -tf "$DATADIR/stratum.tar" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    test:morphs-repo master hello-system \
+    >/dev/null 2> /dev/null
 

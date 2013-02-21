@@ -80,7 +80,12 @@ class BuildCommand(object):
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
-            
+
+        root_kind = srcpool.lookup(repo_name, ref, filename).morphology['kind']
+        if root_kind != 'system':
+            raise morphlib.Error(
+                'Building a %s directly is not supported' % root_kind)
+
         self.app.status(
             msg='Validating cross-morphology references', chatty=True)
         self._validate_cross_morphology_references(srcpool)

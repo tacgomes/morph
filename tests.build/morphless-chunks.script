@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,20 +16,35 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## If a stratum has multiple chunks that have the same files in them,
-## then the overlaps must be written to the cache
+## Try to build a morphless chunk.
 
 set -eu
 
-cache="$DATADIR/cache/artifacts"
+# Make 'hello' chunk into an auto-detectable chunk.
+
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+
+touch configure
+chmod +x configure
+# FIXME: If we leave the file empty, busybox sh on ARMv7 fails to execute it.
+echo '#!/bin/sh' > configure
+
+cat << EOF > Makefile
+all install:
+EOF
+
+git rm -q hello.morph
+git add Makefile configure
+git commit -q -m "Convert hello into an autodetectable chunk"
 
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo overlap overlap-stratum > /dev/null
-"$SRCDIR/scripts/list-overlaps" groups \
-        "$cache"/*.stratum.overlap-stratum.overlaps |
-while IFS='\n' read overlaps; do
-    echo $overlaps
-    "$SRCDIR/scripts/list-overlaps" list-files \
-        "$cache"/*.stratum.overlap-stratum.overlaps $overlaps
+    test:morphs-repo master hello-system
+
+for chunk in "$DATADIR/cache/artifacts/"*.chunk.*
+do
+    echo "$chunk:" | sed 's/[^.]*//'
+    tar -tf "$chunk" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+    echo
 done

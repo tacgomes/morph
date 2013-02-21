@@ -37,6 +37,7 @@ if not morphlib.got_yaml:
     sys.exit(1)
 " > /dev/null 2>&1
 then
+    cmdtest tests.build
     cmdtest tests.as-root
 else
     echo "NOT RUNNING tests.as-root"
@@ -51,7 +52,7 @@ then
     git ls-files |
     grep -v '\.gz$' |
     grep -Ev 'tests[^/]*/.*\.std(out|err)' |
-    grep -vF 'tests/build-system-autotools.script' |
+    grep -vF 'tests.build/build-system-autotools.script' |
     while read x
     do
         if tr -cd '\t' < "$x" | grep . > /dev/null

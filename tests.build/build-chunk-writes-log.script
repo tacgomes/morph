@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,27 +16,23 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Test building a chunk that fails.
+## Build log should be saved when a chunk is built.
 
 set -eu
 
-chunkrepo="$DATADIR/chunk-repo"
-cd "$chunkrepo"
-git checkout --quiet master
-cat <<EOF >false.morph
-{
-    "name": "false",
-    "kind": "chunk",
-    "build-system": "dummy",
-    "build-commands": [
-        "echo The next command will fail",
-        "false"
-    ]
-}
-EOF
-git add false.morph
-git commit --quiet -m "Make a morphology that fails." 
-
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo master false \
-    2>/dev/null
+    test:morphs-repo master hello-system
+
+SOURCES="$DATADIR/cached-sources"
+find "$DATADIR/cache/artifacts" -name '*.chunk.*' |
+    sed 's|\.chunk\..*||' | sort -u >"$SOURCES"
+
+found=false
+# list of sources in cache is not piped because while loop changes variable
+while read source; do
+    [ -e "$source".build-log ] || continue
+    found=true
+    break
+done <"$SOURCES"
+"$found"
+
