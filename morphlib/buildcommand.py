@@ -346,6 +346,15 @@ class BuildCommand(object):
                                 filename=filename)
                 staging_area.install_artifact(f)
 
+    # Nasty hack to avoid installing chunks built in 'bootstrap' mode in a
+    # different stratum when constructing staging areas.
+    def is_stratum(self, a):
+        return a.source.morphology['kind'] == 'stratum'
+
+    def in_same_stratum(self, a, b):
+        return len(filter(self.is_stratum, a.dependencies)) == \
+               len(filter(self.is_stratum, b.dependencies))
+
     def install_dependencies(self, staging_area, artifacts, target_artifact):
         '''Install chunk artifacts into staging area.
 
@@ -360,6 +369,9 @@ class BuildCommand(object):
         for artifact in artifacts:
             if artifact.source.morphology['kind'] != 'chunk':
                 continue
+            if artifact.source.build_mode == 'bootstrap':
+               if not self.in_same_stratum(artifact, target_artifact):
+                    continue
             self.app.status(msg='[%(name)s] Installing chunk %(chunk_name)s',
                             name=target_artifact.name,
                             chunk_name=artifact.name)
