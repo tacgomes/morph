@@ -75,11 +75,11 @@ class Artifact(object):
         done = set()
         
         def depth_first(a):
-            for dep in a.dependencies:
-                for ret in depth_first(dep):
-                    yield ret
             if a not in done:
                 done.add(a)
+                for dep in a.dependencies:
+                    for ret in depth_first(dep):
+                        yield ret
                 yield a
 
         return list(depth_first(self))
