@@ -24,6 +24,13 @@ import unittest
 import morphlib
 
 
+class FakeBuildEnvironment(object):
+
+    def __init__(self):
+        self.env = {
+        }
+        self.extra_path = ['/extra-path']
+
 class FakeSource(object):
 
     def __init__(self):
@@ -56,8 +63,10 @@ class StagingAreaTests(unittest.TestCase):
         os.mkdir(os.path.join(self.cachedir, 'artifacts'))
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
+        self.build_env = FakeBuildEnvironment()
         self.sa = morphlib.stagingarea.StagingArea(
-            FakeApplication(self.cachedir, self.tempdir), self.staging)
+            FakeApplication(self.cachedir, self.tempdir), self.staging,
+            self.build_env)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -118,3 +127,9 @@ class StagingAreaTests(unittest.TestCase):
             self.sa.install_artifact(f)
         self.sa.remove()
         self.assertFalse(os.path.exists(self.staging))
+
+    def test_supports_non_isolated_mode(self):
+        sa = morphlib.stagingarea.StagingArea(
+            object(), self.staging, self.build_env, use_chroot=False)
+        filename = os.path.join(self.staging, 'foobar')
+        self.assertEqual(sa.relative(filename), filename)

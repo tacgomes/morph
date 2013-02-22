@@ -42,7 +42,6 @@ def arch():
     '''Return the CPU architecture of the current host.'''
     return os.uname()[4]
 
-
 def indent(string, spaces=4):
     '''Return ``string`` indented by ``spaces`` spaces.
 

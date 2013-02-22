@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,9 +27,8 @@ class CacheKeyComputer(object):
         self._calculated = {}
 
     def _filterenv(self, env):
-        return dict([(k, env[k]) for k in ("USER", "USERNAME", "LOGNAME",
-                                           "TOOLCHAIN_TARGET", "PREFIX",
-                                           "BOOTSTRAP", "CFLAGS")])
+        keys = ["BOOTSTRAP", "LOGNAME", "PREFIX", "USER", "USERNAME"]
+        return dict([(k, env[k]) for k in keys])
 
     def compute_key(self, artifact):
         logging.debug('computing cache key for artifact %s from source '

@@ -35,13 +35,26 @@ class StagingArea(object):
 
     '''
 
-    def __init__(self, app, dirname):
+    _base_path = ['/sbin', '/usr/sbin', '/bin', '/usr/bin']
+
+    def __init__(self, app, dirname, build_env, use_chroot=True, extra_env={}):
         self._app = app
         self.dirname = dirname
         self.builddirname = None
         self.destdirname = None
         self.mounted = None
         self._bind_readonly_mount = None
+
+        self.use_chroot = use_chroot
+        self.env = build_env.env
+        self.env.update(extra_env)
+
+        if use_chroot:
+            path = build_env.extra_path + self._base_path
+        else:
+            full_path = [self.relative(p) for p in build_env.extra_path]
+            path = full_path + os.environ['PATH'].split(':')
+        self.env['PATH'] = ':'.join(path)
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
@@ -74,6 +87,9 @@ class StagingArea(object):
 
     def relative(self, filename):
         '''Return a filename relative to the staging area.'''
+
+        if not self.use_chroot:
+            return filename
 
         dirname = self.dirname
         if not dirname.endswith('/'):
@@ -190,8 +206,7 @@ class StagingArea(object):
         if not os.path.isdir(ccache_repodir):
             os.mkdir(ccache_repodir)
         # Get the destination path
-        ccache_destdir= os.path.join(self.tempdir,
-                                     'tmp', 'ccache')
+        ccache_destdir= os.path.join(self.dirname, 'tmp', 'ccache')
         # Make sure that the destination exists. We'll create /tmp if necessary
         # to avoid breaking when faced with an empty staging area.
         if not os.path.isdir(ccache_destdir):
@@ -247,14 +262,20 @@ class StagingArea(object):
 
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
+        assert 'env' not in kwargs
+        kwargs['env'] = self.env
+        if 'extra_env' in kwargs:
+            kwargs['env'].update(kwargs['extra_env'])
+            del kwargs['extra_env']
 
-        cwd = kwargs.get('cwd') or '/'
-        if 'cwd' in kwargs:
-            cwd = kwargs['cwd']
-            del kwargs['cwd']
-        else:
-            cwd = '/'
-        if self._app.settings['staging-chroot']:
+        if self.use_chroot:
+            cwd = kwargs.get('cwd') or '/'
+            if 'cwd' in kwargs:
+                cwd = kwargs['cwd']
+                del kwargs['cwd']
+            else:
+                cwd = '/'
+
             not_readonly_dirs = [self.builddirname, self.destdirname,
                                  'dev', 'proc', 'tmp']
             dirs = os.listdir(self.dirname)
@@ -265,12 +286,11 @@ class StagingArea(object):
 
             for entry in dirs:
                 real_argv += ['--mount-readonly', '/'+entry]
-
             real_argv += [self.dirname]
+
+            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+            real_argv += argv
+
+            return self._app.runcmd(real_argv, **kwargs)
         else:
-            real_argv = ['chroot', '/']
-
-        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
-        real_argv += argv
-
-        return self._app.runcmd(real_argv, **kwargs)
+            return self._app.runcmd(argv, **kwargs)

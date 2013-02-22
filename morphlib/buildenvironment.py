@@ -21,17 +21,18 @@ import morphlib
 class BuildEnvironment():
 
     def __init__(self, settings, arch=None):
+        self.extra_path = []
+
         self.arch = morphlib.util.arch() if arch is None else arch
         self.env = self._clean_env(settings)
 
     _osenv = os.environ
-    _default_path = '/sbin:/usr/sbin:/bin:/usr/bin'
-    _override_term = 'dumb'
-    _override_shell = '/bin/sh'
-    _override_username = 'tomjon'
-    _override_locale = 'C'
-    _override_home = '/tmp'
     _ccache_path = '/usr/lib/ccache'
+    _override_home = '/tmp'
+    _override_locale = 'C'
+    _override_shell = '/bin/sh'
+    _override_term = 'dumb'
+    _override_username = 'tomjon'
 
     def _clean_env(self, settings):
         '''Create a fresh set of environment variables for a clean build.
@@ -39,8 +40,6 @@ class BuildEnvironment():
         Return a dict with the new environment.
 
         '''
-
-        path = self._osenv['PATH']
 
         # copy a set of white-listed variables from the original env
         copied_vars = dict.fromkeys([
@@ -69,14 +68,11 @@ class BuildEnvironment():
         env['LC_ALL'] = self._override_locale
         env['HOME'] = self._override_home
 
-        env['PATH'] = self._default_path
-
-        env['TOOLCHAIN_TARGET'] = settings['toolchain-target']
-        env['CFLAGS'] = settings['target-cflags']
         env['PREFIX'] = settings['prefix']
         env['BOOTSTRAP'] = 'false'
         if not settings['no-ccache']:
-            env['PATH'] = ('%s:%s' % (self._ccache_path, env['PATH']))
+            self.extra_path.append(self._ccache_path)
+
 # FIXME: we should set CCACHE_BASEDIR so any objects that refer to their
 #        current directory get corrected. This improve the cache hit rate
 #            env['CCACHE_BASEDIR'] = self.tempdir.dirname

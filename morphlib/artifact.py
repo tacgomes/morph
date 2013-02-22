@@ -83,4 +83,3 @@ class Artifact(object):
                 yield a
 
         return list(depth_first(self))
-

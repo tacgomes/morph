@@ -35,8 +35,9 @@ class FakeApp(object):
 
 class FakeStagingArea(object):
 
-    def __init__(self, runcmd):
+    def __init__(self, runcmd, build_env):
         self.runcmd = runcmd
+        self.env = build_env.env
 
 
 class FakeSource(object):
@@ -146,7 +147,7 @@ class BuilderBaseTests(unittest.TestCase):
     def setUp(self):
         self.commands_run = []
         self.app = FakeApp(self.fake_runcmd)
-        self.staging_area = FakeStagingArea(self.fake_runcmd)
+        self.staging_area = FakeStagingArea(self.fake_runcmd, FakeBuildEnv())
         self.artifact_cache = FakeArtifactCache()
         self.artifact = FakeArtifact('le-artifact')
         self.repo_cache = None
@@ -158,7 +159,6 @@ class BuilderBaseTests(unittest.TestCase):
                                                      None,
                                                      self.artifact,
                                                      self.repo_cache,
-                                                     self.build_env,
                                                      self.max_jobs,
                                                      False)
 
@@ -252,8 +252,7 @@ class ChunkBuilderTests(unittest.TestCase):
     def setUp(self):
         self.app = FakeApp()
         self.build = morphlib.builder2.ChunkBuilder(self.app, None, None,
-                                                    None, None, None, None, 1,
-                                                    False)
+                                                    None, None, None, 1, False)
 
     def test_uses_morphology_commands_when_given(self):
         m = {'build-commands': ['build-it']}

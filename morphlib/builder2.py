@@ -155,15 +155,14 @@ class BuilderBase(object):
     '''Base class for building artifacts.'''
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, artifact, repo_cache,
-                 build_env, max_jobs, setup_mounts):
+                 remote_artifact_cache, artifact, repo_cache, max_jobs,
+                 setup_mounts):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
         self.artifact = artifact
         self.repo_cache = repo_cache
-        self.build_env = build_env
         self.max_jobs = max_jobs
         self.build_watch = morphlib.stopwatch.Stopwatch()
         self.setup_mounts = setup_mounts
@@ -253,7 +252,6 @@ class BuilderBase(object):
         return a
 
     def runcmd(self, *args, **kwargs):
-        kwargs['env'] = self.build_env.env
         return self.staging_area.runcmd(*args, **kwargs)
 
 
@@ -378,7 +376,7 @@ class ChunkBuilder(BuilderBase):
 
         relative_builddir = self.staging_area.relative(builddir)
         relative_destdir = self.staging_area.relative(destdir)
-        self.build_env.env['DESTDIR'] = relative_destdir
+        extra_env = { 'DESTDIR': relative_destdir }
 
         steps = [
             ('pre-configure', False),
@@ -406,9 +404,9 @@ class ChunkBuilder(BuilderBase):
                         max_jobs = self.artifact.source.morphology['max-jobs']
                         if max_jobs is None:
                             max_jobs = self.max_jobs
-                        self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
+                        extra_env['MAKEFLAGS'] = '-j%s' % max_jobs
                     else:
-                        self.build_env.env['MAKEFLAGS'] = '-j1'
+                        extra_env['MAKEFLAGS'] = '-j1'
                     try:
                         # flushing is needed because writes from python and
                         # writes from being the output in Popen have different
@@ -416,6 +414,7 @@ class ChunkBuilder(BuilderBase):
                         logfile.write('# # %s\n' % cmd)
                         logfile.flush()
                         self.runcmd(['sh', '-c', cmd],
+                                    extra_env=extra_env,
                                     cwd=relative_builddir,
                                     stdout=logfile,
                                     stderr=subprocess.STDOUT)
@@ -670,14 +669,12 @@ class Builder(object):  # pragma: no cover
     }
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, repo_cache, build_env, max_jobs,
-                 setup_mounts):
+                 remote_artifact_cache, repo_cache, max_jobs, setup_mounts):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
         self.repo_cache = repo_cache
-        self.build_env = build_env
         self.max_jobs = max_jobs
         self.setup_mounts = setup_mounts
 
@@ -686,8 +683,8 @@ class Builder(object):  # pragma: no cover
         o = self.classes[kind](self.app, self.staging_area,
                                self.local_artifact_cache,
                                self.remote_artifact_cache, artifact,
-                               self.repo_cache, self.build_env,
-                               self.max_jobs, self.setup_mounts)
+                               self.repo_cache, self.max_jobs,
+                               self.setup_mounts)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
         built_artifacts = o.build_and_cache()
