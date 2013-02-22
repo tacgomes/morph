@@ -16,14 +16,14 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Morph should refuse build a chunk or a stratum out of the context. Only
-## system morphologies can be built.
+## Morph should refuse build a chunk out of the context. Only
+## system and stratum morphologies can be built.
 
 set -eu
 
 "$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-stratum || true
+    test:morphs-repo master hello-stratum
 
-"$SRCDIR/scripts/test-morph" build-morphology \
-    test:chunk-repo farrokh hello || true
+! "$SRCDIR/scripts/test-morph" build-morphology \
+    test:chunk-repo farrokh hello
 

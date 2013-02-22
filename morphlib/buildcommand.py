@@ -82,7 +82,7 @@ class BuildCommand(object):
             self.lrc, self.rrc, (repo_name, ref, filename))
 
         root_kind = srcpool.lookup(repo_name, ref, filename).morphology['kind']
-        if root_kind != 'system':
+        if root_kind not in ['system', 'stratum']:
             raise morphlib.Error(
                 'Building a %s directly is not supported' % root_kind)
 
