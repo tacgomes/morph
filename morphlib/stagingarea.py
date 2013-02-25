@@ -258,8 +258,23 @@ class StagingArea(object):
             del kwargs['cwd']
         else:
             cwd = '/'
+        if self._app.settings['staging-chroot']:
+            not_readonly_dirs = [self.builddirname, self.destdirname,
+                                 'dev', 'proc', 'tmp']
+            dirs = os.listdir(self.dirname)
+            for excluded_dir in not_readonly_dirs:
+                dirs.remove(excluded_dir)
 
-        real_argv = ['chroot', self.dirname, 'sh', '-c',
-                     'cd "$1" && shift && exec "$@"', '--', cwd] + argv
+            real_argv = ['linux-user-chroot']
+
+            for entry in dirs:
+                real_argv += ['--mount-readonly', '/'+entry]
+
+            real_argv += [self.dirname]
+        else:
+            real_argv = ['chroot', '/']
+
+        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+        real_argv += argv
 
         return self._app.runcmd(real_argv, **kwargs)
