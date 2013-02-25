@@ -344,3 +344,38 @@ class MorphologyTests(unittest.TestCase):
         dummy = Morphology(self.stratum_text)
         output_dict = dummy._apply_changes(live_dict, original_dict)
         self.assertEqual(original_dict, output_dict)
+
+    def test_uses_morphology_commands_when_given(self):
+        m = Morphology('''
+            {
+                'name': 'foo',
+                'kind': 'chunk',
+                'build-system': 'dummy',
+                'build-commands': ['build-it']
+            }
+        ''')
+        cmds = m.get_commands('build-commands')
+        self.assertEqual(cmds, ['build-it'])
+
+    def test_uses_build_system_commands_when_morphology_doesnt(self):
+        m = Morphology('''
+            {
+                'name': 'foo',
+                'kind': 'chunk',
+                'build-system': 'dummy',
+            }
+        ''')
+        cmds = m.get_commands('build-commands')
+        self.assertEqual(cmds, ['echo dummy build'])
+
+    def test_uses_morphology_commands_when_morphology_has_empty_list(self):
+        m = Morphology('''
+            {
+                'name': 'foo',
+                'kind': 'chunk',
+                'build-system': 'dummy',
+                'build-commands': []
+            }
+        ''')
+        cmds = m.get_commands('build-commands')
+        self.assertEqual(cmds, [])

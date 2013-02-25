@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 #
-# Copyright (C) 2011-2013  Codethink Limited
+# Copyright (C) 2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,24 +16,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## 'bootstrap' mode is similar to 'test' mode, but they should not be included
-## in the final stratum artifact. This feature is used to bootstrap the
-## build-essential stratum using the toolchain of the host.
+# Test "morph cross-bootstrap", up to the point of the tarball it generates
+# for the target
 
 set -eu
 
-# Create a fake 'compiler' chunk to go into build-essential stratum
 "$SRCDIR/tests.build/setup-build-essential"
 
-"$SRCDIR/scripts/test-morph" build-morphology \
-    test:morphs-repo master hello-system
-
-cd "$DATADIR/cache/artifacts"
-echo "build-essential stratum:"
-stratum=$(ls *.stratum.build-essential)
-cat $stratum | sed 's/[a-f0-9]\{64\}/xxxx/g'
-echo
-echo
-echo "hello-system:"
-system=$(ls *hello-system-rootfs)
-tar tf "$system" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'
+"$SRCDIR/scripts/test-morph" cross-bootstrap \
+    x86_32 test:morphs-repo master hello-system

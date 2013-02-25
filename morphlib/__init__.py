@@ -37,6 +37,9 @@ import gitversion
 __version__ = gitversion.version
 
 
+# List of architectures that Morph supports
+valid_archs = ['armv7l', 'armv7b', 'x86_32', 'x86_64']
+
 class Error(cliapp.AppException):
 
     '''Base for all morph exceptions that cause user-visible messages.'''

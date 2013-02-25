@@ -85,6 +85,15 @@ class Morphology(object):
     def __contains__(self, key):
         return key in self._dict
 
+    def get_commands(self, which):
+        '''Return the commands to run from a morphology or the build system'''
+        if self[which] is None:
+            attr = '_'.join(which.split('-'))
+            bs = morphlib.buildsystem.lookup_build_system(self['build-system'])
+            return getattr(bs, attr)
+        else:
+            return self[which]
+
     def keys(self):
         return self._dict.keys()
 

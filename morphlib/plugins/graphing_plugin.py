@@ -65,7 +65,9 @@ class GraphingPlugin(cliapp.Plugin):
                                 '%(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
             builder = morphlib.buildcommand.BuildCommand(self.app)
-            artifact = builder.get_artifact_object(repo_name, ref, filename)
+            srcpool = build_command.create_source_pool(repo_name, ref,
+                                                       filename)
+            root_artifact = build_command.resolve_artifacts(srcpool)
 
             basename, ext = os.path.splitext(filename)
             dot_filename = basename + '.gv'
@@ -81,7 +83,7 @@ class GraphingPlugin(cliapp.Plugin):
 
             with open(dot_filename, 'w') as f:
                 f.write('digraph "%s" {\n' % basename)
-                for a in artifact.walk():
+                for a in root_artifact.walk():
                     f.write(
                         '  "%s" [shape=%s];\n' %
                         (a.name,

@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+from collections import defaultdict
 import datetime
 import errno
 import json
@@ -22,9 +23,8 @@ import os
 from os.path import relpath
 import shutil
 import stat
-import time
-from collections import defaultdict
 import tarfile
+import time
 import traceback
 import subprocess
 import tempfile
@@ -36,6 +36,54 @@ import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
 import morphlib.gitversion
 
+def extract_sources(app, repo_cache, repo, sha1, srcdir): #pragma: no cover
+    '''Get sources from git to a source directory, including submodules'''
+
+    def extract_repo(repo, sha1, destdir):
+        app.status(msg='Extracting %(source)s into %(target)s',
+                   source=repo.original_name,
+                   target=destdir)
+
+        repo.checkout(sha1, destdir)
+        morphlib.git.reset_workdir(app.runcmd, destdir)
+        submodules = morphlib.git.Submodules(app, repo.path, sha1)
+        try:
+            submodules.load()
+        except morphlib.git.NoModulesFileError:
+            return []
+        else:
+            tuples = []
+            for sub in submodules:
+                cached_repo = repo_cache.get_repo(sub.url)
+                sub_dir = os.path.join(destdir, sub.path)
+                tuples.append((cached_repo, sub.commit, sub_dir))
+            return tuples
+
+    todo = [(repo, sha1, srcdir)]
+    while todo:
+        repo, sha1, srcdir = todo.pop()
+        todo += extract_repo(repo, sha1, srcdir)
+    set_mtime_recursively(srcdir)
+
+def set_mtime_recursively(root):  # pragma: no cover
+    '''Set the mtime for every file in a directory tree to the same.
+
+    We do this because git checkout does not set the mtime to anything,
+    and some projects (binutils, gperf for example) include formatted
+    documentation and try to randomly build things or not because of
+    the timestamps. This should help us get more reliable  builds.
+
+    '''
+
+    now = time.time()
+    for dirname, subdirs, basenames in os.walk(root.encode("utf-8"),
+                                               topdown=False):
+        for basename in basenames:
+            pathname = os.path.join(dirname, basename)
+            # we need the following check to ignore broken symlinks
+            if os.path.exists(pathname):
+                os.utime(pathname, (now, now))
+        os.utime(dirname, (now, now))
 
 def ldconfig(runcmd, rootdir):  # pragma: no cover
     '''Run ldconfig for the filesystem below ``rootdir``.
@@ -256,18 +304,9 @@ class BuilderBase(object):
     def runcmd(self, *args, **kwargs):
         return self.staging_area.runcmd(*args, **kwargs)
 
-
 class ChunkBuilder(BuilderBase):
 
     '''Build chunk artifacts.'''
-
-    def get_commands(self, which, morphology, build_system):
-        '''Return the commands to run from a morphology or the build system.'''
-        if morphology[which] is None:
-            attr = '_'.join(which.split('-'))
-            return getattr(build_system, attr)
-        else:
-            return morphology[which]
 
     def create_devices(self, destdir): # pragma: no cover
         '''Creates device nodes if the morphology specifies them'''
@@ -326,57 +365,6 @@ class ChunkBuilder(BuilderBase):
         self.save_build_times()
         return built_artifacts
 
-    def get_sources(self, srcdir):  # pragma: no cover
-        '''Get sources from git to a source directory, for building.'''
-
-        cache_dir = os.path.dirname(self.artifact.source.repo.path)
-
-        def extract_repo(repo, sha1, destdir):
-            self.app.status(msg='Extracting %(source)s into %(target)s',
-                            source=repo.original_name,
-                            target=destdir)
-
-            repo.checkout(sha1, destdir)
-            morphlib.git.reset_workdir(self.app.runcmd, destdir)
-            submodules = morphlib.git.Submodules(self.app, repo.path, sha1)
-            try:
-                submodules.load()
-            except morphlib.git.NoModulesFileError:
-                return []
-            else:
-                tuples = []
-                for sub in submodules:
-                    cached_repo = self.repo_cache.get_repo(sub.url)
-                    sub_dir = os.path.join(destdir, sub.path)
-                    tuples.append((cached_repo, sub.commit, sub_dir))
-                return tuples
-
-        s = self.artifact.source
-        todo = [(s.repo, s.sha1, srcdir)]
-        while todo:
-            repo, sha1, srcdir = todo.pop()
-            todo += extract_repo(repo, sha1, srcdir)
-        self.set_mtime_recursively(srcdir)
-
-    def set_mtime_recursively(self, root):  # pragma: no cover
-        '''Set the mtime for every file in a directory tree to the same.
-
-        We do this because git checkout does not set the mtime to anything,
-        and some projects (binutils, gperf for example) include formatted
-        documentation and try to randomly build things or not because of
-        the timestamps. This should help us get more reliable  builds.
-
-        '''
-
-        now = time.time()
-        for dirname, subdirs, basenames in os.walk(root.encode("utf-8"),
-                                                   topdown=False):
-            for basename in basenames:
-                pathname = os.path.join(dirname, basename)
-                # we need the following check to ignore broken symlinks
-                if os.path.exists(pathname):
-                    os.utime(pathname, (now, now))
-            os.utime(dirname, (now, now))
 
     def run_commands(self, builddir, destdir, logfile):  # pragma: no cover
         m = self.artifact.source.morphology
@@ -403,7 +391,7 @@ class ChunkBuilder(BuilderBase):
         for step, in_parallel in steps:
             with self.build_watch(step):
                 key = '%s-commands' % step
-                cmds = self.get_commands(key, m, bs)
+                cmds = m.get_commands(key)
                 if cmds:
                     self.app.status(msg='Running %(key)s', key=key)
                     logfile.write('# %s\n' % step)
@@ -467,6 +455,9 @@ class ChunkBuilder(BuilderBase):
                                 (destdir, files))
         return built_artifacts
 
+    def get_sources(self, srcdir):  # pragma: no cover
+        s = self.artifact.source
+        extract_sources(self.app, self.repo_cache, s.repo, s.sha1, srcdir)
 
 class StratumBuilder(BuilderBase):
 

@@ -271,10 +271,11 @@ class DeployPlugin(cliapp.Plugin):
 
         # Run the build.
         build_ref = build_repos[branch_root]['build-ref']
-        artifact = build_command.get_artifact_object(
+        srcpool = build_command.create_source_pool(
             build_branch_root,
             build_ref,
             system_name + '.morph')
+        artifact = build_command.resolve_artifacts(srcpool)
 
         if push:
             self.other.delete_remote_build_refs(build_repos)
