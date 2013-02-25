@@ -42,7 +42,6 @@ defaults = {
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
     'prefix': '/usr',
-    'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
     'build-ref-prefix': 'baserock/builds'
 }
 
@@ -136,23 +135,6 @@ class Morph(cliapp.Application):
                              metavar='DIR',
                              default=os.environ.get('TMPDIR'),
                              group=group_build)
-
-        # Would be better to have a separate tool to cross-bootstrap
-        # because it's completely outside normal Morph usage
-        group_bootstrap = 'Bootstrap Options'
-        self.settings.string(['target-cflags'],
-                             'inject additional CFLAGS into the environment '
-                             'that is used to build chunks',
-                             metavar='CFLAGS',
-                             default='',
-                             group=group_bootstrap)
-        self.settings.string(['toolchain-target'],
-                             'set the TOOLCHAIN_TARGET variable which is used '
-                             'in some chunks to determine which architecture '
-                             'to build tools for',
-                             metavar='TOOLCHAIN_TARGET',
-                             default=defaults['toolchain-target'],
-                             group=group_bootstrap)
 
         # These cannot be removed just yet because existing morph.conf files
         # would fail to parse.

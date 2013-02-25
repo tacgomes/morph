@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import cliapp
 import os
 
 import morphlib
@@ -20,9 +21,11 @@ import morphlib
 
 class BuildEnvironment():
 
-    def __init__(self, settings, arch=None):
-        self.extra_path = []
+    def __init__(self, settings, target, arch=None):
+        '''Create a new BuildEnvironment object'''
 
+        self.extra_path = []
+        self.target = target
         self.arch = morphlib.util.arch() if arch is None else arch
         self.env = self._clean_env(settings)
 
@@ -33,6 +36,15 @@ class BuildEnvironment():
     _override_shell = '/bin/sh'
     _override_term = 'dumb'
     _override_username = 'tomjon'
+
+    def get_bootstrap_target(self, target):
+        '''Set 'vendor' field of the given machine triplet as 'bootstrap' '''
+
+        parts = target.split('-')
+        if len(parts) < 2:
+            raise morphlib.Error('Failed to parse machine triplet returned by '
+                                 'host compiler: %s' % target)
+        return '-'.join([parts[0], 'bootstrap'] + parts[2:])
 
     def _clean_env(self, settings):
         '''Create a fresh set of environment variables for a clean build.
@@ -69,7 +81,11 @@ class BuildEnvironment():
         env['HOME'] = self._override_home
 
         env['PREFIX'] = settings['prefix']
-        env['BOOTSTRAP'] = 'false'
+        env['BUILD'] = self.target
+        env['TARGET'] = self.target
+        env['TARGET_STAGE1'] = self.get_bootstrap_target(self.target)
+        env['TARGET_GCC_CONFIG'] = ''
+
         if not settings['no-ccache']:
             self.extra_path.append(self._ccache_path)
 

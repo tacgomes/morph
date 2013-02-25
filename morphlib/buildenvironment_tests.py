@@ -29,19 +29,27 @@ class BuildEnvironmentTests(unittest.TestCase):
             'no-ccache': True,
             'no-distcc': True
         }
+        self.target = '%s-baserock-linux-gnu' % morphlib.util.arch()
         self.fake_env = {
             'PATH': '/fake_bin',
         }
         self.default_path = 'no:such:path'
 
+    def new_build_env(self, settings=None, target=None, **kws):
+        settings = settings or self.settings
+        target = target or self.target
+        return buildenvironment.BuildEnvironment(settings, target, **kws)
+
     def test_arch_defaults_to_host(self):
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
+        buildenv = self.new_build_env()
         self.assertEqual(buildenv.arch, morphlib.util.arch())
 
     def test_arch_overridable(self):
-        buildenv = buildenvironment.BuildEnvironment(self.settings,
-                                                     arch='noarch')
+        buildenv = self.new_build_env(arch='noarch')
         self.assertEqual(buildenv.arch, 'noarch')
+
+    def test_target_always_valid(self):
+        self.assertRaises(morphlib.Error, self.new_build_env, target="invalid")
 
     def test_copies_whitelist_vars(self):
         env = self.fake_env
@@ -57,19 +65,19 @@ class BuildEnvironmentTests(unittest.TestCase):
         old_osenv = buildenvironment.BuildEnvironment._osenv
         buildenvironment.BuildEnvironment._osenv = env
 
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
+        buildenv = self.new_build_env()
         self.assertEqual(sorted(safe.items()),
                          sorted([(k, buildenv.env[k]) for k in safe.keys()]))
 
         buildenvironment.BuildEnvironment._osenv = old_osenv
 
     def test_user_spellings_equal(self):
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
+        buildenv = self.new_build_env()
         self.assertTrue(buildenv.env['USER'] == buildenv.env['USERNAME'] ==
                         buildenv.env['LOGNAME'])
 
     def test_environment_overrides(self):
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
+        buildenv = self.new_build_env()
         self.assertEqual(buildenv.env['TERM'], buildenv._override_term)
         self.assertEqual(buildenv.env['SHELL'], buildenv._override_shell)
         self.assertEqual(buildenv.env['USER'], buildenv._override_username)
@@ -79,14 +87,13 @@ class BuildEnvironmentTests(unittest.TestCase):
         self.assertEqual(buildenv.env['HOME'], buildenv._override_home)
 
     def test_environment_settings_set(self):
-        buildenv = buildenvironment.BuildEnvironment(self.settings)
-        #self.assertEqual(buildenv.env['TOOLCHAIN_TARGET'],
-        #                 self.settings['toolchain-target'])
+        buildenv = self.new_build_env()
+        self.assertEqual(buildenv.env['TARGET'], self.target)
 
     def test_ccache_vars_set(self):
         new_settings = copy.copy(self.settings)
         new_settings['no-ccache'] = False
         new_settings['no-distcc'] = False
-        buildenv = buildenvironment.BuildEnvironment(new_settings)
+        buildenv = self.new_build_env(settings=new_settings)
         self.assertTrue(buildenv._ccache_path in buildenv.extra_path)
         self.assertEqual(buildenv.env['CCACHE_PREFIX'], 'distcc')

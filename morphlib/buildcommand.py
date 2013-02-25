@@ -33,12 +33,14 @@ class BuildCommand(object):
     '''
 
     def __init__(self, app):
+        self.supports_local_build = True
+        self.target = morphlib.util.target(app.runcmd)
+
         self.app = app
         self.build_env = self.new_build_env()
         self.ckc = self.new_cache_key_computer(self.build_env)
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
-        self.supports_local_build = True
 
     def build(self, args):
         '''Build triplets specified on command line.'''
@@ -55,7 +57,8 @@ class BuildCommand(object):
 
     def new_build_env(self):
         '''Create a new BuildEnvironment instance.'''
-        return morphlib.buildenvironment.BuildEnvironment(self.app.settings)
+        return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
+                                                          self.target)
 
     def new_cache_key_computer(self, build_env):
         '''Create a new cache key computer.'''

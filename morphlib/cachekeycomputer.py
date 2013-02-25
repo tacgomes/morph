@@ -27,7 +27,8 @@ class CacheKeyComputer(object):
         self._calculated = {}
 
     def _filterenv(self, env):
-        keys = ["BOOTSTRAP", "LOGNAME", "PREFIX", "USER", "USERNAME"]
+        keys = ["LOGNAME", "PREFIX", "TARGET", "TARGET_STAGE1",
+                "TARGET_GCC_CONFIG", "USER", "USERNAME"]
         return dict([(k, env[k]) for k in keys])
 
     def compute_key(self, artifact):
