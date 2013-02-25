@@ -61,6 +61,20 @@ class Artifact(object):
                                 self.name,
                                 metadata_name)
 
+    def get_dependency_prefix_set(self):
+        '''Collects all install prefixes of this artifact's build dependencies
+
+           If any of the build dependencies of a chunk artifact are installed
+           to non-standard prefixes, we need to add those prefixes to the
+           PATH of the current artifact.
+
+        '''
+        result = set()
+        for d in self.dependencies:
+            if d.source.morphology['kind'] == 'chunk':
+                result.add(d.source.prefix)
+        return result
+
     def __str__(self):  # pragma: no cover
         return '%s|%s' % (self.source, self.name)
 

@@ -33,7 +33,11 @@ class BuildEnvironmentTests(unittest.TestCase):
         self.fake_env = {
             'PATH': '/fake_bin',
         }
-        self.default_path = 'no:such:path'
+
+    def new_build_env(self, settings=None, target=None, **kws):
+        settings = settings or self.settings
+        target = target or self.target
+        return buildenvironment.BuildEnvironment(settings, target, **kws)
 
     def new_build_env(self, settings=None, target=None, **kws):
         settings = settings or self.settings

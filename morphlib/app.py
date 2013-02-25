@@ -41,7 +41,6 @@ defaults = {
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
-    'prefix': '/usr',
     'build-ref-prefix': 'baserock/builds'
 }
 
@@ -117,10 +116,6 @@ class Morph(cliapp.Application):
         self.settings.boolean(['no-distcc'],
                               'do not use distcc (default: true)',
                               group=group_build, default=True)
-        self.settings.string(['prefix'],
-                             'build chunks with prefix PREFIX',
-                             metavar='PREFIX', default=defaults['prefix'],
-                             group=group_build)
         self.settings.boolean(['push-build-branches'],
                               'always push temporary build branches to the '
                               'remote repository',

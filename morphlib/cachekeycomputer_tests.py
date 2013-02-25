@@ -105,7 +105,6 @@ class CacheKeyComputerTests(unittest.TestCase):
                 m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
             "LOGNAME": "foouser",
-            "PREFIX": "/baserock",
             "TARGET": "dummy-baserock-linux-gnu",
             "TARGET_STAGE1": "dummy-baserock-linux-gnu",
             "TARGET_GCC_CONFIG": "",

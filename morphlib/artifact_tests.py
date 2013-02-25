@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import copy
 import unittest
 
 import morphlib
@@ -78,3 +79,12 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(self.artifact.dependencies, [self.other])
         self.assertEqual(self.other.dependents, [self.artifact])
         self.assertTrue(self.artifact.depends_on(self.other))
+
+    def test_get_dependency_prefix(self):
+        self.artifact.add_dependency(self.other)
+        self.artifact.source.prefix = '/bar'
+        self.other.source = copy.copy(self.artifact.source)
+        self.other.source.prefix = '/foo'
+
+        prefix_set = self.artifact.get_dependency_prefix_set()
+        self.assertEqual(prefix_set, set(['/foo']))

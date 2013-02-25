@@ -230,6 +230,10 @@ class BuildCommand(object):
         setup_mounts = False
         if artifact.source.morphology['kind'] == 'chunk':
             build_mode = artifact.source.build_mode
+            extra_env = {'PREFIX': artifact.source.prefix}
+
+            dep_prefix_set = artifact.get_dependency_prefix_set()
+            extra_path = [os.path.join(d, 'bin') for d in dep_prefix_set]
 
             if build_mode not in ['bootstrap', 'staging', 'test']:
                 raise morphlib.Error(
@@ -237,7 +241,8 @@ class BuildCommand(object):
                     (artifact.name, build_mode))
 
             use_chroot = build_mode=='staging'
-            staging_area = self.create_staging_area(use_chroot)
+            staging_area = self.create_staging_area(
+                use_chroot, extra_env=extra_env, extra_path=extra_path)
             self.install_fillers(staging_area)
             self.install_dependencies(staging_area, deps, artifact)
         else:
@@ -312,13 +317,15 @@ class BuildCommand(object):
                     copy(self.rac.get_artifact_metadata(artifact, 'meta'),
                          self.lac.put_artifact_metadata(artifact, 'meta'))
 
-    def create_staging_area(self, use_chroot=True):
+    def create_staging_area(self, use_chroot=True, extra_env={},
+                            extra_path=[]):
         '''Create the staging area for building a single artifact.'''
 
         self.app.status(msg='Creating staging area')
         staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
         staging_area = morphlib.stagingarea.StagingArea(
-            self.app, staging_dir, self.build_env, use_chroot, {})
+            self.app, staging_dir, self.build_env, use_chroot, extra_env,
+            extra_path)
         return staging_area
 
     def remove_staging_area(self, staging_area):

@@ -91,7 +91,6 @@ class BuildEnvironment():
         env['LC_ALL'] = self._override_locale
         env['HOME'] = self._override_home
 
-        env['PREFIX'] = settings['prefix']
         env['BUILD'] = self.target
         env['TARGET'] = self.target
         env['TARGET_STAGE1'] = self.get_bootstrap_target(self.target)

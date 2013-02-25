@@ -159,6 +159,8 @@ class Morphology(object):
                 self._set_default_value(source, 'build-depends', None)
             if 'build-mode' not in source:
                 self._set_default_value(source, 'build-mode', 'staging')
+            if 'prefix' not in source:
+                self._set_default_value(source, 'prefix', '/usr')
 
     def _parse_size(self, size):
         if isinstance(size, basestring):

@@ -27,8 +27,8 @@ class CacheKeyComputer(object):
         self._calculated = {}
 
     def _filterenv(self, env):
-        keys = ["LOGNAME", "PREFIX", "TARGET", "TARGET_STAGE1",
-                "TARGET_GCC_CONFIG", "USER", "USERNAME"]
+        keys = ["LOGNAME", "TARGET", "TARGET_STAGE1", "TARGET_GCC_CONFIG",
+                "USER", "USERNAME"]
         return dict([(k, env[k]) for k in keys])
 
     def compute_key(self, artifact):
@@ -88,6 +88,7 @@ class CacheKeyComputer(object):
         kind = artifact.source.morphology['kind']
         if kind == 'chunk':
             keys['build-mode'] = artifact.source.build_mode
+            keys['prefix'] = artifact.source.prefix
             keys['tree'] = artifact.source.tree
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology

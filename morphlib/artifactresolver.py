@@ -222,6 +222,7 @@ class ArtifactResolver(object):
 
             # Resolve now to avoid a search for the parent morphology later
             chunk_source.build_mode = info['build-mode']
+            chunk_source.prefix = info['prefix']
 
             build_depends = info.get('build-depends', None)
 

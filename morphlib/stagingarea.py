@@ -51,9 +51,9 @@ class StagingArea(object):
         self.env.update(extra_env)
 
         if use_chroot:
-            path = build_env.extra_path + self._base_path
+            path = extra_path + build_env.extra_path + self._base_path
         else:
-            rel_path = build_env.extra_path
+            rel_path = extra_path + build_env.extra_path
             full_path = [os.path.normpath(dirname + p) for p in rel_path]
             path = full_path + os.environ['PATH'].split(':')
         self.env['PATH'] = ':'.join(path)
