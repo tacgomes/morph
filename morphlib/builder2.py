@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import shutil
+import stat
 import time
 from collections import defaultdict
 import tarfile
@@ -265,6 +266,28 @@ class ChunkBuilder(BuilderBase):
         else:
             return morphology[which]
 
+    def create_devices(self, destdir): # pragma: no cover
+        '''Creates device nodes if the morphology specifies them'''
+        morphology = self.artifact.source.morphology
+        perms_mask = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+        if 'devices' in morphology and morphology['devices'] is not None:
+            for dev in morphology['devices']:
+                destfile = os.path.join(destdir, './' + dev['filename'])
+                mode = int(dev['permissions'], 8) & perms_mask
+                if dev['type'] == 'c':
+                    mode = mode | stat.S_IFCHR
+                elif dev['type'] == 'b':
+                    mode = mode | stat.S_IFBLK
+                else:
+                    raise IOError('Cannot create device node %s,'
+                                  'unrecognized device type "%s"'
+                                  % (destfile, dev['type']))
+                self.app.status(msg="Creating device node %s"
+                                    % destfile)
+                os.mknod(destfile, mode,
+                         os.makedev(dev['major'], dev['minor']))
+                os.chown(destfile, dev['uid'], dev['gid'])
+
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
 
@@ -279,6 +302,7 @@ class ChunkBuilder(BuilderBase):
                         'build-log') as log:
                     log_name = log.real_filename
                     self.run_commands(builddir, destdir, log)
+                    self.create_devices(destdir)
             except:
                 self.staging_area.chroot_close()
                 if log_name:
