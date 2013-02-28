@@ -183,6 +183,23 @@ def get_user_email(runcmd):
             '    git config --global user.email "me@example.com"\n')
 
 
+def check_config_set(runcmd, keys=("user.name", "user.email"), cwd='.'):
+    ''' Check whether the given keys have values in git config. '''
+    missing = []
+    for key in keys:
+        try:
+            runcmd(['git', 'config', key], cwd=cwd)
+        except cliapp.AppException:
+            missing.append(key)
+    if missing:
+        if len(missing) == 1:
+            emesg = 'Git configuration for %s has not been set' % missing[0]
+        else:
+            emesg = ('Git configuration for keys %s and %s have not been set'
+                     % (', '.join(missing[:-1]), missing[-1]))
+        raise cliapp.AppException(emesg)
+
+
 def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
     return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)
