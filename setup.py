@@ -139,10 +139,9 @@ FIXME
       author_email='lars.wirzenius@codethink.co.uk',
       url='http://www.baserock.org/',
       scripts=['morph'],
-      packages=['morphlib'],
+      packages=['morphlib', 'morphlib.plugins'],
       package_data={
           'morphlib': [
-              'plugins/*_plugin.py',
               'exts/*',
               'version',
               'commit',
