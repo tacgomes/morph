@@ -348,6 +348,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'install-commands',
                 'max-jobs',
                 'chunks',
+                'devices',
             ]
         }
         

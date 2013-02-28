@@ -36,6 +36,7 @@ class Morphology(object):
             ('build-commands', None),
             ('test-commands', None),
             ('install-commands', None),
+            ('devices', None),
             ('chunks', []),
             ('max-jobs', None),
             ('build-system', 'manual')
