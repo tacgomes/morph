@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012,2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 import logging
 import os
 import shutil
+import stat
+from urlparse import urlparse
 
 import morphlib
 
@@ -40,6 +42,10 @@ class StagingArea(object):
         self._app = app
         self.dirname = dirname
         self.tempdir = tempdir
+        self.builddirname = None
+        self.destdirname = None
+        self.mounted = None
+        self._bind_readonly_mount = None
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
@@ -80,6 +86,52 @@ class StagingArea(object):
         assert filename.startswith(dirname)
         return filename[len(dirname) - 1:]  # include leading slash
 
+    def hardlink_all_files(self, srcpath, destpath): # pragma: no cover
+        '''Hardlink every file in the path to the staging-area
+
+        If an exception is raised, the staging-area is indeterminate.
+
+        '''
+
+        file_stat = os.lstat(srcpath)
+        mode = file_stat.st_mode
+
+        if stat.S_ISDIR(mode):
+            # Ensure directory exists in destination, then recurse.
+            if not os.path.exists(destpath):
+                os.makedirs(destpath)
+            dest_stat = os.stat(os.path.realpath(destpath))
+            if not stat.S_ISDIR(dest_stat.st_mode):
+                raise IOError('Destination not a directory. source has %s'
+                              ' destination has %s' % (srcpath, destpath))
+
+            for entry in os.listdir(srcpath):
+                self.hardlink_all_files(os.path.join(srcpath, entry),
+                                        os.path.join(destpath, entry))
+        elif stat.S_ISLNK(mode):
+            # Copy the symlink.
+            if os.path.exists(destpath):
+                os.remove(destpath)
+            os.symlink(os.readlink(srcpath), destpath)
+
+        elif stat.S_ISREG(mode):
+            # Hardlink the file.
+            if os.path.exists(destpath):
+                os.remove(destpath)
+            os.link(srcpath, destpath)
+
+        elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
+            # Block or character device. Put contents of st_dev in a mknod.
+            if os.path.exists(destpath):
+                os.remove(destpath)
+            os.mknod(destpath, file_stat.st_mode, file_stat.st_rdev)
+            os.chmod(destpath, file_stat.st_mode)
+
+        else:
+            # Unsupported type.
+            raise IOError('Cannot extract %s into staging-area. Unsupported'
+                          ' type.' % srcpath)
+
     def install_artifact(self, handle):
         '''Install a build artifact into the staging area.
 
@@ -90,7 +142,19 @@ class StagingArea(object):
 
         logging.debug('Installing artifact %s' %
                       getattr(handle, 'name', 'unknown name'))
-        morphlib.bins.unpack_binary_from_file(handle, self.dirname)
+
+        unpacked_artifact = os.path.join(
+            self._app.settings['tempdir'],
+            os.path.basename(handle.name) + '.d')
+        if not os.path.exists(unpacked_artifact):
+            self._mkdir(unpacked_artifact)
+            morphlib.bins.unpack_binary_from_file(
+                handle, unpacked_artifact + '/')
+
+        if not os.path.exists(self.dirname):
+            self._mkdir(self.dirname)
+
+        self.hardlink_all_files(unpacked_artifact, self.dirname)
 
     def remove(self):
         '''Remove the entire staging area.
@@ -103,14 +167,114 @@ class StagingArea(object):
 
         shutil.rmtree(self.dirname)
 
+    to_mount = (
+        ('proc',    'proc',  'none'),
+        ('dev/shm', 'tmpfs', 'none'),
+    )
+
+    def mount_ccachedir(self, source): #pragma: no cover
+        ccache_dir = self._app.settings['compiler-cache-dir']
+        if not os.path.isdir(ccache_dir):
+            os.makedirs(ccache_dir)
+        # Get a path for the repo's ccache
+        ccache_url = source.repo.url
+        ccache_path = urlparse(ccache_url).path
+        ccache_repobase = os.path.basename(ccache_path)
+        if ':' in ccache_repobase: # the basename is a repo-alias
+            resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+                self._app.settings['repo-alias'])
+            ccache_url = resolver.pull_url(ccache_repobase)
+            ccache_path = urlparse(ccache_url).path
+            ccache_repobase = os.path.basename(ccache_path)
+        if ccache_repobase.endswith('.git'):
+            ccache_repobase = ccache_repobase[:-len('.git')]
+
+        ccache_repodir = os.path.join(ccache_dir, ccache_repobase)
+        # Make sure that directory exists
+        if not os.path.isdir(ccache_repodir):
+            os.mkdir(ccache_repodir)
+        # Get the destination path
+        ccache_destdir= os.path.join(self.tempdir,
+                                     'tmp', 'ccache')
+        # Make sure that the destination exists. We'll create /tmp if necessary
+        # to avoid breaking when faced with an empty staging area.
+        if not os.path.isdir(ccache_destdir):
+            os.makedirs(ccache_destdir)
+        # Mount it into the staging-area
+        self._app.runcmd(['mount', '--bind', ccache_repodir,
+                         ccache_destdir])
+        return ccache_destdir
+
+    def do_mounts(self, setup_mounts):  # pragma: no cover
+        self.mounted = []
+        if not setup_mounts:
+            return
+        for mount_point, mount_type, source in self.to_mount:
+            logging.debug('Mounting %s in staging area' % mount_point)
+            path = os.path.join(self.dirname, mount_point)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self._app.runcmd(['mount', '-t', mount_type, source, path])
+            self.mounted.append(path)
+        return
+
+    def do_unmounts(self):  # pragma: no cover
+        for path in reversed(self.mounted):
+            logging.debug('Unmounting %s in staging area' % path)
+            morphlib.fsutils.unmount(self._app.runcmd, path)
+
+    def chroot_open(self, source, setup_mounts): # pragma: no cover
+        '''Setup staging area for use as a chroot.'''
+
+        assert self.builddirname == None and self.destdirname == None
+
+        builddir = self.builddir(source)
+        destdir = self.destdir(source)
+        self.builddirname = self.relative(builddir).lstrip('/')
+        self.destdirname = self.relative(destdir).lstrip('/')
+
+        self.do_mounts(setup_mounts)
+
+        if not self._app.settings['no-ccache']:
+            self.mounted.append(self.mount_ccachedir(source))
+
+        return builddir, destdir
+
+    def chroot_close(self): # pragma: no cover
+        '''Undo changes by chroot_open.
+
+        This should be called after the staging area is no longer needed.
+
+        '''
+
+        self.do_unmounts()
+
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
+
         cwd = kwargs.get('cwd') or '/'
         if 'cwd' in kwargs:
             cwd = kwargs['cwd']
             del kwargs['cwd']
         else:
             cwd = '/'
-        real_argv = ['chroot', self.dirname, 'sh', '-c',
-                     'cd "$1" && shift && exec "$@"', '--', cwd] + argv
+        if self._app.settings['staging-chroot']:
+            not_readonly_dirs = [self.builddirname, self.destdirname,
+                                 'dev', 'proc', 'tmp']
+            dirs = os.listdir(self.dirname)
+            for excluded_dir in not_readonly_dirs:
+                dirs.remove(excluded_dir)
+
+            real_argv = ['linux-user-chroot']
+
+            for entry in dirs:
+                real_argv += ['--mount-readonly', '/'+entry]
+
+            real_argv += [self.dirname]
+        else:
+            real_argv = ['chroot', '/']
+
+        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+        real_argv += argv
+
         return self._app.runcmd(real_argv, **kwargs)

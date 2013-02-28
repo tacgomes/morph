@@ -1,0 +1,3 @@
+ERROR: Command failed: ls i-do-not-exist
+ls: i-do-not-exist: No such file or directory
+

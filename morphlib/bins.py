@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ Binaries are chunks, strata, and system images.
 '''
 
 
+import cliapp
 import logging
 import os
 import re
@@ -28,6 +29,11 @@ import errno
 import stat
 import shutil
 import tarfile
+
+import morphlib
+
+from morphlib.extractedtarball import ExtractedTarball
+from morphlib.mountableimage import MountableImage
 
 
 # Work around http://bugs.python.org/issue16477
@@ -211,3 +217,24 @@ def unpack_binary_from_file(f, dirname):  # pragma: no cover
 def unpack_binary(filename, dirname):
     with open(filename, "rb") as f:
         unpack_binary_from_file(f, dirname)
+
+
+class ArtifactNotMountableError(cliapp.AppException): # pragma: no cover
+
+    def __init__(self, filename):
+        cliapp.AppException.__init__(
+                self, 'Artifact %s cannot be extracted or mounted' % filename)
+
+
+def call_in_artifact_directory(app, filename, callback): # pragma: no cover
+    '''Call a function in a directory the artifact is extracted/mounted in.'''
+
+    try:
+        with ExtractedTarball(app, filename) as dirname:
+            callback(dirname)
+    except tarfile.TarError:
+        try:
+            with MountableImage(app, filename) as dirname:
+                callback(dirname)
+        except (IOError, OSError):
+            raise ArtifactNotMountableError(filename)
