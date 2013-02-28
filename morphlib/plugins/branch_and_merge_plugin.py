@@ -1629,8 +1629,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Define the committer.
         committer_name = 'Morph (on behalf of %s)' % \
             (morphlib.git.get_user_name(self.app.runcmd))
-        committer_email = '%s@%s' % \
-            (os.environ.get('LOGNAME'), socket.gethostname())
+        committer_email = morphlib.git.get_user_email(self.app.runcmd)
 
         for repo, info in build_repos.iteritems():
             repo_dir = info['dirname']
