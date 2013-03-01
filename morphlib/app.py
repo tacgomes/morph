@@ -193,6 +193,11 @@ class Morph(cliapp.Application):
         if self.settings['compiler-cache-dir'] is None:
             self.settings['compiler-cache-dir'] = os.path.join(
                     self.settings['cachedir'], 'ccache')
+        if self.settings['tempdir'] is None:
+            if 'TMPDIR' in os.environ:
+                self.settings['tempdir'] = os.environ['TMPDIR']
+            else:
+                self.settings['tempdir'] = '/tmp'
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
