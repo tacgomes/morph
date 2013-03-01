@@ -98,7 +98,7 @@ class StagingArea(object):
 
         if stat.S_ISDIR(mode):
             # Ensure directory exists in destination, then recurse.
-            if not os.path.exists(destpath):
+            if not os.path.lexists(destpath):
                 os.makedirs(destpath)
             dest_stat = os.stat(os.path.realpath(destpath))
             if not stat.S_ISDIR(dest_stat.st_mode):
@@ -110,19 +110,19 @@ class StagingArea(object):
                                         os.path.join(destpath, entry))
         elif stat.S_ISLNK(mode):
             # Copy the symlink.
-            if os.path.exists(destpath):
+            if os.path.lexists(destpath):
                 os.remove(destpath)
             os.symlink(os.readlink(srcpath), destpath)
 
         elif stat.S_ISREG(mode):
             # Hardlink the file.
-            if os.path.exists(destpath):
+            if os.path.lexists(destpath):
                 os.remove(destpath)
             os.link(srcpath, destpath)
 
         elif stat.S_ISCHR(mode) or stat.S_ISBLK(mode):
             # Block or character device. Put contents of st_dev in a mknod.
-            if os.path.exists(destpath):
+            if os.path.lexists(destpath):
                 os.remove(destpath)
             os.mknod(destpath, file_stat.st_mode, file_stat.st_rdev)
             os.chmod(destpath, file_stat.st_mode)
