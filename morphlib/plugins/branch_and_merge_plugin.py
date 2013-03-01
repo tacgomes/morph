@@ -16,6 +16,7 @@
 
 import cliapp
 import copy
+import functools
 import glob
 import logging
 import os
@@ -27,6 +28,22 @@ import urlparse
 import uuid
 
 import morphlib
+
+
+def requires_git_config(*keys):
+    def decorator(func):
+        @functools.wraps(func)
+        def check_config(self, *args, **kwargs):
+            try:
+                morphlib.git.check_config_set(self.app.runcmd, keys)
+            except cliapp.AppException, e:
+                self.app.status(msg="WARNING: %(message)s",
+                                message=e.msg, error=True)
+            return func(self, *args, **kwargs)
+        return check_config
+        
+    return decorator
+
 
 class BranchAndMergePlugin(cliapp.Plugin):
 
@@ -571,6 +588,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
 
+    @requires_git_config('user.name', 'user.email')
     def branch(self, args):
         '''Create a new system branch.'''
 
@@ -591,6 +609,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         workspace = self.deduce_workspace()
         self._create_branch(workspace, new_branch, repo, commit)
 
+    @requires_git_config('user.name', 'user.email')
     def checkout(self, args):
         '''Check out an existing system branch.'''
 
@@ -662,6 +681,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 branch_dir, spec['repo'], branch, parent_ref=spec['ref'])
         return repo_dir
 
+    @requires_git_config('user.name', 'user.email')
     def edit(self, args):
         '''Edit a component in a system branch.'''
 
@@ -982,6 +1002,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.print_changelog('The following changes were made but have not '
                              'been committed')
 
+    @requires_git_config('user.name', 'user.email')
     def tag(self, args):
         if len(args) < 1:
             raise cliapp.AppException('morph tag expects a tag name')
@@ -1481,6 +1502,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.reset_work_tree_safe(repo_dir)
             raise
 
+    @requires_git_config('user.name', 'user.email')
     def build(self, args):
         '''Build a system from the current system branch'''
 
@@ -1629,8 +1651,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Define the committer.
         committer_name = 'Morph (on behalf of %s)' % \
             (morphlib.git.get_user_name(self.app.runcmd))
-        committer_email = '%s@%s' % \
-            (os.environ.get('LOGNAME'), socket.gethostname())
+        committer_email = morphlib.git.get_user_email(self.app.runcmd)
 
         for repo, info in build_repos.iteritems():
             repo_dir = info['dirname']
