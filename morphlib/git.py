@@ -157,17 +157,45 @@ def update_submodules(app, repo_dir):  # pragma: no cover
         app.runcmd(['git', 'submodule', 'update'], cwd=repo_dir)
 
 
+class ConfigNotSetException(cliapp.AppException):
+
+    def __init__(self, missing, defaults):
+        self.missing = missing
+        self.defaults = defaults
+        if len(missing) == 1:
+            self.preamble = ('Git configuration for %s has not been set. '
+                             'Please set it with:' % missing[0])
+        else:
+            self.preamble = ('Git configuration for keys %s and %s '
+                             'have not been set. Please set them with:'
+                             % (', '.join(missing[:-1]), missing[-1]))
+
+    def __str__(self):
+        lines = [self.preamble]
+        lines.extend('git config --global %s \'%s\'' % (k, self.defaults[k])
+                     for k in self.missing)
+        return '\n    '.join(lines)
+
+
+class IdentityNotSetException(ConfigNotSetException):
+
+    preamble = 'Git user info incomplete. Please set your identity, using:'
+
+    def __init__(self, missing):
+        self.defaults = {"user.name": "My Name",
+                         "user.email": "me@example.com"}
+        self.missing = missing
+
+
 def get_user_name(runcmd):
     '''Get user.name configuration setting. Complain if none was found.'''
     if 'GIT_AUTHOR_NAME' in os.environ:
         return os.environ['GIT_AUTHOR_NAME'].strip()
     try:
-        return runcmd(['git', 'config', 'user.name']).strip()
-    except cliapp.AppException:
-        raise cliapp.AppException(
-            'No git user info found. Please set your identity, using: \n'
-            '    git config --global user.name "My Name"\n'
-            '    git config --global user.email "me@example.com"\n')
+        config = check_config_set(runcmd, keys={"user.name": "My Name"})
+        return config['user.name']
+    except ConfigNotSetException, e:
+        raise IdentityNotSetException(e.missing)
 
 
 def get_user_email(runcmd):
@@ -175,29 +203,24 @@ def get_user_email(runcmd):
     if 'GIT_AUTHOR_EMAIL' in os.environ:
         return os.environ['GIT_AUTHOR_EMAIL'].strip()
     try:
-        return runcmd(['git', 'config', 'user.email']).strip()
-    except cliapp.AppException:
-        raise cliapp.AppException(
-            'No git user info found. Please set your identity, using: \n'
-            '    git config --global user.email "My Name"\n'
-            '    git config --global user.email "me@example.com"\n')
+        cfg = check_config_set(runcmd, keys={"user.email": "me@example.com"})
+        return cfg['user.email']
+    except ConfigNotSetException, e:
+        raise IdentityNotSetException(e.missing)
 
-
-def check_config_set(runcmd, keys=("user.name", "user.email"), cwd='.'):
+def check_config_set(runcmd, keys, cwd='.'):
     ''' Check whether the given keys have values in git config. '''
     missing = []
+    found = {}
     for key in keys:
         try:
-            runcmd(['git', 'config', key], cwd=cwd)
+            value = runcmd(['git', 'config', key], cwd=cwd).strip()
+            found[key] = value
         except cliapp.AppException:
             missing.append(key)
     if missing:
-        if len(missing) == 1:
-            emesg = 'Git configuration for %s has not been set' % missing[0]
-        else:
-            emesg = ('Git configuration for keys %s and %s have not been set'
-                     % (', '.join(missing[:-1]), missing[-1]))
-        raise cliapp.AppException(emesg)
+        raise ConfigNotSetException(missing, keys)
+    return found
 
 
 def set_remote(runcmd, gitdir, name, url):

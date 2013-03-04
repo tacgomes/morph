@@ -30,7 +30,7 @@ import uuid
 import morphlib
 
 
-def requires_git_config(*keys):
+def warns_git_config(keys):
     def decorator(func):
         @functools.wraps(func)
         def check_config(self, *args, **kwargs):
@@ -38,11 +38,15 @@ def requires_git_config(*keys):
                 morphlib.git.check_config_set(self.app.runcmd, keys)
             except cliapp.AppException, e:
                 self.app.status(msg="WARNING: %(message)s",
-                                message=e.msg, error=True)
+                                message=str(e), error=True)
             return func(self, *args, **kwargs)
         return check_config
         
     return decorator
+
+
+warns_git_identity = warns_git_config({'user.name': 'My Name',
+                                       'user.email': 'me@example.com'})
 
 
 class BranchAndMergePlugin(cliapp.Plugin):
@@ -588,7 +592,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
 
-    @requires_git_config('user.name', 'user.email')
+    @warns_git_identity
     def branch(self, args):
         '''Create a new system branch.'''
 
@@ -609,7 +613,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         workspace = self.deduce_workspace()
         self._create_branch(workspace, new_branch, repo, commit)
 
-    @requires_git_config('user.name', 'user.email')
+    @warns_git_identity
     def checkout(self, args):
         '''Check out an existing system branch.'''
 
@@ -681,7 +685,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 branch_dir, spec['repo'], branch, parent_ref=spec['ref'])
         return repo_dir
 
-    @requires_git_config('user.name', 'user.email')
+    @warns_git_identity
     def edit(self, args):
         '''Edit a component in a system branch.'''
 
@@ -1002,7 +1006,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.print_changelog('The following changes were made but have not '
                              'been committed')
 
-    @requires_git_config('user.name', 'user.email')
+    @warns_git_identity
     def tag(self, args):
         if len(args) < 1:
             raise cliapp.AppException('morph tag expects a tag name')
@@ -1502,7 +1506,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.reset_work_tree_safe(repo_dir)
             raise
 
-    @requires_git_config('user.name', 'user.email')
     def build(self, args):
         '''Build a system from the current system branch'''
 
