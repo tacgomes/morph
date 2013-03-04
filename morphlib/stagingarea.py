@@ -278,16 +278,14 @@ class StagingArea(object):
             else:
                 cwd = '/'
 
-            not_readonly_dirs = [self.builddirname, self.destdirname,
+            do_not_mount_dirs = [self.builddirname, self.destdirname,
                                  'dev', 'proc', 'tmp']
-            dirs = os.listdir(self.dirname)
-            for excluded_dir in not_readonly_dirs:
-                dirs.remove(excluded_dir)
 
             real_argv = ['linux-user-chroot']
-
-            for entry in dirs:
-                real_argv += ['--mount-readonly', '/'+entry]
+            for d in os.listdir(self.dirname):
+                if d not in do_not_mount_dirs:
+                    if os.path.isdir(os.path.join(self.dirname, d)):
+                        real_argv += ['--mount-readonly', '/'+d]
             real_argv += [self.dirname]
 
             real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
