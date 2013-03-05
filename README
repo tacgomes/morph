@@ -80,15 +80,44 @@ For chunks, use the following fields:
   `*-commands` fields; only `autotools` is currently known; the commands
   that the build system specifies can be overridden;
   optional
+
+* `pre-configure-commands`: a list of shell commands to run at 
+  the configuration phase of a build, before the list in `configure-commands`;
+  optional
 * `configure-commands`: a list of shell commands to run at the configuraiton
   phase of a build; optional
+* `post-configure-commands`: a list of shell commands to run at 
+  the configuration phase of a build, after the list in `configure-commands`;
+  optional
+
+* `pre-build-commands`: a list of shell commands to run at 
+  the build phase of a build, before the list in `build-commands`;
+  optional
 * `build-commands`: a list of shell commands to run to build (compile) the
   project; optional
+* `post-build-commands`: a list of shell commands to run at 
+  the build phase of a build, after the list in `build-commands`;
+  optional
+
+* `pre-test-commands`: a list of shell commands to run at 
+  the test phase of a build, before the list in `test-commands`;
+  optional
 * `test-commands`: a list of shell commands to run unit tests and other
   non-interactive tests on the built but un-installed project; optional
+* `post-test-commands`: a list of shell commands to run at 
+  the test phase of a build, after the list in `test-commands`;
+  optional
+
+* `pre-install-commands`: a list of shell commands to run at 
+  the install phase of a build, before the list in `install-commands`;
+  optional
 * `install-commands`: a list of shell commands to install the built project;
   the install should go into the directory named in the `DESTDIR` environment
   variable, not the actual system; optional
+* `post-install-commands`: a list of shell commands to run at 
+  the install phase of a build, after the list in `install-commands`;
+  optional
+
 * `max-jobs`: a string to be given to `make` as the argument to the `-j`
   option to specify the maximum number of parallel jobs; the only sensible
   value is `"1"` (including the quotes), to prevent parallel jobs to run
@@ -96,6 +125,7 @@ For chunks, use the following fields:
   since the other phases are often not safe when run in parallel; `morph`
   picks a default value based on the number of CPUs on the host system;
   optional
+
 * `chunks`: a key/value map of lists of regular expressions; 
   the key is the name
   of a binary chunk, the regexps match the pathnames that will be
