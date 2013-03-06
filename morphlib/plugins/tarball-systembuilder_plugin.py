@@ -59,9 +59,7 @@ class RootfsTarballBuilder(SystemKindBuilder):  # pragma: no cover
                                                 unslashy_root)
                     return info
                 artiname = self.artifact.source.morphology['name']
-                tar = tarfile.TarFile.gzopen(fileobj=handle, mode="w",
-                                             compresslevel=1,
-                                             name=artiname)
+                tar = tarfile.open(fileobj=handle, mode="w", name=artiname)
                 self.app.status(msg='Constructing tarball of root filesystem',
                                 chatty=True)
                 tar.add(fs_root, recursive=True, filter=uproot_info)
