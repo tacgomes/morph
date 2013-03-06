@@ -365,6 +365,49 @@ pass3_build_with_morph_in_chroot()
 {
     echo "Building Baserock with morph"
 
+    cat <<'EOF' >"$LFS/usr/bin/linux-user-chroot"
+#!/bin/sh
+
+CHDIR=.
+
+while true; do
+    case "$1" in
+    --help)
+        echo 'See "man linux-user-chroot"'
+        exit 0
+        ;;
+    --version)
+        echo 'Fake'
+        exit 0
+        ;;
+    --mount-bind)
+        # swallow option and arguments
+        shift 3
+        ;;
+    --mount-readonly)
+        shift 2
+        ;;
+    --mount-proc|--unshare-ipc|--unshare-pid)
+        # swallow configure flag
+        shift
+        ;;
+    --chdir)
+        CHDIR="$2"
+        shift 2
+        ;;
+    *)
+        # terminate arg processing
+        ROOTDIR="$1"
+        shift
+        break
+        ;;
+    esac
+done
+
+exec chroot "$ROOTDIR" sh -c 'cd "$1" && shift && exec "$@"' -- "$CHDIR" "$@"
+EOF
+    chmod +x "$LFS/usr/bin/linux-user-chroot"
+
     cat <<EOF > "$LFS/baserock/build_pass3.sh"
 #!/bin/bash
 set -e
