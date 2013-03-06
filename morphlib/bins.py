@@ -100,7 +100,7 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     dump_memory_profile('after walking')
 
     include = sorted(include)  # get dirs before contents
-    tar = tarfile.open(fileobj=f, mode='w:gz')
+    tar = tarfile.open(fileobj=f, mode='w')
     for filename in include:
         # Normalize mtime for everything.
         tarinfo = tar.gettarinfo(filename,
