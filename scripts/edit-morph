@@ -41,8 +41,7 @@ class EditMorph(cliapp.Application):
         if expected_kind is not None and morphology['kind'] != expected_kind:
             raise morphlib.Error("Expected: a %s morphology" % expected_kind)
 
-        return morphology
-
+        return morphology, text
 
     def cmd_remove_chunk(self, args):
         '''Removes from STRATUM all reference of CHUNK'''
@@ -53,7 +52,8 @@ class EditMorph(cliapp.Application):
 
         file_name = args[0]
         chunk_name = args[1]
-        morphology = self.load_morphology(file_name, expected_kind = 'stratum')
+        morphology, text = self.load_morphology(file_name,
+                                                expected_kind='stratum')
 
         component_count = 0
         build_depends_count = 0
@@ -68,7 +68,7 @@ class EditMorph(cliapp.Application):
         morphology._dict['chunks'] = new_chunks
 
         with morphlib.savefile.SaveFile(file_name, 'w') as f:
-            morphology.write_to_file(f)
+            morphology.update_text(text, f)
 
         self.output.write("Removed: %i chunk(s) and %i build depend(s).\n" %
                           (component_count, build_depends_count))
@@ -80,7 +80,8 @@ class EditMorph(cliapp.Application):
             raise cliapp.AppException("sort expects a morphology file name")
 
         file_name = args[0]
-        morphology = self.load_morphology(file_name, expected_kind='stratum')
+        morphology, text = self.load_morphology(file_name,
+                                                expected_kind='stratum')
 
         for chunk in morphology['chunks']:
             chunk['build-depends'].sort()
@@ -88,7 +89,7 @@ class EditMorph(cliapp.Application):
         morphology._dict['chunks'] = self.sort_chunks(morphology['chunks'])
 
         with morphlib.savefile.SaveFile(file_name, 'w') as f:
-            morphology.write_to_file(f)
+            morphology.update_text(text, f)
 
     def cmd_to_json(self, args):
         """Convert one or more FILES to JSON.
@@ -101,9 +102,7 @@ class EditMorph(cliapp.Application):
 
         for file_name in args:
             try:
-                with open(file_name, 'r') as f:
-                    text = f.read()
-                morphology = morphlib.morph2.Morphology(text)
+                morphology, text = self.load_morphology(file_name)
 
                 if not file_name.endswith('.yaml'):
                     raise morphlib.Error('file name does not end with .yaml')
@@ -124,9 +123,8 @@ class EditMorph(cliapp.Application):
 
         for file_name in args:
             try:
-                with open(file_name, 'r') as f:
-                    text = f.read()
-                morphology = morphlib.morph2.Morphology(text)
+                morphology, text = self.load_morphology(file_name)
+
                 with morphlib.savefile.SaveFile(file_name + '.yaml', 'w') as f:
                     morphology.update_text(text, f, convert_to='yaml')
             except Exception as e:
