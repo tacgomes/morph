@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Copyright (C) 2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## Test the workflow of adding a new chunk to a stratum then editing it
+
+set -eu
+
+cd "$DATADIR/workspace"
+"$SRCDIR/scripts/test-morph" init
+"$SRCDIR/scripts/test-morph" branch test:morphs "me/add-then-edit"
+
+cd "me/add-then-edit"
+
+# add a chunk
+cd test:morphs
+
+## Sub-optimally, to alter the stratum, you have to `morph edit` it first
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+
+git apply <<'EOF'
+diff --git a/hello-stratum.morph b/hello-stratum.morph
+index 3b7be17..c79a9af 100644
+--- a/hello-stratum.morph
++++ b/hello-stratum.morph
+@@ -7,6 +7,12 @@
+             "repo": "test:hello",
+             "ref": "master",
+             "build-depends": []
++        },
++        {
++            "name": "goodbye",
++            "repo": "test:goodbye",
++            "ref": "master",
++            "build-depends": []
+         }
+     ]
+ }
+EOF
+
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye
+
+# check whether the stratum still contains the goodbye chunk
+grep -qFe goodbye hello-stratum.morph
+
+# check whether edit has cloned the repository to the right branch
+git --git-dir="../test:goodbye/.git" rev-parse --abbrev-ref HEAD
