@@ -117,8 +117,7 @@ class DeployPlugin(cliapp.Plugin):
             f = build_command.lac.get(artifact)
         else:
             f = build_command.rac.get(artifact)
-        ff = gzip.GzipFile(fileobj=f)
-        tf = tarfile.TarFile(fileobj=ff)
+        tf = tarfile.open(fileobj=f)
         tf.extractall(path=system_tree)
         
         self.app.status(
