@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import gzip
 import os
 import shutil
 import stat
@@ -133,6 +134,11 @@ class ChunkTests(BinsTest):
                          ['.', 'bin', 'bin/foo'])
         self.assertEqual([x for x, y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
+
+    def test_does_not_compress_artifact(self):
+        self.create_chunk(['bin'])
+        with gzip.open(self.chunk_file) as f:
+            self.assertRaises(IOError, f.read) 
 
 
 class ExtractTests(unittest.TestCase):
