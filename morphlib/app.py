@@ -395,8 +395,9 @@ class Morph(cliapp.Application):
                     chatty=True)
 
         # Log the environment.
-        for name in kwargs['env']:
-            logging.debug('environment: %s=%s' % (name, kwargs['env'][name]))
+        prev = getattr(self, 'prev_env', {})
+        morphlib.util.log_dict_diff(kwargs['env'], prev)
+        self.prev_env = kwargs['env']
 
         # run the command line
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)

@@ -16,6 +16,7 @@
 import re
 
 import morphlib
+import logging
 
 '''Utility functions for morph.'''
 
@@ -168,6 +169,22 @@ def new_repo_caches(app):  # pragma: no cover
         rrc = None
 
     return lrc, rrc
+
+
+def log_dict_diff(cur, pre):
+    '''Log the differences between two dicts to debug log'''
+    dictA = cur
+    dictB = pre
+    for key in dictA.keys():
+        if key not in dictB:
+            logging.debug("New environment: %s = %s" % (key, dictA[key]))
+        elif dictA[key] != dictB[key]:
+            logging.debug(
+                "Environment changed: %(key)s = %(valA)s to %(key)s = %(valB)s"
+                % {"key": key, "valA": dictA[key], "valB": dictB[key]})
+    for key in dictB.keys():
+        if key not in dictA:
+            logging.debug("Environment removed:  %s = %s" % (key, dictB[key]))
 
 
 # This acquired from rdiff-backup which is GPLv2+ and a patch from 2011
