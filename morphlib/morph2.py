@@ -32,10 +32,18 @@ class Morphology(object):
     static_defaults = {
         'chunk': [
             ('description', ''),
+            ('pre-configure-commands', None),
             ('configure-commands', None),
+            ('post-configure-commands', None),
+            ('pre-build-commands', None),
             ('build-commands', None),
+            ('post-build-commands', None),
+            ('pre-test-commands', None),
             ('test-commands', None),
+            ('post-test-commands', None),
+            ('pre-install-commands', None),
             ('install-commands', None),
+            ('post-install-commands', None),
             ('devices', None),
             ('chunks', []),
             ('max-jobs', None),

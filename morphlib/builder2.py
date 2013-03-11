@@ -377,10 +377,20 @@ class ChunkBuilder(BuilderBase):
         relative_destdir = self.staging_area.relative(destdir)
         self.build_env.env['DESTDIR'] = relative_destdir
 
-        steps = [('configure', False),
-                 ('build', True),
-                 ('test', False),
-                 ('install', False)]
+        steps = [
+            ('pre-configure', False),
+            ('configure', False),
+            ('post-configure', False),
+            ('pre-build', True),
+            ('build', True),
+            ('post-build', True),
+            ('pre-test', False),
+            ('test', False),
+            ('post-test', False),
+            ('pre-install', False),
+            ('install', False),
+            ('post-install', False),
+        ]
         for step, in_parallel in steps:
             with self.build_watch(step):
                 key = '%s-commands' % step
