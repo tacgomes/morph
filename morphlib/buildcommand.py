@@ -223,7 +223,7 @@ class BuildCommand(object):
                 if artifact.source.morphology.needs_staging_area:
                     self.install_fillers(staging_area)
                     self.install_chunk_artifacts(staging_area,
-                                                 deps)
+                                                 deps, artifact)
                     morphlib.builder2.ldconfig(self.app.runcmd,
                                                staging_area.tempdir)
 
@@ -359,7 +359,7 @@ class BuildCommand(object):
                                 filename=filename)
                 staging_area.install_artifact(f)
 
-    def install_chunk_artifacts(self, staging_area, artifacts):
+    def install_chunk_artifacts(self, staging_area, artifacts, parent_art):
         '''Install chunk artifacts into staging area.
 
         We only ever care about chunk artifacts as build dependencies,
@@ -373,7 +373,8 @@ class BuildCommand(object):
         for artifact in artifacts:
             if artifact.source.morphology['kind'] != 'chunk':
                 continue
-            self.app.status(msg='Installing chunk %(chunk_name)s',
+            self.app.status(msg='[%(name)s] Installing chunk %(chunk_name)s',
+                            name=parent_art.name,
                             chunk_name=artifact.name)
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
@@ -381,7 +382,8 @@ class BuildCommand(object):
     def build_and_cache(self, staging_area, artifact):
         '''Build an artifact and put it into the local artifact cache.'''
 
-        self.app.status(msg='Starting actual build')
+        self.app.status(msg='Starting actual build: %(name)s',
+                        name=artifact.name)
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
