@@ -61,7 +61,7 @@ class FindArtifacts(morphlib.app.Morph):
                 for cached_file in found_artifacts:
                     self.output.write(cached_file + "\n")
 
-        morphlib.bins.call_in_artifact_directory(self, artifact,
-			                         find_artifacts)
+        morphlib.bins.call_in_artifact_directory(
+            self, artifact, find_artifacts)
 
 FindArtifacts().run()
