@@ -106,13 +106,19 @@ class FakeLocalRepoCache(object):
         return self.lr
 
 
+class FakeApp(object):
+
+    def status(self, **kwargs):
+        pass
+
+
 class MorphologyFactoryTests(unittest.TestCase):
 
     def setUp(self):
         self.lr = FakeLocalRepo()
         self.lrc = FakeLocalRepoCache(self.lr)
         self.rrc = FakeRemoteRepoCache()
-        self.mf = MorphologyFactory(self.lrc, self.rrc)
+        self.mf = MorphologyFactory(self.lrc, self.rrc, app=FakeApp())
         self.lmf = MorphologyFactory(self.lrc, None)
 
     def nolocalfile(self, *args):
