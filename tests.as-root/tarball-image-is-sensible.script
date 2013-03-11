@@ -29,6 +29,13 @@ set -eu
 tar=$("$SRCDIR/scripts/test-morph" --find-system-artifact \
     build-morphology test:morphs tarball-links hello-tarball)
 
+# Verify that the tar archive is not compressed.
+if gunzip -t "$tar" > /dev/null
+then
+    echo "ERROR: $tar is gzip'd!" 1>&2
+    exit 1
+fi
+
 extracted="$DATADIR/extracted"
 mkdir -p "$extracted"
 cd "$extracted"
