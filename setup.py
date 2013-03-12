@@ -25,6 +25,7 @@ import glob
 import os
 import os.path
 import shutil
+import stat
 import subprocess
 
 import cliapp
@@ -39,6 +40,18 @@ class GenerateResources(build):
             self.generate_manpages()
             self.generate_version()
         build.run(self)
+
+        # Set exec permissions on deployment extensions.
+        for dirname, subdirs, basenames in os.walk('morphlib/exts'):
+            for basename in basenames:
+                orig = os.path.join(dirname, basename)
+                built = os.path.join('build/lib', dirname, basename)
+                st = os.lstat(orig)
+                bits = (st.st_mode &
+                        (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+                if bits != 0:
+                    st2 = os.lstat(built)
+                    os.chmod(built, st2.st_mode | bits)
 
     def generate_manpages(self):
         self.announce('building manpages')
