@@ -17,7 +17,24 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
 set -e
+
+
+# Parse the command line.
+
+full=false
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+        --full) full=true; shift ;;
+        *) echo "ERROR: Unknown argument $1." 1>&2; exit 1 ;;
+    esac
+done
+
+
+# Set PYTHONPATH to start with the current directory so that we always
+# find the right version of it for the test suite.
 
 case "$PYTHONPATH" in
     '') PYTHONPATH="$(pwd)" ;;
@@ -25,10 +42,28 @@ case "$PYTHONPATH" in
 esac
 export PYTHONPATH
 
+
+# Clean up artifacts from previous (possibly failed) runs, build,
+# and run the tests.
+
 python setup.py clean check
+
 cmdtest tests
-cmdtest tests.branching
-cmdtest tests.merging
+
+if $full
+then
+    cmdtest tests.branching
+else
+    echo "NOT RUNNING test.branching"
+fi
+
+if $full
+then
+    cmdtest tests.merging
+else
+    echo "NOT RUNNING test.merging"
+fi
+
 cmdtest tests.deploy
 
 # Building systems requires the 'filter' parameter of tarfile.TarFile.add():
@@ -40,7 +75,7 @@ else
 fi
 
 # The as-root tests use YAML morphologies, so they require the PyYAML module.
-if [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
+if $full && [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
     python -c "
 import morphlib, sys
 if not morphlib.got_yaml:
