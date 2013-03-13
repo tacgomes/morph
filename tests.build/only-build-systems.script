@@ -21,7 +21,7 @@
 
 set -eu
 
-"$SRCDIR/scripts/test-morph" build-morphology \
+! "$SRCDIR/scripts/test-morph" build-morphology \
     test:morphs-repo master hello-stratum
 
 ! "$SRCDIR/scripts/test-morph" build-morphology \
