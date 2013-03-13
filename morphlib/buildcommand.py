@@ -236,9 +236,10 @@ class BuildCommand(object):
             extra_path = [os.path.join(d, 'bin') for d in dep_prefix_set]
 
             if build_mode not in ['bootstrap', 'staging', 'test']:
-                raise morphlib.Error(
-                    'Unknown build mode for chunk %s: %s' %
-                    (artifact.name, build_mode))
+                logging.warning('Unknown build mode %s for chunk %s. '
+                                'Defaulting to staging mode.' %
+                                (build_mode, artifact.name))
+                build_mode = 'staging'
 
             use_chroot = build_mode=='staging'
             staging_area = self.create_staging_area(
