@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,14 +17,6 @@
 import unittest
 
 import morphlib
-
-
-class ArchTests(unittest.TestCase):
-
-    def test(self):
-        arch = morphlib.util.arch()
-        self.assertEqual(type(arch), str)
-        self.assertNotEqual(arch, '')
 
 
 class IndentTests(unittest.TestCase):

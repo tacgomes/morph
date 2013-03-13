@@ -34,11 +34,8 @@ class BuildCommand(object):
 
     def __init__(self, app):
         self.supports_local_build = True
-        self.target = morphlib.util.target(app.runcmd)
 
         self.app = app
-        self.build_env = self.new_build_env()
-        self.ckc = self.new_cache_key_computer(self.build_env)
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
 
@@ -55,15 +52,6 @@ class BuildCommand(object):
 
         self.app.status(msg='Build ends successfully')
 
-    def new_build_env(self):
-        '''Create a new BuildEnvironment instance.'''
-        return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
-                                                          self.target)
-
-    def new_cache_key_computer(self, build_env):
-        '''Create a new cache key computer.'''
-        return morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-
     def new_artifact_caches(self):
         '''Create interfaces for the build artifact caches.
 
@@ -75,6 +63,11 @@ class BuildCommand(object):
     def new_repo_caches(self):
         return morphlib.util.new_repo_caches(self.app)
 
+    def new_build_env(self, arch):
+        '''Create a new BuildEnvironment instance.'''
+        return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
+                                                          arch)
+
     def get_artifact_object(self, repo_name, ref, filename):
         '''Create an Artifact object representing the given triplet.'''
         
@@ -83,11 +76,6 @@ class BuildCommand(object):
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
-
-        root_kind = srcpool.lookup(repo_name, ref, filename).morphology['kind']
-        if root_kind is not 'system':
-            raise morphlib.Error(
-                'Building a %s directly is not supported' % root_kind)
 
         self.app.status(
             msg='Validating cross-morphology references', chatty=True)
@@ -99,14 +87,26 @@ class BuildCommand(object):
         self.app.status(msg='Resolving artifacts', chatty=True)
         artifacts = ar.resolve_artifacts(srcpool)
 
-        self.app.status(msg='Computing cache keys', chatty=True)
-        for artifact in artifacts:
-            artifact.cache_key = self.ckc.compute_key(artifact)
-            artifact.cache_id = self.ckc.get_cache_id(artifact)
-
         self.app.status(msg='Computing build order', chatty=True)
         root_artifact = self._find_root_artifact(artifacts)
 
+        root_kind = root_artifact.source.morphology['kind']
+        if root_kind != 'system':
+            raise morphlib.Error(
+                'Building a %s directly is not supported' % root_kind)
+        arch = root_artifact.source.morphology['arch']
+
+        self.app.status(msg='Creating build environment for %(arch)s',
+                        arch=arch, chatty=True)
+        build_env = self.new_build_env(arch)
+
+        self.app.status(msg='Computing cache keys', chatty=True)
+        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
+        for artifact in artifacts:
+            artifact.cache_key = ckc.compute_key(artifact)
+            artifact.cache_id = ckc.get_cache_id(artifact)
+
+        root_artifact.build_env = build_env
         return root_artifact
 
     def _validate_cross_morphology_references(self, srcpool):
@@ -188,6 +188,7 @@ class BuildCommand(object):
         '''Build everything specified in a build order.'''
 
         self.app.status(msg='Building a set of artifacts', chatty=True)
+        build_env = root_artifact.build_env
         artifacts = root_artifact.walk()
         old_prefix = self.app.status_prefix
         for i, a in enumerate(artifacts):
@@ -204,7 +205,7 @@ class BuildCommand(object):
             else:
                 self.app.status(msg='Building %(kind)s %(name)s',
                                 kind=a.source.morphology['kind'], name=a.name)
-                self.build_artifact(a)
+                self.build_artifact(a, build_env)
 
             self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
                             kind=a.source.morphology['kind'], name=a.name,
@@ -216,7 +217,7 @@ class BuildCommand(object):
         '''Does either cache already have the artifact?'''
         return self.lac.has(artifact) or (self.rac and self.rac.has(artifact))
 
-    def build_artifact(self, artifact):
+    def build_artifact(self, artifact, build_env):
         '''Build one artifact.
 
         All the dependencies are assumed to be built and available
@@ -242,12 +243,14 @@ class BuildCommand(object):
                 build_mode = 'staging'
 
             use_chroot = build_mode=='staging'
-            staging_area = self.create_staging_area(
-                use_chroot, extra_env=extra_env, extra_path=extra_path)
+            staging_area = self.create_staging_area(build_env,
+                                                    use_chroot,
+                                                    extra_env=extra_env,
+                                                    extra_path=extra_path)
             self.install_fillers(staging_area)
             self.install_dependencies(staging_area, deps, artifact)
         else:
-            staging_area = self.create_staging_area()
+            staging_area = self.create_staging_area(build_env, False)
 
         self.build_and_cache(staging_area, artifact, setup_mounts)
         self.remove_staging_area(staging_area)
@@ -318,14 +321,14 @@ class BuildCommand(object):
                     copy(self.rac.get_artifact_metadata(artifact, 'meta'),
                          self.lac.put_artifact_metadata(artifact, 'meta'))
 
-    def create_staging_area(self, use_chroot=True, extra_env={},
+    def create_staging_area(self, build_env, use_chroot=True, extra_env={},
                             extra_path=[]):
         '''Create the staging area for building a single artifact.'''
 
         self.app.status(msg='Creating staging area')
         staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
         staging_area = morphlib.stagingarea.StagingArea(
-            self.app, staging_dir, self.build_env, use_chroot, extra_env,
+            self.app, staging_dir, build_env, use_chroot, extra_env,
             extra_path)
         return staging_area
 

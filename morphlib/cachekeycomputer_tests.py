@@ -25,8 +25,7 @@ class DummyBuildEnvironment:
        settings to pick the environment, it just gets passed
        a dict representing it
     '''
-    def __init__(self, env, arch=None):
-        self.arch = morphlib.util.arch() if arch is None else arch
+    def __init__(self, env, arch):
         self.env = env
 
 
@@ -105,11 +104,11 @@ class CacheKeyComputerTests(unittest.TestCase):
                 m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
             "LOGNAME": "foouser",
+            "MORPH_ARCH": "dummy",
             "TARGET": "dummy-baserock-linux-gnu",
             "TARGET_STAGE1": "dummy-baserock-linux-gnu",
-            "TARGET_GCC_CONFIG": "",
             "USER": "foouser",
-            "USERNAME": "foouser"})
+            "USERNAME": "foouser"}, 'dummy')
         self.artifact_resolver = morphlib.artifactresolver.ArtifactResolver()
         self.artifacts = self.artifact_resolver.resolve_artifacts(
             self.source_pool)

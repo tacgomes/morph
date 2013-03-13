@@ -106,6 +106,16 @@ class MorphologyFactory(object):
                                  '(arch is a mandatory field)' %
                                  filename)
 
+        valid_archs = ['armv7l', 'armv7b', 'x86_32', 'x86_64']
+
+        if morphology['arch'] == 'armv7':
+            morphology._dict['arch'] = 'armv7l'
+
+        if morphology['arch'] not in valid_archs:
+            raise morphlib.Error('Unknown arch %s. This version of Morph '
+                                 'supports the following architectures: %s' %
+                                 (morphology['arch'], ', '.join(valid_archs)))
+
         if not morphology['system-kind']:
             raise morphlib.Error('No system-kind defined in system %s '
                                  '(it is a mandatory field)' % filename)

@@ -73,7 +73,7 @@ class FakeLocalRepo(object):
     }
 
     def __init__(self):
-        self.arch = 'unknown'
+        self.arch = 'x86_64'
         self.system_kind = 'unknown'
 
     def cat(self, sha1, filename):
@@ -219,7 +219,7 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertEqual(morph.builds_artifacts, ['stratum'])
 
     def test_sets_build_artifacts_for_system(self):
-        self.lr.arch = 'x86_64'
+        self.lr.arch = 'x86_32'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph.builds_artifacts, ['system-rootfs'])
 
@@ -234,6 +234,17 @@ class MorphologyFactoryTests(unittest.TestCase):
     def test_does_not_set_artifact_metadata_cached_for_system(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph.needs_artifact_metadata_cached, False)
+
+
+    def test_arch_is_validated(self):
+        self.lr.arch = 'unknown'
+        self.assertRaises(morphlib.Error, self.mf.get_morphology,
+                          'reponame', 'sha1', 'system.morph')
+
+    def test_arch_arm_defaults_to_le(self):
+        self.lr.arch = 'armv7'
+        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
+        self.assertEqual(morph['arch'], 'armv7l')
 
     def test_fails_if_system_does_not_define_system_kind(self):
         self.lr.system_kind = ''
