@@ -309,7 +309,7 @@ class MorphologyTests(unittest.TestCase):
     "kind": "system",
     "disk-size": "1g",
     "arch": "x86_64",
-    "system-kind": "syslinux-disk"
+    "system-kind": "rootfs-tarball"
 }'''
 
     def test_writing_preserves_disk_size(self):

@@ -110,6 +110,17 @@ class MorphologyFactory(object):
             raise morphlib.Error('No system-kind defined in system %s '
                                  '(it is a mandatory field)' % filename)
 
+        if morphology['system-kind'] != 'rootfs-tarball':
+            self._app.status(
+                msg='You are using a system-kind %(kind)s. '
+                    'This is deprecated and untested functionality that will '
+                    'be removed in a future version of Baserock. The only '
+                    'supported system-kind is rootfs-tarball. '
+                    'Please convert your system morphologies to '
+                    'rootfs-tarball and use morph deploy to create '
+                    'disk images.',
+                kind=morphology['system-kind'])
+
         name = morphology['name']
         morphology.builds_artifacts = [name + '-rootfs']
 
