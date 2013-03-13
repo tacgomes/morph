@@ -137,8 +137,9 @@ class ChunkTests(BinsTest):
 
     def test_does_not_compress_artifact(self):
         self.create_chunk(['bin'])
-        with gzip.open(self.chunk_file) as f:
-            self.assertRaises(IOError, f.read) 
+        f = gzip.open(self.chunk_file)
+        self.assertRaises(IOError, f.read)
+        f.close()
 
 
 class ExtractTests(unittest.TestCase):
