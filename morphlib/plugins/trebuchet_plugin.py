@@ -46,20 +46,32 @@ class TrebuchetPlugin(cliapp.Plugin):
         repo_name2, ref2, filename2 = args[4:7]
 
         app = self.app
-        build_env = morphlib.buildenvironment.BuildEnvironment(
-            app.settings, morphlib.util.target(self.app.runcmd))
-        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
         lac, rac = morphlib.util.new_artifact_caches(app.settings)
         lrc, rrc = morphlib.util.new_repo_caches(app)
+
+        def get_system_source(repo_name, ref, filename):
+            srcpool = app.create_source_pool(
+                lrc, rrc, (repo_name, ref, filename))
+            src = srcpool.lookup(repo_name, ref, filename)
+            return srcpool, src.morphology['arch']
+
+        srcpool1, arch1 = get_system_source(repo_name1, ref1, filename1)
+        srcpool2, arch2 = get_system_source(repo_name2, ref2, filename2)
+
+        if arch1 != arch2:
+            raise cliapp.AppException('System architectures do not match: '
+                                      '%s vs. %s' % (arch1, arch2))
+
+        build_env = morphlib.buildenvironment.BuildEnvironment(
+            app.settings, arch1)
+        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         def the_one(source, repo_name, ref, filename):
             return (source.repo_name == repo_name and
                     source.original_ref == ref and
                     source.filename == filename)
 
-        def get_artifact(repo_name, ref, filename):
-            srcpool = app.create_source_pool(
-                lrc, rrc, (repo_name, ref, filename))
+        def get_artifact(srcpool, repo_name, ref, filename):
             ar = morphlib.artifactresolver.ArtifactResolver()
             artifacts = ar.resolve_artifacts(srcpool)
             for artifact in artifacts:
@@ -71,8 +83,8 @@ class TrebuchetPlugin(cliapp.Plugin):
                     a.cache_key = artifact.cache_key
                     return a
 
-        artifact1 = get_artifact(repo_name1, ref1, filename1)
-        artifact2 = get_artifact(repo_name2, ref2, filename2)
+        artifact1 = get_artifact(srcpool1, repo_name1, ref1, filename1)
+        artifact2 = get_artifact(srcpool2, repo_name2, ref2, filename2)
 
         image_path_1 = lac.get(artifact1).name
         image_path_2 = lac.get(artifact2).name
