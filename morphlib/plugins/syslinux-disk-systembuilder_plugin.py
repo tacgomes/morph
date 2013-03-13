@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -84,16 +84,13 @@ class SyslinuxDiskBuilder(DiskImageBuilder):  # pragma: no cover
 class SyslinuxDiskBuilderPlugin(cliapp.Plugin):
 
     def enable(self):
-        # Only provide this system builder on architectures that are
-        # supported by syslinux.
-        if morphlib.util.arch() in ['x86_64', 'i386', 'i486', 'i586', 'i686']:
-            self.app.settings.string_list(
-                ['syslinux-mbr-search-paths'],
-                'A list of files to search for to use as the syslinux mbr',
-                default=['/usr/lib/extlinux/mbr.bin',
-                         '/usr/share/syslinux/mbr.bin'],
-                group='Build Options')
-            self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
+        self.app.settings.string_list(
+             ['syslinux-mbr-search-paths'],
+             'A list of files to search for to use as the syslinux mbr',
+             default=['/usr/lib/extlinux/mbr.bin',
+                      '/usr/share/syslinux/mbr.bin'],
+             group='Build Options')
+        self.app.system_kind_builder_factory.register(SyslinuxDiskBuilder)
 
     def disable(self):
         pass
