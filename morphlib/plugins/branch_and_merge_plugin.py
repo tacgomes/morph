@@ -73,7 +73,14 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('status', self.status)
         self.app.add_subcommand('branch-from-image', self.branch_from_image,
-                                 arg_synopsis='REPO BRANCH [METADATADIR]')
+                                 arg_synopsis='REPO BRANCH')
+        group_branch = 'Branching Options'
+        self.app.settings.string(['metadata-dir'],
+                                  'Set metadata location for branch-from-image'
+                                  ' (default: /baserock)',
+                                  metavar='DIR',
+                                  default='/baserock',
+                                  group=group_branch)
 
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
@@ -859,7 +866,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'branch-from-image needs repository, ref and path to metadata')
         root_repo = args[0]
         branch = args[1]
-        metadata_path = '/baserock' if len(args) == 2 else args[2]
+        metadata_path = self.app.settings['metadata-dir']
         workspace = self.deduce_workspace()
         self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
 
