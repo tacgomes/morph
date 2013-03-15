@@ -288,7 +288,8 @@ class StagingArea(object):
                         real_argv += ['--mount-readonly', '/'+d]
             real_argv += [self.dirname]
 
-            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--',
+                          cwd]
             real_argv += argv
 
             return self._app.runcmd(real_argv, **kwargs)
