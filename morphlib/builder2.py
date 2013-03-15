@@ -54,6 +54,9 @@ def ldconfig(runcmd, rootdir):  # pragma: no cover
 
     '''
 
+    # FIXME: use the version in ROOTDIR, since even in
+    # bootstrap it will now always exist due to being part of build-essential
+
     conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
     if os.path.exists(conf):
         logging.debug('Running ldconfig for %s' % rootdir)
@@ -152,15 +155,14 @@ class BuilderBase(object):
     '''Base class for building artifacts.'''
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, artifact, repo_cache,
-                 build_env, max_jobs, setup_mounts):
+                 remote_artifact_cache, artifact, repo_cache, max_jobs,
+                 setup_mounts):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
         self.artifact = artifact
         self.repo_cache = repo_cache
-        self.build_env = build_env
         self.max_jobs = max_jobs
         self.build_watch = morphlib.stopwatch.Stopwatch()
         self.setup_mounts = setup_mounts
@@ -250,7 +252,6 @@ class BuilderBase(object):
         return a
 
     def runcmd(self, *args, **kwargs):
-        kwargs['env'] = self.build_env.env
         return self.staging_area.runcmd(*args, **kwargs)
 
 
@@ -375,7 +376,7 @@ class ChunkBuilder(BuilderBase):
 
         relative_builddir = self.staging_area.relative(builddir)
         relative_destdir = self.staging_area.relative(destdir)
-        self.build_env.env['DESTDIR'] = relative_destdir
+        extra_env = { 'DESTDIR': relative_destdir }
 
         steps = [
             ('pre-configure', False),
@@ -403,9 +404,9 @@ class ChunkBuilder(BuilderBase):
                         max_jobs = self.artifact.source.morphology['max-jobs']
                         if max_jobs is None:
                             max_jobs = self.max_jobs
-                        self.build_env.env['MAKEFLAGS'] = '-j%s' % max_jobs
+                        extra_env['MAKEFLAGS'] = '-j%s' % max_jobs
                     else:
-                        self.build_env.env['MAKEFLAGS'] = '-j1'
+                        extra_env['MAKEFLAGS'] = '-j1'
                     try:
                         # flushing is needed because writes from python and
                         # writes from being the output in Popen have different
@@ -413,6 +414,7 @@ class ChunkBuilder(BuilderBase):
                         logfile.write('# # %s\n' % cmd)
                         logfile.flush()
                         self.runcmd(['sh', '-c', cmd],
+                                    extra_env=extra_env,
                                     cwd=relative_builddir,
                                     stdout=logfile,
                                     stderr=subprocess.STDOUT)
@@ -459,13 +461,18 @@ class StratumBuilder(BuilderBase):
 
     '''Build stratum artifacts.'''
 
+    def is_constituent(self, artifact):  # pragma: no cover
+        '''True if artifact should be included in the stratum artifact'''
+        return (artifact.source.morphology['kind'] == 'chunk' and \
+                artifact.source.build_mode != 'bootstrap')
+
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
-            constituents = [dependency
-                            for dependency in self.artifact.dependencies
-                            if dependency.source.morphology['kind'] == 'chunk']
+            constituents = [d for d in self.artifact.dependencies
+                            if self.is_constituent(d)]
             if len(constituents) == 0:
                 logging.warning('Stratum %s is empty' % self.artifact.name)
+
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
             with self.build_watch('check-chunks'):
@@ -667,14 +674,12 @@ class Builder(object):  # pragma: no cover
     }
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, repo_cache, build_env, max_jobs,
-                 setup_mounts):
+                 remote_artifact_cache, repo_cache, max_jobs, setup_mounts):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
         self.repo_cache = repo_cache
-        self.build_env = build_env
         self.max_jobs = max_jobs
         self.setup_mounts = setup_mounts
 
@@ -683,8 +688,8 @@ class Builder(object):  # pragma: no cover
         o = self.classes[kind](self.app, self.staging_area,
                                self.local_artifact_cache,
                                self.remote_artifact_cache, artifact,
-                               self.repo_cache, self.build_env,
-                               self.max_jobs, self.setup_mounts)
+                               self.repo_cache, self.max_jobs,
+                               self.setup_mounts)
         logging.debug('Builder.build: artifact %s with %s' %
                       (artifact.name, repr(o)))
         built_artifacts = o.build_and_cache()

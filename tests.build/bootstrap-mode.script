@@ -1,0 +1,156 @@
+#!/bin/sh
+#
+# Copyright (C) 2011-2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+## 'bootstrap' mode is similar to 'test' mode, but they should not be included
+## in the final stratum artifact. This feature is used to bootstrap the
+## build-essential stratum using the toolchain of the host.
+
+set -eu
+
+# Create a fake 'compiler' chunk to go into build-essential stratum
+
+mkdir -p "$DATADIR/cc-repo"
+cd "$DATADIR/cc-repo"
+
+cat <<EOF > "morph-test-cc"
+#!/bin/sh
+echo "I'm a compiler!"
+EOF
+chmod +x morph-test-cc
+
+cat <<EOF > "stage1-cc.morph"
+{
+    "name": "stage1-cc",
+    "kind": "chunk",
+    "install-commands": [
+        "install -d \"\$DESTDIR\$PREFIX/bin\"",
+        "install -m 755 morph-test-cc \"\$DESTDIR\$PREFIX/bin/morph-test-cc\""
+    ]
+}
+EOF
+
+cat <<EOF > "cc.morph"
+{
+    "name": "cc",
+    "kind": "chunk",
+    "configure-commands": [
+        "[ -e ../tools/bin/morph-test-cc ]"
+    ],
+    "install-commands": [
+        "install -d \"\$DESTDIR\$PREFIX/bin\"",
+        "install -m 755 morph-test-cc \"\$DESTDIR\$PREFIX/bin/morph-test-cc\""
+    ]
+}
+EOF
+
+git init -q
+git add morph-test-cc cc.morph stage1-cc.morph
+git commit -q -m "Create compiler chunk"
+
+# Require 'cc' in hello-chunk. We should have the second version available
+# but *not* the first one.
+cd "$DATADIR/chunk-repo"
+git checkout -q farrokh
+cat <<EOF > "hello.morph"
+{
+    "name": "hello",
+    "kind": "chunk",
+    "configure-commands": [
+        "[ ! -e ../tools/bin/morph-test-cc ]",
+        "[ -e ../usr/bin/morph-test-cc ]"
+    ],
+    "build-commands": [
+        "../usr/bin/morph-test-cc > hello"
+    ],
+    "install-commands": [
+        "install -d \"\$DESTDIR\$PREFIX/bin\"",
+        "install hello \"\$DESTDIR\$PREFIX/bin/hello\""
+    ]
+}
+EOF
+git add hello.morph
+git commit -q -m "Make 'hello' require our mock compiler"
+
+# Add 'build-essential' stratum and make hello-stratum depend upon it. Only
+# the *second* 'cc' chunk should make it into the build-essential stratum
+# artifact, and neither should make it into the system.
+cd "$DATADIR/morphs-repo"
+cat <<EOF > "build-essential.morph"
+{
+    "name": "build-essential",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "stage1-cc",
+            "repo": "test:cc-repo",
+            "ref": "master",
+            "build-depends": [],
+            "build-mode": "bootstrap",
+            "prefix": "/tools"
+        },
+        {
+            "name": "cc",
+            "repo": "test:cc-repo",
+            "ref": "master",
+            "build-depends": [
+                "stage1-cc"
+            ],
+            "build-mode": "test"
+        }
+    ]
+}
+EOF
+
+cat <<EOF > "hello-stratum.morph"
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "build-depends": [
+        {
+            "morph": "build-essential",
+            "repo": "test:morphs-repo",
+            "ref": "master"
+        }
+    ],
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "test:chunk-repo",
+            "ref": "farrokh",
+            "build-depends": [],
+            "build-mode": "test"
+        }
+    ]
+}
+EOF
+
+git add build-essential.morph hello-stratum.morph hello-system.morph
+git commit -q -m "Add fake build-essential stratum"
+
+"$SRCDIR/scripts/test-morph" build-morphology \
+    test:morphs-repo master hello-system
+
+cd "$DATADIR/cache/artifacts"
+echo "build-essential stratum:"
+stratum=$(ls *.stratum.build-essential)
+cat $stratum | sed 's/[a-f0-9]\{64\}/xxxx/g'
+echo
+echo
+echo "hello-system:"
+system=$(ls *hello-system-rootfs)
+tar tf "$system" | LC_ALL=C sort | sed '/^\.\/./s:^\./::'

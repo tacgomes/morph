@@ -33,12 +33,14 @@ class BuildCommand(object):
     '''
 
     def __init__(self, app):
+        self.supports_local_build = True
+        self.target = morphlib.util.target(app.runcmd)
+
         self.app = app
         self.build_env = self.new_build_env()
         self.ckc = self.new_cache_key_computer(self.build_env)
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
-        self.supports_local_build = True
 
     def build(self, args):
         '''Build triplets specified on command line.'''
@@ -55,7 +57,8 @@ class BuildCommand(object):
 
     def new_build_env(self):
         '''Create a new BuildEnvironment instance.'''
-        return morphlib.buildenvironment.BuildEnvironment(self.app.settings)
+        return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
+                                                          self.target)
 
     def new_cache_key_computer(self, build_env):
         '''Create a new cache key computer.'''
@@ -181,18 +184,37 @@ class BuildCommand(object):
         assert len(maybe) == 1
         return maybe.pop()
 
-    def build_in_order(self, artifact):
+    def build_in_order(self, root_artifact):
         '''Build everything specified in a build order.'''
-        self.app.status(msg='Building according to build ordering',
-                        chatty=True)
 
-        artifacts = artifact.walk()
+        self.app.status(msg='Building a set of artifacts', chatty=True)
+        artifacts = root_artifact.walk()
         old_prefix = self.app.status_prefix
         for i, a in enumerate(artifacts):
             self.app.status_prefix = (
                 old_prefix + '[Build %d/%d] ' % ((i+1), len(artifacts)))
-            self.build_artifact(a)
+
+            self.app.status(msg='Checking if %(kind)s %(name)s needs building',
+                            kind=a.source.morphology['kind'], name=a.name)
+
+            if self.is_built(a):
+                self.app.status(msg='The %(kind)s %(name)s is already built',
+                                kind=a.source.morphology['kind'], name=a.name)
+                self.cache_artifacts_locally([a])
+            else:
+                self.app.status(msg='Building %(kind)s %(name)s',
+                                kind=a.source.morphology['kind'], name=a.name)
+                self.build_artifact(a)
+
+            self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
+                            kind=a.source.morphology['kind'], name=a.name,
+                            cachepath=self.lac.artifact_filename(a),
+                            chatty=(a.source.morphology['kind'] != "system"))
         self.app.status_prefix = old_prefix
+
+    def is_built(self, artifact):
+        '''Does either cache already have the artifact?'''
+        return self.lac.has(artifact) or (self.rac and self.rac.has(artifact))
 
     def build_artifact(self, artifact):
         '''Build one artifact.
@@ -201,57 +223,37 @@ class BuildCommand(object):
         in either the local or remote cache already.
 
         '''
+        self.get_sources(artifact)
+        deps = self.get_recursive_deps(artifact)
+        self.cache_artifacts_locally(deps)
 
-        self.app.status(msg='Checking if %(kind)s %(name)s needs building',
-                        kind=artifact.source.morphology['kind'],
-                        name=artifact.name)
+        setup_mounts = False
+        if artifact.source.morphology['kind'] == 'chunk':
+            build_mode = artifact.source.build_mode
+            extra_env = {'PREFIX': artifact.source.prefix}
 
-        if self.is_built(artifact):
-            self.app.status(msg='The %(kind)s %(name)s is already built',
-                            kind=artifact.source.morphology['kind'],
-                            name=artifact.name)
-            self.cache_artifacts_locally([artifact])
+            dep_prefix_set = artifact.get_dependency_prefix_set()
+            extra_path = [os.path.join(d, 'bin') for d in dep_prefix_set]
+
+            if build_mode not in ['bootstrap', 'staging', 'test']:
+                logging.warning('Unknown build mode %s for chunk %s. '
+                                'Defaulting to staging mode.' %
+                                (build_mode, artifact.name))
+                build_mode = 'staging'
+
+            use_chroot = build_mode=='staging'
+            staging_area = self.create_staging_area(
+                use_chroot, extra_env=extra_env, extra_path=extra_path)
+            self.install_fillers(staging_area)
+            self.install_dependencies(staging_area, deps, artifact)
         else:
-            self.app.status(msg='Building %(kind)s %(name)s',
-                            kind=artifact.source.morphology['kind'],
-                            name=artifact.name)
-            self.get_sources(artifact)
-            deps = self.get_recursive_deps(artifact)
-            self.cache_artifacts_locally(deps)
-            staging_area = self.create_staging_area(artifact)
-            if self.app.settings['staging-chroot']:
-                if artifact.source.morphology.needs_staging_area:
-                    self.install_fillers(staging_area)
-                    self.install_chunk_artifacts(staging_area,
-                                                 deps, artifact)
-                    morphlib.builder2.ldconfig(self.app.runcmd,
-                                               staging_area.tempdir)
+            staging_area = self.create_staging_area()
 
-            self.build_and_cache(staging_area, artifact)
-            if self.app.settings['bootstrap']:
-                self.install_chunk_artifacts(staging_area,
-                                             (artifact,))
-            self.remove_staging_area(staging_area)
-        self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
-                        kind=artifact.source.morphology['kind'],
-                        name=artifact.name,
-                        cachepath=self.lac.artifact_filename(artifact),
-                        chatty=(artifact.source.morphology['kind'] !=
-                                "system"))
-
-    def is_built(self, artifact):
-        '''Does either cache already have the artifact?'''
-        return self.lac.has(artifact) or (self.rac and self.rac.has(artifact))
+        self.build_and_cache(staging_area, artifact, setup_mounts)
+        self.remove_staging_area(staging_area)
 
     def get_recursive_deps(self, artifact):
-        done = set()
-        todo = set((artifact,))
-        while todo:
-            for a in todo.pop().dependencies:
-                if a not in done:
-                    done.add(a)
-                    todo.add(a)
-        return done
+        return artifact.walk()[:-1]
 
     def get_sources(self, artifact):
         '''Update the local git repository cache with the sources.'''
@@ -316,39 +318,25 @@ class BuildCommand(object):
                     copy(self.rac.get_artifact_metadata(artifact, 'meta'),
                          self.lac.put_artifact_metadata(artifact, 'meta'))
 
-    def create_staging_area(self, artifact):
+    def create_staging_area(self, use_chroot=True, extra_env={},
+                            extra_path=[]):
         '''Create the staging area for building a single artifact.'''
 
-        if self.app.settings['staging-chroot']:
-            staging_root = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
-            staging_temp = staging_root
-        else:
-            staging_root = '/'
-            staging_temp = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
-
         self.app.status(msg='Creating staging area')
-        staging_area = morphlib.stagingarea.StagingArea(self.app,
-                                                        staging_root,
-                                                        staging_temp)
+        staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        staging_area = morphlib.stagingarea.StagingArea(
+            self.app, staging_dir, self.build_env, use_chroot, extra_env,
+            extra_path)
         return staging_area
 
     def remove_staging_area(self, staging_area):
         '''Remove the staging area.'''
 
-        if staging_area.dirname != '/':
-            self.app.status(msg='Removing staging area')
-            staging_area.remove()
-        temp_path = staging_area.tempdir
-        if temp_path != '/' and os.path.exists(temp_path):
-            self.app.status(msg='Removing temporary staging directory')
-            shutil.rmtree(temp_path)
+        self.app.status(msg='Removing staging area')
+        staging_area.remove()
 
     def install_fillers(self, staging_area):
-        '''Install staging fillers into the staging area.
-
-        This must not be called in bootstrap mode.
-
-        '''
+        '''Install staging fillers into the staging area.'''
 
         logging.debug('Pre-populating staging area %s' % staging_area.dirname)
         logging.debug('Fillers: %s' %
@@ -359,7 +347,16 @@ class BuildCommand(object):
                                 filename=filename)
                 staging_area.install_artifact(f)
 
-    def install_chunk_artifacts(self, staging_area, artifacts, parent_art):
+    # Nasty hack to avoid installing chunks built in 'bootstrap' mode in a
+    # different stratum when constructing staging areas.
+    def is_stratum(self, a):
+        return a.source.morphology['kind'] == 'stratum'
+
+    def in_same_stratum(self, a, b):
+        return len(filter(self.is_stratum, a.dependencies)) == \
+               len(filter(self.is_stratum, b.dependencies))
+
+    def install_dependencies(self, staging_area, artifacts, target_artifact):
         '''Install chunk artifacts into staging area.
 
         We only ever care about chunk artifacts as build dependencies,
@@ -373,13 +370,19 @@ class BuildCommand(object):
         for artifact in artifacts:
             if artifact.source.morphology['kind'] != 'chunk':
                 continue
+            if artifact.source.build_mode == 'bootstrap':
+               if not self.in_same_stratum(artifact, target_artifact):
+                    continue
             self.app.status(msg='[%(name)s] Installing chunk %(chunk_name)s',
-                            name=parent_art.name,
+                            name=target_artifact.name,
                             chunk_name=artifact.name)
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
 
-    def build_and_cache(self, staging_area, artifact):
+        if target_artifact.source.build_mode == 'staging':
+            morphlib.builder2.ldconfig(self.app.runcmd, staging_area.dirname)
+
+    def build_and_cache(self, staging_area, artifact, setup_mounts):
         '''Build an artifact and put it into the local artifact cache.'''
 
         self.app.status(msg='Starting actual build: %(name)s',
@@ -387,5 +390,5 @@ class BuildCommand(object):
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
-            self.build_env, self.app.settings['max-jobs'], setup_mounts)
+            self.app.settings['max-jobs'], setup_mounts)
         return builder.build_and_cache(artifact)

@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,13 @@ import unittest
 
 import morphlib
 
+
+class FakeBuildEnvironment(object):
+
+    def __init__(self):
+        self.env = {
+        }
+        self.extra_path = ['/extra-path']
 
 class FakeSource(object):
 
@@ -56,9 +63,10 @@ class StagingAreaTests(unittest.TestCase):
         os.mkdir(os.path.join(self.cachedir, 'artifacts'))
         self.staging = os.path.join(self.tempdir, 'staging')
         self.created_dirs = []
+        self.build_env = FakeBuildEnvironment()
         self.sa = morphlib.stagingarea.StagingArea(
-            FakeApplication(self.cachedir, self.tempdir),
-            self.staging, self.staging)
+            FakeApplication(self.cachedir, self.tempdir), self.staging,
+            self.build_env)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -88,10 +96,6 @@ class StagingAreaTests(unittest.TestCase):
 
     def test_remembers_specified_directory(self):
         self.assertEqual(self.sa.dirname, self.staging)
-
-    def test_accepts_root_directory(self):
-        sa = morphlib.stagingarea.StagingArea(object(), '/', '/tmp')
-        self.assertEqual(sa.dirname, '/')
 
     def test_creates_build_directory(self):
         source = FakeSource()
@@ -123,3 +127,9 @@ class StagingAreaTests(unittest.TestCase):
             self.sa.install_artifact(f)
         self.sa.remove()
         self.assertFalse(os.path.exists(self.staging))
+
+    def test_supports_non_isolated_mode(self):
+        sa = morphlib.stagingarea.StagingArea(
+            object(), self.staging, self.build_env, use_chroot=False)
+        filename = os.path.join(self.staging, 'foobar')
+        self.assertEqual(sa.relative(filename), filename)

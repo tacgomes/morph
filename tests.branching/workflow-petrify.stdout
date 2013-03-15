@@ -31,6 +31,7 @@ test/petrify after petrifying:
             "name": "hello",
             "repo": "test:stratum2-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-mode": "test",
             "build-depends": [],
             "unpetrify-ref": "master"
         }
@@ -44,6 +45,7 @@ test/petrify after petrifying:
             "name": "hello",
             "repo": "test:stratum3-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-mode": "test",
             "build-depends": [],
             "unpetrify-ref": "master"
         }
@@ -83,6 +85,7 @@ test/petrify after editing a chunk:
             "name": "hello",
             "repo": "test:stratum2-hello",
             "ref": "test/petrify",
+            "build-mode": "test",
             "build-depends": []
         }
     ]
@@ -95,6 +98,7 @@ test/petrify after editing a chunk:
             "name": "hello",
             "repo": "test:stratum3-hello",
             "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-mode": "test",
             "build-depends": [],
             "unpetrify-ref": "master"
         }
@@ -134,6 +138,7 @@ test/unpetrify after unpetrifying:
             "name": "hello",
             "repo": "test:stratum2-hello",
             "ref": "test/petrify",
+            "build-mode": "test",
             "build-depends": []
         }
     ]
@@ -146,6 +151,7 @@ test/unpetrify after unpetrifying:
             "name": "hello",
             "repo": "test:stratum3-hello",
             "ref": "master",
+            "build-mode": "test",
             "build-depends": []
         }
     ]

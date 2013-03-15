@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,12 +57,14 @@ cat <<EOF >foo-baz-stratum.morph
       "name": "overlap-foo-baz",
       "repo": "test:chunk-repo",
       "ref": "overlap",
+      "build-mode": "test",
       "build-depends": []
     },
     {
       "name": "linux",
       "repo": "test:kernel-repo",
       "ref": "master",
+      "build-mode": "test",
       "build-depends": ["overlap-foo-baz"]
     }
   ]
@@ -77,12 +79,14 @@ cat <<EOF >foo-barqux-stratum.morph
       "name": "overlap-foobar",
       "repo": "test:chunk-repo",
       "ref": "overlap",
+      "build-mode": "test",
       "build-depends": []
     },
     {
       "name": "overlap-fooqux",
       "repo": "test:chunk-repo",
       "ref": "overlap",
+      "build-mode": "test",
       "build-depends": ["overlap-foobar"]
     }
   ]

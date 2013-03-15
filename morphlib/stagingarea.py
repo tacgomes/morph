@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,32 +27,43 @@ class StagingArea(object):
 
     '''Represent the staging area for building software.
 
-    The build dependencies of what will be built will be installed in the
-    staging area. The staging area may be a dedicated part of the
-    filesystem, used with chroot, or it can be the actual root of the
-    filesystem, which is needed when bootstrap building Baserock. The
-    caller chooses this by providing the root directory of the staging
-    area when the object is created. The directory must already exist.
-
-    The staging area can also install build artifacts.
+    The staging area is a temporary directory. In normal operation the build
+    dependencies of the artifact being built are installed into the staging
+    area and then 'chroot' is used to isolate the build processes from the host
+    system. Chunks built in 'test' or 'build-essential' mode have an empty
+    staging area and are allowed to use the tools of the host.
 
     '''
 
-    def __init__(self, app, dirname, tempdir):
+    _base_path = ['/sbin', '/usr/sbin', '/bin', '/usr/bin']
+
+    def __init__(self, app, dirname, build_env, use_chroot=True, extra_env={},
+                 extra_path=[]):
         self._app = app
         self.dirname = dirname
-        self.tempdir = tempdir
         self.builddirname = None
         self.destdirname = None
         self.mounted = None
         self._bind_readonly_mount = None
+
+        self.use_chroot = use_chroot
+        self.env = build_env.env
+        self.env.update(extra_env)
+
+        if use_chroot:
+            path = extra_path + build_env.extra_path + self._base_path
+        else:
+            rel_path = extra_path + build_env.extra_path
+            full_path = [os.path.normpath(dirname + p) for p in rel_path]
+            path = full_path + os.environ['PATH'].split(':')
+        self.env['PATH'] = ':'.join(path)
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
         os.mkdir(dirname)
 
     def _dir_for_source(self, source, suffix):
-        dirname = os.path.join(self.tempdir,
+        dirname = os.path.join(self.dirname,
                                '%s.%s' % (source.morphology['name'], suffix))
         self._mkdir(dirname)
         return dirname
@@ -78,6 +89,9 @@ class StagingArea(object):
 
     def relative(self, filename):
         '''Return a filename relative to the staging area.'''
+
+        if not self.use_chroot:
+            return filename
 
         dirname = self.dirname
         if not dirname.endswith('/'):
@@ -194,8 +208,7 @@ class StagingArea(object):
         if not os.path.isdir(ccache_repodir):
             os.mkdir(ccache_repodir)
         # Get the destination path
-        ccache_destdir= os.path.join(self.tempdir,
-                                     'tmp', 'ccache')
+        ccache_destdir= os.path.join(self.dirname, 'tmp', 'ccache')
         # Make sure that the destination exists. We'll create /tmp if necessary
         # to avoid breaking when faced with an empty staging area.
         if not os.path.isdir(ccache_destdir):
@@ -251,30 +264,33 @@ class StagingArea(object):
 
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
+        assert 'env' not in kwargs
+        kwargs['env'] = self.env
+        if 'extra_env' in kwargs:
+            kwargs['env'].update(kwargs['extra_env'])
+            del kwargs['extra_env']
 
-        cwd = kwargs.get('cwd') or '/'
-        if 'cwd' in kwargs:
-            cwd = kwargs['cwd']
-            del kwargs['cwd']
-        else:
-            cwd = '/'
-        if self._app.settings['staging-chroot']:
-            not_readonly_dirs = [self.builddirname, self.destdirname,
+        if self.use_chroot:
+            cwd = kwargs.get('cwd') or '/'
+            if 'cwd' in kwargs:
+                cwd = kwargs['cwd']
+                del kwargs['cwd']
+            else:
+                cwd = '/'
+
+            do_not_mount_dirs = [self.builddirname, self.destdirname,
                                  'dev', 'proc', 'tmp']
-            dirs = os.listdir(self.dirname)
-            for excluded_dir in not_readonly_dirs:
-                dirs.remove(excluded_dir)
 
             real_argv = ['linux-user-chroot']
-
-            for entry in dirs:
-                real_argv += ['--mount-readonly', '/'+entry]
-
+            for d in os.listdir(self.dirname):
+                if d not in do_not_mount_dirs:
+                    if os.path.isdir(os.path.join(self.dirname, d)):
+                        real_argv += ['--mount-readonly', '/'+d]
             real_argv += [self.dirname]
+
+            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
+            real_argv += argv
+
+            return self._app.runcmd(real_argv, **kwargs)
         else:
-            real_argv = ['chroot', '/']
-
-        real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--', cwd]
-        real_argv += argv
-
-        return self._app.runcmd(real_argv, **kwargs)
+            return self._app.runcmd(argv, **kwargs)

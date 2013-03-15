@@ -54,7 +54,29 @@ git add hello.morph
 
 git commit --quiet -m 'convert hello into a perl cpan project'
 
-"$SRCDIR/scripts/test-morph" build-morphology --prefix=/ \
+# Set 'prefix' of hello to something custom
+cd "$DATADIR/morphs-repo"
+cat <<EOF > hello-stratum.morph
+{
+    "name": "hello-stratum",
+    "kind": "stratum",
+    "chunks": [
+        {
+            "name": "hello",
+            "repo": "test:chunk-repo",
+            "ref": "farrokh",
+            "build-depends": [],
+            "build-mode": "test",
+            "prefix": "/"
+        }
+    ]
+}
+EOF
+git add hello-stratum.morph
+git commit -q -m "Set custom install prefix for hello"
+
+
+"$SRCDIR/scripts/test-morph" build-morphology \
     test:morphs-repo master hello-system
 
 for chunk in "$DATADIR/cache/artifacts/"*.chunk.*

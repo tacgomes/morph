@@ -41,8 +41,6 @@ defaults = {
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency(),
-    'prefix': '/usr',
-    'toolchain-target': '%s-baserock-linux-gnu' % os.uname()[4],
     'build-ref-prefix': 'baserock/builds'
 }
 
@@ -105,16 +103,7 @@ class Morph(cliapp.Application):
                              default=None,
                              group=group_advanced)
 
-        # Build Options
         group_build = 'Build Options'
-        self.settings.boolean(['bootstrap'],
-                              'build stuff in bootstrap mode; this is '
-                              'DANGEROUS and will install stuff on your '
-                              'system',
-                              group=group_build)
-        self.settings.boolean(['keep-path'],
-                              'do not touch the PATH environment variable',
-                              group=group_build)
         self.settings.integer(['max-jobs'],
                               'run at most N parallel jobs with make (default '
                               'is to a value based on the number of CPUs '
@@ -127,28 +116,10 @@ class Morph(cliapp.Application):
         self.settings.boolean(['no-distcc'],
                               'do not use distcc (default: true)',
                               group=group_build, default=True)
-        self.settings.string(['prefix'],
-                             'build chunks with prefix PREFIX',
-                             metavar='PREFIX', default=defaults['prefix'],
-                             group=group_build)
         self.settings.boolean(['push-build-branches'],
                               'always push temporary build branches to the '
                               'remote repository',
                               group=group_build)
-        self.settings.boolean(['staging-chroot'],
-                              'build things in an isolated chroot '
-                              '(default: true)',
-                              group=group_build)
-        self.settings.string_list(['staging-filler'],
-                                  'use FILE as contents of build chroot',
-                                  metavar='FILE',
-                                  group=group_build)
-        self.settings.string(['target-cflags'],
-                             'inject additional CFLAGS into the environment '
-                             'that is used to build chunks',
-                             metavar='CFLAGS',
-                             default='',
-                             group=group_build)
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                              '(this is separate from just setting $TMPDIR '
@@ -159,13 +130,19 @@ class Morph(cliapp.Application):
                              metavar='DIR',
                              default=os.environ.get('TMPDIR'),
                              group=group_build)
-        self.settings.string(['toolchain-target'],
-                             'set the TOOLCHAIN_TARGET variable which is used '
-                             'in some chunks to determine which architecture '
-                             'to build tools for',
-                             metavar='TOOLCHAIN_TARGET',
-                             default=defaults['toolchain-target'],
-                             group=group_build)
+
+        # These cannot be removed just yet because existing morph.conf files
+        # would fail to parse.
+        group_obsolete = 'Obsolete Options'
+        self.settings.boolean(['staging-chroot'],
+                              'build things in an isolated chroot '
+                              '(default: true)',
+                              default=True,
+                              group=group_obsolete)
+        self.settings.string_list(['staging-filler'],
+                                  'use FILE as contents of build chroot',
+                                  metavar='FILE',
+                                  group=group_obsolete)
 
     def check_time(self):
         # Check that the current time is not far in the past.
@@ -178,6 +155,14 @@ class Morph(cliapp.Application):
 
     def process_args(self, args):
         self.check_time()
+
+        # Handle obsolete options
+        if self.settings['staging-chroot'] is not True:
+            raise cliapp.AppException(
+                'The "staging-chroot" option has been set to False. This '
+                'option is obsolete and should be left as the default (True).')
+        if self.settings['staging-filler'] is not None:
+            logging.warning('Use of a staging filler is deprecated.')
 
         # Combine the aliases into repo-alias before passing on to normal
         # command processing.  This means everything from here on down can

@@ -107,8 +107,6 @@ then
         fi
 
         case "$x" in
-            baserock-bootstrap)
-                ;;
             *)
                 if awk 'length > 79' "$x" | grep . > /dev/null
                 then

@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,11 +30,6 @@ class Source(object):
     * ``tree`` -- the SHA1 of the tree corresponding to the commit
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
-    * ``dependencies`` -- list of Sources for build dependencies for us
-    * ``dependents`` -- list of Source for whom we are a build dependency
-
-    The ``dependencies`` and ``dependents`` lists MUST be modified by
-    the ``add_dependencies`` and ``add_dependent`` methods only.
 
     '''
 

@@ -55,7 +55,8 @@ cat <<EOF > "$morphs/hello-stratum.morph"
             "name": "parent",
             "repo": "test:parent-repo",
             "ref": "master",
-            "build-depends": []
+            "build-depends": [],
+            "build-mode": "test"
         }
     ]
 }

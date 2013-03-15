@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import copy
 import unittest
 
 import morphlib
@@ -103,13 +104,12 @@ class CacheKeyComputerTests(unittest.TestCase):
             elif m['kind'] == 'chunk':
                 m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
-            "USER": "foouser",
-            "USERNAME": "foouser",
             "LOGNAME": "foouser",
-            "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-            "PREFIX": "/baserock",
-            "BOOTSTRAP": "false",
-            "CFLAGS": "-O4"})
+            "TARGET": "dummy-baserock-linux-gnu",
+            "TARGET_STAGE1": "dummy-baserock-linux-gnu",
+            "TARGET_GCC_CONFIG": "",
+            "USER": "foouser",
+            "USERNAME": "foouser"})
         self.artifact_resolver = morphlib.artifactresolver.ArtifactResolver()
         self.artifacts = self.artifact_resolver.resolve_artifacts(
             self.source_pool)
@@ -155,14 +155,8 @@ class CacheKeyComputerTests(unittest.TestCase):
     def test_different_env_gives_different_key(self):
         artifact = self._find_artifact('system-rootfs')
         oldsha = self.ckc.compute_key(artifact)
-        build_env = DummyBuildEnvironment({
-            "USER": "foouser",
-            "USERNAME": "foouser",
-            "LOGNAME": "foouser",
-            "TOOLCHAIN_TARGET": "dummy-baserock-linux-gnu",
-            "PREFIX": "/baserock",
-            "BOOTSTRAP": "false",
-            "CFLAGS": "-Os"})
+        build_env = copy.deepcopy(self.build_env)
+        build_env.env["USER"] = "brian"
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         self.assertNotEqual(oldsha, ckc.compute_key(artifact))

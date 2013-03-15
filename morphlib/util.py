@@ -43,6 +43,16 @@ def arch():
     return os.uname()[4]
 
 
+def target(runcmd):  # pragma: no cover
+    '''Returns the machine triplet of the current host'''
+    try:
+        target = runcmd(['cc', '-dumpmachine']).strip()
+    except cliapp.AppException as e:
+        raise morphlib.Error(
+            'Failed to execute host compiler \'cc\': %s' % e)
+    return target
+
+
 def indent(string, spaces=4):
     '''Return ``string`` indented by ``spaces`` spaces.
 

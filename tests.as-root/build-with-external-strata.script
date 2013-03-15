@@ -38,6 +38,7 @@ cat <<EOF >> stratum2.morph
             "name": "linux",
             "repo": "test:kernel-repo",
             "ref": "master",
+            "build-mode": "test",
             "build-depends": []
         }
     ]

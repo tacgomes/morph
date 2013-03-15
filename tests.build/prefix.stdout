@@ -1,0 +1,8 @@
+# configure
+# # echo First chunk: prefix $PREFIX
+First chunk: prefix /plover
+# configure
+# # echo Second chunk: prefix $PREFIX
+Second chunk: prefix /usr
+# # echo Path: $(echo $PATH | grep -o '/plover')
+Path: /plover
