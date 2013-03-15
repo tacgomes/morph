@@ -48,6 +48,8 @@ export PYTHONPATH
 
 python setup.py clean check
 
+HOME="$(pwd)/scripts"
+
 cmdtest tests
 
 if $full
