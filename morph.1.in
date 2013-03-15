@@ -41,7 +41,7 @@ individual chunks for make, gcc, binutils and so forth.
 .PP
 A chunk is a git repository based on an individual upstream project's revision
 control system, converted into git if upstream does not already use it.
-The build is controlled a 
+The build is controlled by a
 .B something.morph
 configuration file 
 defining how to build the chunk and any other changes required to get the 
@@ -66,54 +66,35 @@ itself, or the builds it runs.
 .TP
 .B PATH
 .B morph
-keeps the user's 
+supports building chunks in
+.B bootstrap
+mode, which exposes the host's tools for building rather than using a
+controlled chroot. The
 .B PATH
-if the
-.B \-\-keep\-path
-option is used.
-Additionally,
-.B morph
-will prepend the location of the 
-.BR ccache (1)
-binaries to the path,
-unless the
-.B no-cache
-setting is enabled.
+variable is significant for chunks built in this mode.
 .TP
 .BR DISTCC_HOSTS ", " TMPDIR ", " LD_PRELOAD ", " LD_LIBRARY_PATH ", " \
 FAKEROOTKEY ", " FAKED_MODE ", " FAKEROOT_FD_BASE
 .B morph
 keeps these environment variable, if set.
 .TP
-.B TOOLCHAIN_TARGET
+.B MORPH_ARCH
+The system morphology defines the architecture it should be built for, and
 .B morph
-sets this to the value of the
-.B toolchain\-target
-setting from its configuration.
+sets this variable in the build environment accordingly. Only a small set of
+predefined values can be used, and it is expected that morphologies can change
+the configuration of the chunk they are building based on this value.
 .TP
-.B CFLAGS
-.B morph
-sets this to the value of the
-.B target\-cflags
-setting from its configuration.
+.B TARGET
+This value is set to the GNU machine triplet for the machine
+.B MORPH_ARCH
+defines.
 .TP
-.B PREFIX
-.B morph
-sets this to the value of the
-.B prefix
-setting from its configuration.
-.TP
-.B BOOTSTRAP
-.B morph
-sets this to 
-.B true
-if the
-.B bootstrap
-setting from its configuration is enabled.
-Otherwise,
-.B morph
-sets the environment variable to
-.BR false .
+.B TARGET_STAGE1
+The same as
+.B TARGET
+but with the vendor field replaced with
+.BR bootstrap
 .TP
 .B MORPH_PLUGIN_PATH
 .B morph

@@ -32,13 +32,14 @@ class BuildEnvironment():
 
     '''
 
-    def __init__(self, settings, target, arch=None):
+    def __init__(self, settings, arch):
         '''Create a new BuildEnvironment object'''
 
         self.extra_path = []
-        self.target = target
-        self.arch = morphlib.util.arch() if arch is None else arch
+
         self.env = self._clean_env(settings)
+        self.env.update(self._env_for_arch(arch))
+
 
     _osenv = os.environ
     _ccache_path = '/usr/lib/ccache'
@@ -47,15 +48,6 @@ class BuildEnvironment():
     _override_shell = '/bin/sh'
     _override_term = 'dumb'
     _override_username = 'tomjon'
-
-    def get_bootstrap_target(self, target):
-        '''Set 'vendor' field of the given machine triplet as 'bootstrap' '''
-
-        parts = target.split('-')
-        if len(parts) < 2:
-            raise morphlib.Error('Failed to parse machine triplet returned by '
-                                 'host compiler: %s' % target)
-        return '-'.join([parts[0], 'bootstrap'] + parts[2:])
 
     def _clean_env(self, settings):
         '''Create a fresh set of environment variables for a clean build.
@@ -91,11 +83,6 @@ class BuildEnvironment():
         env['LC_ALL'] = self._override_locale
         env['HOME'] = self._override_home
 
-        env['BUILD'] = self.target
-        env['TARGET'] = self.target
-        env['TARGET_STAGE1'] = self.get_bootstrap_target(self.target)
-        env['TARGET_GCC_CONFIG'] = ''
-
         if not settings['no-ccache']:
             self.extra_path.append(self._ccache_path)
 # FIXME: we should set CCACHE_BASEDIR so any objects that refer to their
@@ -109,5 +96,34 @@ class BuildEnvironment():
             )
             if not settings['no-distcc']:
                 env['CCACHE_PREFIX'] = 'distcc'
+
+        return env
+
+    def _env_for_arch(self, arch):
+        '''Set build environment variables specific to the target machine
+
+           These are entirely controlled by the 'arch' field in the system
+           morphology, which is passed to the morphologies as MORPH_ARCH to
+           do what they like with.
+
+        '''
+
+        env = {}
+        env['MORPH_ARCH'] = arch
+
+        # GNU triplets are widely used, so we handle these in Morph rather
+        # than leaving it up to individual morphologies.
+        if arch == 'x86_32':
+            cpu = 'i686'
+        else:
+            cpu = arch
+
+        if arch.startswith('arm'):
+            abi = 'eabi'
+        else:
+            abi = ''
+
+        env['TARGET'] = cpu + '-baserock-linux-gnu' + abi
+        env['TARGET_STAGE1'] = cpu + '-bootstrap-linux-gnu' + abi
 
         return env

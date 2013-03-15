@@ -29,7 +29,6 @@ class BuildEnvironmentTests(unittest.TestCase):
             'no-ccache': True,
             'no-distcc': True
         }
-        self.target = '%s-baserock-linux-gnu' % morphlib.util.arch()
         self.fake_env = {
             'PATH': '/fake_bin',
         }
@@ -39,21 +38,9 @@ class BuildEnvironmentTests(unittest.TestCase):
         target = target or self.target
         return buildenvironment.BuildEnvironment(settings, target, **kws)
 
-    def new_build_env(self, settings=None, target=None, **kws):
+    def new_build_env(self, settings=None, arch='x86_64'):
         settings = settings or self.settings
-        target = target or self.target
-        return buildenvironment.BuildEnvironment(settings, target, **kws)
-
-    def test_arch_defaults_to_host(self):
-        buildenv = self.new_build_env()
-        self.assertEqual(buildenv.arch, morphlib.util.arch())
-
-    def test_arch_overridable(self):
-        buildenv = self.new_build_env(arch='noarch')
-        self.assertEqual(buildenv.arch, 'noarch')
-
-    def test_target_always_valid(self):
-        self.assertRaises(morphlib.Error, self.new_build_env, target="invalid")
+        return buildenvironment.BuildEnvironment(settings, arch)
 
     def test_copies_whitelist_vars(self):
         env = self.fake_env
@@ -90,9 +77,31 @@ class BuildEnvironmentTests(unittest.TestCase):
         self.assertEqual(buildenv.env['LC_ALL'], buildenv._override_locale)
         self.assertEqual(buildenv.env['HOME'], buildenv._override_home)
 
-    def test_environment_settings_set(self):
-        buildenv = self.new_build_env()
-        self.assertEqual(buildenv.env['TARGET'], self.target)
+    def test_arch_x86_64(self):
+        b = self.new_build_env(arch='x86_64')
+        self.assertEqual(b.env['MORPH_ARCH'], 'x86_64')
+        self.assertEqual(b.env['TARGET'], 'x86_64-baserock-linux-gnu')
+        self.assertEqual(b.env['TARGET_STAGE1'], 'x86_64-bootstrap-linux-gnu')
+
+    def test_arch_x86_32(self):
+        b = self.new_build_env(arch='x86_32')
+        self.assertEqual(b.env['MORPH_ARCH'], 'x86_32')
+        self.assertEqual(b.env['TARGET'], 'i686-baserock-linux-gnu')
+        self.assertEqual(b.env['TARGET_STAGE1'], 'i686-bootstrap-linux-gnu')
+
+    def test_arch_armv7l(self):
+        b = self.new_build_env(arch='armv7l')
+        self.assertEqual(b.env['MORPH_ARCH'], 'armv7l')
+        self.assertEqual(b.env['TARGET'], 'armv7l-baserock-linux-gnueabi')
+        self.assertEqual(b.env['TARGET_STAGE1'],
+                         'armv7l-bootstrap-linux-gnueabi')
+
+    def test_arch_armv7b(self):
+        b = self.new_build_env(arch='armv7b')
+        self.assertEqual(b.env['MORPH_ARCH'], 'armv7b')
+        self.assertEqual(b.env['TARGET'], 'armv7b-baserock-linux-gnueabi')
+        self.assertEqual(b.env['TARGET_STAGE1'],
+                         'armv7b-bootstrap-linux-gnueabi')
 
     def test_ccache_vars_set(self):
         new_settings = copy.copy(self.settings)

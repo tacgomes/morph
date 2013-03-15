@@ -27,7 +27,7 @@ class CacheKeyComputer(object):
         self._calculated = {}
 
     def _filterenv(self, env):
-        keys = ["LOGNAME", "TARGET", "TARGET_STAGE1", "TARGET_GCC_CONFIG",
+        keys = ["LOGNAME", "MORPH_ARCH", "TARGET", "TARGET_STAGE1",
                 "USER", "USERNAME"]
         return dict([(k, env[k]) for k in keys])
 
@@ -79,7 +79,6 @@ class CacheKeyComputer(object):
 
     def _calculate(self, artifact):
         keys = {
-            'arch': self._build_env.arch,
             'env': self._filterenv(self._build_env.env),
             'filename': artifact.source.filename,
             'kids': [self.compute_key(x) for x in artifact.dependencies]
