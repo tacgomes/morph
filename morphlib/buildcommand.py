@@ -388,8 +388,8 @@ class BuildCommand(object):
     def build_and_cache(self, staging_area, artifact, setup_mounts):
         '''Build an artifact and put it into the local artifact cache.'''
 
-        self.app.status(msg='[%(name)s] Starting actual build: %(name)s',
-                        name=artifact.name)
+        self.app.status(msg='[%(name)s] Starting actual build: %(name)s %(sha1)s',
+                        name=artifact.name, sha1=artifact.source.sha1[:7])
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
