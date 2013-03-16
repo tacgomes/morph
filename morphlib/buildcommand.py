@@ -195,16 +195,16 @@ class BuildCommand(object):
             self.app.status_prefix = (
                 old_prefix + '[Build %d/%d] ' % ((i+1), len(artifacts)))
 
-            self.app.status(msg='Checking if %(kind)s %(name)s needs building',
-                            kind=a.source.morphology['kind'], name=a.name)
+            self.app.status(msg='[%(name)s] Checking if %(kind)s needs building',
+                            name=a.name, kind=a.source.morphology['kind'])
 
             if self.is_built(a):
-                self.app.status(msg='The %(kind)s %(name)s is already built',
-                                kind=a.source.morphology['kind'], name=a.name)
+                self.app.status(msg='[%(name)s] The %(kind)s is already built',
+                                name=a.name, kind=a.source.morphology['kind'])
                 self.cache_artifacts_locally([a])
             else:
-                self.app.status(msg='Building %(kind)s %(name)s',
-                                kind=a.source.morphology['kind'], name=a.name)
+                self.app.status(msg='[%(name)s] Building %(kind)s %(name)s',
+                                name=a.name, kind=a.source.morphology['kind'])
                 self.build_artifact(a, build_env)
 
             self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
@@ -388,7 +388,7 @@ class BuildCommand(object):
     def build_and_cache(self, staging_area, artifact, setup_mounts):
         '''Build an artifact and put it into the local artifact cache.'''
 
-        self.app.status(msg='Starting actual build: %(name)s',
+        self.app.status(msg='[%(name)s] Starting actual build: %(name)s',
                         name=artifact.name)
         setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
