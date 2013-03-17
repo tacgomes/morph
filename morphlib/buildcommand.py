@@ -195,8 +195,8 @@ class BuildCommand(object):
             self.app.status_prefix = (
                 old_prefix + '[Build %d/%d] ' % ((i+1), len(artifacts)))
 
-            self.app.status(msg='[%(name)s] Checking if %(kind)s needs building',
-                            name=a.name, kind=a.source.morphology['kind'])
+            self.app.status(msg='[%(name)s] Checking if %(kind)s needs building %(sha1)s',
+                            name=a.name, kind=a.source.morphology['kind'], sha1=a.source.sha1[:7])
 
             if self.is_built(a):
                 self.app.status(msg='[%(name)s] The %(kind)s is already built',
