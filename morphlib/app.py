@@ -161,7 +161,7 @@ class Morph(cliapp.Application):
             raise cliapp.AppException(
                 'The "staging-chroot" option has been set to False. This '
                 'option is obsolete and should be left as the default (True).')
-        if self.settings['staging-filler'] is not None:
+        if self.settings['staging-filler']:
             self.status(msg='WARNING! A staging filler was specified. Staging '
                         'fillers are deprecated and may break new builds. You '
                         'should only specify this option if you are building '
