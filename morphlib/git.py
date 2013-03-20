@@ -80,7 +80,7 @@ class Submodules(object):
             # try to read the .gitmodules file from the repo/ref
             content = self.app.runcmd(
                 ['git', 'cat-file', 'blob', '%s:.gitmodules' % self.ref],
-                cwd=self.repo)
+                cwd=self.repo, ignore_fail=True)
 
             # drop indentation in sections, as RawConfigParser cannot handle it
             return '\n'.join([line.strip() for line in content.splitlines()])
