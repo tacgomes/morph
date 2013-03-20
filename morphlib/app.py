@@ -162,7 +162,11 @@ class Morph(cliapp.Application):
                 'The "staging-chroot" option has been set to False. This '
                 'option is obsolete and should be left as the default (True).')
         if self.settings['staging-filler'] is not None:
-            logging.warning('Use of a staging filler is deprecated.')
+            self.status(msg='WARNING! A staging filler was specified. Staging '
+                        'fillers are deprecated and may break new builds. You '
+                        'should only specify this option if you are building '
+                        'a system based on a version of Baserock older than '
+                        'Baserock 6.')
 
         # Combine the aliases into repo-alias before passing on to normal
         # command processing.  This means everything from here on down can
