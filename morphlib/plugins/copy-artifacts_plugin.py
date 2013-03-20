@@ -75,7 +75,8 @@ class CopyArtifactsPlugin(cliapp.Plugin):
         cliapp.runcmd(cmdline)
 
     def find_artifacts(self, system):
-        artifacts_dir = os.path.join(self.app.settings['cachedir'], 'artifacts')
+        artifacts_dir = os.path.join(
+            self.app.settings['cachedir'], 'artifacts')
         artifacts = []
 
         def find_in_system(dirname):
