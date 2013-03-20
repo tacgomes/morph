@@ -18,6 +18,7 @@ import logging
 import os
 import shutil
 import stat
+import cliapp
 from urlparse import urlparse
 
 import morphlib
@@ -292,6 +293,11 @@ class StagingArea(object):
                           cwd]
             real_argv += argv
 
-            return self._app.runcmd(real_argv, **kwargs)
+            try:
+                return self._app.runcmd(real_argv, **kwargs)
+            except cliapp.AppException as e:
+                raise cliapp.AppException('In staging area %s: running '
+                                          'command \'%s\' failed.' % 
+                                          (self.dirname, ' '.join(argv)))
         else:
             return self._app.runcmd(argv, **kwargs)
