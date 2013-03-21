@@ -115,8 +115,12 @@ class DeployPlugin(cliapp.Plugin):
 
         if build_command.lac.has(artifact):
             f = build_command.lac.get(artifact)
-        else:
+        elif build_command.rac.has(artifact):
             f = build_command.rac.get(artifact)
+        else:
+            raise cliapp.AppException('Deployment failed as system is not yet'
+                                      ' built.\nPlease ensure system is built'
+                                      ' before deployment.')
         tf = tarfile.open(fileobj=f)
         tf.extractall(path=system_tree)
         
