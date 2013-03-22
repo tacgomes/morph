@@ -125,7 +125,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if os.path.isdir(dot_morph):
                 return dirname
             dirname = os.path.dirname(dirname)
-        raise cliapp.AppException("Can't find the workspace directory")
+        raise cliapp.AppException("Can't find the workspace directory.\n"
+                                  "Morph must be built and deployed within "
+                                  "the system branch checkout within the "
+                                  "workspace directory.")
 
     def deduce_system_branch(self):
         # 1. Deduce the workspace. If this fails, we're not inside a workspace.
@@ -150,7 +153,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
             branch_name = self.get_branch_config(dirname, 'branch.name')
             return branch_name, dirname
 
-        raise cliapp.AppException("Can't find the system branch directory")
+        raise cliapp.AppException("Can't find the system branch directory.\n"
+                                  "Morph must be built and deployed within "
+                                  "the system branch checkout.")
 
     def find_repository(self, branch_dir, repo):
         for dirname in self.walk_special_directories(branch_dir,
