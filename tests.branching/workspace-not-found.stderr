@@ -1,1 +1,2 @@
-ERROR: Can't find the workspace directory
+ERROR: Can't find the workspace directory.
+Morph must be built and deployed within the system branch checkout within the workspace directory.

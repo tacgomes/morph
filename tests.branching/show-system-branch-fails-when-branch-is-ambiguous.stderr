@@ -1,1 +1,2 @@
-ERROR: Can't find the system branch directory
+ERROR: Can't find the system branch directory.
+Morph must be built and deployed within the system branch checkout.
