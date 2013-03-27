@@ -78,6 +78,10 @@ class DeployPlugin(cliapp.Plugin):
                             'building %(system)s from %(branch)s',
                             system=system_name, branch=branch)
 
+        # Find system branch root repository on the local disk.
+        root_repo = self.other.get_branch_config(branch_dir, 'branch.root')
+        root_repo_dir = self.other.find_repository(branch_dir, root_repo)
+
         # Get repositories of morphologies involved in building this system
         # from the current system branch.
         build_repos = self.other.get_system_build_repos(
@@ -142,7 +146,7 @@ class DeployPlugin(cliapp.Plugin):
         names = artifact.source.morphology['configuration-extensions']
         for name in names:
             self._run_extension(
-                branch_dir,
+                root_repo_dir,
                 build_ref,
                 name,
                 '.configure',
@@ -152,7 +156,7 @@ class DeployPlugin(cliapp.Plugin):
         # Run write extension.
         self.app.status(msg='Writing to device')
         self._run_extension(
-            branch_dir,
+            root_repo_dir,
             build_ref,
             deployment_type,
             '.write',
