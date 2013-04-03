@@ -47,7 +47,13 @@ class DeployPlugin(cliapp.Plugin):
         pass
 
     def deploy(self, args):
-        '''Deploy a built system image.'''
+        '''Deploy a built system image.
+        
+        Command requires a minimum of three arguments:
+            morph deploy TYPE SYSTEM LOCATION,
+        where TYPE is type of deployment, 
+        SYSTEM is name of the system morphology to deploy and
+        LOCATION is the destination of the deployed system.'''
 
         if len(args) < 3:
             raise cliapp.AppException(
