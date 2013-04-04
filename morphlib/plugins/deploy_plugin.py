@@ -141,6 +141,11 @@ class DeployPlugin(cliapp.Plugin):
                     '%s is already set in the enviroment' % name)
             env[name] = value
 
+        if 'TMPDIR' not in env:
+            # morphlib.app already took care of ensuring the tempdir setting
+            # is good, so use it if we don't have one already set.
+            env['TMPDIR'] = self.app.settings['tempdir']
+
         # Run configuration extensions.
         self.app.status(msg='Configure system')
         names = artifact.source.morphology['configuration-extensions']
