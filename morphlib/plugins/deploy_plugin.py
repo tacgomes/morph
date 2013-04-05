@@ -215,6 +215,8 @@ class DeployPlugin(cliapp.Plugin):
             os.chmod(ext_filename, 0700)
             delete_ext = True
 
+        self.app.status(msg='Running extension %(name)s%(kind)s',
+                        name=name, kind=kind)
         self.app.runcmd(
             [ext_filename] + args, env=env, stdout=None, stderr=None)
         
