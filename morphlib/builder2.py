@@ -857,6 +857,6 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
 
 class EmptyStratumError(cliapp.AppException):
 
-    def __init__(self, stratum_name):
+    def __init__(self, stratum_name): # pragma: no cover
         cliapp.AppException.__init__(self,
             "Stratum %s is empty (has no dependencies)" % stratum_name)
