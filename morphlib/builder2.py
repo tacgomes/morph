@@ -471,7 +471,7 @@ class StratumBuilder(BuilderBase):
             constituents = [d for d in self.artifact.dependencies
                             if self.is_constituent(d)]
             if len(constituents) == 0:
-                logging.warning('Stratum %s is empty' % self.artifact.name)
+                raise EmptyStratumError(self.artifact.name)
 
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
@@ -854,3 +854,9 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                         filename=image_name, chatty=True)
         with self.build_watch('undo-device-mapper'):
             morphlib.fsutils.undo_device_mapping(self.app.runcmd, image_name)
+
+class EmptyStratumError(cliapp.AppException):
+
+    def __init__(self, stratum_name): # pragma: no cover
+        cliapp.AppException.__init__(self,
+            "Stratum %s is empty (has no dependencies)" % stratum_name)
