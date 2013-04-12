@@ -617,7 +617,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         commit = 'master' if len(args) == 2 else args[2]
 
         self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
-        if self.lrc.get_repo(repo).ref_exists(new_branch):
+        if self.get_cached_repo(repo).ref_exists(new_branch):
             raise cliapp.AppException('branch %s already exists in '
                                       'repository %s' % (new_branch, repo))
 
