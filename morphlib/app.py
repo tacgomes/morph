@@ -27,7 +27,7 @@ import morphlib
 
 defaults = {
     'trove-host': 'git.baserock.org',
-    'trove-prefix': [ ],
+    'trove-id': [ ],
     'repo-alias': [
         ('freedesktop='
             'git://anongit.freedesktop.org/#'
@@ -70,11 +70,11 @@ class Morph(cliapp.Application):
                              'hostname of Trove instance',
                              metavar='TROVEHOST',
                              default=defaults['trove-host'])
-        self.settings.string_list(['trove-prefix'],
+        self.settings.string_list(['trove-id'],
                                   'list of URL prefixes that should be '
                                   'resolved to Trove',
                                   metavar='PREFIX, ...',
-                                  default=defaults['trove-prefix'])
+                                  default=defaults['trove-id'])
 
         group_advanced = 'Advanced Options'
         self.settings.boolean(['no-git-update'],
