@@ -105,7 +105,7 @@ def new_artifact_caches(settings):  # pragma: no cover
 def combine_aliases(app):  # pragma: no cover
     '''Create a full repo-alias set from the app's settings.'''
     trove_host = app.settings['trove-host']
-    trove_prefixes = app.settings['trove-prefix']
+    trove_ids = app.settings['trove-id']
     repo_aliases = app.settings['repo-alias']
     repo_pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pull>[^#]+)#(?P<push>[^#]+)$'
     trove_pat = (r'^(?P<prefix>[a-z0-9]+)=(?P<path>[^#]+)#'
@@ -118,7 +118,7 @@ def combine_aliases(app):  # pragma: no cover
             return "ssh://git@%s/%s/%%s" % (trove_host, path)
         else:
             raise cliapp.AppException(
-                'Unknown protocol in trove_prefix: %s' % protocol)
+                'Unknown protocol in trove_id: %s' % protocol)
 
     if trove_host:
         alias_map['baserock'] = "baserock=%s#%s" % (
@@ -127,18 +127,18 @@ def combine_aliases(app):  # pragma: no cover
         alias_map['upstream'] = "upstream=%s#%s" % (
             _expand('git', 'delta'),
             _expand('ssh', 'delta'))
-        for trove_prefix in trove_prefixes:
-            m = re.match(trove_pat, trove_prefix)
+        for trove_id in trove_ids:
+            m = re.match(trove_pat, trove_id)
             if m:
                 alias_map[m.group('prefix')] = "%s=%s#%s" % (
                     m.group('prefix'),
                     _expand(m.group('pull'), m.group('path')),
                     _expand(m.group('push'), m.group('path')))
-            elif '=' not in trove_prefix:
-                alias_map[trove_prefix] = "%s=%s#%s" % (
-                    trove_prefix,
-                    _expand('ssh', trove_prefix),
-                    _expand('ssh', trove_prefix))
+            elif '=' not in trove_id:
+                alias_map[trove_id] = "%s=%s#%s" % (
+                    trove_id,
+                    _expand('ssh', trove_id),
+                    _expand('ssh', trove_id))
     for repo_alias in repo_aliases:
         m = re.match(repo_pat, repo_alias)
         if m:
