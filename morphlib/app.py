@@ -253,8 +253,8 @@ class Morph(cliapp.Application):
                                 reponame=reponame,
                                 ref=ref,
                                 chatty=True)
-            except:
-                pass
+            except BaseException, e:
+                logging.warning('Caught (and ignored) exception: %s' % str(e))
         if absref is None:
             if update:
                 self.status(msg='Caching git repository %(reponame)s',

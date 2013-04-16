@@ -16,6 +16,7 @@
 
 import cliapp
 import gzip
+import logging
 import os
 import tempfile
 import shutil
@@ -41,7 +42,9 @@ class ExtractedTarball(object): # pragma: no cover
         self.tempdir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
         try:
             morphlib.bins.unpack_binary(self.tarball, self.tempdir)
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
+            logging.debug('Removing temporary directory %s' % self.tempdir)
             shutil.rmtree(self.tempdir)
             raise
         return self.tempdir
@@ -51,8 +54,10 @@ class ExtractedTarball(object): # pragma: no cover
                         tarball=os.path.basename(self.tarball), chatty=True)
         try:
             shutil.rmtree(self.tempdir)
-        except:
-            pass
+        except BaseException, e:
+            logging.warning(
+                'Error when removing temporary directory %s: %s' %
+                    (self.tempdir, str(e)))
 
     def __enter__(self):
         return self.setup()

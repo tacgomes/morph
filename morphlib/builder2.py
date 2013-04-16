@@ -304,7 +304,9 @@ class ChunkBuilder(BuilderBase):
                     log_name = log.real_filename
                     self.run_commands(builddir, destdir, log)
                     self.create_devices(destdir)
-            except:
+            except BaseException, e:
+                logging.error('Caught exception: %s' % str(e))
+                logging.info('Cleaning up staging area')
                 self.staging_area.chroot_close()
                 if log_name:
                     with open(log_name) as f:
@@ -760,8 +762,11 @@ class DiskImageBuilder(SystemKindBuilder):  # pragma: no cover
                     shutil.copyfileobj(ifh, ofh, 1024 * 1024)
                     ofh.close()
 
-            except:
+            except BaseException, e:
+                logging.error('Caught exception: %s' % str(e))
+                logging.info('Removing unfinished disk image %s' % image_name)
                 os.remove(image_name)
+                logging.info('Removing unfinished file from cache')
                 handle.abort()
                 raise
 

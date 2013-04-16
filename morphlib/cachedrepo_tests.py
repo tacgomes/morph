@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import logging
 import os
 import unittest
 
@@ -42,7 +43,7 @@ class CachedRepoTests(unittest.TestCase):
         }
         try:
             return output[ref]
-        except:
+        except KeyError:
             raise cliapp.AppException('git rev-parse --verify %s' % ref)
 
     def show_tree_hash(self, absref):
@@ -56,7 +57,7 @@ class CachedRepoTests(unittest.TestCase):
         }
         try:
             return output[absref]
-        except:
+        except KeyError:
             raise cliapp.AppException('git log -1 --format=format:%%T %s' %
                                       absref)
 
@@ -67,7 +68,7 @@ class CachedRepoTests(unittest.TestCase):
         }
         try:
             return output['%s:%s' % (ref, filename)]
-        except:
+        except KeyError:
             raise cliapp.AppException(
                 'git cat-file blob %s:%s' % (ref, filename))
 
@@ -91,7 +92,7 @@ class CachedRepoTests(unittest.TestCase):
         }
         try:
             return output[ref]
-        except:
+        except KeyError:
             raise cliapp.AppException('git ls-tree --name-only %s' % (ref))
 
     def clone_into(self, target_dir, ref):

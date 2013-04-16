@@ -126,6 +126,11 @@ then
                     echo "ERROR: $x has a hashbang" 1>&2
                     errors=1
                 fi
+                if grep except: "$x"
+                then
+                    echo "ERROR: $x has a bare except:" 1>&2
+                    errors=1
+                fi
                 ;;
         esac
     done
