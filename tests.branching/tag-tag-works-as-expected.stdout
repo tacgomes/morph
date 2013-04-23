@@ -8,7 +8,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit a96154002b3ffe71bd120e38682edbbe40b8453b
+commit fec3744adf30c1014775dce1668b1b0a0e2b1dcf
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -31,7 +31,7 @@ index 3b7be17..87561c1 100644
      ]
  }
 diff --git a/hello-system.morph b/hello-system.morph
-index f3f64b4..2981e9b 100644
+index 20e7b5b..f1dc834 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
 @@ -8,7 +8,8 @@
@@ -45,7 +45,7 @@ index f3f64b4..2981e9b 100644
      ]
  }
 test:morphs
-commit a96154002b3ffe71bd120e38682edbbe40b8453b
+commit fec3744adf30c1014775dce1668b1b0a0e2b1dcf
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -53,7 +53,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
-commit 48d38ef3f39857d7dba4ed1ffc51653c6bed4906
+commit 9d4b0981d6a2118cbd3d045cc1704b224d38296f
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>

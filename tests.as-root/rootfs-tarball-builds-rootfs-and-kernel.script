@@ -28,12 +28,6 @@ cache="$DATADIR/cache/artifacts"
 
 arch=$(uname -m)
 
-cd "$DATADIR/morphs"
-sed -e 's/system-kind: syslinux-disk/system-kind: rootfs-tarball/' \
-    -i linux-system.morph
-git add linux-system.morph
-git commit --quiet -m "Build rootfs tarball system"
-
 cd "$DATADIR/kernel-repo"
 cat <<EOF >linux.morph
 {

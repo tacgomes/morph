@@ -4,7 +4,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 create tag
 
-commit ddcf257bd01b46424dc570e72aa8946b6dfdbc5f
+commit f629bea191ba12b1d85e5b41e1adc6d1c73715c9
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -57,7 +57,7 @@ index 0000000..a735127
 +    "kind": "stratum"
 +}
 diff --git a/test-system.morph b/test-system.morph
-index 27806c1..c5e4d98 100644
+index 340fbb9..aec2397 100644
 --- a/test-system.morph
 +++ b/test-system.morph
 @@ -8,12 +8,15 @@
@@ -79,7 +79,7 @@ index 27806c1..c5e4d98 100644
          }
      ]
  }
-commit ddcf257bd01b46424dc570e72aa8946b6dfdbc5f
+commit f629bea191ba12b1d85e5b41e1adc6d1c73715c9
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -140,7 +140,7 @@ index 0000000..a735127
 +    "kind": "stratum"
 +}
 diff --git a/test-system.morph b/test-system.morph
-index 27806c1..c5e4d98 100644
+index 340fbb9..aec2397 100644
 --- a/test-system.morph
 +++ b/test-system.morph
 @@ -8,12 +8,15 @@

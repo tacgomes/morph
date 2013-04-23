@@ -2,7 +2,7 @@ test/petrify after petrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "syslinux-disk",
+    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "disk-size": "1G",
     "strata": [
@@ -56,7 +56,7 @@ test/petrify after editing a chunk:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "syslinux-disk",
+    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "disk-size": "1G",
     "strata": [
@@ -109,7 +109,7 @@ test/unpetrify after unpetrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "syslinux-disk",
+    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "disk-size": "1G",
     "strata": [

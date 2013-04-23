@@ -36,7 +36,7 @@ cat <<EOF > "$DATADIR/repos/morphs1/test-system.morph"
 {
     "name": "test-system",
     "kind": "system",
-    "system-kind": "syslinux-disk",
+    "system-kind": "rootfs-tarball",
     "arch": "$(uname -m)",
     "disk-size": "1G",
     "strata": [

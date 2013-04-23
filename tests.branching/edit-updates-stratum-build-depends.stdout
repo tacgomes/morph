@@ -12,7 +12,7 @@ index 3b7be17..febfa60 100644
          }
      ]
 diff --git a/hello-system.morph b/hello-system.morph
-index 87a47f0..75b0f90 100644
+index de2fd94..fe9cdc8 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
 @@ -8,12 +8,12 @@
