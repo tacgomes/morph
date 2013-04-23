@@ -33,7 +33,7 @@ stratum=$(find "$DATADIR/cache/artifacts" -maxdepth 1 \
 
 # Run 'run-in-artifact' with the system artifact.
 echo "System:"
-"$SRCDIR/scripts/test-morph" run-in-artifact "$system" -- ls factory/baserock/
+"$SRCDIR/scripts/test-morph" run-in-artifact "$system" -- ls baserock/
 echo
 
 # Run 'run-in-artifact' with the chunk artifact.
