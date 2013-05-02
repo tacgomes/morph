@@ -598,13 +598,16 @@ class SystemKindBuilder(BuilderBase):  # pragma: no cover
                         path=path, chatty=True)
         with self.build_watch('create-fstab'):
             fstab = os.path.join(path, 'etc', 'fstab')
-            # FIXME: should exist
-            if not os.path.exists(os.path.dirname(fstab)):
-                os.makedirs(os.path.dirname(fstab))
-            with open(fstab, 'w') as f:
-                f.write('proc      /proc proc  defaults          0 0\n')
-                f.write('sysfs     /sys  sysfs defaults          0 0\n')
-                f.write('/dev/sda1 / btrfs defaults,rw,noatime 0 1\n')
+            if not os.path.exists(fstab):
+                # FIXME: should exist
+                if not os.path.exists(os.path.dirname(fstab)):
+                    os.makedirs(os.path.dirname(fstab))
+                # We create an empty fstab: systemd does not require
+                # /sys and /proc entries, and we can't know what the
+                # right entry for / is. The fstab gets built during
+                # deployment instead, when that information is available.
+                with open(fstab, 'w'):
+                    pass
 
     def copy_kernel_into_artifact_cache(self, path):
         '''Copy the installed kernel image into the local artifact cache.
