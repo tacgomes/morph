@@ -197,12 +197,69 @@ class CPANBuildSystem(BuildSystem):
 
         return any(x in file_list for x in indicators)
 
+class CMakeBuildSystem(BuildSystem):
+
+    '''The cmake build system.'''
+
+    name = 'cmake'
+
+    def __init__(self):
+        BuildSystem.__init__(self)
+        self.configure_commands = [
+            'cmake -DCMAKE_INSTALL_PREFIX=/usr'
+         ]
+        self.build_commands = [
+            'make',
+        ]
+        self.test_commands = [
+        ]
+        self.install_commands = [
+            'make DESTDIR="$DESTDIR" install',
+        ]
+
+    def used_by_project(self, file_list):
+        indicators = [
+            'CMakeLists.txt',
+        ]
+
+        return any(x in file_list for x in indicators)
+
+class QMakeBuildSystem(BuildSystem):
+
+    '''The Qt build system.'''
+
+    name = 'qmake'
+
+    def __init__(self):
+        BuildSystem.__init__(self)
+        self.configure_commands = [
+            'qmake -makefile '
+        ]
+        self.build_commands = [
+            'make',
+        ]
+        self.test_commands = [
+        ]
+        self.install_commands = [
+            'make INSTALL_ROOT="$DESTDIR" install',
+        ]
+
+    def used_by_project(self, file_list):
+        indicator = '.pro'
+
+        for x in file_list:
+            if x.endswith(indicator):
+                return True
+            
+        return False
 
 build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
     PythonDistutilsBuildSystem(),
     CPANBuildSystem(),
+    CMakeBuildSystem(),
+    QMakeBuildSystem(),
     DummyBuildSystem(),
 ]
 
