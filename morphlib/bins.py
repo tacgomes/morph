@@ -50,7 +50,7 @@ def safe_makefile(self, tarinfo, targetpath):
 tarfile.TarFile.makefile = safe_makefile
 
 
-def chunk_filenames(rootdir, regexps, dump_memory_profile=None):
+def _chunk_filenames(rootdir, regexps, dump_memory_profile=None):
 
     '''Return the filenames for a chunk from the contents of a directory.
 
@@ -96,7 +96,7 @@ def chunk_contents(rootdir, regexps):
     
     '''
     
-    filenames = chunk_filenames(rootdir, regexps)
+    filenames = _chunk_filenames(rootdir, regexps)
     # The first entry is the rootdir directory, which we don't need
     filenames.pop(0)
     contents = [str[len(rootdir):] for str in filenames]
@@ -118,7 +118,7 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     # does not complain about an implausibly old timestamp.
     normalized_timestamp = 683074800
 
-    include = chunk_filenames(rootdir, regexps, dump_memory_profile)
+    include = _chunk_filenames(rootdir, regexps, dump_memory_profile)
     dump_memory_profile('at beginning of create_chunk')
     
     tar = tarfile.open(fileobj=f, mode='w')
