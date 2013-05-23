@@ -25,3 +25,4 @@ morphlib/plugins/deploy_plugin.py
 morphlib/plugins/__init__.py
 morphlib/writeexts.py
 morphlib/plugins/copy-artifacts_plugin.py
+morphlib/plugins/trovectl_plugin.py
