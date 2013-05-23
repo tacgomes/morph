@@ -186,7 +186,7 @@ class BuilderBase(object):
             json.dump(meta, f, indent=4, sort_keys=True)
             f.write('\n')
 
-    def create_metadata(self, artifact_name, contents = []):
+    def create_metadata(self, artifact_name, contents=[]):
         '''Create metadata to artifact to allow it to be reproduced later.
 
         The metadata is represented as a dict, which later on will be
@@ -226,7 +226,7 @@ class BuilderBase(object):
             os.makedirs(dirname)
         return open(filename, mode)
 
-    def write_metadata(self, instdir, artifact_name, contents = []):
+    def write_metadata(self, instdir, artifact_name, contents=[]):
         '''Write the metadata for an artifact.
 
         The file will be located under the ``baserock`` directory under
@@ -445,7 +445,6 @@ class ChunkBuilder(BuilderBase):
 
                 with self.local_artifact_cache.put(artifact) as f:
                     contents = morphlib.bins.chunk_contents(destdir, patterns)
-                    logging.debug('metadata contents: %s' % contents)
                     self.write_metadata(destdir, artifact_name, contents)
 
                     logging.debug('assembling chunk %s' % artifact_name)

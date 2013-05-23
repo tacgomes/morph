@@ -72,7 +72,6 @@ def chunk_filenames(rootdir, regexps, dump_memory_profile=None):
             filename = os.path.dirname(filename)
             yield filename
 
-    logging.debug('regexps: %s' % repr(regexps))
     compiled = [re.compile(x) for x in regexps]
     include = set()
     for dirname, subdirs, basenames in os.walk(rootdir):
@@ -83,7 +82,6 @@ def chunk_filenames(rootdir, regexps, dump_memory_profile=None):
             if matches(os.path.relpath(filename, rootdir)):
                 for name in names_to_root(filename):
                     if name not in include:
-                        logging.debug('regexp match: %s' % name)
                         include.add(name)
             else:
                 logging.debug('regexp MISMATCH: %s' % filename)
@@ -121,8 +119,6 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
     normalized_timestamp = 683074800
 
     include = chunk_filenames(rootdir, regexps, dump_memory_profile)
-    logging.debug('Creating chunk file %s from %s with regexps %s' %
-                  (getattr(f, 'name', 'UNNAMED'), rootdir, regexps))
     dump_memory_profile('at beginning of create_chunk')
     
     tar = tarfile.open(fileobj=f, mode='w')
