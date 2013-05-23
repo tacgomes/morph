@@ -215,7 +215,6 @@ class BuilderBase(object):
                 'version': morphlib.gitversion.version,
             },
             'contents': contents,
-            'metadata-version': 1,
         }
 
         return meta
