@@ -24,6 +24,7 @@ class Artifact(object):
     * ``name`` -- the name of the artifact
     * ``cache_key`` -- a cache key to uniquely identify the artifact
     * ``cache_id`` -- a dict describing the components of the cache key
+    * ``contents`` -- a list of the installed files or chunks in the artifact
     * ``dependencies`` -- list of Artifacts that need to be built beforehand
     * ``dependents`` -- list of Artifacts that need this Artifact to be built
 
@@ -39,6 +40,7 @@ class Artifact(object):
         self.cache_key = None
         self.dependencies = []
         self.dependents = []
+        self.contents = []
 
     def add_dependency(self, artifact):
         '''Add ``artifact`` to the dependency list.'''

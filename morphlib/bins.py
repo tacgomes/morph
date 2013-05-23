@@ -50,25 +50,18 @@ def safe_makefile(self, tarinfo, targetpath):
 tarfile.TarFile.makefile = safe_makefile
 
 
-def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
-    '''Create a chunk from the contents of a directory.
+def chunk_filenames(rootdir, regexps, dump_memory_profile=None):
+
+    '''Return the filenames for a chunk from the contents of a directory.
 
     Only files and directories that match at least one of the regular
     expressions are accepted. The regular expressions are implicitly
     anchored to the beginning of the string, but not the end. The
     filenames are relative to rootdir.
 
-    ``f`` is an open file handle, to which the tar file is written.
-
     '''
 
     dump_memory_profile = dump_memory_profile or (lambda msg: None)
-
-    # This timestamp is used to normalize the mtime for every file in
-    # chunk artifact. This is useful to avoid problems from smallish
-    # clock skew. It needs to be recent enough, however, that GNU tar
-    # does not complain about an implausibly old timestamp.
-    normalized_timestamp = 683074800
 
     def matches(filename):
         return any(x.match(filename) for x in compiled)
@@ -79,10 +72,7 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
             filename = os.path.dirname(filename)
             yield filename
 
-    logging.debug('Creating chunk file %s from %s with regexps %s' %
-                  (getattr(f, 'name', 'UNNAMED'), rootdir, regexps))
-    dump_memory_profile('at beginning of create_chunk')
-
+    logging.debug('regexps: %s' % repr(regexps))
     compiled = [re.compile(x) for x in regexps]
     include = set()
     for dirname, subdirs, basenames in os.walk(rootdir):
@@ -99,7 +89,42 @@ def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
                 logging.debug('regexp MISMATCH: %s' % filename)
     dump_memory_profile('after walking')
 
-    include = sorted(include)  # get dirs before contents
+    return sorted(include)  # get dirs before contents
+
+
+def chunk_contents(rootdir, regexps):
+    ''' Return the list of files in a chunk, with the rootdir
+        stripped off.
+    
+    '''
+    
+    filenames = chunk_filenames(rootdir, regexps)
+    # The first entry is the rootdir directory, which we don't need
+    filenames.pop(0)
+    contents = [str[len(rootdir):] for str in filenames]
+    return contents
+
+
+def create_chunk(rootdir, f, regexps, dump_memory_profile=None):
+    '''Create a chunk from the contents of a directory.
+    
+    ``f`` is an open file handle, to which the tar file is written.
+
+    '''
+
+    dump_memory_profile = dump_memory_profile or (lambda msg: None)
+
+    # This timestamp is used to normalize the mtime for every file in
+    # chunk artifact. This is useful to avoid problems from smallish
+    # clock skew. It needs to be recent enough, however, that GNU tar
+    # does not complain about an implausibly old timestamp.
+    normalized_timestamp = 683074800
+
+    include = chunk_filenames(rootdir, regexps, dump_memory_profile)
+    logging.debug('Creating chunk file %s from %s with regexps %s' %
+                  (getattr(f, 'name', 'UNNAMED'), rootdir, regexps))
+    dump_memory_profile('at beginning of create_chunk')
+    
     tar = tarfile.open(fileobj=f, mode='w')
     for filename in include:
         # Normalize mtime for everything.

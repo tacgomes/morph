@@ -186,7 +186,7 @@ class BuilderBase(object):
             json.dump(meta, f, indent=4, sort_keys=True)
             f.write('\n')
 
-    def create_metadata(self, artifact_name):
+    def create_metadata(self, artifact_name, contents = []):
         '''Create metadata to artifact to allow it to be reproduced later.
 
         The metadata is represented as a dict, which later on will be
@@ -214,6 +214,8 @@ class BuilderBase(object):
                 'commit': morphlib.gitversion.commit,
                 'version': morphlib.gitversion.version,
             },
+            'contents': contents,
+            'metadata-version': 1,
         }
 
         return meta
@@ -225,7 +227,7 @@ class BuilderBase(object):
             os.makedirs(dirname)
         return open(filename, mode)
 
-    def write_metadata(self, instdir, artifact_name):
+    def write_metadata(self, instdir, artifact_name, contents = []):
         '''Write the metadata for an artifact.
 
         The file will be located under the ``baserock`` directory under
@@ -234,7 +236,7 @@ class BuilderBase(object):
 
         '''
 
-        meta = self.create_metadata(artifact_name)
+        meta = self.create_metadata(artifact_name, contents)
 
         basename = '%s.meta' % artifact_name
         filename = os.path.join(instdir, 'baserock', basename)
@@ -428,6 +430,7 @@ class ChunkBuilder(BuilderBase):
 
     def assemble_chunk_artifacts(self, destdir):  # pragma: no cover
         built_artifacts = []
+        filenames = []
         with self.build_watch('create-chunks'):
             specs = self.artifact.source.morphology['chunks']
             if len(specs) == 0:
@@ -437,12 +440,15 @@ class ChunkBuilder(BuilderBase):
             names = specs.keys()
             names.sort(key=lambda name: [ord(c) for c in name])
             for artifact_name in names:
-                self.write_metadata(destdir, artifact_name)
+                artifact = self.new_artifact(artifact_name)
                 patterns = specs[artifact_name]
                 patterns += [r'baserock/%s\.' % artifact_name]
 
-                artifact = self.new_artifact(artifact_name)
                 with self.local_artifact_cache.put(artifact) as f:
+                    contents = morphlib.bins.chunk_contents(destdir, patterns)
+                    logging.debug('metadata contents: %s' % contents)
+                    self.write_metadata(destdir, artifact_name, contents)
+
                     logging.debug('assembling chunk %s' % artifact_name)
                     logging.debug('assembling into %s' % f.name)
                     self.app.status(msg='Creating chunk artifact %(name)s',
@@ -498,7 +504,8 @@ class StratumBuilder(BuilderBase):
                 lac = self.local_artifact_cache
                 artifact_name = self.artifact.source.morphology['name']
                 artifact = self.new_artifact(artifact_name)
-                meta = self.create_metadata(artifact_name)
+                contents = [x.name for x in constituents]
+                meta = self.create_metadata(artifact_name, contents)
                 with lac.put_artifact_metadata(artifact, 'meta') as f:
                     json.dump(meta, f, indent=4, sort_keys=True)
                 with self.local_artifact_cache.put(artifact) as f:
