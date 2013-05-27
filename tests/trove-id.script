@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-## Verify that trove-prefix (and by corollary trove-host) work properly.
+## Verify that trove-id (and by corollary trove-host) work properly.
 
 set -eu
 
@@ -27,13 +27,13 @@ PROCESSEDDUMP="$DATADIR/processed-configdump"
 
 "$SRCDIR/scripts/test-morph" \
     --trove-host="TROVEHOST" \
-    --trove-prefix="fudge" \
-    --trove-prefix="github" \
+    --trove-id="fudge" \
+    --trove-id="github" \
     --dump-config > "$RAWDUMP"
 env MORPH_DUMP_PROCESSED_CONFIG=1 "$SRCDIR/scripts/test-morph" \
     --trove-host="TROVEHOST" \
-    --trove-prefix="fudge" \
-    --trove-prefix="github" \
+    --trove-id="fudge" \
+    --trove-id="github" \
     > "$PROCESSEDDUMP"
 
 RAW_ALIAS=$(grep repo-alias "$RAWDUMP" | cut -d\  -f3-)
