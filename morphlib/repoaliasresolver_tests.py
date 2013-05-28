@@ -33,6 +33,9 @@ class RepoAliasResolverTests(unittest.TestCase):
             ('append='
                 'git://append/#'
                 'git@append/'),
+            ('footrove-01='
+                'git://footrove.machine/%s#'
+                'ssh://git@footrove.machine/%s.git'),
         ]
         self.resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             self.aliases)
@@ -65,6 +68,12 @@ class RepoAliasResolverTests(unittest.TestCase):
         self.assertEqual(url, 'git://gitorious.org/baserock/bar')
         url = self.resolver.push_url('baserock:bar')
         self.assertEqual(url, 'git@gitorious.org:baserock/bar.git')
+
+    def test_resolve_urls_for_alias_with_dash(self):
+        url = self.resolver.pull_url('footrove-01:baz')
+        self.assertEqual(url, 'git://footrove.machine/baz')
+        url = self.resolver.push_url('footrove-01:baz')
+        self.assertEqual(url, 'ssh://git@footrove.machine/baz.git')
 
     def test_resolve_urls_for_unknown_alias(self):
         self.assertEqual(self.resolver.pull_url('unknown:foo'), 'unknown:foo')
