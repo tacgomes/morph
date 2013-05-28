@@ -231,7 +231,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         try:
             return self.app.runcmd(['git', 'rev-parse', '--verify', ref],
                                    cwd=repodir)[0:40]
-        except:
+        except cliapp.AppException, e:
+            logging.info(
+                'Ignoring error executing git rev-parse: %s' % str(e))
             return None
 
     def resolve_reponame(self, reponame):
@@ -558,11 +560,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                           'directory as a workspace: %s' %
                                           dirname)
         else:
-            try:
-                os.makedirs(dirname)
-            except:
-                raise cliapp.AppException('failed to create workspace: %s' %
-                                          dirname)
+            os.makedirs(dirname)
 
         os.mkdir(os.path.join(dirname, '.morph'))
         self.app.status(msg='Initialized morph workspace', chatty=True)
@@ -600,7 +598,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                  original_ref], cwd=repo_dir)
 
             return branch_dir
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
+            logging.info('Removing half-finished branch %s' % branch_name)
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
 
@@ -1513,7 +1513,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     "case, and then repeat the 'morph merge' operation." %
                     from_branch)
             self.app.status(msg="Merge successful")
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
+            logging.info('Resetting half-finished merge')
             for repo_dir, sha1 in merged_repos.itervalues():
                 self.reset_work_tree_safe(repo_dir)
             raise

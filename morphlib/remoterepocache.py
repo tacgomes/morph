@@ -16,6 +16,7 @@
 
 import cliapp
 import json
+import logging
 import urllib2
 import urlparse
 
@@ -53,14 +54,16 @@ class RemoteRepoCache(object):
         repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._resolve_ref_for_repo_url(repo_url, ref)
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
             raise ResolveRefError(repo_name, ref)
 
     def cat_file(self, repo_name, ref, filename):
         repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._cat_file_for_repo_url(repo_url, ref, filename)
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
             raise CatFileError(repo_name, ref, filename)
 
     def ls_tree(self, repo_name, ref):
@@ -68,7 +71,8 @@ class RemoteRepoCache(object):
         try:
             info = json.loads(self._ls_tree_for_repo_url(repo_url, ref))
             return info['tree'].keys()
-        except:
+        except BaseException, e:
+            logging.error('Caught exception: %s' % str(e))
             raise LsTreeError(repo_name, ref)
 
     def _resolve_ref_for_repo_url(self, repo_url, ref):  # pragma: no cover
