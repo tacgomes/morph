@@ -45,7 +45,7 @@ class RepoAliasResolver(object):
     def __init__(self, aliases):
         self.aliases = {}
 
-        alias_pattern = (r'^(?P<prefix>[a-z0-9]+)'
+        alias_pattern = (r'^(?P<prefix>[a-z][a-z0-9-]+)'
                          r'=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)$')
         for alias in aliases:
             logging.debug('expanding: alias="%s"' % alias)
@@ -109,7 +109,7 @@ class RepoAliasResolver(object):
 
         '''
 
-        pat = r'^(?P<prefix>[a-z0-9]+):(?P<rest>.*)$'
+        pat = r'^(?P<prefix>[a-z][a-z0-9-]+):(?P<rest>.*)$'
         m = re.match(pat, reponame)
         if m:
             return m.group('prefix'), m.group('rest')
