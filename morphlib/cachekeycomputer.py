@@ -81,7 +81,8 @@ class CacheKeyComputer(object):
         keys = {
             'env': self._filterenv(self._build_env.env),
             'filename': artifact.source.filename,
-            'kids': [self.compute_key(x) for x in artifact.dependencies]
+            'kids': [self.compute_key(x) for x in artifact.dependencies],
+            'metadata-version': artifact.metadata_version
         }
 
         kind = artifact.source.morphology['kind']

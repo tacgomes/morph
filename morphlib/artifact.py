@@ -26,6 +26,9 @@ class Artifact(object):
     * ``cache_id`` -- a dict describing the components of the cache key
     * ``dependencies`` -- list of Artifacts that need to be built beforehand
     * ``dependents`` -- list of Artifacts that need this Artifact to be built
+    * ``metadata_version`` -- When the format of the artifact metadata
+                              changes, this version number is raised causing 
+                              any existing cached artifacts to be invalidated
 
     The ``dependencies`` and ``dependents`` lists MUST be modified by
     the ``add_dependencies`` and ``add_dependent`` methods only.
@@ -39,6 +42,7 @@ class Artifact(object):
         self.cache_key = None
         self.dependencies = []
         self.dependents = []
+        self.metadata_version = 1
 
     def add_dependency(self, artifact):
         '''Add ``artifact`` to the dependency list.'''

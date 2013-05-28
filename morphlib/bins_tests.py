@@ -112,6 +112,10 @@ class ChunkTests(BinsTest):
         morphlib.bins.create_chunk(self.instdir, self.chunk_f, regexps)
         self.chunk_f.flush()
 
+    def chunk_contents(self, regexps):
+        self.populate_instdir()
+        return morphlib.bins.chunk_contents(self.instdir, regexps)
+
     def unpack_chunk(self):
         os.mkdir(self.unpacked)
         morphlib.bins.unpack_binary(self.chunk_file, self.unpacked)
@@ -134,6 +138,11 @@ class ChunkTests(BinsTest):
                          ['.', 'bin', 'bin/foo'])
         self.assertEqual([x for x, y in self.recursive_lstat(self.instdir)],
                          ['.', 'lib', 'lib/libfoo.so'])
+
+    def test_list_chunk_contents(self):
+        contents = self.chunk_contents(['.'])
+        self.assertEqual(contents,
+                         ['/bin', '/bin/foo', '/lib', '/lib/libfoo.so'])
 
     def test_does_not_compress_artifact(self):
         self.create_chunk(['bin'])
