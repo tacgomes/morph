@@ -48,14 +48,11 @@ class RepoAliasResolver(object):
         alias_pattern = (r'^(?P<prefix>[a-z][a-z0-9-]+)'
                          r'=(?P<pullpat>[^#]+)#(?P<pushpat>[^#]+)$')
         for alias in aliases:
-            logging.debug('expanding: alias="%s"' % alias)
             m = re.match(alias_pattern, alias)
-            logging.debug('expanding: m=%s' % repr(m))
             if not m:
                 logging.warning('Alias %s is malformed' % alias)
                 continue
             prefix = m.group('prefix')
-            logging.debug('expanding: prefix group=%s' % prefix)
             self.aliases[prefix] = RepoAlias(alias, prefix, m.group('pullpat'),
                                              m.group('pushpat'))
 
@@ -80,27 +77,23 @@ class RepoAliasResolver(object):
         return sorted(known_aliases)
 
     def _expand_reponame(self, reponame, patname):
-        logging.debug('expanding: reponame=%s' % reponame)
-        logging.debug('expanding: patname=%s' % patname)
-
         prefix, suffix = self._split_reponame(reponame)
-        logging.debug('expanding: prefix=%s' % prefix)
-        logging.debug('expanding: suffix=%s' % suffix)
 
         # There was no prefix.
         if prefix is None:
-            logging.debug('expanding: no prefix')
-            return reponame
-
-        if prefix not in self.aliases:
+            result = reponame
+        elif prefix not in self.aliases:
             # Unknown prefix. Which means it may be a real URL instead.
             # Let the caller deal with it.
-            logging.debug('expanding: unknown prefix')
-            return reponame
+            result = reponame
+        else:
+            pat = getattr(self.aliases[prefix], patname)
+            result = self._apply_url_pattern(pat, suffix)
 
-        pat = getattr(self.aliases[prefix], patname)
-        return self._apply_url_pattern(pat, suffix)
+        logging.debug("Expansion of %s for %s yielded: %s" %
+                      (reponame, patname, result))
 
+        return result
 
     def _split_reponame(self, reponame):
         '''Split reponame into prefix and suffix.
