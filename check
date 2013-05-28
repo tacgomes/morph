@@ -129,5 +129,13 @@ then
                 ;;
         esac
     done
+
+    echo 'Checking for executable *.py files'
+    find . -type f -name '*.py' -perm +111 |
+    while read x
+    do
+        echo "ERROR: $x is executable" 1>&2
+        errors=1
+    done
 fi
 exit $errors
