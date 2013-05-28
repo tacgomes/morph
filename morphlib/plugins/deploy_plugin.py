@@ -18,6 +18,7 @@ import cliapp
 import gzip
 import os
 import shutil
+import stat
 import tarfile
 import tempfile
 import urlparse
@@ -206,6 +207,9 @@ class DeployPlugin(cliapp.Plugin):
             if not os.path.exists(ext_filename):
                 raise morphlib.Error(
                     'Could not find extension %s%s' % (name, kind))
+            if not self._is_executable(ext_filename):
+                raise morphlib.Error(
+                    'Extension not executable: %s' % ext_filename)
             delete_ext = False
         else:
             # Found it in the system morphology's repository.
@@ -222,6 +226,11 @@ class DeployPlugin(cliapp.Plugin):
         
         if delete_ext:
             os.remove(ext_filename)
+
+    def _is_executable(self, filename):
+        st = os.stat(filename)
+        mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        return (stat.S_IMODE(st.st_mode) & mask) != 0
         
     def _cat_file(self, repo_dir, ref, pathname):
         '''Retrieve contents of a file from a git repository.'''
