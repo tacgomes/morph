@@ -16,8 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Test "morph deploy" by deploying to a raw disk image.
-
+# Test "morph deploy" refuses to deploy if DISK_SIZE is unset.
 
 set -eu
 
@@ -25,7 +24,7 @@ set -eu
 . "$SRCDIR/tests.deploy/setup-build"
 cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/test-morph" build linux-system
-"$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
-    deploy rawdisk linux-system "$DATADIR/disk.img" DISK_SIZE=1G > /dev/null
-test -e "$DATADIR/disk.img"
+! "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
+    deploy rawdisk linux-system "$DATADIR/disk.img" > /dev/null 2>&1
+test ! -e "$DATADIR/disk.img"
 
