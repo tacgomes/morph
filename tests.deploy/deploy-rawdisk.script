@@ -22,17 +22,10 @@
 set -eu
 
 
-# Disable if Python is 2.6.
-if python --version 2>&1 | grep ' 2\.6\.' > /dev/null
-then
-    exit 0
-fi
-
-
 . "$SRCDIR/tests.deploy/setup-build"
 cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/test-morph" build linux-system
 "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
     deploy rawdisk linux-system "$DATADIR/disk.img" DISK_SIZE=1G > /dev/null
-[ -e "$DATADIR/disk.img" ]
+test -e "$DATADIR/disk.img"
 
