@@ -28,6 +28,8 @@ def touch(pathname):
 
 manual_project = []
 autotools_project = ['configure.in']
+qmake_project = ['foo.pro']
+cmake_project = ['CMakeLists.txt']
 
 
 class BuildSystemTests(unittest.TestCase):
@@ -64,6 +66,12 @@ class ManualBuildSystemTests(unittest.TestCase):
     def test_does_not_autodetect_autotools(self):
         self.assertFalse(self.bs.used_by_project(autotools_project))
 
+    def test_does_not_autodetect_qmake(self):
+        self.assertFalse(self.bs.used_by_project(qmake_project))
+
+    def test_does_not_autodetect_cmake(self):
+        self.assertFalse(self.bs.used_by_project(cmake_project))
+
 
 class DummyBuildSystemTests(unittest.TestCase):
 
@@ -75,6 +83,12 @@ class DummyBuildSystemTests(unittest.TestCase):
 
     def test_does_not_autodetect_autotools(self):
         self.assertFalse(self.bs.used_by_project(autotools_project))
+
+    def test_does_not_autodetect_cmake(self):
+        self.assertFalse(self.bs.used_by_project(cmake_project))
+
+    def test_does_not_autodetect_qmake(self):
+        self.assertFalse(self.bs.used_by_project(qmake_project))
 
 
 class AutotoolsBuildSystemTests(unittest.TestCase):
@@ -88,6 +102,27 @@ class AutotoolsBuildSystemTests(unittest.TestCase):
     def test_autodetects_autotools(self):
         self.assertTrue(self.bs.used_by_project(autotools_project))
 
+class CMakeBuildSystemTests(unittest.TestCase):
+
+    def setUp(self):
+        self.bs = morphlib.buildsystem.CMakeBuildSystem()
+
+    def test_does_not_autodetect_empty(self):
+        self.assertFalse(self.bs.used_by_project(manual_project))
+
+    def test_autodetects_cmake(self):
+        self.assertTrue(self.bs.used_by_project(cmake_project))
+
+class QMakeBuildSystemTests(unittest.TestCase):
+
+    def setUp(self):
+        self.bs = morphlib.buildsystem.QMakeBuildSystem()
+
+    def test_does_not_autodetect_empty(self):
+        self.assertFalse(self.bs.used_by_project(manual_project))
+
+    def test_autodetects_qmake(self):
+        self.assertTrue(self.bs.used_by_project(qmake_project))
 
 class DetectBuildSystemTests(unittest.TestCase):
 
@@ -98,6 +133,14 @@ class DetectBuildSystemTests(unittest.TestCase):
     def test_autodetects_autotools(self):
         bs = morphlib.buildsystem.detect_build_system(autotools_project)
         self.assertEqual(type(bs), morphlib.buildsystem.AutotoolsBuildSystem)
+
+    def test_autodetects_cmake(self):
+        bs = morphlib.buildsystem.detect_build_system(cmake_project)
+        self.assertEqual(type(bs), morphlib.buildsystem.CMakeBuildSystem)
+
+    def test_autodetects_qmake(self):
+        bs = morphlib.buildsystem.detect_build_system(qmake_project)
+        self.assertEqual(type(bs), morphlib.buildsystem.QMakeBuildSystem)
 
 
 class LookupBuildSystemTests(unittest.TestCase):
@@ -115,6 +158,14 @@ class LookupBuildSystemTests(unittest.TestCase):
     def test_looks_up_autotools(self):
         self.assertEqual(type(self.lookup('autotools')),
                          morphlib.buildsystem.AutotoolsBuildSystem)
+
+    def test_looks_up_cmake(self):
+        self.assertEqual(type(self.lookup('cmake')),
+                         morphlib.buildsystem.CMakeBuildSystem)
+
+    def test_looks_up_qmake(self):
+        self.assertEqual(type(self.lookup('qmake')),
+                         morphlib.buildsystem.QMakeBuildSystem)
 
     def test_looks_up_dummy(self):
         self.assertEqual(type(self.lookup('dummy')),
