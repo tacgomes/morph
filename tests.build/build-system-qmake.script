@@ -21,6 +21,12 @@
 
 set -eu
 
+if ! command -v qmake > /dev/null ; then
+    # There is no qmake, so skip this test.
+    cat "$SRCDIR/tests.build/build-system-qmake.stdout"
+    exit 0
+fi
+    
 chunkrepo="$DATADIR/chunk-repo"
 cd "$chunkrepo"
 
