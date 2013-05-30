@@ -126,9 +126,14 @@ class BuildCommand(object):
                 logging.warning('No %s' % method_name)
 
             # Verify stratum build-depends agree with the system's contents.
-            # It's not an error to build-depend on a stratum that isn't
-            # included in the target system, but if it is included, the repo
-            # and ref fields must match.
+            # It is permissible for a stratum to build-depend on a stratum that
+            # isn't specified in the target system morphology.
+            # Multiple references to the same stratum are permitted. This is
+            # handled by the SourcePool deduplicating added Sources.
+            # It is forbidden to have two different strata with the same name.
+            # Hence if a Stratum is defined in the System, and in a Stratum as
+            # a build-dependency, then they must both have the same Repository
+            # and Ref specified.
             if src.morphology['kind'] == 'stratum':
                 name = src.morphology['name']
                 if name in stratum_names:
