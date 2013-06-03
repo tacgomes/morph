@@ -107,8 +107,8 @@ def combine_aliases(app):  # pragma: no cover
     trove_host = app.settings['trove-host']
     trove_ids = app.settings['trove-id']
     repo_aliases = app.settings['repo-alias']
-    repo_pat = r'^(?P<prefix>[a-z0-9]+)=(?P<pull>[^#]+)#(?P<push>[^#]+)$'
-    trove_pat = (r'^(?P<prefix>[a-z0-9]+)=(?P<path>[^#]+)#'
+    repo_pat = r'^(?P<prefix>[a-z][a-z0-9-]+)=(?P<pull>[^#]+)#(?P<push>[^#]+)$'
+    trove_pat = (r'^(?P<prefix>[a-z][a-z0-9-]+)=(?P<path>[^#]+)#'
                  '(?P<pull>[^#]+)#(?P<push>[^#]+)$')
     alias_map = {}
     def _expand(protocol, path):
