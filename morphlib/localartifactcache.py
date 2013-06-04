@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012,2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,28 @@ import morphlib
 
 
 class LocalArtifactCache(object):
+    '''Abstraction over the local artifact cache
+
+       It provides methods for getting a file handle to cached artifacts
+       so that the layout of the cache need not be known.
+
+       It also updates modification times of artifacts so that it can track
+       when they were last used, so it can be requested to clean up if
+       disk space is low.
+
+       Modification time is updated in both the get and has methods.
+
+       NOTE: Parts of the build assume that every artifact of a source is
+       available, so all the artifacts of a source need to be removed together.
+
+       This complication needs to be handled either during the fetch logic, by
+       updating the mtime of every artifact belonging to a source, or at
+       cleanup time by only removing an artifact if every artifact belonging to
+       a source is too old, and then remove them all at once.
+
+       Since the cleanup logic will be complicated for other reasons it makes
+       sense to put the complication there.
+       '''
 
     def __init__(self, cachedir):
         self.cachedir = cachedir
@@ -36,28 +58,37 @@ class LocalArtifactCache(object):
         filename = self._source_metadata_filename(source, cachekey, name)
         return morphlib.savefile.SaveFile(filename, mode='w')
 
+    def _has_file(self, filename):
+        if os.path.exists(filename):
+            os.utime(filename, None)
+            return True
+        return False
+
     def has(self, artifact):
         filename = self.artifact_filename(artifact)
-        return os.path.exists(filename)
+        return self._has_file(filename)
 
     def has_artifact_metadata(self, artifact, name):
         filename = self._artifact_metadata_filename(artifact, name)
-        return os.path.exists(filename)
+        return self._has_file(filename)
 
     def has_source_metadata(self, source, cachekey, name):
         filename = self._source_metadata_filename(source, cachekey, name)
-        return os.path.exists(filename)
+        return self._has_file(filename)
 
     def get(self, artifact):
         filename = self.artifact_filename(artifact)
+        os.utime(filename, None)
         return open(filename)
 
     def get_artifact_metadata(self, artifact, name):
         filename = self._artifact_metadata_filename(artifact, name)
+        os.utime(filename, None)
         return open(filename)
 
     def get_source_metadata(self, source, cachekey, name):
         filename = self._source_metadata_filename(source, cachekey, name)
+        os.utime(filename, None)
         return open(filename)
 
     def artifact_filename(self, artifact):
