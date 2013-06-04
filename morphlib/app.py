@@ -134,6 +134,34 @@ class Morph(cliapp.Application):
                              metavar='DIR',
                              group=group_storage,
                              default=None)
+        # The tempdir default size of 4G comes from the staging area needing to
+        # be the size of the largest known system, plus the largest repository,
+        # plus the largest working directory.
+        # The largest system is 2G, linux is the largest git repository at
+        # 700M, the checkout of this is 600M. This is rounded up to 4G because
+        # there are likely to be file-system overheads.
+        self.settings.bytesize(['tempdir-min-space'],
+                               'Immediately fail to build if the directory '
+                               'specified by tempdir has less space remaining '
+                               'than SIZE bytes (default: %default)',
+                               metavar='SIZE',
+                               group=group_storage,
+                               default='4G')
+        # The cachedir default size of 4G comes from twice the size of the
+        # largest system artifact.
+        # It's twice the size because it needs space for all the chunks that
+        # make up the system artifact as well.
+        # The git cache and ccache are also kept in cachedir, but it's hard to
+        # estimate size needed for the git cache, and it tends to not grow
+        # too quickly once everything is checked out.
+        # ccache is self-managing so does not need much extra attention
+        self.settings.bytesize(['cachedir-min-space'],
+                               'Immediately fail to build if the directory '
+                               'specified by cachedir has less space '
+                               'remaining than SIZE bytes (default: %default)',
+                               metavar='SIZE',
+                               group=group_storage,
+                               default='4G')
 
         # These cannot be removed just yet because existing morph.conf files
         # would fail to parse.
