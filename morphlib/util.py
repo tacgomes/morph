@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import os
 import re
 
 import morphlib
@@ -219,3 +220,9 @@ def copyfileobj(inputfp, outputfp, blocksize=1024*1024):  # pragma: no cover
     elif sparse:
         outputfp.seek(-1, os.SEEK_CUR)
         outputfp.write("\x00")
+
+def get_bytes_free_in_path(path): # pragma: no cover
+    """Returns the bytes free in the filesystem that path is part of"""
+
+    fsinfo = os.statvfs(path)
+    return fsinfo.f_bavail * fsinfo.f_bsize
