@@ -53,15 +53,6 @@ class Morph(cliapp.Application):
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
 
-        self.settings.string(['cachedir'],
-                             'cache git repositories and build results in DIR',
-                             metavar='DIR',
-                             default=defaults['cachedir'])
-        self.settings.string(['compiler-cache-dir'],
-                             'cache compiled objects in DIR/REPO. If not '
-                             'provided, defaults to CACHEDIR/ccache/',
-                             metavar='DIR',
-                             default=None)
         self.settings.string(['build-ref-prefix'],
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
@@ -120,6 +111,8 @@ class Morph(cliapp.Application):
                               'always push temporary build branches to the '
                               'remote repository',
                               group=group_build)
+
+        group_storage = 'Storage Options'
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                              '(this is separate from just setting $TMPDIR '
@@ -129,7 +122,18 @@ class Morph(cliapp.Application):
                              'NFS)',
                              metavar='DIR',
                              default=os.environ.get('TMPDIR'),
-                             group=group_build)
+                             group=group_storage)
+        self.settings.string(['cachedir'],
+                             'cache git repositories and build results in DIR',
+                             metavar='DIR',
+                             group=group_storage,
+                             default=defaults['cachedir'])
+        self.settings.string(['compiler-cache-dir'],
+                             'cache compiled objects in DIR/REPO. If not '
+                             'provided, defaults to CACHEDIR/ccache/',
+                             metavar='DIR',
+                             group=group_storage,
+                             default=None)
 
         # These cannot be removed just yet because existing morph.conf files
         # would fail to parse.
