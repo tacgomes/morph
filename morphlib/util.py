@@ -117,7 +117,7 @@ def combine_aliases(app):  # pragma: no cover
         elif protocol == "ssh":
             return "ssh://git@%s/%s/%%s" % (trove_host, path)
         else:
-            raise cliapp.AppException(
+            raise morphlib.Error(
                 'Unknown protocol in trove_id: %s' % protocol)
 
     if trove_host:
