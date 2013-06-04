@@ -226,3 +226,13 @@ def get_bytes_free_in_path(path): # pragma: no cover
 
     fsinfo = os.statvfs(path)
     return fsinfo.f_bavail * fsinfo.f_bsize
+
+def on_same_filesystem(path_a, path_b): # pragma: no cover
+    """Tests whether both paths are on the same fileystem
+
+       Note behaviour may be unexpected on btrfs, since subvolumes
+       appear to be on a different device, but share a storage pool.
+
+    """
+    # TODO: return true if one path is a subvolume of the other on btrfs?
+    return os.stat(path_a).st_dev == os.stat(path_b).st_dev
