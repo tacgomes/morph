@@ -16,6 +16,7 @@
 
 import cliapp
 import os
+import re
 import string
 import urlparse
 
@@ -59,9 +60,13 @@ class RepoCache(object):
             if not os.path.exists(repo_dir):
                 raise RepositoryNotFoundError(repo_url)
         try:
-            if not self.direct_mode and not ref.startswith('refs/origin/'):
-                ref = 'refs/origin/' + ref
-            sha1 = self._rev_parse(repo_dir, ref)
+            if re.match('^[0-9a-fA-F]{40}$', ref):
+                sha1 = ref
+            else:
+                if (not self.direct_mode and
+                    not ref.startswith('refs/origin/')):
+                    ref = 'refs/origin/' + ref
+                sha1 = self._rev_parse(repo_dir, ref)
             return sha1, self._tree_from_commit(repo_dir, sha1)
 
         except cliapp.AppException:
