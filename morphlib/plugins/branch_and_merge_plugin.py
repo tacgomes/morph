@@ -1527,6 +1527,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('morph build expects exactly one '
                                       'parameter: the system to build')
 
+        # Raise an exception if there is not enough space
+        morphlib.util.check_disk_available(
+            self.app.settings['tempdir'],
+            self.app.settings['tempdir-min-space'],
+            self.app.settings['cachedir'],
+            self.app.settings['cachedir-min-space'])
+
         system_name = args[0]
 
         # Deduce workspace and system branch and branch root repository.
