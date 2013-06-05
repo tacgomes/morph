@@ -1,8 +1,6 @@
 Workspace after checking out master from the workspace directory:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./master
 d ./master/.morph-system-branch
 d ./master/test:morphs
@@ -13,8 +11,6 @@ f ./master/test:morphs/hello-system.morph
 Workspace after checking out master from within a new branch:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./master
 d ./master/.morph-system-branch
 d ./master/test:morphs
