@@ -128,7 +128,9 @@ class DeployPlugin(cliapp.Plugin):
         # Unpack the artifact (tarball) to a temporary directory.
         self.app.status(msg='Unpacking system for configuration')
 
-        system_tree = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        deployment_dir = os.path.join(self.app.settings['tempdir'],
+                                      'deployments')
+        system_tree = tempfile.mkdtemp(dir=deployment_dir)
 
         if build_command.lac.has(artifact):
             f = build_command.lac.get(artifact)
@@ -157,7 +159,8 @@ class DeployPlugin(cliapp.Plugin):
         if 'TMPDIR' not in env:
             # morphlib.app already took care of ensuring the tempdir setting
             # is good, so use it if we don't have one already set.
-            env['TMPDIR'] = self.app.settings['tempdir']
+            env['TMPDIR'] = os.path.join(self.app.settings['tempdir'],
+                                         'deployments')
 
         # Run configuration extensions.
         self.app.status(msg='Configure system')

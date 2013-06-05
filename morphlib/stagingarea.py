@@ -44,7 +44,7 @@ class StagingArea(object):
         self.dirname = dirname
         self.builddirname = None
         self.destdirname = None
-        self.mounted = None
+        self.mounted = []
         self._bind_readonly_mount = None
 
         self.use_chroot = use_chroot
@@ -61,7 +61,7 @@ class StagingArea(object):
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
-        os.mkdir(dirname)
+        os.makedirs(dirname)
 
     def _dir_for_source(self, source, suffix):
         dirname = os.path.join(self.dirname,
@@ -160,6 +160,7 @@ class StagingArea(object):
 
         unpacked_artifact = os.path.join(
             self._app.settings['tempdir'],
+            'chunks',
             os.path.basename(handle.name) + '.d')
         if not os.path.exists(unpacked_artifact):
             self._mkdir(unpacked_artifact)
@@ -220,7 +221,6 @@ class StagingArea(object):
         return ccache_destdir
 
     def do_mounts(self, setup_mounts):  # pragma: no cover
-        self.mounted = []
         if not setup_mounts:
             return
         for mount_point, mount_type, source in self.to_mount:

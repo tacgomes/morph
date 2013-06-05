@@ -128,7 +128,7 @@ class Morph(cliapp.Application):
                              'this setting can point at a directory in '
                              'NFS)',
                              metavar='DIR',
-                             default=os.environ.get('TMPDIR'),
+                             default=None,
                              group=group_build)
 
         # These cannot be removed just yet because existing morph.conf files
@@ -183,10 +183,21 @@ class Morph(cliapp.Application):
             self.settings['compiler-cache-dir'] = os.path.join(
                     self.settings['cachedir'], 'ccache')
         if self.settings['tempdir'] is None:
-            if 'TMPDIR' in os.environ:
-                self.settings['tempdir'] = os.environ['TMPDIR']
-            else:
-                self.settings['tempdir'] = '/tmp'
+            tmpdir_base = os.environ.get('TMPDIR', '/tmp')
+            tmpdir = os.path.join(tmpdir_base, 'morph_tmp')
+            self.settings['tempdir'] = tmpdir
+
+        def create_dir_if_not_exists(dir):
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+
+        tmpdir = self.settings['tempdir']
+        create_dir_if_not_exists(tmpdir)
+        create_dir_if_not_exists(os.path.join(tmpdir, 'chunks'))
+        create_dir_if_not_exists(os.path.join(tmpdir, 'staging'))
+        create_dir_if_not_exists(os.path.join(tmpdir, 'failed'))
+        create_dir_if_not_exists(os.path.join(tmpdir, 'deployments'))
+
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)

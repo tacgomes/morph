@@ -333,9 +333,10 @@ class BuildCommand(object):
         '''Create the staging area for building a single artifact.'''
 
         self.app.status(msg='Creating staging area')
-        staging_dir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
+        staging_dir = os.path.join(self.app.settings['tempdir'], 'staging')
+        tmp_staging_area_dir = tempfile.mkdtemp(dir=staging_dir)
         staging_area = morphlib.stagingarea.StagingArea(
-            self.app, staging_dir, build_env, use_chroot, extra_env,
+            self.app, tmp_staging_area_dir, build_env, use_chroot, extra_env,
             extra_path)
         return staging_area
 
