@@ -190,6 +190,12 @@ class Morph(cliapp.Application):
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
+
+        for dirconfig in ("cachedir", "tempdir"):
+            path = self.settings[dirconfig]
+            if not os.path.exists(path):
+                os.makedirs(path)
+
         cliapp.Application.process_args(self, args)
 
     def setup_plugin_manager(self):
