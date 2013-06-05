@@ -314,6 +314,10 @@ class ChunkBuilder(BuilderBase):
                         for line in f:
                             logging.error('OUTPUT FROM FAILED BUILD: %s' %
                                           line.rstrip('\n'))
+                src_dir = self.staging_area.dirname
+                dest_dir = os.path.join(self.app.settings['tempdir'],
+                                        'failed')
+                cliapp.runcmd(['mv', src_dir, dest_dir])
                 raise
             self.staging_area.chroot_close()
             built_artifacts = self.assemble_chunk_artifacts(destdir)
