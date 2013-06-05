@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012,2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,6 +35,13 @@ class BuildPlugin(cliapp.Plugin):
         and morphology filename.
 
         '''
+
+        # Raise an exception if there is not enough space
+        morphlib.util.check_disk_available(
+            self.app.settings['tempdir'],
+            self.app.settings['tempdir-min-space'],
+            self.app.settings['cachedir'],
+            self.app.settings['cachedir-min-space'])
 
         build_command = morphlib.buildcommand.BuildCommand(self.app)
         build_command = self.app.hookmgr.call('new-build-command',

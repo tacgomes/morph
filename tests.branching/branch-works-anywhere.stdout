@@ -1,8 +1,6 @@
 Workspace after creating the first branch:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/test:morphs
@@ -13,8 +11,6 @@ f ./branch1/test:morphs/hello-system.morph
 Workspace after creating the second branch:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/test:morphs
@@ -32,8 +28,6 @@ f ./branch2/test:morphs/hello-system.morph
 Workspace after creating the third branch:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/test:morphs
@@ -58,8 +52,6 @@ f ./branch3/test:morphs/hello-system.morph
 Workspace after creating the fourth branch:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./branch1
 d ./branch1/.morph-system-branch
 d ./branch1/test:morphs

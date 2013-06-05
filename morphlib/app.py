@@ -53,15 +53,6 @@ class Morph(cliapp.Application):
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
 
-        self.settings.string(['cachedir'],
-                             'cache git repositories and build results in DIR',
-                             metavar='DIR',
-                             default=defaults['cachedir'])
-        self.settings.string(['compiler-cache-dir'],
-                             'cache compiled objects in DIR/REPO. If not '
-                             'provided, defaults to CACHEDIR/ccache/',
-                             metavar='DIR',
-                             default=None)
         self.settings.string(['build-ref-prefix'],
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
@@ -120,6 +111,8 @@ class Morph(cliapp.Application):
                               'always push temporary build branches to the '
                               'remote repository',
                               group=group_build)
+
+        group_storage = 'Storage Options'
         self.settings.string(['tempdir'],
                              'temporary directory to use for builds '
                              '(this is separate from just setting $TMPDIR '
@@ -129,7 +122,46 @@ class Morph(cliapp.Application):
                              'NFS)',
                              metavar='DIR',
                              default=os.environ.get('TMPDIR'),
-                             group=group_build)
+                             group=group_storage)
+        self.settings.string(['cachedir'],
+                             'cache git repositories and build results in DIR',
+                             metavar='DIR',
+                             group=group_storage,
+                             default=defaults['cachedir'])
+        self.settings.string(['compiler-cache-dir'],
+                             'cache compiled objects in DIR/REPO. If not '
+                             'provided, defaults to CACHEDIR/ccache/',
+                             metavar='DIR',
+                             group=group_storage,
+                             default=None)
+        # The tempdir default size of 4G comes from the staging area needing to
+        # be the size of the largest known system, plus the largest repository,
+        # plus the largest working directory.
+        # The largest system is 2G, linux is the largest git repository at
+        # 700M, the checkout of this is 600M. This is rounded up to 4G because
+        # there are likely to be file-system overheads.
+        self.settings.bytesize(['tempdir-min-space'],
+                               'Immediately fail to build if the directory '
+                               'specified by tempdir has less space remaining '
+                               'than SIZE bytes (default: %default)',
+                               metavar='SIZE',
+                               group=group_storage,
+                               default='4G')
+        # The cachedir default size of 4G comes from twice the size of the
+        # largest system artifact.
+        # It's twice the size because it needs space for all the chunks that
+        # make up the system artifact as well.
+        # The git cache and ccache are also kept in cachedir, but it's hard to
+        # estimate size needed for the git cache, and it tends to not grow
+        # too quickly once everything is checked out.
+        # ccache is self-managing so does not need much extra attention
+        self.settings.bytesize(['cachedir-min-space'],
+                               'Immediately fail to build if the directory '
+                               'specified by cachedir has less space '
+                               'remaining than SIZE bytes (default: %default)',
+                               metavar='SIZE',
+                               group=group_storage,
+                               default='4G')
 
         # These cannot be removed just yet because existing morph.conf files
         # would fail to parse.
@@ -190,6 +222,12 @@ class Morph(cliapp.Application):
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
+
+        for dirconfig in ("cachedir", "tempdir"):
+            path = self.settings[dirconfig]
+            if not os.path.exists(path):
+                os.makedirs(path)
+
         cliapp.Application.process_args(self, args)
 
     def setup_plugin_manager(self):

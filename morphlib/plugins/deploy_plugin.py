@@ -66,6 +66,15 @@ class DeployPlugin(cliapp.Plugin):
             raise cliapp.AppException(
                 'Too few arguments to deploy command (see help)')
 
+        # Raise an exception if there is not enough space in tempdir
+        # / for the path and 0 for the minimum size is a no-op
+        # it exists because it is complicated to check the available
+        # disk space given dirs may be on the same device
+        morphlib.util.check_disk_available(
+            self.app.settings['tempdir'],
+            self.app.settings['tempdir-min-space'],
+            '/', 0)
+
         deployment_type = args[0]
         system_name = args[1]
         location = args[2]

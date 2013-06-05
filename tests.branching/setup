@@ -30,7 +30,7 @@ source "$SRCDIR/scripts/fix-committer-info"
 cat <<EOF > "$DATADIR/morph.conf"
 [config]
 repo-alias = test=file://$DATADIR/%s#file://$DATADIR/%s
-cachedir = $DATADIR/workspace/.morph/cache
+cachedir = $DATADIR/cache
 log = $DATADIR/morph.log
 no-distcc = true
 quiet = true

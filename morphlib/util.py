@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import os
 import re
 
 import morphlib
@@ -117,7 +118,7 @@ def combine_aliases(app):  # pragma: no cover
         elif protocol == "ssh":
             return "ssh://git@%s/%s/%%s" % (trove_host, path)
         else:
-            raise cliapp.AppException(
+            raise morphlib.Error(
                 'Unknown protocol in trove_id: %s' % protocol)
 
     if trove_host:
@@ -219,3 +220,40 @@ def copyfileobj(inputfp, outputfp, blocksize=1024*1024):  # pragma: no cover
     elif sparse:
         outputfp.seek(-1, os.SEEK_CUR)
         outputfp.write("\x00")
+
+def get_bytes_free_in_path(path): # pragma: no cover
+    """Returns the bytes free in the filesystem that path is part of"""
+
+    fsinfo = os.statvfs(path)
+    return fsinfo.f_bavail * fsinfo.f_bsize
+
+def on_same_filesystem(path_a, path_b): # pragma: no cover
+    """Tests whether both paths are on the same fileystem
+
+       Note behaviour may be unexpected on btrfs, since subvolumes
+       appear to be on a different device, but share a storage pool.
+
+    """
+    # TODO: return true if one path is a subvolume of the other on btrfs?
+    return os.stat(path_a).st_dev == os.stat(path_b).st_dev
+
+def check_disk_available(tmp_path, tmp_min_size,
+                         cache_path, cache_min_size): # pragma: no cover
+    # if both are on the same filesystem, assume they share a storage pool,
+    # so the sum of the two sizes needs to be available
+    # TODO: if we need to do this on any more than 2 filesystems
+    #       extend it to take a [(path, min)] and do some arcane mathematics
+    #       to split it into groups that share a filesystem
+    #       hint: try list.sort and itertools.groupby
+    if on_same_filesystem(tmp_path, cache_path):
+        tmp_min_size = cache_min_size = tmp_min_size + cache_min_size
+    tmp_size, cache_size = map(get_bytes_free_in_path, (tmp_path, cache_path))
+    errors = []
+    for path, min in [(tmp_path, tmp_min_size), (cache_path, cache_min_size)]:
+        free = get_bytes_free_in_path(path)
+        if free < min:
+            errors.append('\t%(path)s requires %(min)d bytes free, '
+                          'has %(free)d' % locals())
+    if not errors:
+        return
+    raise morphlib.Error('Insufficient space on disk:\n' + '\n'.join(errors))

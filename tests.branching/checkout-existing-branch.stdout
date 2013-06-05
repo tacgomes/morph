@@ -1,8 +1,6 @@
 File tree:
 d .
 d ./.morph
-d ./.morph/cache
-d ./.morph/cache/gits
 d ./master
 d ./master/.morph-system-branch
 d ./master/test:morphs
