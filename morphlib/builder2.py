@@ -317,7 +317,7 @@ class ChunkBuilder(BuilderBase):
                 src_dir = self.staging_area.dirname
                 dest_dir = os.path.join(self.app.settings['tempdir'],
                                         'failed')
-                cliapp.runcmd(['mv', src_dir, dest_dir])
+                os.rename(src_dir, dest_dir)
                 raise
             self.staging_area.chroot_close()
             built_artifacts = self.assemble_chunk_artifacts(destdir)
