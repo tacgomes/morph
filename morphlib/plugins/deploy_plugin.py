@@ -137,9 +137,8 @@ class DeployPlugin(cliapp.Plugin):
         # Unpack the artifact (tarball) to a temporary directory.
         self.app.status(msg='Unpacking system for configuration')
 
-        deployment_dir = os.path.join(self.app.settings['tempdir'],
-                                      'deployments')
-        system_tree = tempfile.mkdtemp(dir=deployment_dir)
+        system_tree = tempfile.mkdtemp(
+            dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
 
         if build_command.lac.has(artifact):
             f = build_command.lac.get(artifact)
