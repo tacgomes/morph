@@ -237,16 +237,29 @@ def on_same_filesystem(path_a, path_b): # pragma: no cover
     # TODO: return true if one path is a subvolume of the other on btrfs?
     return os.stat(path_a).st_dev == os.stat(path_b).st_dev
 
+def unify_space_requirements(tmp_path, tmp_min_size,
+                             cache_path, cache_min_size): # pragma: no cover
+    """Adjust minimum sizes when paths share a disk.
+    
+       Given pairs of path and minimum size, return the minimum sizes such
+       that when the paths are on the same disk, the sizes are added together.
+
+    """
+    # TODO: make this work for variable number of (path, size) pairs as needed
+    #       hint: try list.sort and itertools.groupby
+    if not on_same_filesystem(tmp_path, cache_path):
+        return tmp_min_size, cache_min_size
+    unified_size = tmp_min_size + cache_min_size
+    return unified_size, unified_size
+
 def check_disk_available(tmp_path, tmp_min_size,
                          cache_path, cache_min_size): # pragma: no cover
     # if both are on the same filesystem, assume they share a storage pool,
     # so the sum of the two sizes needs to be available
-    # TODO: if we need to do this on any more than 2 filesystems
-    #       extend it to take a [(path, min)] and do some arcane mathematics
-    #       to split it into groups that share a filesystem
-    #       hint: try list.sort and itertools.groupby
-    if on_same_filesystem(tmp_path, cache_path):
-        tmp_min_size = cache_min_size = tmp_min_size + cache_min_size
+    # TODO: if we need to do this on any more than 2 paths
+    #       extend it to take a [(path, min)]
+    tmp_min_size, cache_min_size = unify_space_requirements(
+        tmp_path, tmp_min_size, cache_path, cache_min_size)
     tmp_size, cache_size = map(get_bytes_free_in_path, (tmp_path, cache_path))
     errors = []
     for path, min in [(tmp_path, tmp_min_size), (cache_path, cache_min_size)]:
