@@ -219,6 +219,10 @@ class Morph(cliapp.Application):
             tmpdir = os.path.join(tmpdir_base, 'morph_tmp')
             self.settings['tempdir'] = tmpdir
 
+        if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
+            self.settings.dump_config(sys.stdout)
+            sys.exit(0)
+
         def create_dir_if_not_exists(dir):
             if not os.path.exists(dir):
                 os.makedirs(dir)
@@ -231,10 +235,6 @@ class Morph(cliapp.Application):
         create_dir_if_not_exists(os.path.join(tmpdir, 'deployments'))
 
         create_dir_if_not_exists(self.settings['cachedir'])
-
-        if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
-            self.settings.dump_config(sys.stdout)
-            sys.exit(0)
 
         cliapp.Application.process_args(self, args)
 
