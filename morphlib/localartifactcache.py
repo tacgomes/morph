@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import collections
 import os
 
 import morphlib
@@ -115,3 +116,30 @@ class LocalArtifactCache(object):
             for basename in basenames:
                 os.remove(os.path.join(dirname, basename))
 
+    def list_contents(self): # pragma: no cover
+        '''Return the set of sources cached and related information.
+
+           returns a [(cache_key, set(artifacts), last_used)]
+
+        '''
+        CacheInfo = collections.namedtuple('CacheInfo', ('artifacts', 'mtime'))
+        contents = collections.defaultdict(lambda: CacheInfo(set(), 0))
+        for dirpath, dirnames, filenames in os.walk(self.cachedir):
+            for filename in filenames:
+                cachekey = filename[:63]
+                artifact = filename[65:]
+                artifacts, max_mtime = contents[cachekey]
+                artifacts.add(artifact)
+                this_mtime = os.stat(os.path.join(dirpath, filename)).st_mtime
+                contents[cachekey] = CacheInfo(artifacts,
+                                               max(max_mtime, this_mtime))
+        return ((cache_key, info.artifacts, info.mtime)
+                for cache_key, info in contents.iteritems())
+
+
+    def remove(self, cachekey): # pragma: no cover
+        '''Remove all artifacts associated with the given cachekey.'''
+        for dirpath, dirnames, filenames in os.walk(self.cachedir):
+            for filename in filenames:
+                if filename.startswith(cachekey):
+                    os.remove(os.path.join(dirpath, filename))
