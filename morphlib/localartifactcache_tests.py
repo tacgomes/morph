@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012,2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,8 +47,10 @@ class LocalArtifactCacheTests(unittest.TestCase):
             'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
         self.runtime_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-runtime')
+        self.runtime_artifact.cache_key = '0'*64
         self.devel_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-devel')
+        self.devel_artifact.cache_key = '0'*64
 
     def tearDown(self):
         self.tempdir.remove()
