@@ -157,3 +157,35 @@ class LocalArtifactCacheTests(unittest.TestCase):
         cache.clear()
         self.assertFalse(cache.has(self.runtime_artifact))
 
+    def test_put_artifacts_and_list_them_afterwards(self):
+        cache = morphlib.localartifactcache.LocalArtifactCache(
+            self.tempdir.dirname)
+
+        handle = cache.put(self.runtime_artifact)
+        handle.write('runtime')
+        handle.close()
+
+        self.assertTrue(len(list(cache.list_contents())) == 1)
+
+        handle = cache.put(self.devel_artifact)
+        handle.write('devel')
+        handle.close()
+
+        self.assertTrue(len(list(cache.list_contents())) == 1)
+
+    def test_put_artifacts_and_remove_them_afterwards(self):
+        cache = morphlib.localartifactcache.LocalArtifactCache(
+            self.tempdir.dirname)
+
+        handle = cache.put(self.runtime_artifact)
+        handle.write('runtime')
+        handle.close()
+
+        handle = cache.put(self.devel_artifact)
+        handle.write('devel')
+        handle.close()
+
+        key = list(cache.list_contents())[0][0]
+        cache.remove(key)
+
+        self.assertTrue(len(list(cache.list_contents())) == 0)

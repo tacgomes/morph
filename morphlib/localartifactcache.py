@@ -116,7 +116,7 @@ class LocalArtifactCache(object):
             for basename in basenames:
                 os.remove(os.path.join(dirname, basename))
 
-    def list_contents(self): # pragma: no cover
+    def list_contents(self):
         '''Return the set of sources cached and related information.
 
            returns a [(cache_key, set(artifacts), last_used)]
@@ -137,7 +137,7 @@ class LocalArtifactCache(object):
                 for cache_key, info in contents.iteritems())
 
 
-    def remove(self, cachekey): # pragma: no cover
+    def remove(self, cachekey):
         '''Remove all artifacts associated with the given cachekey.'''
         for dirpath, dirnames, filenames in os.walk(self.cachedir):
             for filename in filenames:
