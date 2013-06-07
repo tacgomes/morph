@@ -269,4 +269,10 @@ def check_disk_available(tmp_path, tmp_min_size,
                           'has %(free)d' % locals())
     if not errors:
         return
-    raise morphlib.Error('Insufficient space on disk:\n' + '\n'.join(errors))
+    raise morphlib.Error('Insufficient space on disk:\n' +
+                         '\n'.join(errors) + '\n'
+                         'Please run `morph gc`. If the problem persists '
+                         'increase the disk size, manually clean up some '
+                         'space or reduce the disk space required by the '
+                         'tempdir-min-space and cachedir-min-space '
+                         'configuration options.')
