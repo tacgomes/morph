@@ -78,7 +78,7 @@ class GCPlugin(cliapp.Plugin):
                                 subdir=os.path.join(temp_path, subdir),
                                 chatty=True)
                 break
-            self.app.status('Removing temp subdirectory: %(subdir)s',
+            self.app.status(msg='Removing temp subdirectory: %(subdir)s',
                             subdir=subdir)
             path = os.path.join(temp_path, subdir)
             if os.path.exists(path):
