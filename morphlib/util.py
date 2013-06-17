@@ -144,6 +144,10 @@ def combine_aliases(app):  # pragma: no cover
         m = re.match(repo_pat, repo_alias)
         if m:
             alias_map[m.group('prefix')] = repo_alias
+        else:
+            raise morphlib.Error(
+                'Invalid repo-alias: %s' % repo_alias)
+
 
     return alias_map.values()
 
