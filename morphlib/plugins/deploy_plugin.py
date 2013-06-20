@@ -233,7 +233,9 @@ class DeployPlugin(cliapp.Plugin):
         self.app.status(msg='Running extension %(name)s%(kind)s',
                         name=name, kind=kind)
         self.app.runcmd(
-            [ext_filename] + args, env=env, stdout=None, stderr=None)
+            [ext_filename] + args,
+            ['bash', '-c', 'while read l; do echo `date "+%F %T"` $l; done'],
+            env=env, stdout=None, stderr=None)
         
         if delete_ext:
             os.remove(ext_filename)
