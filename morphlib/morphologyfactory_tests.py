@@ -74,7 +74,7 @@ class FakeLocalRepo(object):
 
     def __init__(self):
         self.arch = 'x86_64'
-        self.system_kind = 'unknown'
+        self.system_kind = ''
 
     def cat(self, sha1, filename):
         if filename in self.morphologies:
@@ -252,8 +252,8 @@ class MorphologyFactoryTests(unittest.TestCase):
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph['arch'], 'armv7l')
 
-    def test_fails_if_system_does_not_define_system_kind(self):
-        self.lr.system_kind = ''
+    def test_fails_if_system_define_system_kind_that_is_not_tarball(self):
+        self.lr.system_kind = 'blahblah'
         self.assertRaises(morphlib.Error, self.mf.get_morphology,
                           'reponame', 'sha1', 'system.morph')
 
