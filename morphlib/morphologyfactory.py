@@ -116,20 +116,18 @@ class MorphologyFactory(object):
                                  'supports the following architectures: %s' %
                                  (morphology['arch'], ', '.join(valid_archs)))
 
-        if not morphology['system-kind']:
-            raise morphlib.Error('No system-kind defined in system %s '
-                                 '(it is a mandatory field)' % filename)
-
-        if morphology['system-kind'] != 'rootfs-tarball':
+        kind = morphology['system-kind']
+        if kind == 'rootfs-tarball': # pragma: no cover
             self._app.status(
-                msg='You are using a system-kind %(kind)s. '
-                    'This is deprecated and untested functionality that will '
-                    'be removed in a future version of Baserock. The only '
-                    'supported system-kind is rootfs-tarball. '
-                    'Please convert your system morphologies to '
-                    'rootfs-tarball and use morph deploy to create '
-                    'disk images.',
-                kind=morphology['system-kind'])
+                msg='WARNING: Obsolete field system-kind used in morphology '
+                    '(it is harmless, but should be removed)')
+        elif kind:
+            raise morphlib.Error(
+                'System kind %s is not supported (anymore), '
+                'the whole system-kind field is deprecated. '
+                'Please remove system-kind from your system '
+                'morphologies and morph deploy to create '
+                'the desired output format.' % kind)
 
         name = morphology['name']
         morphology.builds_artifacts = [name + '-rootfs']
