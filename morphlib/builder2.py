@@ -19,6 +19,7 @@ import errno
 import json
 import logging
 import os
+from os.path import relpath
 import shutil
 import stat
 import time
@@ -518,14 +519,60 @@ class StratumBuilder(BuilderBase):
         return [artifact]
 
 
-class SystemKindBuilder(BuilderBase):  # pragma: no cover
+class SystemBuilder(BuilderBase):  # pragma: no cover
 
-    '''Build a specific kind of a system.
+    '''Build system image artifacts.'''
 
-    Subclasses should set the ``system_kind`` attribute to the kind of
-    system they build.
+    def __init__(self, *args, **kwargs):
+        BuilderBase.__init__(self, *args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
 
-    '''
+    def build_and_cache(self):
+        system_kind = self.artifact.source.morphology['system-kind']
+        if system_kind != 'rootfs-tarball':
+            raise morphlib.Error(
+                'System kind %s not support (only rootfs-tarball is)')
+        self.app.status(msg='Building system %(system_name)s',
+                        system_name=self.artifact.source.morphology['name'])
+
+        with self.build_watch('overall-build'):
+            arch = self.artifact.source.morphology['arch']
+
+            rootfs_name = self.artifact.source.morphology['name'] + '-rootfs'
+            rootfs_artifact = self.new_artifact(rootfs_name)
+            handle = self.local_artifact_cache.put(rootfs_artifact)
+
+            try:
+                fs_root = self.staging_area.destdir(self.artifact.source)
+                self.unpack_strata(fs_root)
+                self.write_metadata(fs_root, rootfs_name)
+                self.create_fstab(fs_root)
+                self.copy_kernel_into_artifact_cache(fs_root)
+                unslashy_root = fs_root[1:]
+                def uproot_info(info):
+                    info.name = relpath(info.name, unslashy_root)
+                    if info.islnk():
+                        info.linkname = relpath(info.linkname,
+                                                unslashy_root)
+                    return info
+                artiname = self.artifact.source.morphology['name']
+                tar = tarfile.open(fileobj=handle, mode="w", name=artiname)
+                self.app.status(msg='Constructing tarball of root filesystem',
+                                chatty=True)
+                tar.add(fs_root, recursive=True, filter=uproot_info)
+                tar.close()
+            except BaseException, e:
+                logging.error(traceback.format_exc())
+                self.app.status(msg='Error while building system',
+                                error=True)
+                handle.abort()
+                raise
+
+            handle.close()
+
+        self.save_build_times()
+        return [self.artifact]
 
     def unpack_one_stratum(self, stratum_artifact, target):
         '''Unpack a single stratum into a target directory'''
@@ -638,46 +685,6 @@ class SystemKindBuilder(BuilderBase):  # pragma: no cover
                     with open(installed_path) as kernel:
                         shutil.copyfileobj(kernel, dest)
                     break
-
-
-class SystemKindBuilderFactory(object):  # pragma: no cover
-
-    '''A factory class for SystemKindBuilder objects.'''
-
-    def __init__(self):
-        self.system_kinds = []
-
-    def register(self, klass):
-        self.system_kinds.append(klass)
-
-    def new(self, system_kind, args, kwargs):
-        for klass in self.system_kinds:
-            if klass.system_kind == system_kind:
-                return klass(*args, **kwargs)
-        raise morphlib.Error("Don't know how to build system kind %s" %
-                             system_kind)
-
-
-class SystemBuilder(BuilderBase):  # pragma: no cover
-
-    '''Build system image artifacts.'''
-
-    def __init__(self, *args, **kwargs):
-        BuilderBase.__init__(self, *args, **kwargs)
-        self.args = args
-        self.kwargs = kwargs
-
-    def build_and_cache(self):
-        system_kind = self.artifact.source.morphology['system-kind']
-        if system_kind != 'rootfs-tarball':
-            raise morphlib.Error(
-                'System kind %s not support (only rootfs-tarball is)')
-        builder = self.app.system_kind_builder_factory.new(
-            system_kind, self.args, self.kwargs)
-        logging.debug('Building system with %s' % repr(builder))
-        self.app.status(msg='Building system %(system_name)s',
-                        system_name=self.artifact.source.morphology['name'])
-        return builder.build_and_cache()
 
 
 class Builder(object):  # pragma: no cover
