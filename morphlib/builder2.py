@@ -669,6 +669,9 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
 
     def build_and_cache(self):
         system_kind = self.artifact.source.morphology['system-kind']
+        if system_kind != 'rootfs-tarball':
+            raise morphlib.Error(
+                'System kind %s not support (only rootfs-tarball is)')
         builder = self.app.system_kind_builder_factory.new(
             system_kind, self.args, self.kwargs)
         logging.debug('Building system with %s' % repr(builder))
