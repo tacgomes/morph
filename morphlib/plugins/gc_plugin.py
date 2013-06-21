@@ -113,7 +113,8 @@ class GCPlugin(cliapp.Plugin):
                                 'sufficient space already cleared',
                             chatty=True)
             return
-        lac = morphlib.localartifactcache.LocalArtifactCache(cache_path)
+        lac = morphlib.localartifactcache.LocalArtifactCache(
+            os.path.join(cache_path, 'artifacts'))
         max_age, min_age = self.calculate_delete_range()
         logging.debug('Must remove artifacts older than timestamp %d'
                       % max_age)
