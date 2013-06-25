@@ -214,7 +214,8 @@ def check_config_set(runcmd, keys, cwd='.'):
     found = {}
     for key in keys:
         try:
-            value = runcmd(['git', 'config', key], cwd=cwd).strip()
+            value = runcmd(['git', 'config', key], cwd=cwd, 
+                           print_command=False).strip()
             found[key] = value
         except cliapp.AppException:
             missing.append(key)
