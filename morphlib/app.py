@@ -410,6 +410,12 @@ class Morph(cliapp.Application):
         if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
 
+        if 'print_command' in kwargs:
+            print_command = kwargs['print_command']
+            del kwargs['print_command']
+        else:
+            print_command = True
+
         # convert the command line arguments into a string
         commands = [argv] + list(args)
         for command in commands:
@@ -419,9 +425,10 @@ class Morph(cliapp.Application):
         commands = [' '.join(command) for command in commands]
 
         # print the command line
-        self.status(msg='# %(cmdline)s',
-                    cmdline=' | '.join(commands),
-                    chatty=True)
+        if print_command:
+            self.status(msg='# %(cmdline)s',
+                        cmdline=' | '.join(commands),
+                        chatty=True)
 
         # Log the environment.
         prev = getattr(self, 'prev_env', {})
