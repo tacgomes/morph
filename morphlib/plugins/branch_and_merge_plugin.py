@@ -180,18 +180,22 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def set_branch_config(self, branch_dir, option, value):
         filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
-        self.app.runcmd(['git', 'config', '-f', filename, option, value], print_command=False)
+        self.app.runcmd(['git', 'config', '-f', filename, option, value], 
+                        print_command=False)
 
     def get_branch_config(self, branch_dir, option):
         filename = os.path.join(branch_dir, '.morph-system-branch', 'config')
-        value = self.app.runcmd(['git', 'config', '-f', filename, option], print_command=False)
+        value = self.app.runcmd(['git', 'config', '-f', filename, option], 
+                                print_command=False)
         return value.strip()
 
     def set_repo_config(self, repo_dir, option, value):
-        self.app.runcmd(['git', 'config', option, value], cwd=repo_dir, print_command=False)
+        self.app.runcmd(['git', 'config', option, value], cwd=repo_dir, 
+                        print_command=False)
 
     def get_repo_config(self, repo_dir, option):
-        value = self.app.runcmd(['git', 'config', option], cwd=repo_dir, print_command=False)
+        value = self.app.runcmd(['git', 'config', option], cwd=repo_dir, 
+                                print_command=False)
         return value.strip()
 
     def get_head(self, repo_path):
