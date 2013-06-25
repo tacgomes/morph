@@ -71,6 +71,15 @@ class SshRsyncWriteExtension(morphlib.writeexts.WriteExtension):
                 cliapp.ssh_runcmd(location, ['btrfs', 'subvolume',
                                              'snapshot', orig_dir, run_dir])
 
+                self.status(msg='Updating system configuration')
+                bscs_loc = os.path.join(run_dir, 'usr', 'bin',
+                                        'baserock-system-config-sync')
+                try:
+                    cliapp.ssh_runcmd(location, ['sh', bscs_loc, 'merge',
+                                                 version_label])
+                except:
+                    self.status(msg='Updating system configuration failed')
+
                 self.install_remote_kernel(location, version_root, temp_root)
                 default_path = os.path.join(remote_mnt, 'systems', 'default')
                 if self.bootloader_is_wanted():
@@ -84,8 +93,7 @@ class SshRsyncWriteExtension(morphlib.writeexts.WriteExtension):
                         # not have an updated extlinux config file
                         self.update_remote_extlinux(location, remote_mnt,
                                                     version_label)
-                cliapp.ssh_runcmd(location, ['ln', '-s', '-f',
-                                             version_label,
+                cliapp.ssh_runcmd(location, ['ln', '-sfn', version_label,
                                              default_path])
             except Exception as e:
                 try:
@@ -102,7 +110,7 @@ class SshRsyncWriteExtension(morphlib.writeexts.WriteExtension):
             raise
         else:
             self.status(msg='Removing temporary mounts')
-            cliapp.ssh_runcmd(location, ['umount', root_disk])
+            cliapp.ssh_runcmd(location, ['umount', remote_mnt])
             cliapp.ssh_runcmd(location, ['rmdir', remote_mnt])
 
     def update_remote_extlinux(self, location, remote_mnt, version_label):
@@ -143,7 +151,8 @@ class SshRsyncWriteExtension(morphlib.writeexts.WriteExtension):
                                      old_orig, new_orig])
 
         cliapp.runcmd(['rsync', '-as', '--checksum', '--numeric-ids',
-                       '--delete', temp_root, '%s:%s' % (location, new_orig)])
+                       '--delete', temp_root + os.path.sep,
+                       '%s:%s' % (location, new_orig)])
 
     def get_old_orig(self, location, remote_mnt):
         '''Identify which subvolume to snapshot from'''
