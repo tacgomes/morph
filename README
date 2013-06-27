@@ -6,7 +6,7 @@ README for morph
 > problems, mail baserock-dev@baserock.org.
 
 `morph` builds binaries for [Baserock](http://www.baserock.org/),
-an embedded Linux solution. Please see the website for overall information.
+an appliance Linux solution. Please see the website for overall information.
 
 
 Usage
@@ -14,23 +14,23 @@ Usage
 
 The Baserock builds are controlled by **morphology** files, 
 which are build recipes. See below for their syntax. Everything
-in Baserock is built from git commits, and also the morphologies
-must be committed in git before building. The `morph` tool is
+in Baserock is built from git commits.
+Morphologies must be committed in git before building. The `morph` tool is
 used to actually run the build. The usual workflow is this:
 
 * put the morphology for an upstream project with its source code
 * put other morphologies in the `morphs` (note plural) repository
-* run `fakeroot morph` or `sudo morph` to build stuff
+* run `morph` to build stuff
 
-Eventually, `morph` will get a manual page. Meanwhile, a short usage:
+`morph --help` will provide some information, though a full guide is
+really required. Meanwhile a short usage to build a disk image:
 
-    fakeroot morph --keep-path -v build-morphology morphs master foundation
-    sudo morph --keep-path -v build-morphology morphs master base-system
-
-(Run with `fakeroot`, when building anything but a system image; run
-with `sudo` when building a system image.)
-
-Run `morph --help` to get a list of all options and short descriptions.
+    morph init workspace
+    cd workspace
+    morph checkout baserock:baserock/morphs master
+    morph build base-system-x86_64-generic
+    morph deploy --no-git-update rawkdisk base-system-x86_64-generic \
+          disk-image.img
 
 You can write a configuration file to avoid having to write options on
 the command line every time. Put it in `~/.morph.conf` and make it look
@@ -48,24 +48,18 @@ All of the above settings apart from `log` are the defaults, so may be omitted.
 Morphology file syntax
 ----------------------
 
-JSON is used for the morphology syntax. For example, to build a chunk:
+YAML is used for the morphology syntax. For example, to build a chunk:
 
-    {
-        "name": "foo",
-        "kind": "chunk",
-        "configure-commands": [
-            "./configure --prefix=\"$PREFIX\""
-        ],
-        "build-commands": [
-            "make"
-        ],
-        "test-commands": [
-            "make check"
-        ],
-        "install-commands": [
-            "make DESTDIR=\"$DESTDIR\" install"
-        ]
-    }
+    name: foo
+    kind: chunk
+    configure-commands:
+    - ./configure --prefix="$PREFIX"
+    build-commands:
+    - make
+    test-commands:
+    - make check
+    install-commands:
+    - make DESTDIR="$DESTDIR" install
 
 For all morphologies, use the following fields:
 
@@ -75,10 +69,17 @@ For all morphologies, use the following fields:
 
 For chunks, use the following fields:
 
+
 * `build-system`: if the program is built using a build system known to
   `morph`, you can set this field and avoid having to set the various
-  `*-commands` fields; only `autotools` is currently known; the commands
-  that the build system specifies can be overridden;
+  `*-commands` fields; the commands that the build system specifies can be overridden; the following build-systems are known:
+
+  - `autotools`
+  - `python-distutils`
+  - `cpan`
+  - `cmake`
+  - `qmake` 
+
   optional
 
 * `pre-configure-commands`: a list of shell commands to run at 
@@ -151,7 +152,7 @@ For strata, use the following fields:
   `build-depends` field. This field may be omitted to make the source
   depend on all other chunks that are listed earlier in the `chunks`
   list. The field may be an empty list to indicate that the chunk does 
-  not depend on anything else in the same stratum. To specify one ore 
+  not depend on anything else in the same stratum. To specify one or
   more chunk dependencies, `build-depends` needs to be set to a list
   that contains the names of chunks that the source depends on in the 
   same stratum. These names correspond to the values of the `name` 
@@ -159,8 +160,6 @@ For strata, use the following fields:
 
 For systems, use the following fields:
 
-* `disk-size`: size of the disk image to be created; may use suffixes like
-  `M` and `G`; **required**
 * `strata`: a list of triples specifying strata to be included in the system
   image. Similar to chunks, you should give `repo`, `ref` and `morph`
   (filename without the .morph extension) for each stratum. The value of
@@ -169,78 +168,53 @@ For systems, use the following fields:
 
 Example chunk (simplified commands):
 
-    {
-        "name": "eglibc",
-        "kind": "chunk",
-        "configure-commands": [
-            "mkdir o",
-            "cd o && ../libc/configure --prefix=/usr"
-        ],
-        "build-commands": [
-            "cd o && make"
-        ],
-        "install-commands": [
-            "cd o && make install_root=\"$DESTDIR\" install"
-        ]
-    }
+    name: eglibc
+    kind: chunk
+    configure-commands:
+    - mkdir o
+    - cd o && ../libc/configure --prefix=/usr
+    build-commands:
+    - cd o && make
+    install-commands:
+    - cd o && make install_root="$DESTDIR" install
 
 Example stratum:
 
-    {
-        "name": "foundation",
-        "kind": "stratum",
-        "chunks": [
-            {
-                "name": "fhs-dirs",
-                "repo": "upstream:fhs-dirs",
-                "ref": "baserock/bootstrap",
-                "build-depends": [],
-            },
-            {
-                "name": "linux-api-headers",
-                "repo": "upstream:linux",
-                "ref": "baserock/morph",
-                "build-depends": ["fhs-dirs"]
-            },
-            {
-                "name": "eglibc",
-                "repo": "upstream:eglibc",
-                "ref": "baserock/bootstrap",
-                "build-depends": [
-                  "linux-api-headers"
-                ]
-            },
-            {
-                "name": "busybox",
-                "repo": "upstream:busybox",
-                "ref": "baserock/bootstrap",
-                "build-depends": [
-                  "fhs-dirs",
-                  "linux-api-headers"
-                ]
-            }
-        ]
-    }
+    name: foundation
+    kind: stratum
+    chunks:
+    - name: fhs-dirs
+      repo: upstream:fhs-dirs
+      ref: baserock/bootstrap
+      build-depends: []
+    - name: linux-api-headers
+      repo: upstream:linux
+      ref: baserock/morph
+      build-depends:
+      - fhs-dirs
+    - name: eglibc
+      repo: upstream:eglibc
+      ref: baserock/bootstrap
+      build-depends:
+      - linux-api-headers
+    - name: busybox
+      repo: upstream:busybox
+      ref: baserock/bootstrap
+      build-depends:
+      - fhs-dirs
+      - linux-api-headers
 
 Example system:
 
-    {
-        "name": "base",
-        "kind": "system",
-        "disk-size": "1G",
-        "strata": [
-            {
-                "morph": "foundation",
-                "repo": "baserock:baserock/morphs",
-                "ref": "master"
-            },
-            {
-                "morph": "linux-stratum",
-                "repo": "baserock:baserock/morphs",
-                "ref": "master"
-            }
-        ]
-    }
+    name: base
+    kind: system
+    strata:
+    - morph: foundation
+      repo: baserock:baserock/morphs
+      ref: master
+    - morph: linux-stratum
+      repo: baserock:baserock/morphs
+      ref: master
 
 Note that currently, unknown keys in morphologies are silently ignored.
 
@@ -252,7 +226,12 @@ When `morph` runs build commands, it clears the environment of all
 variables and creates new ones. This is so that the build will run
 more consistently across machines and developers.
 
-See the `morphlib/builder.py` file, method `setup_env` for details.
+See the `morphlib/buildenvironment.py` file for details on what
+environment variables are set.
+
+Morph also constructs a staging area for every build, composed of its
+build-dependencies, so everything that is used for a build is traceable
+and reproducible.
 
 
 Hacking morph
@@ -260,7 +239,10 @@ Hacking morph
 
 Run the test suite with this command:
 
-    ./check
+    ./check --full
+
+If your /tmp is a tmpfs you may need to set TMPDIR to a different path,
+as there are tests for large disk image deploys.
 
 Install CoverageTestRunner (from <http://liw.fi/coverage-test-runner/>),
 and check out the `cmdtest` utility (from <http://liw.fi/cmdtest/>).
