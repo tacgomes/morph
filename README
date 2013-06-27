@@ -48,24 +48,18 @@ All of the above settings apart from `log` are the defaults, so may be omitted.
 Morphology file syntax
 ----------------------
 
-JSON is used for the morphology syntax. For example, to build a chunk:
+YAML is used for the morphology syntax. For example, to build a chunk:
 
-    {
-        "name": "foo",
-        "kind": "chunk",
-        "configure-commands": [
-            "./configure --prefix=\"$PREFIX\""
-        ],
-        "build-commands": [
-            "make"
-        ],
-        "test-commands": [
-            "make check"
-        ],
-        "install-commands": [
-            "make DESTDIR=\"$DESTDIR\" install"
-        ]
-    }
+    name: foo
+    kind: chunk
+    configure-commands:
+    - ./configure --prefix="$PREFIX"
+    build-commands:
+    - make
+    test-commands:
+    - make check
+    install-commands:
+    - make DESTDIR="$DESTDIR" install
 
 For all morphologies, use the following fields:
 
@@ -169,78 +163,53 @@ For systems, use the following fields:
 
 Example chunk (simplified commands):
 
-    {
-        "name": "eglibc",
-        "kind": "chunk",
-        "configure-commands": [
-            "mkdir o",
-            "cd o && ../libc/configure --prefix=/usr"
-        ],
-        "build-commands": [
-            "cd o && make"
-        ],
-        "install-commands": [
-            "cd o && make install_root=\"$DESTDIR\" install"
-        ]
-    }
+    name: eglibc
+    kind: chunk
+    configure-commands:
+    - mkdir o
+    - cd o && ../libc/configure --prefix=/usr
+    build-commands:
+    - cd o && make
+    install-commands:
+    - cd o && make install_root="$DESTDIR" install
 
 Example stratum:
 
-    {
-        "name": "foundation",
-        "kind": "stratum",
-        "chunks": [
-            {
-                "name": "fhs-dirs",
-                "repo": "upstream:fhs-dirs",
-                "ref": "baserock/bootstrap",
-                "build-depends": [],
-            },
-            {
-                "name": "linux-api-headers",
-                "repo": "upstream:linux",
-                "ref": "baserock/morph",
-                "build-depends": ["fhs-dirs"]
-            },
-            {
-                "name": "eglibc",
-                "repo": "upstream:eglibc",
-                "ref": "baserock/bootstrap",
-                "build-depends": [
-                  "linux-api-headers"
-                ]
-            },
-            {
-                "name": "busybox",
-                "repo": "upstream:busybox",
-                "ref": "baserock/bootstrap",
-                "build-depends": [
-                  "fhs-dirs",
-                  "linux-api-headers"
-                ]
-            }
-        ]
-    }
+    name: foundation
+    kind: stratum
+    chunks:
+    - name: fhs-dirs
+      repo: upstream:fhs-dirs
+      ref: baserock/bootstrap
+      build-depends: []
+    - name: linux-api-headers
+      repo: upstream:linux
+      ref: baserock/morph
+      build-depends:
+      - fhs-dirs
+    - name: eglibc
+      repo: upstream:eglibc
+      ref: baserock/bootstrap
+      build-depends:
+      - linux-api-headers
+    - name: busybox
+      repo: upstream:busybox
+      ref: baserock/bootstrap
+      build-depends:
+      - fhs-dirs
+      - linux-api-headers
 
 Example system:
 
-    {
-        "name": "base",
-        "kind": "system",
-        "disk-size": "1G",
-        "strata": [
-            {
-                "morph": "foundation",
-                "repo": "baserock:baserock/morphs",
-                "ref": "master"
-            },
-            {
-                "morph": "linux-stratum",
-                "repo": "baserock:baserock/morphs",
-                "ref": "master"
-            }
-        ]
-    }
+    name: base
+    kind: system
+    strata:
+    - morph: foundation
+      repo: baserock:baserock/morphs
+      ref: master
+    - morph: linux-stratum
+      repo: baserock:baserock/morphs
+      ref: master
 
 Note that currently, unknown keys in morphologies are silently ignored.
 
