@@ -226,7 +226,12 @@ When `morph` runs build commands, it clears the environment of all
 variables and creates new ones. This is so that the build will run
 more consistently across machines and developers.
 
-See the `morphlib/builder.py` file, method `setup_env` for details.
+See the `morphlib/buildenvironment.py` file for details on what
+environment variables are set.
+
+Morph also constructs a staging area for every build, composed of its
+build-dependencies, so everything that is used for a build is traceable
+and reproducible.
 
 
 Hacking morph
