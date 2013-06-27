@@ -14,23 +14,23 @@ Usage
 
 The Baserock builds are controlled by **morphology** files, 
 which are build recipes. See below for their syntax. Everything
-in Baserock is built from git commits, and also the morphologies
-must be committed in git before building. The `morph` tool is
+in Baserock is built from git commits.
+Morphologies must be committed in git before building. The `morph` tool is
 used to actually run the build. The usual workflow is this:
 
 * put the morphology for an upstream project with its source code
 * put other morphologies in the `morphs` (note plural) repository
-* run `fakeroot morph` or `sudo morph` to build stuff
+* run `morph` to build stuff
 
-Eventually, `morph` will get a manual page. Meanwhile, a short usage:
+`morph --help` will provide some information, though a full guide is
+really required. Meanwhile a short usage to build a disk image:
 
-    fakeroot morph --keep-path -v build-morphology morphs master foundation
-    sudo morph --keep-path -v build-morphology morphs master base-system
-
-(Run with `fakeroot`, when building anything but a system image; run
-with `sudo` when building a system image.)
-
-Run `morph --help` to get a list of all options and short descriptions.
+    morph init workspace
+    cd workspace
+    morph checkout baserock:baserock/morphs master
+    morph build base-system-x86_64-generic
+    morph deploy --no-git-update rawkdisk base-system-x86_64-generic \
+          disk-image.img
 
 You can write a configuration file to avoid having to write options on
 the command line every time. Put it in `~/.morph.conf` and make it look
