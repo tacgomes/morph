@@ -69,10 +69,17 @@ For all morphologies, use the following fields:
 
 For chunks, use the following fields:
 
+
 * `build-system`: if the program is built using a build system known to
   `morph`, you can set this field and avoid having to set the various
-  `*-commands` fields; only `autotools` is currently known; the commands
-  that the build system specifies can be overridden;
+  `*-commands` fields; the commands that the build system specifies can be overridden; the following build-systems are known:
+
+  - `autotools`
+  - `python-distutils`
+  - `cpan`
+  - `cmake`
+  - `qmake` 
+
   optional
 
 * `pre-configure-commands`: a list of shell commands to run at 
