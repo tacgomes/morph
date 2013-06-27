@@ -152,7 +152,7 @@ For strata, use the following fields:
   `build-depends` field. This field may be omitted to make the source
   depend on all other chunks that are listed earlier in the `chunks`
   list. The field may be an empty list to indicate that the chunk does 
-  not depend on anything else in the same stratum. To specify one ore 
+  not depend on anything else in the same stratum. To specify one or
   more chunk dependencies, `build-depends` needs to be set to a list
   that contains the names of chunks that the source depends on in the 
   same stratum. These names correspond to the values of the `name` 
