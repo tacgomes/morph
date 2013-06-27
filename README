@@ -234,7 +234,10 @@ Hacking morph
 
 Run the test suite with this command:
 
-    ./check
+    ./check --full
+
+If your /tmp is a tmpfs you may need to set TMPDIR to a different path,
+as there are tests for large disk image deploys.
 
 Install CoverageTestRunner (from <http://liw.fi/coverage-test-runner/>),
 and check out the `cmdtest` utility (from <http://liw.fi/cmdtest/>).
