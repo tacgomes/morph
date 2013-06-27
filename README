@@ -160,8 +160,6 @@ For strata, use the following fields:
 
 For systems, use the following fields:
 
-* `disk-size`: size of the disk image to be created; may use suffixes like
-  `M` and `G`; **required**
 * `strata`: a list of triples specifying strata to be included in the system
   image. Similar to chunks, you should give `repo`, `ref` and `morph`
   (filename without the .morph extension) for each stratum. The value of
