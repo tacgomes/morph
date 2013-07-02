@@ -925,60 +925,13 @@ class BranchAndMergePlugin(cliapp.Plugin):
         if len(args) != 0:
             raise cliapp.AppException('morph petrify takes no arguments')
 
-        workspace = self.deduce_workspace()
         branch, branch_path = self.deduce_system_branch()
         root_repo = self.get_branch_config(branch_path, 'branch.root')
         root_repo_dir = self.find_repository(branch_path, root_repo)
         self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
 
-        # We must first get the full set of strata. One same stratum may be
-        # in multiple systems and each system may use a different ref.
-        strata = {}
-        for f in sorted(glob.iglob(os.path.join(root_repo_dir, '*.morph'))):
-            name = os.path.basename(f)[:-len('.morph')]
-            morphology = self.load_morphology(root_repo_dir, name)
-            if morphology['kind'] != 'system':
-                continue
-
-            for stratum_info in morphology['strata']:
-                key = (stratum_info['repo'], stratum_info['morph'])
-                if key in strata:
-                    original_ref = strata[key]
-                    if stratum_info['ref'] == branch:
-                        strata[key] = branch
-                    elif stratum_info['ref'] != original_ref:
-                        if original_ref != branch:
-                            self.app.output.write(
-                                'WARNING: not merging any differences from '
-                                'ref %s into %s of stratum %s\n' %
-                                (stratum_info['ref'], original_ref,
-                                 stratum_info['morph']))
-                        stratum_info['ref'] = branch
-                else:
-                    strata[key] = stratum_info['ref']
-                    stratum_info['ref'] = branch
-            self.update_morphology(root_repo_dir, name, morphology)
-
-        for (repo, morph), ref in strata.iteritems():
-            repo_dir = self.make_available(
-                { 'repo': repo, 'ref': ref, 'morph': morph},
-                branch, branch_path, root_repo, root_repo_dir)
-
-            stratum = self.load_morphology(repo_dir, morph)
-
-            for chunk_info in stratum['chunks']:
-                if (chunk_info['ref'] != branch and
-                        'unpetrify-ref' not in chunk_info):
-                    commit_sha1, tree_sha1 = self.app.resolve_ref(
-                        self.lrc, self.rrc, chunk_info['repo'],
-                        chunk_info['ref'],
-                        update=not self.app.settings['no-git-update'])
-                    chunk_info['unpetrify-ref'] = chunk_info['ref']
-                    chunk_info['ref'] = commit_sha1
-            self.update_morphology(repo_dir, morph, stratum)
-
-        self.print_changelog('The following changes were made but have not '
-                             'been committed')
+        self.petrify_everything(branch, branch_path, root_repo, root_repo_dir,
+                                branch)
 
     def unpetrify(self, args):
         '''Reverse the process of petrification'''
