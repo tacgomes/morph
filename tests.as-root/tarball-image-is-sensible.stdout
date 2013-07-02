@@ -18,4 +18,8 @@
 ./etc/fstab
 ./etc/os-release
 ./extlinux.conf
-Baserock hello-tarball, built from ref tarball-links
+NAME="Baserock"
+ID=baserock
+HOME_URL="http://wiki.baserock.org"
+SUPPORT_URL="http://wiki.baserock.org/mailinglist"
+BUG_REPORT_URL="http://wiki.baserock.org/mailinglist"
