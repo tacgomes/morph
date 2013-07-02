@@ -635,10 +635,12 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         with morphlib.savefile.SaveFile(os_release_file, 'w') as f:
-            f.write('Baserock %s, built from ref %s on %s\n' %
-                (self.artifact.source.morphology['name'],
-                 self.artifact.source.original_ref,
-                 datetime.date.today()))
+            f.write('NAME="Baserock"\n')
+            f.write('ID=baserock\n')
+            f.write('HOME_URL="http://wiki.baserock.org"\n')
+            f.write('SUPPORT_URL="http://wiki.baserock.org/mailinglist"\n')
+            f.write('BUG_REPORT_URL="http://wiki.baserock.org/mailinglist"\n')
+
         os.chmod(os_release_file, 0644)
 
     def create_fstab(self, path):
