@@ -13,8 +13,9 @@ Petrified:
         {
             "name": "goodbye",
             "repo": "test:goodbye",
-            "ref": "test/petrify",
-            "build-depends": []
+            "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
+            "build-depends": [],
+            "unpetrify-ref": "test/petrify"
         }
     ]
 }

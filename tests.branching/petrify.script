@@ -28,7 +28,9 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch test:morphs test/petrify master
 
 cd test/petrify/test:morphs
+git push --quiet origin HEAD
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye
+(cd ../test:goodbye && git push --quiet origin HEAD)
 
 "$SRCDIR/scripts/test-morph" petrify
 echo "Petrified:"
