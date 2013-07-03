@@ -317,7 +317,7 @@ class ChunkBuilder(BuilderBase):
                                           line.rstrip('\n'))
                 src_dir = self.staging_area.dirname
                 dest_dir = os.path.join(self.app.settings['tempdir'],
-                                        'failed')
+                                        'failed', os.path.basename(src_dir))
                 os.rename(src_dir, dest_dir)
                 raise
             self.staging_area.chroot_close()
