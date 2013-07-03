@@ -198,19 +198,23 @@ class BuildCommand(object):
         old_prefix = self.app.status_prefix
         for i, a in enumerate(artifacts):
             self.app.status_prefix = (
-                old_prefix + '[Build %d/%d] ' % ((i+1), len(artifacts)))
+                old_prefix + '[Build %(index)d/%(total)d] [%(name)s] ' % {
+                    'index': (i+1),
+                    'total': len(artifacts),
+                    'name': a.name,
+                })
 
-            self.app.status(msg='[%(name)s] Checking if %(kind)s needs '
+            self.app.status(msg='Checking if %(kind)s needs '
                                 'building %(sha1)s',
-                            name=a.name, kind=a.source.morphology['kind'],
+                            kind=a.source.morphology['kind'],
                             sha1=a.source.sha1[:7])
 
             if self.is_built(a):
-                self.app.status(msg='[%(name)s] The %(kind)s is already built',
-                                name=a.name, kind=a.source.morphology['kind'])
+                self.app.status(msg='The %(kind)s is already built',
+                                kind=a.source.morphology['kind'])
                 self.cache_artifacts_locally([a])
             else:
-                self.app.status(msg='[%(name)s] Building %(kind)s %(name)s',
+                self.app.status(msg='Building %(kind)s %(name)s',
                                 name=a.name, kind=a.source.morphology['kind'])
                 self.build_artifact(a, build_env)
 
@@ -384,8 +388,7 @@ class BuildCommand(object):
             if artifact.source.build_mode == 'bootstrap':
                if not self.in_same_stratum(artifact, target_artifact):
                     continue
-            self.app.status(msg='[%(name)s] Installing chunk %(chunk_name)s',
-                            name=target_artifact.name,
+            self.app.status(msg='Installing chunk %(chunk_name)s',
                             chunk_name=artifact.name)
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
@@ -396,7 +399,7 @@ class BuildCommand(object):
     def build_and_cache(self, staging_area, artifact, setup_mounts):
         '''Build an artifact and put it into the local artifact cache.'''
 
-        self.app.status(msg='[%(name)s] Starting actual build: %(name)s '
+        self.app.status(msg='Starting actual build: %(name)s '
                             '%(sha1)s',
                         name=artifact.name, sha1=artifact.source.sha1[:7])
         setup_mounts = self.app.settings['staging-chroot']
