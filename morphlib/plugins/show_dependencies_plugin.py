@@ -31,7 +31,18 @@ class ShowDependenciesPlugin(cliapp.Plugin):
         pass
 
     def show_dependencies(self, args):
-        '''Dumps the dependency tree of all input morphologies'''
+        '''Dumps the dependency tree of all input morphologies.
+
+        Command line arguments:
+
+        * `REPO` is a git repository URL.
+        * `REF` is a branch or other commit reference in that repository.
+        * `FILENAME` is a morphology filename at that ref.
+
+        This command analyses a system morphology and produces a listing
+        of build dependencies of the constituent components.
+
+        '''
 
         if not os.path.exists(self.app.settings['cachedir']):
             os.mkdir(self.app.settings['cachedir'])
