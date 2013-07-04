@@ -40,7 +40,7 @@ class CopyArtifactsPlugin(cliapp.Plugin):
             arg_synopsis='SYSTEM-ARTIFACT')
         self.app.add_subcommand(
             'copy-artifacts', self.copy_artifacts,
-            arg_synopsis='SYSTEM DESTINATION')
+            arg_synopsis='SYSTEM-ARTIFACT DESTINATION')
 
     def disable(self):
         pass
@@ -72,7 +72,29 @@ class CopyArtifactsPlugin(cliapp.Plugin):
             self.app.output.write(artifact + "\n")
 
     def copy_artifacts(self, args):
-        '''Copy every artifact that makes up a system to an rsync path'''
+        '''Copy every artifact that makes up a system to an rsync path.
+
+        Command line arguments:
+
+        * `SYSTEM-ARTIFACT` is the filename for a build artifact for
+          a system (ending in `-rootfs`).
+        * `DESTINATION` is a URL for where the artifacts are to be
+          copied to, in a form suitable for the rsync program.
+
+        This command is useful for copying artifacts from a local
+        system to a Morph artifact cache server, so they can be
+        shared by other people. It can also be used to archive
+        artifacts used for a release. Note, however, that it does
+        not include artifacts that are build-dependencies of the
+        strata included in the system, but not actually in cluded
+        in the system.
+
+        Example:
+
+            morph copy-artifacts /src/cache/artifacts/*.system.* \
+                cache.example.com:/srv/cache/
+
+        '''
 
         if len(args) != 2:
             raise cliapp.AppException(
