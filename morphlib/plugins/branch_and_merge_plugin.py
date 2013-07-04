@@ -1460,8 +1460,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def merge(self, args):
         '''Pull and merge changes from a system branch into the current one.
 
-        The remote branch is pulled from the current workspace into the target
-        repositories (so any local commits are included).
+        Command line arguments:
+
+        * `BRANCH` is the name of the system branch to merge _from_.
+
+        This merges another system branch into the current one. Morph
+        will do a `git merge` for each component that has been edited,
+        and undo any changes to `ref` fields in system and stratum
+        morphologies that `morph edit` has made.
+
+        You need to be in the _target_ system branch when merging. If
+        you have two system branches, `TROVE_ID/release/1.2` and
+        `TROVE_ID/bugfixes/12765`, and want to merge the bug fix branch
+        into the release branch, you need to first checkout the release
+        system branch, and then merge the bugfix branch into that.
 
         '''
 
