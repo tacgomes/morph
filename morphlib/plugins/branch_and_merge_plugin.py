@@ -1910,7 +1910,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              ':%s' % info['build-ref']], cwd=info['dirname'])
 
     def status(self, args):
-        '''Show information about the current system branch or workspace'''
+        '''Show information about the current system branch or workspace
+
+        This shows the status of every local git repository of the
+        current system branch. This is similar to running `git status`
+        in each repository separately, but the output is nicer.
+
+        If run in a Morph workspace, but not in a system branch checkout,
+        it lists all checked out system branches in the workspace.
+
+        '''
+
         if len(args) != 0:
             raise cliapp.AppException('morph status takes no arguments')
 
