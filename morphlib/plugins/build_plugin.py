@@ -29,10 +29,27 @@ class BuildPlugin(cliapp.Plugin):
         pass
 
     def build_morphology(self, args):
-        '''Build a system, outside of a system branch
+        '''Build a system, outside of a system branch.
 
-        Command line arguments are the repository, git ref,
-        and morphology filename.
+        Command line arguments:
+
+        * `REPO` is a git repository URL.
+        * `REF` is a branch or other commit reference in that repository.
+        * `FILENAME` is a morphology filename at that ref.
+
+        You probably want `morph build` instead. However, in some
+        cases it is more convenient to not have to create a Morph
+        workspace and check out the relevant system branch, and only
+        just run the build. For those times, this command exists.
+
+        This subcommand does not automatically commit changes to a
+        temporary branch, so you can only build from properly committed
+        sources that have been pushed to the git server.
+
+        Example:
+
+            morph build-morphology baserock:baserock/morphs \
+                master devel-system-x86_64-generic
 
         '''
 
