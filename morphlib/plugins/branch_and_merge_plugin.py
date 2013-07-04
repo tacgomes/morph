@@ -650,7 +650,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def checkout(self, args):
-        '''Check out an existing system branch.'''
+        '''Check out an existing system branch.
+
+        Command line arguments:
+
+        * `REPO` is the URL to the repository to the root repository of
+          a system branch.
+        * `BRANCH` is the name of the system branch.
+
+        This will check out an existing system branch to an existing
+        workspace.  You must create the workspace first. This only checks
+        out the root repository, not the repositories for individual
+        components. You need to use `morph edit` to check out those.
+
+        Example:
+
+            cd /src/workspace
+            morph checkout baserock:baserock/morphs master
+
+        '''
 
         if len(args) != 2:
             raise cliapp.AppException('morph checkout needs a repo and the '
