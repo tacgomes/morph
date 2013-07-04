@@ -263,7 +263,20 @@ class ArtifactInspectionPlugin(cliapp.Plugin):
         pass
 
     def run_in_artifact(self, args):
-        '''Run a command inside an extracted/mounted chunk or system.'''
+        '''Run a command inside an extracted/mounted chunk or system.
+
+        Command line arguments:
+
+        * `ARTIFACT` is a filename for the artifact.
+        * `CMD` is the command to run.
+
+        run-in-artifact unpacks an artifact, and runs a command in
+        the temporary directory it was unpacked to.
+
+        The command must be given to Morph as a single argument, so
+        use shell quoting appropriately.
+
+        '''
 
         if len(args) < 2:
             raise cliapp.AppException(
