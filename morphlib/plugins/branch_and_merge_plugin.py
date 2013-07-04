@@ -740,7 +740,65 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def edit(self, args):
-        '''Edit a component in a system branch.'''
+        '''Edit or checkout a component in a system branch.
+
+        Command line arguments:
+
+        * `SYSTEM` is the name of a system morphology in the root repository
+          of the current system branch.
+        * `STRATUM` is the name of a stratum inside the system.
+        * `CHUNK` is the name of a chunk inside the stratum.
+
+        This marks the specified stratum or chunk (if given) as being
+        changed within the system branch, by creating the git branches in
+        the affected repositories, and changing the relevant morphologies
+        to point at those branches. It also creates a local clone of
+        the git repository of the stratum or chunk.
+
+        For example:
+
+            morph edit devel-system-x86-64-generic devel
+
+        The above command will mark the `devel` stratum as being
+        modified in the current system branch. In this case, the stratum's
+        morphology is in the same git repository as the system morphology,
+        so there is no need to create a new git branch. However, the
+        system morphology is modified to point at the stratum morphology
+        in the same git branch, rather than the original branch.
+
+        In other words, where the system morphology used to say this:
+
+            morph: devel
+            repo: baserock:baserock/morphs
+            ref: master
+
+        The updated system morphology will now say this instead:
+
+            morph: devel
+            repo: baserock:baserock/morphs
+            ref: jrandom/new-feature
+
+        (Assuming the system branch is called `jrandom/new-feature`.)
+
+        Another example:
+
+            morph edit devel-system-x86_64-generic devel gcc
+
+        The above command will mark the `gcc` chunk as being edited in
+        the current system branch. Morph will clone the `gcc` repository
+        locally, into the current workspace, and create a new (local)
+        branch named after the system branch. It will also change the
+        stratum morphology to refer to the new git branch, instead of
+        whatever branch it was referring to originally.
+
+        If the `gcc` repository already had a git branch named after
+        the system branch, that is reused. Similarly, if the stratum
+        morphology was already pointing that that branch, it doesn't
+        need to be changed again. In that case, the only action Morph
+        does is to clone the chunk repository locally, and if that was
+        also done already, Morph does nothing.
+
+        '''
 
         if len(args) not in (2, 3):
             raise cliapp.AppException(
