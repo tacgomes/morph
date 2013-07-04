@@ -1082,7 +1082,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 branch, os.environ, None, True)
 
     def unpetrify(self, args):
-        '''Reverse the process of petrification'''
+        '''Reverse the process of petrification.
+
+        This undoes the changes `morph petrify` did.
+
+        '''
 
         # This function makes no attempt to 'unedit' strata that were branched
         # solely so they could be petrified.
