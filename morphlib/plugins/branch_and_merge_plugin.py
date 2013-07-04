@@ -68,7 +68,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('unpetrify', self.unpetrify)
-        self.app.add_subcommand('tag', self.tag)
+        self.app.add_subcommand(
+            'tag', self.tag, arg_synopsis='TAG-NAME -- [GIT-COMMIT-ARG...]')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('status', self.status)
@@ -1129,6 +1130,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def tag(self, args):
+        '''Create an annotated Git tag of a petrified system branch.
+
+        Command line arguments:
+
+        * `TAG-NAME` is the name of the Git tag to be created.
+        * `--` separates the Git arguments and options from the ones
+          Morph parses for itself.
+        * `GIT-COMMIT-ARG` is a `git commit` option or argument,
+          e.g., '-m' or '-F'. These should provide the commit message.
+
+        This command creates an annotated Git tag that points at a commit
+        where all system and stratum morphologies have been petrified.
+        The working tree won't be petrified, only the commit.
+
+        Example:
+
+            morph tag release-12.765 -- -m "Release 12.765"
+
+        '''
+
         if len(args) < 1:
             raise cliapp.AppException('morph tag expects a tag name')
 
