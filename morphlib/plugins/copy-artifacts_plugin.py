@@ -37,7 +37,7 @@ class CopyArtifactsPlugin(cliapp.Plugin):
     def enable(self):
         self.app.add_subcommand(
             'list-artifacts', self.list_artifacts,
-            arg_synopsis='SYSTEM')
+            arg_synopsis='SYSTEM-ARTIFACT')
         self.app.add_subcommand(
             'copy-artifacts', self.copy_artifacts,
             arg_synopsis='SYSTEM DESTINATION')
@@ -46,7 +46,20 @@ class CopyArtifactsPlugin(cliapp.Plugin):
         pass
 
     def list_artifacts(self, args):
-        '''List every artifact that makes up a system'''
+        '''List every artifact that makes up a system artifact.
+
+        Command line arguments:
+
+        * `SYSTEM-ARTIFACT` is the filename for a build artifact for
+          a system (ending in `-rootfs`).
+
+        list-artifacts reads the system artifact and writes out a list
+        of the filenames, in the local artifact cache, of all the
+        component artifacts included in the system. It does not include
+        build-dependencies of the system, unless they're included in
+        the system.
+
+        '''
 
         if len(args) != 1:
             raise cliapp.AppException(
