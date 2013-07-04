@@ -1497,7 +1497,31 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise
 
     def build(self, args):
-        '''Build a system from the current system branch'''
+        '''Build a system image in the current system branch
+
+        Command line arguments:
+
+        * `SYSTEM` is the name of the system to build.
+
+        This builds a system image, and any of its components that
+        need building.  The system name is the basename of the system
+        morphology, in the root repository of the current system branch,
+        without the `.morph` suffix in the filename.
+
+        The location of the resulting system image artifact is printed
+        at the end of the build output.
+
+        You do not need to commit your changes before building, Morph
+        does that for you, in a temporary branch for each build. However,
+        note that Morph does not untracked files to the temporary branch,
+        only uncommitted changes to files git already knows about. You
+        need to `git add` and commit each new file yourself.
+
+        Example:
+
+            morph build devel-system-x86_64-generic
+
+        '''
 
         if len(args) != 1:
             raise cliapp.AppException('morph build expects exactly one '
