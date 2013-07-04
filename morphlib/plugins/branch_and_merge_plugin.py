@@ -2021,7 +2021,16 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.output.write('%s\n' % branch)
 
     def show_branch_root(self, args):
-        '''Print name of the repository holding the system morphologies'''
+        '''Show the name of the repository holding the system morphologies.
+
+        This would, for example, write out something like:
+
+            /src/ws/master/baserock:baserock/morphs
+
+        when the master branch of the `baserock:baserock/morphs`
+        repository is checked out.
+
+        '''
 
         workspace = self.deduce_workspace()
         system_branch, branch_dir = self.deduce_system_branch()
