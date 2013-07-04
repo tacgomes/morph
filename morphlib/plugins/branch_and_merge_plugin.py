@@ -1889,10 +1889,29 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.output.write("\nNo repos have outstanding changes.\n")
 
     def foreach(self, args):
-        '''Run a command in each repository checked out in a system branch
+        '''Run a command in each repository checked out in a system branch.
 
         Use -- before specifying the command to separate its arguments from
         Morph's own arguments.
+
+        Command line arguments:
+
+        * `--` indicates the end of option processing for Morph.
+        * `COMMAND` is a command to run.
+        * `ARG` is a command line argument or option to be passed onto
+          `COMMAND`.
+
+        This runs the given `COMMAND` in each git repository belonging
+        to the current system branch that exists locally in the current
+        workspace.  This can be a handy way to do the same thing in all
+        the local git repositories.
+
+        For example:
+
+            morph foreach -- git push
+
+        The above command would push any committed changes in each
+        repository to the git server.
 
         '''
 
