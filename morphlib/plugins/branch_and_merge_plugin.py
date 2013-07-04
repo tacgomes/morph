@@ -1026,10 +1026,42 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 update_working_tree=True)
 
     def petrify(self, args):
-        '''Convert all chunk refs in a system branch to be fixed SHA1s
+        '''Convert all chunk refs in a system branch to be fixed SHA1s.
 
-        This isolates the branch from changes made by other developers in the
-        chunk repositories.
+        This modifies all git commit references in system and stratum
+        morphologies, in the current system branch, to be fixed SHA
+        commit identifiers, rather than symbolic branch or tag names.
+        This is useful for making sure none of the components in a system
+        branch change accidentally.
+
+        Consider the following scenario:
+
+        * The `master` system branch refers to `gcc` using the
+          `baserock/morph` ref. This is appropriate, since the main line
+          of development should use the latest curated code.
+
+        * You create a system branch to prepare for a release, called
+          `TROVE_ID/release/2.0`. The reference to `gcc` is still
+          `baserock/morph`.
+
+        * You test everything, and make a release. You deploy the release
+          images onto devices, which get shipped to your customers.
+
+        * A new version GCC is committed to the `baserock/morph` branch.
+
+        * Your release branch suddenly uses a new compiler, which may
+          or may not work for your particular system at that release.
+
+        To avoid this, you need to _petrify_ all git references
+        so that they do not change accidentally. If you've tested
+        your release with the GCC release that is stored in commit
+        `94c50665324a7aeb32f3096393ec54b2e63bfb28`, then you should
+        continue to use that version of GCC, regardless of what might
+        happen in the master system branch. If, and only if, you decide
+        that a new compiler would be good for your release should you
+        include it in your release branch. This way, only the things
+        that you change intentionally change in your release branch.
+
         '''
 
         # Stratum refs are not petrified, because they must all be edited to
