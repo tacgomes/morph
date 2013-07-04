@@ -2024,7 +2024,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
 
     def workspace(self, args):
-        '''Find the toplevel directory of the current workspace'''
+        '''Show the toplevel directory of the current workspace.'''
 
         self.app.output.write('%s\n' % self.deduce_workspace())
 
