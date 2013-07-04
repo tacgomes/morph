@@ -191,22 +191,35 @@ class ManifestGenerator(object):
 
             # Try to guess the version of this artifact
             version = self.version_guesser.guess_version(
-                    metadata['repo'], metadata['sha1']) or '-'
-        
+                    metadata['repo'], metadata['sha1'])
+            if version is None:
+                version = ''
+            else:
+                version = '-%s' % version
+
+            fst_col = '%s.%s.%s%s' % (metadata['cache-key'][:7],
+                                      metadata['kind'],
+                                      metadata['artifact-name'],
+                                      version)
+
+            original_ref = metadata['original_ref']
+            if metadata['kind'] in ('system', 'stratum'):
+                original_ref = original_ref[: len('baserock/builds/') + 7]
+
             artifacts.append({
-                'cache-key': metadata['cache-key'],
-                'name': metadata['artifact-name'],
                 'kind': metadata['kind'],
-                'sha1': metadata['sha1'],
-                'original_ref': metadata['original_ref'],
+                'name': metadata['artifact-name'],
+                'fst_col': fst_col,
                 'repo': metadata['repo'],
-                'morphology': metadata['morphology'],
-                'version': version,
+                'original_ref': original_ref,
+                'sha1': metadata['sha1'][:7]
             })
         
         # Generate a format string for dumping the information.
         fmt = self._generate_output_format(artifacts)
-        
+        self.app.output.write(fmt % ('ARTIFACT', 'REPOSITORY',
+                                     'REF', 'COMMIT'))
+
         # Print information about system, strata and chunks.
         self._print_artifacts(fmt, artifacts, 'system')
         self._print_artifacts(fmt, artifacts, 'stratum')
@@ -218,35 +231,22 @@ class ManifestGenerator(object):
             for key, value in artifact.iteritems():
                 colwidths[key] = max(colwidths.get(key, 0), len(value))
 
-        colwidths['first'] = sum([colwidths['cache-key'],
-                                  colwidths['kind'],
-                                  colwidths['name']]) + 1
-
-        return 'artifact=%%-%is\t' \
-               'version=%%-%is\t' \
-               'commit=%%-%is\t' \
-               'repository=%%-%is\t' \
-               'ref=%%-%is\t' \
-               'morphology=%%-%is\n' % (
-                len('artifact=') + colwidths['first'],
-                len('version=') + colwidths['version'],
-                len('commit=') + colwidths['sha1'],
-                len('repository=') + colwidths['repo'],
-                len('ref=') + colwidths['original_ref'],
-                len('morphology=') + colwidths['morphology'])
+        return '%%-%is\t' \
+               '%%-%is\t' \
+               '%%-%is\t' \
+               '%%-%is\n' % (
+                colwidths['fst_col'],
+                colwidths['repo'],
+                colwidths['original_ref'],
+                colwidths['sha1'])
 
     def _print_artifacts(self, fmt, artifacts, kind):
         for artifact in sorted(artifacts, key=lambda x: x['name']):
             if artifact['kind'] == kind:
-                self.app.output.write(fmt % (
-                    '%s.%s.%s' % (artifact['cache-key'],
-                                  artifact['kind'],
-                                  artifact['name']),
-                    artifact['version'],
-                    artifact['sha1'],
-                    artifact['repo'],
-                    artifact['original_ref'],
-                    artifact['morphology']))
+                self.app.output.write(fmt % (artifact['fst_col'],
+                                             artifact['repo'],
+                                             artifact['original_ref'],
+                                             artifact['sha1']))
 
 
 class ArtifactInspectionPlugin(cliapp.Plugin):
