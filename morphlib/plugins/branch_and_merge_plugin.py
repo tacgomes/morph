@@ -547,7 +547,28 @@ class BranchAndMergePlugin(cliapp.Plugin):
         return system_key, metadata_cache_id_lookup
 
     def init(self, args):
-        '''Initialize a workspace directory.'''
+        '''Initialize a workspace directory.
+
+        Command line argument:
+
+        * `DIR` is the directory to use as a workspace, and defaults to
+          the current directory.
+
+        This creates a workspace, either in the current working directory,
+        or if `DIR` is given, in that directory. If the directory doesn't
+        exist, it is created. If it does exist, it must be empty.
+
+        You need to run `morph init` to initialise a workspace, or none
+        of the other system branching tools will work: they all assume
+        an existing workspace. Note that a workspace only exists on your
+        machine, not on the git server.
+
+        Example:
+
+            morph init /src/workspace
+            cd /src/workspace
+
+        '''
 
         if not args:
             args = ['.']
