@@ -257,7 +257,7 @@ class ArtifactInspectionPlugin(cliapp.Plugin):
                                 arg_synopsis='ARTIFACT CMD')
         self.app.add_subcommand('generate-manifest',
                                 self.generate_manifest,
-                                arg_synopsis='ROOTFS_ARTIFACT')
+                                arg_synopsis='SYSTEM-ARTIFACT')
 
     def disable(self):
         pass
@@ -292,7 +292,34 @@ class ArtifactInspectionPlugin(cliapp.Plugin):
         call_in_artifact_directory(self.app, artifact, run_command_in_dir)
 
     def generate_manifest(self, args):
-        '''Generate a content manifest for a system image.'''
+        '''Generate a content manifest for a system image.
+
+        Command line arguments:
+
+        * `SYSTEM-ARTIFACT` is a filename to the system artifact
+          (root filesystem) for the built system.
+
+        This command generates a manifest for a built system image.
+        The manifest includes the constituent artifacts,
+        a guess at the component version, the exact commit for
+        the component (commit SHA1, repository URL, git symbolic
+        ref), and the morphology filename.
+
+
+        The manifest includes each constituent artifact, with several
+        columns of data:
+        
+        * 7-char cache key with the artifact kind (system, stratum, chunk),
+        artifact name, and version (if guessable) added
+        * the git repository
+        * the symbolic reference
+        * a 7-char commit id
+
+        Example:
+
+            morph generate-manifest /src/cache/artifacts/foo-rootfs
+
+        '''
 
         if len(args) != 1:
             raise cliapp.AppException('morph generate-manifest expects '
