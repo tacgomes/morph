@@ -2015,7 +2015,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.output.write('%s\n' % self.deduce_workspace())
 
     def show_system_branch(self, args):
-        '''Print name of current system branch'''
+        '''Show the name of the current system branch.'''
 
         branch, dirname = self.deduce_system_branch()
         self.app.output.write('%s\n' % branch)
