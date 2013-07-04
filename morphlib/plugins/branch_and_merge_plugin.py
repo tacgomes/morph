@@ -610,7 +610,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def branch(self, args):
-        '''Create a new system branch.'''
+        '''Create a new system branch.
+
+        Command line arguments:
+
+        * `REPO` is a repository URL.
+        * `NEW` is the name of the new system branch.
+        * `OLD` is the point from which to branch, and defaults to `master`.
+
+        This creates a new system branch. It needs to be run in an
+        existing workspace (see `morph workspace`). It creates a new
+        git branch in the clone of the repository in the workspace. The
+        system branch will not be visible on the git server until you
+        push your changes to the repository.
+
+        Example:
+
+            cd /src/workspace
+            morph branch baserock:baserock:morphs jrandom/new-feature
+
+        '''
 
         if len(args) not in [2, 3]:
             raise cliapp.AppException('morph branch needs name of branch '
