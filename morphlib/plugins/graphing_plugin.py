@@ -31,7 +31,35 @@ class GraphingPlugin(cliapp.Plugin):
         pass
 
     def graph_build_depends(self, args):
-        '''Create a visualisation of build dependencies in a stratum'''
+        '''Create a visualisation of build dependencies in a system.
+
+        Command line arguments:
+
+        * `REPO` is a repository URL.
+        * `REF` is a git reference (usually branch name).
+        * `MORPHOLOGY` is a system morphology.
+
+        This produces a GraphViz DOT file representing all the build
+        dependencies within a system, based on information in the
+        morphologies.  The GraphViz `dot` program can then be used to
+        create a graphical representation of the dependencies. This
+        can be helpful for inspecting whether there are any problems in
+        the dependencies.
+
+        Example:
+
+            morph graph-build-depends baserock:baserock/morphs master \
+                devel-system-x86_64-generic > foo.dot
+            dot -Tpng foo.dot > foo.png
+
+        The above would create a picture with the build dependencies of
+        everything in the development system for 64-bit Intel systems.
+
+        GraphViz is not, currently, part of Baserock, so you need to run
+        `dot` on another system.
+
+        '''
+
         for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Creating build order for '
                                 '%(repo_name)s %(ref)s %(filename)s',

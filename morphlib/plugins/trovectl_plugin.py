@@ -20,12 +20,33 @@ import morphlib
 class TrovectlPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('trovectl', self.trovectl)
+        self.app.add_subcommand(
+            'trovectl', self.trovectl, arg_synopsis='GITANO-COMMAND [ARG...]')
 
     def disable(self):
         pass
 
     def trovectl(self, args, **kwargs):
+        '''Invoke Gitano commands on the Trove host.
+
+        Command line arguments:
+
+        * `GITANO-COMMAND` is the Gitano command to invoke on the Trove.
+        * `ARG` is a Gitano command argument.
+
+        This invokes Gitano commands on the Trove host configured
+        in the Morph configuration (see `--trove-host`).
+
+        Trove is the Codethink code hosting appliance. Gitano is the
+        git server management component of that.
+
+        Example:
+
+            morph trovectl whoami
+            morph trovectl help
+
+        '''
+
         trove = 'git@' + self.app.settings['trove-host']
         self.app.runcmd(['ssh', trove] + args,
             stdout=None, stderr=None)

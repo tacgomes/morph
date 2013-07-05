@@ -49,16 +49,161 @@ class DeployPlugin(cliapp.Plugin):
 
     def deploy(self, args):
         '''Deploy a built system image.
-        
-        Command requires a minimum of three arguments:
 
-            morph deploy TYPE SYSTEM LOCATION
+        Command line arguments:
 
-        where 
+        * `TYPE` is the type of deployment: to a raw disk image,
+          VirtualBox, or something else. See below.
 
-        * TYPE is type of deployment
-        * SYSTEM is name of the system morphology to deploy
-        * LOCATION is the destination of the deployed system
+        * `SYSTEM` is the name of the system morphology to deploy.
+
+        * `LOCATION` is where the deployed system should end up at. The
+          syntax depends on the deployment type. See below.
+
+        * `KEY=VALUE` is a configuration parameter to pass onto the
+          configuration extension. See below.
+
+        Morph can deploy a system image. The deployment mechanism is
+        quite flexible, and can be extended by the user. "Deployment"
+        here is quite a general concept: it covers anything where a system
+        image is taken, configured, and then put somewhere where it can
+        be run.
+
+        `TYPE` specifies the exact way in which the deployment happens.
+        Morph provides four deployment types:
+
+        * `rawdisk` where Morph builds a raw disk image at `LOCATION`,
+          and sets up the image with a bootloader and configuration
+          so that it can be booted. Disk size is set with `DISK_SIZE`
+          (see below).
+
+        * `virtualbox-ssh` where Morph creates a VirtualBox disk image,
+          and creates a new virtual machine on a remote host, accessed
+          over ssh.  Disk and RAM size are set with `DISK_SIZE` and
+          `RAM_SIZE` (see below).
+
+        * `kvm`, which is similar to `virtualbox-ssh`, but uses libvirt
+          and KVM instead of VirtualBox.  Disk and RAM size are set with
+          `DISK_SIZE` and `RAM_SIZE` (see below).
+
+        * `nfsboot` where Morph creates a system to be booted over
+          a network
+
+        The following `KEY=VALUE` parameters are supported for all
+        deployment types:
+
+        * `DISK_SIZE=X` to set the size of the disk image. `X`
+          should use a suffix of `K`, `M`, or `G` (in upper or lower
+          case) to indicate kilo-, mega-, or gigabytes. For example,
+          `DISK_SIZE=100G` would create a 100 gigabyte disk image. **This
+          parameter is mandatory**.
+
+        * `RAM_SIZE=X` to set the size of virtual RAM for the virtual
+          machine.  `X` is interpreted in the same was as `DISK_SIZE`,
+          and defaults to `1G`.
+
+        The `kvm` and `virtualbox-ssh` deployment types support an
+        additional parameter:
+
+        * `AUTOSTART=<VALUE>` - allowed values are `yes` and `no`
+          (default)
+
+        The syntax of the `LOCATION` depends on the deployment types. The
+        deployment types provided by Morph use the following syntaxes:
+
+        * `rawdisk`: pathname to the disk image to be created; for
+          example, `/home/alice/testsystem.img`
+
+        * `virtualbox-ssh` and `kvm`: a custom URL scheme that
+          provides the target host machine (the one that runs
+          VirtualBox or `kvm`), the name of the new virtual machine,
+          and the location on the target host of the virtual disk
+          file. The target host is accessed over ssh. For example,
+          `vbox+ssh://alice@192.168.122.1/testsys/home/alice/testsys.vdi`
+          or `kvm+ssh://alice@192.168.122.1/testsys/home/alice/testys.img`
+          where
+
+              * `alice@192.168.122.1` is the target as given to ssh,
+                **from within the development host** (which may be
+                different from the target host's normal address);
+
+              * `testsys` is the new VM's name;
+
+              * `/home/alice/testsys.vdi` and `/home/alice/testys.img` are
+                the pathnames of the disk image files on the target host.
+
+        For the `nfsboot` write extension,
+
+        * LOCATION is the address of the nfsboot server. (Note this
+          is just the _address_ of the trove, _not_ `user@...`, since
+          `root@` will automatically be prepended to the server address.)
+
+        * the following KEY=VALUE PAIRS are mandatory
+
+              * NFSBOOT_CONFIGURE=yes (or any non-empty value). This
+                enables the `nfsboot` configuration extension (see
+                below) which MUST be used when using the `nfsboot`
+                write extension.
+
+              * HOSTNAME=<STRING> a unique identifier for that system's
+                `nfs` root when it's deployed on the nfsboot server - the
+                extension creates a directory with that name for the `nfs`
+                root, and stores kernels by that name for the tftp server.
+
+        * the following KEY=VALUE PAIRS are optional
+
+              * VERSION_LABEL=<STRING> - set the name of the system
+                version being deployed, when upgrading. Defaults to
+                "factory".
+
+        An example command line using `morph deploy with the nfsboot`
+        type is
+
+            morph deploy nfsboot devel-system-x86_64-generic \
+            customer-trove \
+            NFSBOOT_CONFIGURE=yes \
+            HOSTNAME=test-deployment-1 \
+            VERSION_LABEL=inital-test
+
+        Each deployment type is implemented by a **write extension**. The
+        ones provided by Morph are listed above, but users may also
+        create their own by adding them in the same git repository
+        and branch as the system morphology. A write extension is a
+        script that does whatever is needed for the deployment. A write
+        extension is passed two command line parameters: the name of an
+        unpacked directory tree that contains the system files (after
+        configuration, see below), and the `LOCATION` argument. Any
+        additional `KEY=VALUE` arguments given to `morph deploy` are
+        set as environment variables when the write extension runs.
+
+        Regardless of the type of deployment, the image may be
+        configured for a specific deployment by using **configuration
+        extensions**. The extensions are listed in the system morphology
+        file:
+
+            ...
+            configuration-extensions:
+                - set-hostname
+
+        The above specifies that the extension `set-hostname` is to
+        be run.  Morph will run all the configuration extensions listed
+        in the system morphology, and no others. (This way, configuration
+        is more easily tracked in git.)
+
+        Configuration extensions are scripts that get the unpacked
+        directory tree of the system as their parameter, and do whatever
+        is needed to configure the tree.
+
+        Morph provides the following configuration extension built in:
+
+        * `set-hostname` sets the hostname of the system to the value
+          of the `HOSTNAME` variable.
+        * `nfsboot` configures the system for nfsbooting. This MUST
+          be used when deploying with the `nfsboot` write extension.
+
+        Any `KEY=VALUE` parameters given to `morph deploy` are set as
+        environment variables when either the configuration or the write
+        extension runs.
 
         '''
 

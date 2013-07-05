@@ -22,15 +22,33 @@ import morphlib
 class ExpandRepoPlugin(cliapp.Plugin):
 
     '''Expand an aliased repo URL to be unaliases.'''
-    
+
     def enable(self):
         self.app.add_subcommand(
             'expand-repo', self.expand_repo, arg_synopsis='[REPOURL...]')
-    
+
     def disable(self):
         pass
-    
+
     def expand_repo(self, args):
+        '''Expand repo aliases in URLs.
+
+        Command line arguments:
+
+        * `REPOURL` is a URL that may or may not be using repository
+          aliases.
+
+        See the `--repo-alias` option for more about repository aliases.
+
+        Example:
+
+            $ morph expand-repo baserock:baserock/morphs
+            Original: baserock:baserock/morphs
+            pull: git://trove.baserock.org/baserock/baserock/morphs
+            push: ssh://git@git.baserock.org/baserock/baserock/morphs
+
+        '''
+
         aliases = self.app.settings['repo-alias']
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
         for repourl in args:

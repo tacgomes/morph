@@ -68,7 +68,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('unpetrify', self.unpetrify)
-        self.app.add_subcommand('tag', self.tag)
+        self.app.add_subcommand(
+            'tag', self.tag, arg_synopsis='TAG-NAME -- [GIT-COMMIT-ARG...]')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('status', self.status)
@@ -547,7 +548,28 @@ class BranchAndMergePlugin(cliapp.Plugin):
         return system_key, metadata_cache_id_lookup
 
     def init(self, args):
-        '''Initialize a workspace directory.'''
+        '''Initialize a workspace directory.
+
+        Command line argument:
+
+        * `DIR` is the directory to use as a workspace, and defaults to
+          the current directory.
+
+        This creates a workspace, either in the current working directory,
+        or if `DIR` is given, in that directory. If the directory doesn't
+        exist, it is created. If it does exist, it must be empty.
+
+        You need to run `morph init` to initialise a workspace, or none
+        of the other system branching tools will work: they all assume
+        an existing workspace. Note that a workspace only exists on your
+        machine, not on the git server.
+
+        Example:
+
+            morph init /src/workspace
+            cd /src/workspace
+
+        '''
 
         if not args:
             args = ['.']
@@ -610,7 +632,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def branch(self, args):
-        '''Create a new system branch.'''
+        '''Create a new system branch.
+
+        Command line arguments:
+
+        * `REPO` is a repository URL.
+        * `NEW` is the name of the new system branch.
+        * `OLD` is the point from which to branch, and defaults to `master`.
+
+        This creates a new system branch. It needs to be run in an
+        existing workspace (see `morph workspace`). It creates a new
+        git branch in the clone of the repository in the workspace. The
+        system branch will not be visible on the git server until you
+        push your changes to the repository.
+
+        Example:
+
+            cd /src/workspace
+            morph branch baserock:baserock:morphs jrandom/new-feature
+
+        '''
 
         if len(args) not in [2, 3]:
             raise cliapp.AppException('morph branch needs name of branch '
@@ -631,7 +672,25 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def checkout(self, args):
-        '''Check out an existing system branch.'''
+        '''Check out an existing system branch.
+
+        Command line arguments:
+
+        * `REPO` is the URL to the repository to the root repository of
+          a system branch.
+        * `BRANCH` is the name of the system branch.
+
+        This will check out an existing system branch to an existing
+        workspace.  You must create the workspace first. This only checks
+        out the root repository, not the repositories for individual
+        components. You need to use `morph edit` to check out those.
+
+        Example:
+
+            cd /src/workspace
+            morph checkout baserock:baserock/morphs master
+
+        '''
 
         if len(args) != 2:
             raise cliapp.AppException('morph checkout needs a repo and the '
@@ -703,7 +762,65 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def edit(self, args):
-        '''Edit a component in a system branch.'''
+        '''Edit or checkout a component in a system branch.
+
+        Command line arguments:
+
+        * `SYSTEM` is the name of a system morphology in the root repository
+          of the current system branch.
+        * `STRATUM` is the name of a stratum inside the system.
+        * `CHUNK` is the name of a chunk inside the stratum.
+
+        This marks the specified stratum or chunk (if given) as being
+        changed within the system branch, by creating the git branches in
+        the affected repositories, and changing the relevant morphologies
+        to point at those branches. It also creates a local clone of
+        the git repository of the stratum or chunk.
+
+        For example:
+
+            morph edit devel-system-x86-64-generic devel
+
+        The above command will mark the `devel` stratum as being
+        modified in the current system branch. In this case, the stratum's
+        morphology is in the same git repository as the system morphology,
+        so there is no need to create a new git branch. However, the
+        system morphology is modified to point at the stratum morphology
+        in the same git branch, rather than the original branch.
+
+        In other words, where the system morphology used to say this:
+
+            morph: devel
+            repo: baserock:baserock/morphs
+            ref: master
+
+        The updated system morphology will now say this instead:
+
+            morph: devel
+            repo: baserock:baserock/morphs
+            ref: jrandom/new-feature
+
+        (Assuming the system branch is called `jrandom/new-feature`.)
+
+        Another example:
+
+            morph edit devel-system-x86_64-generic devel gcc
+
+        The above command will mark the `gcc` chunk as being edited in
+        the current system branch. Morph will clone the `gcc` repository
+        locally, into the current workspace, and create a new (local)
+        branch named after the system branch. It will also change the
+        stratum morphology to refer to the new git branch, instead of
+        whatever branch it was referring to originally.
+
+        If the `gcc` repository already had a git branch named after
+        the system branch, that is reused. Similarly, if the stratum
+        morphology was already pointing that that branch, it doesn't
+        need to be changed again. In that case, the only action Morph
+        does is to clone the chunk repository locally, and if that was
+        also done already, Morph does nothing.
+
+        '''
 
         if len(args) not in (2, 3):
             raise cliapp.AppException(
@@ -910,10 +1027,42 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 update_working_tree=True)
 
     def petrify(self, args):
-        '''Convert all chunk refs in a system branch to be fixed SHA1s
+        '''Convert all chunk refs in a system branch to be fixed SHA1s.
 
-        This isolates the branch from changes made by other developers in the
-        chunk repositories.
+        This modifies all git commit references in system and stratum
+        morphologies, in the current system branch, to be fixed SHA
+        commit identifiers, rather than symbolic branch or tag names.
+        This is useful for making sure none of the components in a system
+        branch change accidentally.
+
+        Consider the following scenario:
+
+        * The `master` system branch refers to `gcc` using the
+          `baserock/morph` ref. This is appropriate, since the main line
+          of development should use the latest curated code.
+
+        * You create a system branch to prepare for a release, called
+          `TROVE_ID/release/2.0`. The reference to `gcc` is still
+          `baserock/morph`.
+
+        * You test everything, and make a release. You deploy the release
+          images onto devices, which get shipped to your customers.
+
+        * A new version GCC is committed to the `baserock/morph` branch.
+
+        * Your release branch suddenly uses a new compiler, which may
+          or may not work for your particular system at that release.
+
+        To avoid this, you need to _petrify_ all git references
+        so that they do not change accidentally. If you've tested
+        your release with the GCC release that is stored in commit
+        `94c50665324a7aeb32f3096393ec54b2e63bfb28`, then you should
+        continue to use that version of GCC, regardless of what might
+        happen in the master system branch. If, and only if, you decide
+        that a new compiler would be good for your release should you
+        include it in your release branch. This way, only the things
+        that you change intentionally change in your release branch.
+
         '''
 
         # Stratum refs are not petrified, because they must all be edited to
@@ -934,7 +1083,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 branch, os.environ, None, True)
 
     def unpetrify(self, args):
-        '''Reverse the process of petrification'''
+        '''Reverse the process of petrification.
+
+        This undoes the changes `morph petrify` did.
+
+        '''
 
         # This function makes no attempt to 'unedit' strata that were branched
         # solely so they could be petrified.
@@ -977,6 +1130,26 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     @warns_git_identity
     def tag(self, args):
+        '''Create an annotated Git tag of a petrified system branch.
+
+        Command line arguments:
+
+        * `TAG-NAME` is the name of the Git tag to be created.
+        * `--` separates the Git arguments and options from the ones
+          Morph parses for itself.
+        * `GIT-COMMIT-ARG` is a `git commit` option or argument,
+          e.g., '-m' or '-F'. These should provide the commit message.
+
+        This command creates an annotated Git tag that points at a commit
+        where all system and stratum morphologies have been petrified.
+        The working tree won't be petrified, only the commit.
+
+        Example:
+
+            morph tag release-12.765 -- -m "Release 12.765"
+
+        '''
+
         if len(args) < 1:
             raise cliapp.AppException('morph tag expects a tag name')
 
@@ -1344,8 +1517,20 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def merge(self, args):
         '''Pull and merge changes from a system branch into the current one.
 
-        The remote branch is pulled from the current workspace into the target
-        repositories (so any local commits are included).
+        Command line arguments:
+
+        * `BRANCH` is the name of the system branch to merge _from_.
+
+        This merges another system branch into the current one. Morph
+        will do a `git merge` for each component that has been edited,
+        and undo any changes to `ref` fields in system and stratum
+        morphologies that `morph edit` has made.
+
+        You need to be in the _target_ system branch when merging. If
+        you have two system branches, `TROVE_ID/release/1.2` and
+        `TROVE_ID/bugfixes/12765`, and want to merge the bug fix branch
+        into the release branch, you need to first checkout the release
+        system branch, and then merge the bugfix branch into that.
 
         '''
 
@@ -1478,7 +1663,31 @@ class BranchAndMergePlugin(cliapp.Plugin):
             raise
 
     def build(self, args):
-        '''Build a system from the current system branch'''
+        '''Build a system image in the current system branch
+
+        Command line arguments:
+
+        * `SYSTEM` is the name of the system to build.
+
+        This builds a system image, and any of its components that
+        need building.  The system name is the basename of the system
+        morphology, in the root repository of the current system branch,
+        without the `.morph` suffix in the filename.
+
+        The location of the resulting system image artifact is printed
+        at the end of the build output.
+
+        You do not need to commit your changes before building, Morph
+        does that for you, in a temporary branch for each build. However,
+        note that Morph does not untracked files to the temporary branch,
+        only uncommitted changes to files git already knows about. You
+        need to `git add` and commit each new file yourself.
+
+        Example:
+
+            morph build devel-system-x86_64-generic
+
+        '''
 
         if len(args) != 1:
             raise cliapp.AppException('morph build expects exactly one '
@@ -1726,7 +1935,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                              ':%s' % info['build-ref']], cwd=info['dirname'])
 
     def status(self, args):
-        '''Show information about the current system branch or workspace'''
+        '''Show information about the current system branch or workspace
+
+        This shows the status of every local git repository of the
+        current system branch. This is similar to running `git status`
+        in each repository separately, but the output is nicer.
+
+        If run in a Morph workspace, but not in a system branch checkout,
+        it lists all checked out system branches in the workspace.
+
+        '''
+
         if len(args) != 0:
             raise cliapp.AppException('morph status takes no arguments')
 
@@ -1770,10 +1989,29 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.output.write("\nNo repos have outstanding changes.\n")
 
     def foreach(self, args):
-        '''Run a command in each repository checked out in a system branch
+        '''Run a command in each repository checked out in a system branch.
 
         Use -- before specifying the command to separate its arguments from
         Morph's own arguments.
+
+        Command line arguments:
+
+        * `--` indicates the end of option processing for Morph.
+        * `COMMAND` is a command to run.
+        * `ARG` is a command line argument or option to be passed onto
+          `COMMAND`.
+
+        This runs the given `COMMAND` in each git repository belonging
+        to the current system branch that exists locally in the current
+        workspace.  This can be a handy way to do the same thing in all
+        the local git repositories.
+
+        For example:
+
+            morph foreach -- git push
+
+        The above command would push any committed changes in each
+        repository to the git server.
 
         '''
 
@@ -1807,18 +2045,27 @@ class BranchAndMergePlugin(cliapp.Plugin):
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
 
     def workspace(self, args):
-        '''Find the toplevel directory of the current workspace'''
+        '''Show the toplevel directory of the current workspace.'''
 
         self.app.output.write('%s\n' % self.deduce_workspace())
 
     def show_system_branch(self, args):
-        '''Print name of current system branch'''
+        '''Show the name of the current system branch.'''
 
         branch, dirname = self.deduce_system_branch()
         self.app.output.write('%s\n' % branch)
 
     def show_branch_root(self, args):
-        '''Print name of the repository holding the system morphologies'''
+        '''Show the name of the repository holding the system morphologies.
+
+        This would, for example, write out something like:
+
+            /src/ws/master/baserock:baserock/morphs
+
+        when the master branch of the `baserock:baserock/morphs`
+        repository is checked out.
+
+        '''
 
         workspace = self.deduce_workspace()
         system_branch, branch_dir = self.deduce_system_branch()

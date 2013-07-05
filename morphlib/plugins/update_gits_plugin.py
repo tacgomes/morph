@@ -31,7 +31,22 @@ class UpdateGitsPlugin(cliapp.Plugin):
         pass
 
     def update_gits(self, args):
-        '''Manually update cached git repositories for the given morphology'''
+        '''Manually update cached git repositories for the given morphology
+
+        Command line arguments:
+
+        * `REPO` is a git repository URL.
+        * `REF` is a git commit ref (sha1, branch, tag).
+        * `MORPHOLOGY` is a morphology filename.
+
+        This updates the local cached copy of a git repository, and any
+        git repositories of components in the morphology (for system
+        and stratum morphologies).
+
+        You do not normally need to do this. Morph updates the cached
+        repositories automatically anyway.
+
+        '''
 
         app = self.app
         if not os.path.exists(app.settings['cachedir']):
