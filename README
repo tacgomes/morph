@@ -12,7 +12,7 @@ an appliance Linux solution. Please see the website for overall information.
 Usage
 -----
 
-The Baserock builds are controlled by **morphology** files, 
+The Baserock builds are controlled by **morphology** files,
 which are build recipes. See below for their syntax. Everything
 in Baserock is built from git commits.
 Morphologies must be committed in git before building. The `morph` tool is
@@ -79,44 +79,44 @@ For chunks, use the following fields:
   - `python-distutils`
   - `cpan`
   - `cmake`
-  - `qmake` 
+  - `qmake`
 
   optional
 
-* `pre-configure-commands`: a list of shell commands to run at 
+* `pre-configure-commands`: a list of shell commands to run at
   the configuration phase of a build, before the list in `configure-commands`;
   optional
 * `configure-commands`: a list of shell commands to run at the configuraiton
   phase of a build; optional
-* `post-configure-commands`: a list of shell commands to run at 
+* `post-configure-commands`: a list of shell commands to run at
   the configuration phase of a build, after the list in `configure-commands`;
   optional
 
-* `pre-build-commands`: a list of shell commands to run at 
+* `pre-build-commands`: a list of shell commands to run at
   the build phase of a build, before the list in `build-commands`;
   optional
 * `build-commands`: a list of shell commands to run to build (compile) the
   project; optional
-* `post-build-commands`: a list of shell commands to run at 
+* `post-build-commands`: a list of shell commands to run at
   the build phase of a build, after the list in `build-commands`;
   optional
 
-* `pre-test-commands`: a list of shell commands to run at 
+* `pre-test-commands`: a list of shell commands to run at
   the test phase of a build, before the list in `test-commands`;
   optional
 * `test-commands`: a list of shell commands to run unit tests and other
   non-interactive tests on the built but un-installed project; optional
-* `post-test-commands`: a list of shell commands to run at 
+* `post-test-commands`: a list of shell commands to run at
   the test phase of a build, after the list in `test-commands`;
   optional
 
-* `pre-install-commands`: a list of shell commands to run at 
+* `pre-install-commands`: a list of shell commands to run at
   the install phase of a build, before the list in `install-commands`;
   optional
 * `install-commands`: a list of shell commands to install the built project;
   the install should go into the directory named in the `DESTDIR` environment
   variable, not the actual system; optional
-* `post-install-commands`: a list of shell commands to run at 
+* `post-install-commands`: a list of shell commands to run at
   the install phase of a build, after the list in `install-commands`;
   optional
 
@@ -128,7 +128,7 @@ For chunks, use the following fields:
   picks a default value based on the number of CPUs on the host system;
   optional
 
-* `chunks`: a key/value map of lists of regular expressions; 
+* `chunks`: a key/value map of lists of regular expressions;
   the key is the name
   of a binary chunk, the regexps match the pathnames that will be
   included in that chunk; the patterns match the pathnames that get installed
@@ -152,11 +152,11 @@ For strata, use the following fields:
   each of the sources MUST specify a list of build dependencies using the
   `build-depends` field. This field may be omitted to make the source
   depend on all other chunks that are listed earlier in the `chunks`
-  list. The field may be an empty list to indicate that the chunk does 
+  list. The field may be an empty list to indicate that the chunk does
   not depend on anything else in the same stratum. To specify one or
   more chunk dependencies, `build-depends` needs to be set to a list
-  that contains the names of chunks that the source depends on in the 
-  same stratum. These names correspond to the values of the `name` 
+  that contains the names of chunks that the source depends on in the
+  same stratum. These names correspond to the values of the `name`
   fields of the other chunks.
 
 For systems, use the following fields:
