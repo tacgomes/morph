@@ -203,7 +203,8 @@ class ManifestGenerator(object):
                                       version)
 
             original_ref = metadata['original_ref']
-            if metadata['kind'] in ('system', 'stratum'):
+            if (metadata['kind'] in ('system', 'stratum') and
+                'baserock/builds/' in original_ref):
                 original_ref = original_ref[: len('baserock/builds/') + 7]
 
             artifacts.append({
