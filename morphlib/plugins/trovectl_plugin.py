@@ -49,5 +49,5 @@ class TrovectlPlugin(cliapp.Plugin):
 
         trove = 'git@' + self.app.settings['trove-host']
         self.app.runcmd(['ssh', trove] + args,
-            stdout=None, stderr=None)
+            stdin=None, stdout=None, stderr=None)
 
