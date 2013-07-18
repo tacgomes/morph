@@ -25,7 +25,7 @@ set -eu
 git daemon --port=9419 --pid-file="$DATADIR/git.pid" --reuseaddr \
     --export-all --base-path="$DATADIR" 2> /dev/null &
 trap 'kill $(cat "$DATADIR/git.pid")' INT TERM ERR
-REPO_ALIAS='test=git://localhost:9419/%s#git://localhost:9419/%s'
+REPO_ALIAS='test=git://127.0.0.1:9419/%s#git://127.0.0.1:9419/%s'
 
 # Create an empty commit in a chunk repository
 cd "$DATADIR/chunk-repo"
