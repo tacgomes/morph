@@ -211,9 +211,10 @@ class BuildCommand(object):
 
             if self.is_built(a):
                 self.cache_artifacts_locally([a])
-                self.app.status(msg='The %(kind)s is cached at %(cache)s',
-                                kind=a.source.morphology['kind'],
-                                cache=os.path.basename(self.lac.artifact_filename(a))[:7])
+                self.app.status(
+                    msg='The %(kind)s is cached at %(cache)s',
+                    kind=a.source.morphology['kind'],
+                    cache=os.path.basename(self.lac.artifact_filename(a))[:7])
             else:
                 self.app.status(msg='Building %(kind)s %(name)s',
                                 name=a.name, kind=a.source.morphology['kind'])
