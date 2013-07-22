@@ -1,0 +1,121 @@
+#!/usr/bin/python
+# Copyright (C) 2012  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Check every system morphology in a checked out system branch by editing
+# every chunk and recursively checking gitmodules.
+
+import glob
+import os
+import re
+import shutil
+import tempfile
+
+import cliapp
+import yaml
+
+class ReviewGitmodules(cliapp.Application):
+
+    def process_args(self, args):
+        chunks = self.read_all_systems()
+        for chunk in chunks:
+            self.check_chunk(chunk)
+
+    def merge_lists(self, old_list, new_list):
+        for entry in new_list:
+            if entry not in old_list:
+                old_list.append(entry)
+
+        return old_list
+
+    def read_all_systems(self):
+        chunks = []
+        files = glob.glob('*.morph')
+        for entry in files:
+            with open(entry, 'r') as f:
+                morph = yaml.load(f)
+            if morph['kind'] == 'system':
+                found_chunks = self.read_all_strata(morph, files)
+                chunks = self.merge_lists(chunks, found_chunks)
+
+        return chunks
+
+    def read_all_strata(self, system, files):
+        chunks = []
+        for stratum in system['strata']:
+            morph_file = stratum['morph']+'.morph'
+            if morph_file not in files:
+                raise cliapp.AppException('Morph %s not found in this system '
+                                          'branch. I am not clever enough to '
+                                          'find that, myself' % morph_file)
+
+            with open(morph_file, 'r') as f:
+                stratum_morph = yaml.load(f)
+
+            if stratum_morph['kind'] != 'stratum':
+                raise cliapp.AppException('Morph %s is not a stratum'
+                                          % morph_file)
+
+            found_chunks = self.read_all_chunks(stratum_morph)
+            chunks = self.merge_lists(chunks, found_chunks)
+
+        return chunks
+
+    def read_all_chunks(self, stratum):
+        return stratum['chunks']
+
+    def check_chunk(self, chunk):
+        chunk_dir = tempfile.mkdtemp()
+        submodules_file = os.path.join(chunk_dir, '.gitmodules')
+
+        expand_repo_output = cliapp.runcmd(['morph', 'expand-repo',
+                                            chunk['repo']])
+        for line in expand_repo_output.splitlines():
+            if line.startswith('pull:'):
+                pull_ref = line.split()[1]
+                break
+
+        cliapp.runcmd(['git', 'clone', pull_ref, chunk_dir])
+        cliapp.runcmd(['git', 'checkout', chunk['ref']], cwd=chunk_dir)
+
+        if os.path.exists(submodules_file):
+            regex = re.compile(r'''
+            \[submodule\s"(?P<name>.*)"\]\s+
+            path\s+=\s+(?P<path>\S+)\s+
+            url\s+=\s+(?P<url>\S+)
+            ''', re.VERBOSE)
+
+            self.output.write('Chunk %s has submodules\n' % chunk['name'])
+            with open(submodules_file, 'r') as f:
+                submodules_text = f.read()
+
+            self.output.write('%s\n' % submodules_text)
+            submodules = regex.findall(submodules_text)
+            # Unfortunately, findall returns a list of tuples, not dicts
+            for submodule in submodules:
+                tree_data = cliapp.runcmd(['git', 'cat-file', '-p',
+                                           'HEAD^{tree}'], cwd=chunk_dir)
+
+                for line in tree_data.splitlines():
+                    words = line.split(None, 3)
+                    if words[3] == submodule[2]:
+                        submodule_ref = words[2]
+                        self.check_chunk({'name':submodule[0],
+                                          'repo':submodule[2],
+                                          'ref':submodule_ref})
+
+        shutil.rmtree(chunk_dir)
+
+ReviewGitmodules().run()
