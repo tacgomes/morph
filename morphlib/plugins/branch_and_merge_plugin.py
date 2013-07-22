@@ -85,7 +85,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
-                                arg_synopsis='-- COMMAND')
+                                arg_synopsis='-- COMMAND [ARGS...]')
 
         # Plumbing commands (FIXME: should be hidden from --help by default)
         self.app.add_subcommand('workspace', self.workspace,
@@ -1998,7 +1998,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         * `--` indicates the end of option processing for Morph.
         * `COMMAND` is a command to run.
-        * `ARG` is a command line argument or option to be passed onto
+        * `ARGS` is a list of arguments or options to be passed onto
           `COMMAND`.
 
         This runs the given `COMMAND` in each git repository belonging
