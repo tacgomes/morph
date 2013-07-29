@@ -1,0 +1,283 @@
+Morph black box tests for system branches and workspaces
+========================================================
+
+Morph implements **system branches**, which are checked out and
+manipulated by the user in **workspaces**. See
+FIXME for more information.
+
+Workspace creation
+------------------
+
+The first thing a user needs to do is create a workspace.
+
+    SCENARIO    create and initialise a new workspace
+    GIVEN       no workspace
+    WHEN        morph initialises a workspace
+    THEN        an empty workspace exists
+
+The workspace directory may exist, if it is empty.
+
+    SCENARIO    initialise an empty workspace directory
+    GIVEN       an empty workspace directory
+    WHEN        morph initialises a workspace
+    THEN        an empty workspace exists
+
+However, the directory must really be empty. It must not be
+an empty, but initialised workspace.
+
+    SCENARIO    initialise an existing, empty workspace directory
+    GIVEN       no workspace
+    WHEN        morph initialises a workspace
+    AND         morph attempts to initialise a workspace
+    THEN        morph failed
+
+Likewise, if the directory exists, and is non-empty, but isn't an
+existing workspace, initialising it should fail.
+
+    SCENARIO    initialise a non-empty workspace directory
+    GIVEN       a non-empty workspace directory
+    WHEN        morph attempts to initialise a workspace
+    THEN        morph failed
+
+Checking out or branching system branches
+-----------------------------------------
+
+Once we have a workspace, we can check out a system branch.
+
+    SCENARIO    check out an existing system branch
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    THEN        the system branch master is checked out
+
+Checking out a system branch should fail, if the branch doesn't exist.
+
+    SCENARIO    checking out a system branch that doesn't exist
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        morph attempts to check out system branch foo
+    THEN        morph failed
+
+We can, instead, create a new system branch, off master.
+
+    SCENARIO    branch off master
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    THEN        the system branch foo is checked out
+
+We can also branch off another system branch. However, we need to first
+push the other branch to the git server, since Morph is not smart enough
+to check for that locally.
+
+    SCENARIO    branch off non-master
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    AND         pushing system branch foo to git server
+    AND         creating system branch bar, based on foo
+    THEN        the system branch bar is checked out
+
+Query commands in workspaces
+----------------------------
+
+`morph workspace` writes out the fully qualified path to the workspace
+directory, regardless of where the user is. There's a few cases.
+
+    SCENARIO    morph workspace works at root of empty workspace
+    GIVEN       a workspace
+    WHEN        morph reports workspace in .
+    THEN        workspace is reported correctly
+
+Also check it in the root of a system branch checkout, and inside
+a git checkout inside that.
+
+    SCENARIO    morph workspace works in system branch checkouts
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    AND         morph reports workspace in master
+    THEN        workspace is reported correctly
+
+We leak a little bit of the implementation here, to keep things simple:
+the (mocked) git server the implementation sets up has the `test:morphs`
+repository, which is the system branch root repository.
+
+    WHEN        morph reports workspace in master/test:morphs
+    THEN        workspace is reported correctly
+
+However, running it outside a workspace should fail.
+
+    SCENARIO    morph fails outside workspace
+    GIVEN       no workspace
+    WHEN        morph attempts to report workspace
+    THEN        morph failed
+
+`morph show-system-branch` should report the name of the system
+branch, when run anywhere in the system branch checkout. As a special
+case, if there is only one system branch checkout at or below the
+current working directory, it will find it and report it correctly.
+
+    SCENARIO    morph reports system branch
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    AND         reporting system branch in master
+    THEN        system branch is reported as master
+
+    WHEN        reporting system branch in master/test:morphs
+    THEN        system branch is reported as master
+
+    WHEN        reporting system branch  in .
+    THEN        system branch is reported as master
+
+However, if there's two system branches checked out below the
+current directory, things should fail.
+
+    SCENARIO    morph fails to report system branch with two checked out
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    AND         creating system branch foo
+    AND         attempting to report system branch in .
+    THEN        morph failed
+
+`morph show-branch-root` reports the URL (possibly aliases) of the
+system branch root repository. It can be run inside a checkout, or
+somewhere outside a checkout, where exactly one checkout exists below.
+
+    SCENARIO    morph reports system branch root repository
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    AND         reporting system branch root repository in master
+    THEN        root repository is reported as test:morphs
+
+    WHEN        reporting system branch root repository in .
+    THEN        root repository is reported as test:morphs
+
+However, it fails if run outside a checkout and there's no system
+branches checked out.
+
+    SCENARIO    morph fails to report system branch with two checked out
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        attempting to report system branch root repository in .
+    THEN        morph failed
+
+Editing components
+------------------
+
+`morph edit` can edit refs for a stratum only, or it can do that for
+a chunk, and check out the chunk's repository.
+
+First of all, we verify that that when we create a system branch,
+all the refs are unchanged.
+
+    SCENARIO    morph branch does not edit refs
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    THEN        in branch foo, system test-system refs test-stratum in master
+    AND         in branch foo, stratum test-stratum refs test-chunk in master
+
+Then edit the stratum.
+
+    WHEN    editing stratum test-stratum in system test-system in branch foo
+    THEN    in branch foo, system test-system refs test-stratum in foo
+
+Edit the chunk. We make use of special knowledge here: `test:test-chunk`
+is a chunk repository created in the mocked git server, for testing
+purposes.
+
+    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    THEN in branch foo, system test-system refs test-stratum in foo
+    AND  in branch foo, stratum test-stratum refs test-chunk in foo
+    AND  edited chunk test:test-chunk has git branch foo
+
+Status of system branch checkout
+--------------------------------
+
+`morph status` shows the status of all git repositories in a
+system branch checkout: only the ones that exist locally, not all the
+repositories referenced in the system branch.
+
+    SCENARIO    morph status reports changes correctly
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    THEN        morph reports no outstanding changes in foo
+
+    WHEN editing stratum test-stratum in system test-system in branch foo
+    THEN morph reports changes in foo in test:morphs only
+
+    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    THEN morph reports changes in foo in test:morphs only
+
+    WHEN        creating file foo in test:test-chunk in branch foo
+    THEN        morph reports changes in foo in test:morphs only
+
+    WHEN        adding file foo in test:test-chunk in branch foo to git
+    THEN        morph reports changes in foo in test:morphs and test:test-chunk
+
+    WHEN        committing changes in test:morphs in branch foo
+    THEN        morph reports changes in foo in test:test-chunk only
+
+    WHEN        committing changes in test:test-chunk in branch foo
+    THEN        morph reports no outstanding changes in foo
+
+`morph foreach`
+--------------
+
+`morph foreach` runs a shell command in each of the git repos in a system
+branch checkout.
+
+    SCENARIO morph foreach runs command in each git repo
+    GIVEN a workspace
+    AND   a git server
+    WHEN  creating system branch foo
+    AND   editing chunk test-chunk in test-stratum in test-system in branch foo
+    AND   running shell command in each repo in foo
+    THEN  morph ran command in test:morphs in foo
+    AND   morph ran command in test:test-chunk in foo
+
+Explicit petrification
+----------------------
+
+We petrify branches explicitly (though this may later change so that
+`morph branch` does it automatically). To test this, we create a branch,
+petrify it, and verify that every ref looks like a SHA1. We then
+unpetrify and verify that we have all the same refs as before.
+
+    SCENARIO    morph petrifies and unpetrifies
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    AND         pushing system branch foo to git server
+    AND         remembering all refs in foo
+    AND         petrifying foo
+    THEN        foo is petrified
+    WHEN        unpetrifying foo
+    THEN        foo refs are as remembered
+
+Tagging system branches
+-----------------------
+
+`morph tag` creates a git tag in the system branch's root repository,
+and a petrified commit the tag refers to. It does not petrify the
+system branch itself, only the tag.
+
+    SCENARIO    morph tags a system branch
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        creating system branch foo
+    AND         tagging system branch foo as test123
+    THEN        morph tag test123 in foo is an annotated git tag
+    AND         morph tag test123 in foo refers to a petrified commit
+    AND         foo is not petrified
+
+Creating a tag twice should fail.
+
+    WHEN        attempting to tag system branch foo as test123
+    THEN        morph failed
+

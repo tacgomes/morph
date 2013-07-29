@@ -48,6 +48,15 @@ export PYTHONPATH
 
 python setup.py clean check
 
+# Run scenario tests with yarn, if yarn is available.
+
+if command -v yarn > /dev/null
+then
+    yarn -s yarns/morph.shell-lib yarns/*.yarn
+fi
+
+# cmdtest tests.
+
 HOME="$(pwd)/scripts"
 
 cmdtest tests
