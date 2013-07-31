@@ -85,10 +85,10 @@ is_file()
 
 assert_equal()
 {
-    case "$1" in
-        "$2") ;;
-        *) die "Expected '$1' and '$2' to be equal" ;;
-    esac
+    if [ "$1" != "$2" ]
+    then
+        die "Expected '$1' and '$2' to be equal"
+    fi
 }
 
 
