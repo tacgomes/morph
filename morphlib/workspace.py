@@ -35,7 +35,10 @@ class WorkspaceDirExists(morphlib.Error):
 class NotInWorkspace(morphlib.Error):
 
     def __init__(self, dirname):
-        self.msg = 'Directory %s is not in a workspace' % dirname
+        self.msg = (
+            "Can't find the workspace directory.\n"
+            "Morph must be built and deployed within the "
+                "system branch checkout within the workspace directory.")
 
 
 class Workspace(object):

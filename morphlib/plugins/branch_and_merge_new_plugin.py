@@ -25,6 +25,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
     def enable(self):
         self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
+        self.app.add_subcommand('workspace', self.workspace, arg_synopsis='')
 
     def disable(self):
         pass
@@ -60,4 +61,10 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         ws = morphlib.workspace.create(args[0])
         self.app.status(msg='Initialized morph workspace', chatty=True)
+
+    def workspace(self, args):
+        '''Show the toplevel directory of the current workspace.'''
+
+        ws = morphlib.workspace.open('.')
+        self.app.output.write('%s\n' % ws.root)
 
