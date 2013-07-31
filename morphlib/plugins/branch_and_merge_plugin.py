@@ -57,7 +57,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def enable(self):
         # User-facing commands
-        self.app.add_subcommand('init', self.init, arg_synopsis='[DIR]')
         self.app.add_subcommand('branch', self.branch,
                                 arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand('checkout', self.checkout,
@@ -546,50 +545,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                "Metadata directory does not contain any systems.")
 
         return system_key, metadata_cache_id_lookup
-
-    def init(self, args):
-        '''Initialize a workspace directory.
-
-        Command line argument:
-
-        * `DIR` is the directory to use as a workspace, and defaults to
-          the current directory.
-
-        This creates a workspace, either in the current working directory,
-        or if `DIR` is given, in that directory. If the directory doesn't
-        exist, it is created. If it does exist, it must be empty.
-
-        You need to run `morph init` to initialise a workspace, or none
-        of the other system branching tools will work: they all assume
-        an existing workspace. Note that a workspace only exists on your
-        machine, not on the git server.
-
-        Example:
-
-            morph init /src/workspace
-            cd /src/workspace
-
-        '''
-
-        if not args:
-            args = ['.']
-        elif len(args) > 1:
-            raise cliapp.AppException('init must get at most one argument')
-
-        dirname = args[0]
-
-        # verify the workspace is empty (and thus, can be used) or
-        # create it if it doesn't exist yet
-        if os.path.exists(dirname):
-            if os.listdir(dirname) != []:
-                raise cliapp.AppException('can only initialize empty '
-                                          'directory as a workspace: %s' %
-                                          dirname)
-        else:
-            os.makedirs(dirname)
-
-        os.mkdir(os.path.join(dirname, '.morph'))
-        self.app.status(msg='Initialized morph workspace', chatty=True)
 
     def _create_branch(self, workspace, branch_name, repo, original_ref):
         '''Create a branch called branch_name based off original_ref.

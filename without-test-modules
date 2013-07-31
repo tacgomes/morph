@@ -27,3 +27,4 @@ morphlib/writeexts.py
 morphlib/plugins/copy-artifacts_plugin.py
 morphlib/plugins/trovectl_plugin.py
 morphlib/plugins/gc_plugin.py
+morphlib/plugins/branch_and_merge_new_plugin.py
