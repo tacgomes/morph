@@ -74,6 +74,7 @@ import stagingarea
 import stopwatch
 import tempdir
 import util
+import workspace
 
 import yamlparse
 
