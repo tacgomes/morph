@@ -8,6 +8,7 @@ morphlib/app.py
 morphlib/mountableimage.py
 morphlib/extractedtarball.py
 morphlib/plugins/artifact_inspection_plugin.py
+morphlib/plugins/cross-bootstrap_plugin.py
 morphlib/plugins/hello_plugin.py
 morphlib/plugins/graphing_plugin.py
 morphlib/plugins/syslinux-disk-systembuilder_plugin.py

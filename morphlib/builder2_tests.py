@@ -253,21 +253,3 @@ class ChunkBuilderTests(unittest.TestCase):
         self.app = FakeApp()
         self.build = morphlib.builder2.ChunkBuilder(self.app, None, None,
                                                     None, None, None, 1, False)
-
-    def test_uses_morphology_commands_when_given(self):
-        m = {'build-commands': ['build-it']}
-        bs = FakeBuildSystem()
-        cmds = self.build.get_commands('build-commands', m, bs)
-        self.assertEqual(cmds, ['build-it'])
-
-    def test_uses_build_system_commands_when_morphology_doesnt(self):
-        m = {'build-commands': None}
-        bs = FakeBuildSystem()
-        cmds = self.build.get_commands('build-commands', m, bs)
-        self.assertEqual(cmds, ['buildsys-it'])
-
-    def test_uses_morphology_commands_when_morphology_has_empty_list(self):
-        m = {'build-commands': []}
-        bs = FakeBuildSystem()
-        cmds = self.build.get_commands('build-commands', m, bs)
-        self.assertEqual(cmds, [])

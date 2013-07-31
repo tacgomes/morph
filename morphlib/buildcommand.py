@@ -32,7 +32,7 @@ class BuildCommand(object):
 
     '''
 
-    def __init__(self, app):
+    def __init__(self, app, build_env = None):
         self.supports_local_build = True
 
         self.app = app
@@ -47,8 +47,10 @@ class BuildCommand(object):
         for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            artifact = self.get_artifact_object(repo_name, ref, filename)
-            self.build_in_order(artifact)
+            self.app.status(msg='Figuring out the right build order')
+            srcpool = self.create_source_pool(repo_name, ref, filename)
+            root_artifact = self.resolve_artifacts(srcpool)
+            self.build_in_order(root_artifact)
 
         self.app.status(msg='Build ends successfully')
 
@@ -68,11 +70,14 @@ class BuildCommand(object):
         return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
                                                           arch)
 
-    def get_artifact_object(self, repo_name, ref, filename):
-        '''Create an Artifact object representing the given triplet.'''
-        
-        self.app.status(msg='Figuring out the right build order')
+    def create_source_pool(self, repo_name, ref, filename):
+        '''Find the source objects required for building a the given artifact
 
+        The SourcePool will contain every stratum and chunk dependency of the
+        given artifact (which must be a system) but will not take into account
+        any Git submodules which are required in the build.
+
+        '''
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
@@ -80,6 +85,11 @@ class BuildCommand(object):
         self.app.status(
             msg='Validating cross-morphology references', chatty=True)
         self._validate_cross_morphology_references(srcpool)
+
+        return srcpool
+
+    def resolve_artifacts(self, srcpool):
+        '''Resolve the artifacts that will be built for a set of sources'''
 
         self.app.status(msg='Creating artifact resolver', chatty=True)
         ar = morphlib.artifactresolver.ArtifactResolver()
@@ -241,6 +251,7 @@ class BuildCommand(object):
         deps = self.get_recursive_deps(artifact)
         self.cache_artifacts_locally(deps)
 
+        use_chroot = False
         setup_mounts = False
         if artifact.source.morphology['kind'] == 'chunk':
             build_mode = artifact.source.build_mode
@@ -255,7 +266,10 @@ class BuildCommand(object):
                                 (build_mode, artifact.name))
                 build_mode = 'staging'
 
-            use_chroot = build_mode=='staging'
+            if build_mode == 'staging':
+                use_chroot = True
+                setup_mounts = True
+
             staging_area = self.create_staging_area(build_env,
                                                     use_chroot,
                                                     extra_env=extra_env,
@@ -404,7 +418,6 @@ class BuildCommand(object):
         self.app.status(msg='Starting actual build: %(name)s '
                             '%(sha1)s',
                         name=artifact.name, sha1=artifact.source.sha1[:7])
-        setup_mounts = self.app.settings['staging-chroot']
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
             self.app.settings['max-jobs'], setup_mounts)

@@ -106,15 +106,14 @@ class MorphologyFactory(object):
                                  '(arch is a mandatory field)' %
                                  filename)
 
-        valid_archs = ['armv7l', 'armv7b', 'x86_32', 'x86_64']
-
         if morphology['arch'] == 'armv7':
             morphology._dict['arch'] = 'armv7l'
 
-        if morphology['arch'] not in valid_archs:
+        if morphology['arch'] not in morphlib.valid_archs:
             raise morphlib.Error('Unknown arch %s. This version of Morph '
                                  'supports the following architectures: %s' %
-                                 (morphology['arch'], ', '.join(valid_archs)))
+                                 (morphology['arch'],
+                                  ', '.join(morphlib.valid_archs)))
 
         kind = morphology['system-kind']
         if kind == 'rootfs-tarball': # pragma: no cover
