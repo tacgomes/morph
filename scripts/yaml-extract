@@ -1,0 +1,74 @@
+#!/usr/bin/python
+#
+# Extract field from YAML format morphologies, using a very simple
+# query language. This is useful for black box testing.
+#
+# Usage: yaml-extract FILE PARAM...
+#
+# Where FILE is the name of the YAML morphology, and PARAM are a sequence
+# of query parameters.
+#
+# The program reads in the YAML file, and then selects successively deeper
+# parts of the object hieararchy in the file. If the object currently
+# being looked at is a dictionary, PARAM is a field in the dictionary,
+# and the next PARAM will look at the value stored with that key.
+# If the current object is a list, PARAM can either be an integer list
+# index, or a search key of the form KEY=VALUE, in which case the list
+# is searched for the first member, which must be a dict, which has
+# a key KEY that stores a value VALUE.
+#
+# Example:
+#
+#   yaml-extract system.morph strata morph=core ref
+#
+# This would report the ref of the core stratum in a system.
+#
+# Note that this does not try to parse morphologies as morphologies,
+# and so doesn't do special processing such as providing computed
+# values for missing fields (e.g., the morph field if name is given).
+# Construct your tests accordingly.
+
+# Copyright (C) 2013  Codethink Limited
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+import sys
+import yaml
+
+
+with open(sys.argv[1]) as f:
+    obj = yaml.safe_load(f)
+for thing in sys.argv[2:]:
+    if type(obj) == dict:
+        obj = obj[thing]
+    elif type(obj) == list:
+        if '=' in thing:
+            # We need to search a list member dict with a given field.
+            key, value = thing.split('=', 1)
+            for item in obj:
+                if item.get(key) == value:
+                    obj = item
+                    break
+            else:
+                raise Exception(
+                    "Couldn't find list item containing %s" % thing)
+        else:
+            # We can just index.
+            obj = obj[int(thing)]
+    else:
+        raise Exception("Can't handle %s with %s" % (repr(obj), repr(thing)))
+
+print obj
+
