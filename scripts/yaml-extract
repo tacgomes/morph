@@ -50,9 +50,7 @@ import yaml
 
 with open(sys.argv[1]) as f:
     obj = yaml.safe_load(f)
-# print "AAA", repr(obj)
 for thing in sys.argv[2:]:
-    # print "XXX", repr(obj), repr(thing)
     if type(obj) == dict:
         obj = obj[thing]
     elif type(obj) == list:
