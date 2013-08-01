@@ -59,6 +59,7 @@ import cachekeycomputer
 import extractedtarball
 import fsutils
 import git
+import gitdir
 import localartifactcache
 import localrepocache
 import mountableimage
