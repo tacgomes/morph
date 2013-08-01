@@ -40,8 +40,7 @@ defaults = {
             'ssh://git@github.com/%s'),
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
-    'max-jobs': morphlib.util.make_concurrency(),
-    'build-ref-prefix': 'baserock/builds'
+    'max-jobs': morphlib.util.make_concurrency()
 }
 
 
@@ -56,7 +55,7 @@ class Morph(cliapp.Application):
         self.settings.string(['build-ref-prefix'],
                              'Prefix to use for temporary build refs',
                              metavar='PREFIX',
-                             default=defaults['build-ref-prefix'])
+                             default=None)
         self.settings.string(['trove-host'],
                              'hostname of Trove instance',
                              metavar='TROVEHOST',
@@ -199,6 +198,13 @@ class Morph(cliapp.Application):
                         'should only specify this option if you are building '
                         'a system based on a version of Baserock older than '
                         'Baserock 6.')
+
+        if self.settings['build-ref-prefix'] is None:
+            if self.settings['trove-id']:
+                self.settings['build-ref-prefix'] = os.path.join(
+                        self.settings['trove-id'][0], 'builds')
+            else:
+                self.settings['build-ref-prefix'] = "baserock/builds"
 
         # Combine the aliases into repo-alias before passing on to normal
         # command processing.  This means everything from here on down can
