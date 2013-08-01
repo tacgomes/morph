@@ -91,3 +91,11 @@ class WorkspaceTests(unittest.TestCase):
             ws.get_default_system_branch_directory_name(branch),
             os.path.join(self.workspace_dir, branch))
 
+    def test_creates_system_branch_directory(self):
+        self.create_it()
+        ws = morphlib.workspace.open(self.workspace_dir)
+        url = 'test:morphs'
+        branch = 'my/new/thing'
+        sb = ws.create_system_branch_directory(url, branch)
+        self.assertTrue(type(sb), morphlib.sysbranchdir.SystemBranchDirectory)
+

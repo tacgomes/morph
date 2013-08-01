@@ -68,6 +68,25 @@ class Workspace(object):
 
         return os.path.join(self.root, system_branch_name)
 
+    def create_system_branch_directory(self,
+        root_repository_url, system_branch_name):
+        '''Create a directory for a system branch.
+
+        Return a SystemBranchDirectory object that represents the
+        directory. The directory must not already exist. The directory
+        gets created and initialised (the .morph-system-branch/config
+        file gets created and populated). The root repository of the
+        system branch does NOT get checked out, the caller needs to
+        do that.
+
+        '''
+
+        dirname = self.get_default_system_branch_directory_name(
+            system_branch_name)
+        sb = morphlib.sysbranchdir.create(
+            dirname, root_repository_url, system_branch_name)
+        return sb
+
 
 def open(dirname):
     '''Open an existing workspace.
