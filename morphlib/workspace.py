@@ -53,6 +53,21 @@ class Workspace(object):
     def __init__(self, root_directory):
         self.root = root_directory
 
+    def get_default_system_branch_directory_name(self, system_branch_name):
+        '''Determine directory where a system branch would be checked out.
+
+        Return the fully qualified pathname to the directory where
+        a system branch would be checked out. The directory may or may
+        not exist already.
+
+        If the system branch is checked out, but into a directory of
+        a different name (which is allowed), that is ignored: this method
+        only computed the default name.
+
+        '''
+
+        return os.path.join(self.root, system_branch_name)
+
 
 def open(dirname):
     '''Open an existing workspace.
