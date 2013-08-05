@@ -14,6 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import os
+import shutil
+import tempfile
 import unittest
 
 import morphlib
@@ -48,3 +51,39 @@ class MakeConcurrencyTests(unittest.TestCase):
 
     def test_returns_6_for_4_cores(self):
         self.assertEqual(morphlib.util.make_concurrency(cores=4), 6)
+
+
+class FindParentOfTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.tempdir, 'a', 'b', 'c'))
+        self.a = os.path.join(self.tempdir, 'a')
+        self.b = os.path.join(self.tempdir, 'a', 'b')
+        self.c = os.path.join(self.tempdir, 'a', 'b', 'c')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def test_find_root_finds_starting_directory(self):
+        os.mkdir(os.path.join(self.a, '.magic'))
+        self.assertEqual(morphlib.util.find_root(self.a, '.magic'), self.a)
+
+    def test_find_root_finds_ancestor(self):
+        os.mkdir(os.path.join(self.a, '.magic'))
+        self.assertEqual(morphlib.util.find_root(self.c, '.magic'), self.a)
+
+    def test_find_root_returns_none_if_not_found(self):
+        self.assertEqual(morphlib.util.find_root(self.c, '.magic'), None)
+
+    def test_find_leaf_finds_starting_directory(self):
+        os.mkdir(os.path.join(self.a, '.magic'))
+        self.assertEqual(morphlib.util.find_leaf(self.a, '.magic'), self.a)
+
+    def test_find_leaf_finds_child(self):
+        os.mkdir(os.path.join(self.c, '.magic'))
+        self.assertEqual(morphlib.util.find_leaf(self.a, '.magic'), self.c)
+
+    def test_find_leaf_returns_none_if_not_found(self):
+        self.assertEqual(morphlib.util.find_leaf(self.a, '.magic'), None)
+
