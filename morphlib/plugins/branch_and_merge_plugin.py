@@ -59,8 +59,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # User-facing commands
         self.app.add_subcommand('branch', self.branch,
                                 arg_synopsis='REPO NEW [OLD]')
-        self.app.add_subcommand('checkout', self.checkout,
-                                arg_synopsis='REPO BRANCH')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('edit', self.edit,
@@ -622,41 +620,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Create the system branch directory.
         workspace = self.deduce_workspace()
         self._create_branch(workspace, new_branch, repo, commit)
-
-    @warns_git_identity
-    def checkout(self, args):
-        '''Check out an existing system branch.
-
-        Command line arguments:
-
-        * `REPO` is the URL to the repository to the root repository of
-          a system branch.
-        * `BRANCH` is the name of the system branch.
-
-        This will check out an existing system branch to an existing
-        workspace.  You must create the workspace first. This only checks
-        out the root repository, not the repositories for individual
-        components. You need to use `morph edit` to check out those.
-
-        Example:
-
-            cd /src/workspace
-            morph checkout baserock:baserock/morphs master
-
-        '''
-
-        if len(args) != 2:
-            raise cliapp.AppException('morph checkout needs a repo and the '
-                                      'name of a branch as parameters')
-
-        repo = args[0]
-        system_branch = args[1]
-
-        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
-
-        # Create the system branch directory.
-        workspace = self.deduce_workspace()
-        self._create_branch(workspace, system_branch, repo, system_branch)
 
     def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
         '''Make a chunk or stratum repository available for a system branch
