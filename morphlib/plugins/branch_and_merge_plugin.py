@@ -85,8 +85,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='-- COMMAND [ARGS...]')
 
         # Plumbing commands (FIXME: should be hidden from --help by default)
-        self.app.add_subcommand('show-system-branch', self.show_system_branch,
-                                arg_synopsis='')
         self.app.add_subcommand('show-branch-root', self.show_branch_root,
                                 arg_synopsis='')
 
@@ -1959,12 +1957,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 self.app.output.write(error)
                 raise cliapp.AppException(
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
-
-    def show_system_branch(self, args):
-        '''Show the name of the current system branch.'''
-
-        branch, dirname = self.deduce_system_branch()
-        self.app.output.write('%s\n' % branch)
 
     def show_branch_root(self, args):
         '''Show the name of the repository holding the system morphologies.

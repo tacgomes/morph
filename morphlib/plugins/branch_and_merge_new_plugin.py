@@ -31,6 +31,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('workspace', self.workspace, arg_synopsis='')
         self.app.add_subcommand(
             'checkout', self.checkout, arg_synopsis='REPO BRANCH')
+        self.app.add_subcommand(
+            'show-system-branch', self.show_system_branch, arg_synopsis='')
 
     def disable(self):
         pass
@@ -133,6 +135,13 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             logging.info('Removing half-finished branch %s' % system_branch)
             self._remove_branch_dir_safe(ws.root, root_dir)
             raise
+
+    def show_system_branch(self, args):
+        '''Show the name of the current system branch.'''
+
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
+        self.app.output.write('%s\n' % sb.system_branch_name)
 
     def _remove_branch_dir_safe(self, workspace_root, system_branch_root):
         # This function avoids throwing any exceptions, so it is safe to call
