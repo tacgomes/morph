@@ -57,8 +57,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def enable(self):
         # User-facing commands
-        self.app.add_subcommand('branch', self.branch,
-                                arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH')
         self.app.add_subcommand('edit', self.edit,
@@ -574,46 +572,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             logging.info('Removing half-finished branch %s' % branch_name)
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
-
-    @warns_git_identity
-    def branch(self, args):
-        '''Create a new system branch.
-
-        Command line arguments:
-
-        * `REPO` is a repository URL.
-        * `NEW` is the name of the new system branch.
-        * `OLD` is the point from which to branch, and defaults to `master`.
-
-        This creates a new system branch. It needs to be run in an
-        existing workspace (see `morph workspace`). It creates a new
-        git branch in the clone of the repository in the workspace. The
-        system branch will not be visible on the git server until you
-        push your changes to the repository.
-
-        Example:
-
-            cd /src/workspace
-            morph branch baserock:baserock:morphs jrandom/new-feature
-
-        '''
-
-        if len(args) not in [2, 3]:
-            raise cliapp.AppException('morph branch needs name of branch '
-                                      'as parameter')
-
-        repo = args[0]
-        new_branch = args[1]
-        commit = 'master' if len(args) == 2 else args[2]
-
-        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
-        if self.get_cached_repo(repo).ref_exists(new_branch):
-            raise cliapp.AppException('branch %s already exists in '
-                                      'repository %s' % (new_branch, repo))
-
-        # Create the system branch directory.
-        workspace = self.deduce_workspace()
-        self._create_branch(workspace, new_branch, repo, commit)
 
     def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
         '''Make a chunk or stratum repository available for a system branch

@@ -32,6 +32,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'checkout', self.checkout, arg_synopsis='REPO BRANCH')
         self.app.add_subcommand(
+            'branch', self.branch, arg_synopsis='REPO NEW [OLD]')
+        self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
@@ -129,6 +131,77 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
             gd = sb.clone_cached_repo(
                 cached_repo, system_branch, system_branch)
+            gd.update_submodules(self.app)
+            gd.update_remotes()
+        except BaseException as e:
+            # Oops. Clean up.
+            logging.error('Caught exception: %s' % str(e))
+            logging.info('Removing half-finished branch %s' % system_branch)
+            self._remove_branch_dir_safe(ws.root, root_dir)
+            raise
+
+    def branch(self, args):
+        '''Create a new system branch.
+
+        Command line arguments:
+
+        * `REPO` is a repository URL.
+        * `NEW` is the name of the new system branch.
+        * `OLD` is the point from which to branch, and defaults to `master`.
+
+        This creates a new system branch. It needs to be run in an
+        existing workspace (see `morph workspace`). It creates a new
+        git branch in the clone of the repository in the workspace. The
+        system branch will not be visible on the git server until you
+        push your changes to the repository.
+
+        Example:
+
+            cd /src/workspace
+            morph branch baserock:baserock:morphs jrandom/new-feature
+
+        '''
+
+        if len(args) not in [2, 3]:
+            raise cliapp.AppException(
+                'morph branch needs name of branch as parameter')
+
+        root_url = args[0]
+        system_branch = args[1]
+        base_ref = 'master' if len(args) == 2 else args[2]
+        origin_base_ref = 'origin/%s' % base_ref
+
+        self._require_git_user_config()
+
+        # Open the workspace first thing, so user gets a quick error if
+        # we're not inside a workspace.
+        ws = morphlib.workspace.open('.')
+
+        # Make sure the root repository is in the local git repository
+        # cache, and is up to date.
+        lrc, rrc = morphlib.util.new_repo_caches(self.app)
+        cached_repo = lrc.get_updated_repo(root_url)
+
+        # Make sure the system branch doesn't exist yet.
+        if cached_repo.ref_exists(system_branch):
+            raise cliapp.AppException(
+                'branch %s already exists in repository %s' %
+                (system_branch, root_url))
+
+        # Make sure the base_ref exists.
+        cached_repo.resolve_ref(base_ref)
+
+        root_dir = ws.get_default_system_branch_directory_name(system_branch)
+
+        try:
+            # Create the system branch directory. This doesn't yet clone
+            # the root repository there.
+            sb = morphlib.sysbranchdir.create(
+                root_dir, root_url, system_branch)
+
+            gd = sb.clone_cached_repo(cached_repo, system_branch, base_ref)
+            gd.branch(system_branch, base_ref)
+            gd.checkout(system_branch)
             gd.update_submodules(self.app)
             gd.update_remotes()
         except BaseException as e:
