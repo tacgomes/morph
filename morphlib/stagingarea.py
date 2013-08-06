@@ -309,3 +309,17 @@ class StagingArea(object):
                                           (self.dirname, ' '.join(argv)))
         else:
             return self._app.runcmd(argv, **kwargs)
+
+    def abort(self): # pragma: no cover
+        '''Handle what to do with a staging area in the case of failure.
+           This may either remove it or save it for later inspection.
+        '''
+        # TODO: when we add the option to throw away failed builds,
+        #       hook it up here
+
+
+        dest_dir = os.path.join(self._app.settings['tempdir'],
+                                'failed', os.path.basename(self.dirname))
+        os.rename(self.dirname, dest_dir)
+        self.dirname = dest_dir
+
