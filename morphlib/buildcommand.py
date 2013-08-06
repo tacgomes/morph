@@ -274,8 +274,12 @@ class BuildCommand(object):
                                                     use_chroot,
                                                     extra_env=extra_env,
                                                     extra_path=extra_path)
-            self.install_fillers(staging_area)
-            self.install_dependencies(staging_area, deps, artifact)
+            try:
+                self.install_fillers(staging_area)
+                self.install_dependencies(staging_area, deps, artifact)
+            except BaseException:
+                staging_area.abort()
+                raise
         else:
             staging_area = self.create_staging_area(build_env, False)
 

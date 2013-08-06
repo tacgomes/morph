@@ -20,6 +20,7 @@ import shutil
 import stat
 import cliapp
 from urlparse import urlparse
+import tempfile
 
 import morphlib
 
@@ -158,14 +159,21 @@ class StagingArea(object):
         logging.debug('Installing artifact %s' %
                       getattr(handle, 'name', 'unknown name'))
 
+        chunk_cache_dir = os.path.join(self._app.settings['tempdir'], 'chunks')
         unpacked_artifact = os.path.join(
-            self._app.settings['tempdir'],
-            'chunks',
-            os.path.basename(handle.name) + '.d')
+            chunk_cache_dir, os.path.basename(handle.name) + '.d')
         if not os.path.exists(unpacked_artifact):
-            self._mkdir(unpacked_artifact)
-            morphlib.bins.unpack_binary_from_file(
-                handle, unpacked_artifact + '/')
+            savedir = tempfile.mkdtemp(dir=chunk_cache_dir)
+            try:
+                morphlib.bins.unpack_binary_from_file(
+                    handle, savedir + '/')
+            except BaseException, e: # pragma: no cover
+                shutil.rmtree(savedir)
+                raise
+            # TODO: This rename is not concurrency safe if two builds are
+            #       extracting the same chunk, one build will fail because
+            #       the other renamed its tempdir here first.
+            os.rename(savedir, unpacked_artifact)
 
         if not os.path.exists(self.dirname):
             self._mkdir(self.dirname)
@@ -301,3 +309,17 @@ class StagingArea(object):
                                           (self.dirname, ' '.join(argv)))
         else:
             return self._app.runcmd(argv, **kwargs)
+
+    def abort(self): # pragma: no cover
+        '''Handle what to do with a staging area in the case of failure.
+           This may either remove it or save it for later inspection.
+        '''
+        # TODO: when we add the option to throw away failed builds,
+        #       hook it up here
+
+
+        dest_dir = os.path.join(self._app.settings['tempdir'],
+                                'failed', os.path.basename(self.dirname))
+        os.rename(self.dirname, dest_dir)
+        self.dirname = dest_dir
+

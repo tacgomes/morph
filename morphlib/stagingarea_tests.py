@@ -46,6 +46,10 @@ class FakeApplication(object):
             'cachedir': cachedir,
             'tempdir': tempdir,
         }
+        for leaf in ('chunks',):
+            d = os.path.join(tempdir, leaf)
+            if not os.path.exists(d):
+                os.makedirs(d)
 
     def runcmd(self, *args, **kwargs):
         return cliapp.runcmd(*args, **kwargs)
