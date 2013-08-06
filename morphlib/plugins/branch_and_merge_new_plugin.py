@@ -33,6 +33,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             'checkout', self.checkout, arg_synopsis='REPO BRANCH')
         self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
+        self.app.add_subcommand(
+            'show-branch-root', self.show_branch_root, arg_synopsis='')
 
     def disable(self):
         pass
@@ -142,6 +144,22 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
         self.app.output.write('%s\n' % sb.system_branch_name)
+
+    def show_branch_root(self, args):
+        '''Show the name of the repository holding the system morphologies.
+
+        This would, for example, write out something like:
+
+            /src/ws/master/baserock:baserock/morphs
+
+        when the master branch of the `baserock:baserock/morphs`
+        repository is checked out.
+
+        '''
+
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
+        self.app.output.write('%s\n' % sb.get_config('branch.root'))
 
     def _remove_branch_dir_safe(self, workspace_root, system_branch_root):
         # This function avoids throwing any exceptions, so it is safe to call

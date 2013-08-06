@@ -84,10 +84,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='-- COMMAND [ARGS...]')
 
-        # Plumbing commands (FIXME: should be hidden from --help by default)
-        self.app.add_subcommand('show-branch-root', self.show_branch_root,
-                                arg_synopsis='')
-
     def disable(self):
         pass
 
@@ -1958,19 +1954,3 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise cliapp.AppException(
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
 
-    def show_branch_root(self, args):
-        '''Show the name of the repository holding the system morphologies.
-
-        This would, for example, write out something like:
-
-            /src/ws/master/baserock:baserock/morphs
-
-        when the master branch of the `baserock:baserock/morphs`
-        repository is checked out.
-
-        '''
-
-        workspace = self.deduce_workspace()
-        system_branch, branch_dir = self.deduce_system_branch()
-        branch_root = self.get_branch_config(branch_dir, 'branch.root')
-        self.app.output.write('%s\n' % branch_root)
