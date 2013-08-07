@@ -59,6 +59,7 @@ import cachekeycomputer
 import extractedtarball
 import fsutils
 import git
+import gitdir
 import localartifactcache
 import localrepocache
 import mountableimage
@@ -72,6 +73,7 @@ import source
 import sourcepool
 import stagingarea
 import stopwatch
+import sysbranchdir
 import tempdir
 import util
 import workspace

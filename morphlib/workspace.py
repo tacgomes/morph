@@ -53,6 +53,40 @@ class Workspace(object):
     def __init__(self, root_directory):
         self.root = root_directory
 
+    def get_default_system_branch_directory_name(self, system_branch_name):
+        '''Determine directory where a system branch would be checked out.
+
+        Return the fully qualified pathname to the directory where
+        a system branch would be checked out. The directory may or may
+        not exist already.
+
+        If the system branch is checked out, but into a directory of
+        a different name (which is allowed), that is ignored: this method
+        only computed the default name.
+
+        '''
+
+        return os.path.join(self.root, system_branch_name)
+
+    def create_system_branch_directory(self,
+        root_repository_url, system_branch_name):
+        '''Create a directory for a system branch.
+
+        Return a SystemBranchDirectory object that represents the
+        directory. The directory must not already exist. The directory
+        gets created and initialised (the .morph-system-branch/config
+        file gets created and populated). The root repository of the
+        system branch does NOT get checked out, the caller needs to
+        do that.
+
+        '''
+
+        dirname = self.get_default_system_branch_directory_name(
+            system_branch_name)
+        sb = morphlib.sysbranchdir.create(
+            dirname, root_repository_url, system_branch_name)
+        return sb
+
 
 def open(dirname):
     '''Open an existing workspace.

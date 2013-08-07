@@ -83,3 +83,19 @@ class WorkspaceTests(unittest.TestCase):
             morphlib.workspace.NotInWorkspace,
             morphlib.workspace.open, self.tempdir)
 
+    def test_invents_appropriate_name_for_system_branch_directory(self):
+        self.create_it()
+        ws = morphlib.workspace.open(self.workspace_dir)
+        branch = 'foo/bar'
+        self.assertEqual(
+            ws.get_default_system_branch_directory_name(branch),
+            os.path.join(self.workspace_dir, branch))
+
+    def test_creates_system_branch_directory(self):
+        self.create_it()
+        ws = morphlib.workspace.open(self.workspace_dir)
+        url = 'test:morphs'
+        branch = 'my/new/thing'
+        sb = ws.create_system_branch_directory(url, branch)
+        self.assertTrue(type(sb), morphlib.sysbranchdir.SystemBranchDirectory)
+
