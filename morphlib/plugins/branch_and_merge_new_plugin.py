@@ -15,11 +15,19 @@
 
 
 import cliapp
+import glob
 import logging
 import os
 import shutil
 
 import morphlib
+
+
+class BranchRootHasNoSystemsError(cliapp.AppException):
+    def __init__(self, repo, ref):
+        cliapp.AppException.__init__(
+            self, 'System branch root repository %s '
+                  'has no system morphologies at ref %s' % (repo, ref))
 
 
 class SimpleBranchAndMergePlugin(cliapp.Plugin):
@@ -131,6 +139,10 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
             gd = sb.clone_cached_repo(
                 cached_repo, system_branch, system_branch)
+
+            if not self._checkout_has_systems(gd):
+                raise BranchRootHasNoSystemsError(root_url, system_branch)
+
             gd.update_submodules(self.app)
             gd.update_remotes()
         except BaseException as e:
@@ -202,6 +214,10 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             gd = sb.clone_cached_repo(cached_repo, system_branch, base_ref)
             gd.branch(system_branch, base_ref)
             gd.checkout(system_branch)
+
+            if not self._checkout_has_systems(gd):
+                raise BranchRootHasNoSystemsError(root_url, base_ref)
+
             gd.update_submodules(self.app)
             gd.update_remotes()
         except BaseException as e:
@@ -266,4 +282,13 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             self.app.status(
                 msg="WARNING: %(message)s",
                 message=str(e), error=True)
+
+    @staticmethod
+    def _checkout_has_systems(gd):
+        for filename in glob.iglob(os.path.join(gd.dirname, '*.morph')):
+            with open(filename) as mf:
+                morphology = morphlib.morph2.Morphology(mf.read())
+                if morphology['kind'] == 'system':
+                    return True
+        return False
 
