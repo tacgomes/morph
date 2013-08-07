@@ -158,7 +158,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         Example:
 
             cd /src/workspace
-            morph branch baserock:baserock:morphs jrandom/new-feature
+            morph branch baserock:baserock/morphs jrandom/new-feature
 
         '''
 
