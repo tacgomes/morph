@@ -67,6 +67,7 @@ import morph2
 import morphologyfactory
 import morph3
 import morphloader
+import morphset
 import remoteartifactcache
 import remoterepocache
 import repoaliasresolver
