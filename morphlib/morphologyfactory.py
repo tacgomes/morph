@@ -47,6 +47,13 @@ class NoChunkBuildDependsError(StratumError):
                   '(build-depends is a mandatory field)' % (stratum, chunk))
 
 
+class EmptyStratumError(StratumError):
+
+    def __init__(self, stratum):
+        cliapp.AppException.__init__(self,
+            "Stratum %s is empty (has no dependencies)" % stratum)
+
+
 class MorphologyFactory(object):
 
     '''An way of creating morphologies which will provide a default'''
@@ -146,6 +153,9 @@ class MorphologyFactory(object):
 
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
+
+        if len(morphology['chunks']) == 0:
+            raise EmptyStratumError(morphology['name'])
 
         for source in morphology['chunks']:
             if source.get('build-depends', None) is None:
