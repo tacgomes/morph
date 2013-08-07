@@ -65,6 +65,8 @@ import localrepocache
 import mountableimage
 import morph2
 import morphologyfactory
+import morph3
+import morphloader
 import remoteartifactcache
 import remoterepocache
 import repoaliasresolver
