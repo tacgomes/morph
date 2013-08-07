@@ -63,6 +63,7 @@ class FakeLocalRepo(object):
                         "name": "chunk",
                         "repo": "test:repo",
                         "ref": "sha1",
+                        "build-mode": "bootstrap",
                         "build-depends": []
                     }
                 ]
@@ -76,6 +77,37 @@ class FakeLocalRepo(object):
                         "repo": "test:repo",
                         "ref": "sha1",
                         "build-mode": "bootstrap"
+                    }
+                ]
+            }''',
+        'stratum-no-bdeps-no-bootstrap.morph': '''{
+                "name": "stratum-no-bdeps-no-bootstrap",
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": []
+                    }
+                ]
+            }''',
+        'stratum-bdeps-no-bootstrap.morph': '''{
+                "name": "stratum-bdeps-no-bootstrap",
+                "kind": "stratum",
+                "build-depends": [
+                    {
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "morph": "stratum"
+                    }
+                ],
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": []
                     }
                 ]
             }''',
@@ -289,6 +321,17 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertRaises(morphlib.morphologyfactory.NoChunkBuildDependsError,
                           self.mf.get_morphology, 'reponame', 'sha1',
                           'stratum-no-chunk-bdeps.morph')
+
+    def test_fails_on_no_bdeps_or_bootstrap(self):
+        self.assertRaises(
+            morphlib.morphologyfactory.NoStratumBuildDependsError,
+            self.mf.get_morphology, 'reponame', 'sha1',
+            'stratum-no-bdeps-no-bootstrap.morph')
+
+    def test_succeeds_on_bdeps_no_bootstrap(self):
+        self.mf.get_morphology(
+            'reponame', 'sha1',
+            'stratum-bdeps-no-bootstrap.morph')
 
     def test_fails_on_empty_stratum(self):
         self.assertRaises(

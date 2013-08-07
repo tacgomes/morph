@@ -54,6 +54,13 @@ class EmptyStratumError(StratumError):
             "Stratum %s is empty (has no dependencies)" % stratum)
 
 
+class NoStratumBuildDependsError(StratumError):
+    def __init__(self, stratum):
+        StratumError.__init__(
+            self, 'Stratum %s has no build-dependencies listed '
+                  'and has no bootstrap chunks.' % stratum)
+
+
 class MorphologyFactory(object):
 
     '''An way of creating morphologies which will provide a default'''
@@ -161,6 +168,11 @@ class MorphologyFactory(object):
             if source.get('build-depends', None) is None:
                 name = source.get('name', source.get('repo', 'unknown'))
                 raise NoChunkBuildDependsError(filename, name)
+
+        if (len(morphology['build-depends'] or []) == 0 and
+            not any(c.get('build-mode') in ('bootstrap', 'test')
+                    for c in morphology['chunks'])):
+            raise NoStratumBuildDependsError(filename)
 
         morphology.builds_artifacts = [morphology['name']]
         morphology.needs_artifact_metadata_cached = True
