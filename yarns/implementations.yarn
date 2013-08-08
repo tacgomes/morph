@@ -124,7 +124,7 @@ Attempt to check out a system branch, and remember if it failed.
 
     IMPLEMENTS WHEN morph attempts to check out system branch (\S+)
     cd "$DATADIR/workspace"
-    attempt_morph checkout "$MATCH_1"
+    attempt_morph checkout test:morphs "$MATCH_1"
 
 We also need to verify that a system branch has been checked out.
 
