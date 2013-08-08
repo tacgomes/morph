@@ -59,8 +59,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # User-facing commands
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH')
-        self.app.add_subcommand('edit', self.edit,
-                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
+#        self.app.add_subcommand('edit', self.edit,
+#                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('unpetrify', self.unpetrify)
         self.app.add_subcommand(
