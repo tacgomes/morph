@@ -100,6 +100,15 @@ class SystemBranchDirectory(object):
 
         return os.path.join(self.root_directory, relative)
 
+    def get_filename(self, repo_url, relative):
+        '''Return full pathname to a file in a checked out repository.
+
+        This is a convenience function.
+
+        '''
+
+        return os.path.join(self.get_git_directory_name(repo_url), relative)
+
     def clone_cached_repo(self, cached_repo, checkout_ref):
         '''Clone a cached git repository into the system branch directory.
 

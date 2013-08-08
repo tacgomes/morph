@@ -162,6 +162,15 @@ class SystemBranchDirectoryTests(unittest.TestCase):
             sb.get_git_directory_name(url),
             os.path.join(self.root_directory, stripped))
 
+    def test_reports_correct_path_for_file_in_repository(self):
+        sb = morphlib.sysbranchdir.create(
+            self.root_directory,
+            self.root_repository_url,
+            self.system_branch_name)
+        self.assertEqual(
+            sb.get_filename('test:chunk', 'foo'),
+            os.path.join(self.root_directory, 'test:chunk/foo'))
+
     def test_reports_correct_name_for_git_directory_from_file_url(self):
         stripped = 'foobar/morphs'
         url = 'file:///%s.git' % stripped
