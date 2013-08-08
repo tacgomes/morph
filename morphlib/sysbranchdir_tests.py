@@ -181,8 +181,7 @@ class SystemBranchDirectoryTests(unittest.TestCase):
             self.system_branch_name)
 
         cached_repo = self.create_fake_cached_repo()
-        gd = sb.clone_cached_repo(
-            cached_repo, self.system_branch_name, 'master')
+        gd = sb.clone_cached_repo(cached_repo, 'master')
 
         self.assertEqual(
             gd.dirname,
@@ -203,7 +202,7 @@ class SystemBranchDirectoryTests(unittest.TestCase):
         sb._git_clone = fake_git_clone
 
         cached_repo = self.create_fake_cached_repo()
-        sb.clone_cached_repo(cached_repo, 'branch1', 'master')
+        sb.clone_cached_repo(cached_repo, 'master')
 
         gd_list = sb.list_git_directories()
         self.assertEqual(len(gd_list), 1)

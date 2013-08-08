@@ -137,8 +137,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             sb = morphlib.sysbranchdir.create(
                 root_dir, root_url, system_branch)
 
-            gd = sb.clone_cached_repo(
-                cached_repo, system_branch, system_branch)
+            gd = sb.clone_cached_repo(cached_repo, system_branch)
 
             if not self._checkout_has_systems(gd):
                 raise BranchRootHasNoSystemsError(root_url, system_branch)
@@ -211,7 +210,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             sb = morphlib.sysbranchdir.create(
                 root_dir, root_url, system_branch)
 
-            gd = sb.clone_cached_repo(cached_repo, system_branch, base_ref)
+            gd = sb.clone_cached_repo(cached_repo, base_ref)
             gd.branch(system_branch, base_ref)
             gd.checkout(system_branch)
 

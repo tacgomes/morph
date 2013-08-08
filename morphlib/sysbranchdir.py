@@ -100,7 +100,7 @@ class SystemBranchDirectory(object):
 
         return os.path.join(self.root_directory, relative)
 
-    def clone_cached_repo(self, cached_repo, git_branch_name, checkout_ref):
+    def clone_cached_repo(self, cached_repo, checkout_ref):
         '''Clone a cached git repository into the system branch directory.
 
         The cloned repository will NOT have the system branch's git branch
