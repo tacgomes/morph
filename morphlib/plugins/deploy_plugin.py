@@ -283,8 +283,9 @@ class DeployPlugin(cliapp.Plugin):
         # Unpack the artifact (tarball) to a temporary directory.
         self.app.status(msg='Unpacking system for configuration')
 
-        system_tree = tempfile.mkdtemp(
+        deploy_tempdir = tempfile.mkdtemp(
             dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
+        system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
 
         if build_command.lac.has(artifact):
             f = build_command.lac.get(artifact)
@@ -310,11 +311,10 @@ class DeployPlugin(cliapp.Plugin):
                     '%s is already set in the enviroment' % name)
             env[name] = value
 
-        if 'TMPDIR' not in env:
-            # morphlib.app already took care of ensuring the tempdir setting
-            # is good, so use it if we don't have one already set.
-            env['TMPDIR'] = os.path.join(self.app.settings['tempdir'],
-                                         'deployments')
+        # Extensions get a private tempdir so we can more easily clean
+        # up any files an extension left behind
+        deploy_private_tempdir = tempfile.mkdtemp(dir=deploy_tempdir)
+        env['TMPDIR'] = deploy_private_tempdir
 
         # Run configuration extensions.
         self.app.status(msg='Configure system')
@@ -340,7 +340,7 @@ class DeployPlugin(cliapp.Plugin):
         
         # Cleanup.
         self.app.status(msg='Cleaning up')
-        shutil.rmtree(system_tree)
+        shutil.rmtree(deploy_tempdir)
 
         self.app.status(msg='Finished deployment')
 
