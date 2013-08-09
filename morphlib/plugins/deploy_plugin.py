@@ -225,6 +225,9 @@ class DeployPlugin(cliapp.Plugin):
         location = args[2]
         env_vars = args[3:]
 
+        # Set up environment for running extensions.
+        env = morphlib.util.parse_environment_pairs(os.environ, env_vars)
+
         # Deduce workspace and system branch and branch root repository.
         workspace = self.other.deduce_workspace()
         branch, branch_dir = self.other.deduce_system_branch()
@@ -301,9 +304,6 @@ class DeployPlugin(cliapp.Plugin):
         self.app.status(
             msg='System unpacked at %(system_tree)s',
             system_tree=system_tree)
-
-        # Set up environment for running extensions.
-        env = morphlib.util.parse_environment_pairs(os.environ, env_vars)
 
         # Extensions get a private tempdir so we can more easily clean
         # up any files an extension left behind
