@@ -57,6 +57,62 @@ class FakeLocalRepo(object):
             }''',
         'stratum.morph': '''{
                 "name": "stratum",
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-mode": "bootstrap",
+                        "build-depends": []
+                    }
+                ]
+            }''',
+        'stratum-no-chunk-bdeps.morph': '''{
+                "name": "stratum-no-chunk-bdeps",
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-mode": "bootstrap"
+                    }
+                ]
+            }''',
+        'stratum-no-bdeps-no-bootstrap.morph': '''{
+                "name": "stratum-no-bdeps-no-bootstrap",
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": []
+                    }
+                ]
+            }''',
+        'stratum-bdeps-no-bootstrap.morph': '''{
+                "name": "stratum-bdeps-no-bootstrap",
+                "kind": "stratum",
+                "build-depends": [
+                    {
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "morph": "stratum"
+                    }
+                ],
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": []
+                    }
+                ]
+            }''',
+        'stratum-empty.morph': '''{
+                "name": "stratum-empty",
                 "kind": "stratum"
             }''',
         'system.morph': '''{
@@ -260,4 +316,25 @@ class MorphologyFactoryTests(unittest.TestCase):
     def test_fails_on_parse_error(self):
         self.assertRaises(morphlib.Error, self.mf.get_morphology,
                           'reponame', 'sha1', 'parse-error.morph')
+
+    def test_fails_on_no_chunk_bdeps(self):
+        self.assertRaises(morphlib.morphologyfactory.NoChunkBuildDependsError,
+                          self.mf.get_morphology, 'reponame', 'sha1',
+                          'stratum-no-chunk-bdeps.morph')
+
+    def test_fails_on_no_bdeps_or_bootstrap(self):
+        self.assertRaises(
+            morphlib.morphologyfactory.NoStratumBuildDependsError,
+            self.mf.get_morphology, 'reponame', 'sha1',
+            'stratum-no-bdeps-no-bootstrap.morph')
+
+    def test_succeeds_on_bdeps_no_bootstrap(self):
+        self.mf.get_morphology(
+            'reponame', 'sha1',
+            'stratum-bdeps-no-bootstrap.morph')
+
+    def test_fails_on_empty_stratum(self):
+        self.assertRaises(
+            morphlib.morphologyfactory.EmptyStratumError,
+            self.mf.get_morphology, 'reponame', 'sha1', 'stratum-empty.morph')
 

@@ -469,8 +469,6 @@ class StratumBuilder(BuilderBase):
         with self.build_watch('overall-build'):
             constituents = [d for d in self.artifact.dependencies
                             if self.is_constituent(d)]
-            if len(constituents) == 0:
-                raise EmptyStratumError(self.artifact.name)
 
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
@@ -707,10 +705,3 @@ class Builder(object):  # pragma: no cover
         built_artifacts = o.build_and_cache()
         logging.debug('Builder.build: done')
         return built_artifacts
-
-
-class EmptyStratumError(cliapp.AppException):
-
-    def __init__(self, stratum_name): # pragma: no cover
-        cliapp.AppException.__init__(self,
-            "Stratum %s is empty (has no dependencies)" % stratum_name)

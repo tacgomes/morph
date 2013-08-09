@@ -36,6 +36,31 @@ class NotcachedError(MorphologyFactoryError):
                   "remote cache specified" % repo_name)
 
 
+class StratumError(MorphologyFactoryError):
+    pass
+
+
+class NoChunkBuildDependsError(StratumError):
+    def __init__(self, stratum, chunk):
+        StratumError.__init__(
+            self, 'No build dependencies in stratum %s for chunk %s '
+                  '(build-depends is a mandatory field)' % (stratum, chunk))
+
+
+class EmptyStratumError(StratumError):
+
+    def __init__(self, stratum):
+        cliapp.AppException.__init__(self,
+            "Stratum %s is empty (has no dependencies)" % stratum)
+
+
+class NoStratumBuildDependsError(StratumError):
+    def __init__(self, stratum):
+        StratumError.__init__(
+            self, 'Stratum %s has no build-dependencies listed '
+                  'and has no bootstrap chunks.' % stratum)
+
+
 class MorphologyFactory(object):
 
     '''An way of creating morphologies which will provide a default'''
@@ -136,14 +161,18 @@ class MorphologyFactory(object):
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
 
-        for source in morphology['chunks']:  # pragma: no cover
+        if len(morphology['chunks']) == 0:
+            raise EmptyStratumError(morphology['name'])
+
+        for source in morphology['chunks']:
             if source.get('build-depends', None) is None:
                 name = source.get('name', source.get('repo', 'unknown'))
-                raise morphlib.Error('No build dependencies '
-                                     'stratum %s for chunk %s '
-                                     '(build-depends is a mandatory '
-                                     'field)' %
-                                     (filename, name))
+                raise NoChunkBuildDependsError(filename, name)
+
+        if (len(morphology['build-depends'] or []) == 0 and
+            not any(c.get('build-mode') in ('bootstrap', 'test')
+                    for c in morphology['chunks'])):
+            raise NoStratumBuildDependsError(filename)
 
         morphology.builds_artifacts = [morphology['name']]
         morphology.needs_artifact_metadata_cached = True
