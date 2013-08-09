@@ -124,7 +124,13 @@ Attempt to check out a system branch, and remember if it failed.
 
     IMPLEMENTS WHEN morph attempts to check out system branch (\S+)
     cd "$DATADIR/workspace"
-    attempt_morph checkout "$MATCH_1"
+    attempt_morph checkout test:morphs "$MATCH_1"
+
+Attempt to check out a system branch from a root that has no systems.
+
+    IMPLEMENTS WHEN morph attempts to check out a repository with no systems
+    cd "$DATADIR/workspace"
+    attempt_morph checkout test:test-chunk master
 
 We also need to verify that a system branch has been checked out.
 
@@ -144,6 +150,12 @@ We can create a new branch, off another system branch.
     IMPLEMENTS WHEN creating system branch (\S+), based on (\S+)
     cd "$DATADIR/workspace"
     run_morph branch test:morphs "$MATCH_1" "$MATCH_2"
+
+Attempt to branch a system branch from a root that had no systems.
+
+    IMPLEMENTS WHEN morph attempts to branch a repository with no systems
+    cd "$DATADIR/workspace"
+    attempt_morph branch test:test-chunk foo
 
 Pushing all changes in a system branch checkout to the git server.
 
