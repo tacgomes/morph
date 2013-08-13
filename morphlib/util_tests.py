@@ -87,3 +87,21 @@ class FindParentOfTests(unittest.TestCase):
     def test_find_leaf_returns_none_if_not_found(self):
         self.assertEqual(morphlib.util.find_leaf(self.a, '.magic'), None)
 
+
+class ParseEnvironmentPairsTests(unittest.TestCase):
+
+    def test_parse_environment_pairs_adds_key(self):
+        ret = morphlib.util.parse_environment_pairs({}, ["foo=bar"])
+        self.assertEqual(ret.get("foo"), "bar")
+
+    def test_parse_environment_does_not_alter_passed_dict(self):
+        d = {}
+        morphlib.util.parse_environment_pairs(d, ["foo=bar"])
+        self.assertTrue("foo" not in d)
+
+    def test_parse_environment_raises_on_duplicates(self):
+        self.assertRaises(
+            morphlib.util.EnvironmentAlreadySetError,
+            morphlib.util.parse_environment_pairs,
+            {"foo": "bar"},
+            ["foo=bar"])

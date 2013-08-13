@@ -303,13 +303,7 @@ class DeployPlugin(cliapp.Plugin):
             system_tree=system_tree)
 
         # Set up environment for running extensions.
-        env = dict(os.environ)
-        for spec in env_vars:
-            name, value = spec.split('=', 1)
-            if name in env:
-                raise morphlib.Error(
-                    '%s is already set in the enviroment' % name)
-            env[name] = value
+        env = morphlib.util.parse_environment_pairs(os.environ, env_vars)
 
         # Extensions get a private tempdir so we can more easily clean
         # up any files an extension left behind
