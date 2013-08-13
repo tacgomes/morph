@@ -287,18 +287,18 @@ class StagingArea(object):
             else:
                 cwd = '/'
 
-            do_not_mount_dirs = [self.builddirname, self.destdirname,
-                                 'dev', 'proc', 'tmp']
+            do_not_mount_dirs = [os.path.join(self.dirname, d)
+                                 for d in (self.builddirname,
+                                           self.destdirname,
+                                           'dev', 'proc', 'tmp')]
 
-            real_argv = ['linux-user-chroot']
-            for d in os.listdir(self.dirname):
-                if d not in do_not_mount_dirs:
-                    if os.path.isdir(os.path.join(self.dirname, d)):
-                        real_argv += ['--mount-readonly', '/'+d]
+            real_argv = ['linux-user-chroot', '--chdir', cwd]
+            for d in morphlib.fsutils.invert_paths(os.walk(self.dirname),
+                                                   do_not_mount_dirs):
+                if not os.path.islink(d):
+                    real_argv += ['--mount-readonly', self.relative(d)]
             real_argv += [self.dirname]
 
-            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--',
-                          cwd]
             real_argv += argv
 
             try:
