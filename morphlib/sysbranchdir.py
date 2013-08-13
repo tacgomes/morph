@@ -47,7 +47,7 @@ class SystemBranchDirectory(object):
 
     def __init__(self,
         root_directory, root_repository_url, system_branch_name):
-        self.root_directory = root_directory
+        self.root_directory = os.path.abspath(root_directory)
         self.root_repository_url = root_repository_url
         self.system_branch_name = system_branch_name
 
