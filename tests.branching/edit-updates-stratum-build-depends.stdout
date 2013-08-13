@@ -1,48 +1,54 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 3b7be17..febfa60 100644
+index 53e76f3..8417659 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -5,7 +5,7 @@
-         {
-             "name": "hello",
-             "repo": "test:hello",
--            "ref": "master",
-+            "ref": "newbranch",
-             "build-depends": []
-         }
-     ]
+@@ -1,7 +1,10 @@
++build-depends: []
+ chunks:
+ - build-depends: []
++  morph: hello
+   name: hello
+-  ref: master
++  ref: newbranch
+   repo: test:hello
++description: ''
+ kind: stratum
+ name: hello-stratum
 diff --git a/hello-system.morph b/hello-system.morph
-index de2fd94..fe9cdc8 100644
+index 721473c..a4c5640 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -8,12 +8,12 @@
-         {
-             "morph": "hello-stratum",
-             "repo": "test:morphs",
--            "ref": "master"
--         },
--         {
-+            "ref": "newbranch"
-+        },
-+        {
-             "morph": "xyzzy-stratum",
-             "repo": "test:morphs",
--            "ref": "master"
--         }
-+            "ref": "newbranch"
-+        }
-     ]
- }
+@@ -1,9 +1,12 @@
+ arch: x86_64
++configuration-extensions: []
++description: ''
++disk-size: 1G
+ kind: system
+ name: hello-system
+ strata:
+ - morph: hello-stratum
+-  ref: master
++  ref: newbranch
+   repo: test:morphs
+ - morph: xyzzy-stratum
+   ref: master
 diff --git a/xyzzy-stratum.morph b/xyzzy-stratum.morph
-index 8f83beb..e0a895a 100644
+index e302037..71e7651 100644
 --- a/xyzzy-stratum.morph
 +++ b/xyzzy-stratum.morph
-@@ -5,7 +5,7 @@
-         {
-             "morph": "hello-stratum",
-             "repo": "test:morphs",
--            "ref": "master"
-+            "ref": "newbranch"
-         }
-     ],
-     "chunks": [
+@@ -1,11 +1,13 @@
+ build-depends:
+ - morph: hello-stratum
+-  ref: master
++  ref: newbranch
+   repo: test:morphs
+ chunks:
+ - build-depends: []
++  morph: hello
+   name: hello
+-  ref: master
++  ref: newbranch
+   repo: test:hello
++description: ''
+ kind: stratum
+ name: xyzzy-stratum

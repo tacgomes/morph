@@ -1,13 +1,8 @@
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
-            "build-depends": [],
-            "unpetrify-ref": "master"
-        }
-    ]
-}
+chunks:
+- build-depends: []
+  name: hello
+  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+  repo: test:hello
+  unpetrify-ref: master
+kind: stratum
+name: hello-stratum

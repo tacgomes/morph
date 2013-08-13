@@ -5,44 +5,41 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Message
 
-commit e5c9758e3a30321ef2b49f09043e020d0c6f5da6
+commit 30b54ed7d893f5cafff0313e276b393e35ebfb36
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
     Message
 
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 3b7be17..87561c1 100644
+index 53e76f3..d060579 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -5,8 +5,9 @@
-         {
-             "name": "hello",
-             "repo": "test:hello",
--            "ref": "master",
--            "build-depends": []
-+            "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
-+            "build-depends": [],
-+            "unpetrify-ref": "master"
-         }
-     ]
- }
+@@ -1,7 +1,8 @@
+ chunks:
+ - build-depends: []
+   name: hello
+-  ref: master
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+   repo: test:hello
++  unpetrify-ref: master
+ kind: stratum
+ name: hello-stratum
 diff --git a/hello-system.morph b/hello-system.morph
-index 20e7b5b..388dbcf 100644
+index b0fed3b..4c4ee3e 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -8,7 +8,8 @@
-         {
-             "morph": "hello-stratum",
-             "repo": "test:morphs",
--            "ref": "master"
-+            "ref": "example-tag",
-+            "unpetrify-ref": "master"
-         }
-     ]
- }
+@@ -3,6 +3,7 @@ kind: system
+ name: hello-system
+ strata:
+ - morph: hello-stratum
+-  ref: master
++  ref: example-tag
+   repo: test:morphs
++  unpetrify-ref: master
+ system-kind: rootfs-tarball
 test:morphs
-commit e5c9758e3a30321ef2b49f09043e020d0c6f5da6
+commit 30b54ed7d893f5cafff0313e276b393e35ebfb36
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -50,7 +47,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Message
 
-commit 9d4b0981d6a2118cbd3d045cc1704b224d38296f
+commit 0d291d7caa82fb6535172189f579435471ad6dc6
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>

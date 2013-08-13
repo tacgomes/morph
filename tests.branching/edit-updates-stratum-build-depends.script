@@ -25,39 +25,34 @@ set -eu
 cd "$DATADIR/morphs"
 
 cat <<EOF > xyzzy-stratum.morph
-{
-    "name": "xyzzy-stratum",
-    "kind": "stratum",
-    "build-depends": [
-        {
-            "morph": "hello-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
-        }
-    ],
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "master",
-            "build-depends": []
-        }
-    ]
-}
+build-depends:
+- morph: hello-stratum
+  ref: master
+  repo: test:morphs
+chunks:
+- build-depends: []
+  name: hello
+  ref: master
+  repo: test:hello
+kind: stratum
+name: xyzzy-stratum
 EOF
 
-cat hello-system.morph | head -n $(expr $(wc -l < hello-system.morph) - 3) \
-    > hello-system.morph
-cat <<EOF >> hello-system.morph
-         },
-         {
-            "morph": "xyzzy-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
-         }
-    ]
+
+# Add the xyzzy-stratum to hello-system.
+awk '
+flag == 0 { print }
+/^strata:/ { flag=1; next }
+flag == 1 && /^[ -]/ { print; next }
+flag == 1 {
+    print "- morph: xyzzy-stratum"
+    print "  ref: master"
+    print "  repo: test:morphs"
+    print $0
+    flag = 0
 }
-EOF
+' hello-system.morph > temp
+mv temp hello-system.morph
 
 git add xyzzy-stratum.morph hello-system.morph
 git commit -q -m "Add 2nd stratum with a build dependency"

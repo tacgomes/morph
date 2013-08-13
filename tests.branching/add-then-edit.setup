@@ -27,13 +27,10 @@ EOF
 chmod +x goodbye
 
 cat >goodbye.morph <<'EOF'
-{
-    "name": "goodbye",
-    "kind": "chunk",
-    "install-commands": [
-        "install goodbye \"$DESTDIR$PREFIX/bin/goodbye\""
-    ]
-}
+name: goodbye
+kind: chunk
+install-commands:
+- install goodbye "$DESTDIR$PREFIX/bin/goodbye"
 EOF
 git init .
 git add goodbye.morph goodbye
