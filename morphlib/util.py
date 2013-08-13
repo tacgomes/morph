@@ -327,3 +327,35 @@ def find_leaf(dirname, subdir_name):
             return None
         dirname = subdirs[0]
 
+
+class EnvironmentAlreadySetError(morphlib.Error):
+
+    def __init__(self, conflicts):
+        self.conflicts = conflicts
+        morphlib.Error.__init__(
+            self, 'Keys %r are already set in the environment' % conflicts)
+
+
+def parse_environment_pairs(env, pairs):
+    '''Add key=value pairs to the environment dict.
+
+    Given a dict and a list of strings of the form key=value,
+    set dict[key] = value, unless key is already set in the
+    environment, at which point raise an exception.
+
+    This does not modify the passed in dict.
+
+    Returns the extended dict.
+
+    '''
+
+    extra_env = dict(p.split('=', 1) for p in pairs)
+    conflicting = [k for k in extra_env if k in env]
+    if conflicting:
+        raise EnvironmentAlreadySetError(conflicting)
+
+    # Return a dict that is the union of the two
+    # This is not the most performant, since it creates
+    # 3 unnecessary lists, but I felt this was the most
+    # easy to read. Using itertools.chain may be more efficicent
+    return dict(env.items() + extra_env.items())

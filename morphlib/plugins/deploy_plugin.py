@@ -225,6 +225,9 @@ class DeployPlugin(cliapp.Plugin):
         location = args[2]
         env_vars = args[3:]
 
+        # Set up environment for running extensions.
+        env = morphlib.util.parse_environment_pairs(os.environ, env_vars)
+
         # Deduce workspace and system branch and branch root repository.
         workspace = self.other.deduce_workspace()
         branch, branch_dir = self.other.deduce_system_branch()
@@ -280,67 +283,65 @@ class DeployPlugin(cliapp.Plugin):
         if push:
             self.other.delete_remote_build_refs(build_repos)
             
-        # Unpack the artifact (tarball) to a temporary directory.
-        self.app.status(msg='Unpacking system for configuration')
 
-        system_tree = tempfile.mkdtemp(
+        # Create a tempdir for this deployment to work in
+        deploy_tempdir = tempfile.mkdtemp(
             dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
+        try:
+            # Create a tempdir to extract the rootfs in
+            system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
 
-        if build_command.lac.has(artifact):
-            f = build_command.lac.get(artifact)
-        elif build_command.rac.has(artifact):
-            f = build_command.rac.get(artifact)
-        else:
-            raise cliapp.AppException('Deployment failed as system is not yet'
-                                      ' built.\nPlease ensure system is built'
-                                      ' before deployment.')
-        tf = tarfile.open(fileobj=f)
-        tf.extractall(path=system_tree)
-        
-        self.app.status(
-            msg='System unpacked at %(system_tree)s',
-            system_tree=system_tree)
+            # Extensions get a private tempdir so we can more easily clean
+            # up any files an extension left behind
+            deploy_private_tempdir = tempfile.mkdtemp(dir=deploy_tempdir)
+            env['TMPDIR'] = deploy_private_tempdir
 
-        # Set up environment for running extensions.
-        env = dict(os.environ)
-        for spec in env_vars:
-            name, value = spec.split('=', 1)
-            if name in env:
-                raise morphlib.Error(
-                    '%s is already set in the enviroment' % name)
-            env[name] = value
+            # Unpack the artifact (tarball) to a temporary directory.
+            self.app.status(msg='Unpacking system for configuration')
 
-        if 'TMPDIR' not in env:
-            # morphlib.app already took care of ensuring the tempdir setting
-            # is good, so use it if we don't have one already set.
-            env['TMPDIR'] = os.path.join(self.app.settings['tempdir'],
-                                         'deployments')
+            if build_command.lac.has(artifact):
+                f = build_command.lac.get(artifact)
+            elif build_command.rac.has(artifact):
+                f = build_command.rac.get(artifact)
+            else:
+                raise cliapp.AppException('Deployment failed as system is'
+                                          ' not yet built.\nPlease ensure'
+                                          ' the system is built before'
+                                          ' deployment.')
+            tf = tarfile.open(fileobj=f)
+            tf.extractall(path=system_tree)
 
-        # Run configuration extensions.
-        self.app.status(msg='Configure system')
-        names = artifact.source.morphology['configuration-extensions']
-        for name in names:
+            self.app.status(
+                msg='System unpacked at %(system_tree)s',
+                system_tree=system_tree)
+
+
+            # Run configuration extensions.
+            self.app.status(msg='Configure system')
+            names = artifact.source.morphology['configuration-extensions']
+            for name in names:
+                self._run_extension(
+                    root_repo_dir,
+                    build_ref,
+                    name,
+                    '.configure',
+                    [system_tree],
+                    env)
+
+            # Run write extension.
+            self.app.status(msg='Writing to device')
             self._run_extension(
                 root_repo_dir,
                 build_ref,
-                name,
-                '.configure',
-                [system_tree],
+                deployment_type,
+                '.write',
+                [system_tree, location],
                 env)
-        
-        # Run write extension.
-        self.app.status(msg='Writing to device')
-        self._run_extension(
-            root_repo_dir,
-            build_ref,
-            deployment_type,
-            '.write',
-            [system_tree, location],
-            env)
-        
-        # Cleanup.
-        self.app.status(msg='Cleaning up')
-        shutil.rmtree(system_tree)
+
+        finally:
+            # Cleanup.
+            self.app.status(msg='Cleaning up')
+            shutil.rmtree(deploy_tempdir)
 
         self.app.status(msg='Finished deployment')
 
