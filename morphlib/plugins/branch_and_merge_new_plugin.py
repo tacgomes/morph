@@ -284,10 +284,10 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
     @staticmethod
     def _checkout_has_systems(gd):
+        loader = morphlib.morphloader.MorphologyLoader()
         for filename in glob.iglob(os.path.join(gd.dirname, '*.morph')):
-            with open(filename) as mf:
-                morphology = morphlib.morph2.Morphology(mf.read())
-                if morphology['kind'] == 'system':
-                    return True
+            m = loader.load_from_file(filename)
+            if m['kind'] == 'system':
+                return True
         return False
 
