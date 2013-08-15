@@ -17,7 +17,6 @@
 
 
 import logging
-import StringIO
 import yaml
 
 import morphlib
@@ -162,7 +161,7 @@ class MorphologyLoader(object):
         '''
 
         try:
-            obj = yaml.safe_load(StringIO.StringIO(string))
+            obj = yaml.safe_load(string)
         except yaml.error.YAMLError as e:
             logging.error('Could not load morphology as YAML:\n%s' % str(e))
             raise MorphologySyntaxError(whence)
@@ -199,9 +198,7 @@ class MorphologyLoader(object):
     def save_to_string(self, morphology):
         '''Return normalised textual form of morphology.'''
 
-        f = StringIO.StringIO()
-        yaml.safe_dump(morphology.data, stream=f, default_flow_style=False)
-        return f.getvalue()
+        return yaml.safe_dump(morphology.data, default_flow_style=False)
 
     def save_to_file(self, filename, morphology):
         '''Save a morphology object to a named file.'''
