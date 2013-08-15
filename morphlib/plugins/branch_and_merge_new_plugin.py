@@ -256,6 +256,17 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         gd.update_submodules(self.app)
         gd.update_remotes()
 
+    def _load_morphology_from_file(self, loader, dirname, filename):
+        full_filename = os.path.join(dirname, filename)
+        return loader.load_from_file(full_filename)
+
+    def _load_morphology_from_git(self, loader, gd, ref, filename):
+        try:
+            text = gd.cat_file('blob', ref, filename)
+        except cliapp.AppException:
+            text = gd.cat_file('blob', 'origin/%s' % ref, filename)
+        return loader.load_from_string(text, filename)
+
     def _load_stratum_morphologies(self, loader, sb, system_morph):
         logging.debug('Starting to load strata for %s' % system_morph.filename)
         lrc, rrc = morphlib.util.new_repo_caches(self.app)
@@ -266,14 +277,34 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             if not morphset.has(repo_url, ref, filename):
                 logging.debug('Loading: %s %s %s' % (repo_url, ref, filename))
                 dirname = sb.get_git_directory_name(repo_url)
+
+                # Get the right morphology. The right ref might not be
+                # checked out, in which case we get the file from git.
+                # However, if it is checked out, we get it from the
+                # filesystem directly, in case the user has made any
+                # changes to it. If the entire repo hasn't been checked
+                # out yet, do that first.
+
                 if not os.path.exists(dirname):
                     self._checkout(lrc, sb, repo_url, ref)
-                m = loader.load_from_file(sb.get_filename(repo_url, filename))
+                    m = self._load_morphology_from_file(
+                        loader, dirname, filename)
+                else:
+                    gd = morphlib.gitdir.GitDirectory(dirname)
+                    if gd.is_currently_checked_out(ref):
+                        m = self._load_morphology_from_file(
+                            loader, dirname, filename)
+                    else:
+                        m = self._load_morphology_from_git(
+                            loader, gd, ref, filename)
+
                 m.repo_url = repo_url
                 m.ref = ref
                 m.filename = filename
+
                 morphset.add_morphology(m)
                 queue.extend(self._get_stratum_triplets(m))
+
         logging.debug('All strata loaded')
         return morphset
 
