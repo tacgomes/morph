@@ -146,8 +146,10 @@ class MorphologyLoader(object):
         },
     }
 
-    def parse_from_string(self, string, whence):
+    def parse_morphology_text(self, text, whence):
         '''Parse a textual morphology.
+
+        The text may be a string, or an open file handle.
 
         Return the new Morphology object, or raise an error indicating
         the problem. This method does minimal validation: a syntactically
@@ -161,7 +163,7 @@ class MorphologyLoader(object):
         '''
 
         try:
-            obj = yaml.safe_load(string)
+            obj = yaml.safe_load(text)
         except yaml.error.YAMLError as e:
             logging.error('Could not load morphology as YAML:\n%s' % str(e))
             raise MorphologySyntaxError(whence)
@@ -178,7 +180,7 @@ class MorphologyLoader(object):
 
         '''
 
-        m = self.parse_from_string(string, filename)
+        m = self.parse_morphology_text(text, filename)
         m.filename = filename
         self.validate(m)
         self.set_defaults(m)

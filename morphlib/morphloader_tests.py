@@ -40,7 +40,7 @@ name: foo
 kind: chunk
 build-system: dummy
 '''
-        morph = self.loader.parse_from_string(string, 'test')
+        morph = self.loader.parse_morphology_text(string, 'test')
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
         self.assertEqual(morph['build-system'], 'dummy')
@@ -48,12 +48,12 @@ build-system: dummy
     def test_fails_to_parse_utter_garbage(self):
         self.assertRaises(
             morphlib.morphloader.MorphologySyntaxError,
-            self.loader.parse_from_string, ',,,', 'test')
+            self.loader.parse_morphology_text, ',,,', 'test')
 
     def test_fails_to_parse_non_dict(self):
         self.assertRaises(
             morphlib.morphloader.NotADictionaryError,
-            self.loader.parse_from_string, '- item1\n- item2\n', 'test')
+            self.loader.parse_morphology_text, '- item1\n- item2\n', 'test')
 
     def test_fails_to_validate_dict_without_kind(self):
         m = morphlib.morph3.Morphology({
