@@ -271,7 +271,7 @@ class MorphologyLoader(object):
         # it has chunks built in bootstrap mode.
         if 'build-depends' not in morph:
             for spec in morph['chunks']:
-                if spec.get('build-mode') == 'bootstrap':
+                if spec.get('build-mode') in ['bootstrap', 'test']:
                     break
             else:
                 raise NoStratumBuildDependenciesError(
