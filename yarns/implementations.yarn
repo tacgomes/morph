@@ -64,10 +64,11 @@ another to hold a chunk.
 
     mkdir "$DATADIR/gits/morphs"
 
+    arch=$(run_morph print-architecture)
     cat << EOF > "$DATADIR/gits/morphs/test-system.morph"
     name: test-system
     kind: system
-    arch: $(uname -m)
+    arch: $arch
     strata:
     -   name: test-stratum
         repo: test:morphs
