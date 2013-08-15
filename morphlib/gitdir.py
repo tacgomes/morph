@@ -65,6 +65,23 @@ class GitDirectory(object):
             argv.append(base_ref)
         self._runcmd(argv)
 
+    def is_currently_checked_out(self, ref): # pragma: no cover
+        '''Is ref currently checked out?'''
+
+        # Try the ref name directly first. If that fails, prepend origin/
+        # to it. (FIXME: That's a kludge, and should be fixed.)
+        try:
+            parsed_ref = self._runcmd(['git', 'rev-parse', ref]).strip()
+        except cliapp.AppException:
+            parsed_ref = self._runcmd(
+                ['git', 'rev-parse', 'origin/%s' % ref]).strip()
+        parsed_head = self._runcmd(['git', 'rev-parse', 'HEAD']).strip()
+        return parsed_ref == parsed_head
+
+    def cat_file(self, obj_type, ref, filename): # pragma: no cover
+        return self._runcmd(
+            ['git', 'cat-file', obj_type, '%s:%s' % (ref, filename)])
+
     def update_remotes(self): # pragma: no cover
         '''Update remotes.'''
         self._runcmd(['git', 'remote', 'update', '--prune'])
