@@ -241,7 +241,21 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         logging.debug('Saving dirty morphologies: done')
 
     def _get_stratum_triplets(self, morph):
-        specs = morph.get('build-depends') or morph.get('strata') or []
+        # Gather all references to other strata from a morphology. The
+        # morphology must be either a system or a stratum one. In a
+        # stratum one, the refs are all for build dependencies of the
+        # stratum. In a system one, they're the list of strata in the
+        # system.
+
+        assert morph['kind'] in ('system', 'stratum')
+        if morph['kind'] == 'system':
+            specs = morph.get('strata', [])
+        elif morph['kind'] == 'stratum':
+            specs = morph.get('build-depends', [])
+
+        # Given a list of dicts that reference strata, return a list
+        # of triplets (repo url, ref, filename).
+
         return [
             (spec['repo'], spec['ref'], '%s.morph' % spec['morph'])
             for spec in specs
