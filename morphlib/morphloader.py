@@ -168,7 +168,7 @@ class MorphologyLoader(object):
             logging.error('Could not load morphology as YAML:\n%s' % str(e))
             raise MorphologySyntaxError(whence)
 
-        if type(obj) != dict:
+        if not isinstance(obj, dict):
             raise NotADictionaryError(whence)
 
         return morphlib.morph3.Morphology(obj)
