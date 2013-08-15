@@ -237,8 +237,8 @@ class MorphologyLoader(object):
     def _validate_system(self, morph):
         # All stratum names should be unique within a system.
         names = set()
-        for info in morph['strata']:
-            name = info.get('alias', info['morph'])
+        for spec in morph['strata']:
+            name = spec.get('alias', spec['morph'])
             if name in names:
                raise ValueError('Duplicate stratum "%s"' % name)
             names.add(name)
@@ -261,8 +261,8 @@ class MorphologyLoader(object):
     def _validate_stratum(self, morph):
         # All chunk names must be unique within a stratum.
         names = set()
-        for info in morph['chunks']:
-            name = info.get('alias', info['name'])
+        for spec in morph['chunks']:
+            name = spec.get('alias', spec['name'])
             if name in names:
                raise ValueError('Duplicate chunk "%s"' % name)
             names.add(name)
