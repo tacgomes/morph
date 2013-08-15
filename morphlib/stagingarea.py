@@ -295,6 +295,7 @@ class StagingArea(object):
                 if d not in do_not_mount_dirs:
                     if os.path.isdir(os.path.join(self.dirname, d)):
                         real_argv += ['--mount-readonly', '/'+d]
+            real_argv += ['--unshare-net']
             real_argv += [self.dirname]
 
             real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--',
