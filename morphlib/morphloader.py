@@ -259,6 +259,10 @@ class MorphologyLoader(object):
                     morph['system-kind'], morph.filename)
 
     def _validate_stratum(self, morph):
+        # Require at least one chunk.
+        if len(morph.get('chunks', [])) == 0:
+            raise EmptyStratumError(morph['name'], morph.filename)
+
         # All chunk names must be unique within a stratum.
         names = set()
         for spec in morph['chunks']:
@@ -284,10 +288,6 @@ class MorphologyLoader(object):
                     morph['name'],
                     spec.get('alias', spec['name']),
                     morph.filename)
-
-        # Require at least one chunk.
-        if len(morph.get('chunks', [])) == 0:
-            raise EmptyStratumError(morph['name'], morph.filename)
 
     def _validate_chunk(self, morph):
         pass
