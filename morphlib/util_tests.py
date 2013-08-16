@@ -105,3 +105,8 @@ class ParseEnvironmentPairsTests(unittest.TestCase):
             morphlib.util.parse_environment_pairs,
             {"foo": "bar"},
             ["foo=bar"])
+
+    def test_sanitize_environment(self):
+        d = { 'a': 1 }
+        morphlib.util.sanitize_environment(d)
+        self.assertTrue(isinstance(d['a'], str))
