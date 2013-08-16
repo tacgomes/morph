@@ -1,41 +1,35 @@
 Petrified:
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "f4d032b42c0134e67bdf19a43fa99072493667d7",
-            "build-depends": [],
-            "unpetrify-ref": "master"
-        },
-        {
-            "name": "goodbye",
-            "repo": "test:goodbye",
-            "ref": "f4730636e429149bb923fa16be3aa9802d484b23",
-            "build-depends": [],
-            "unpetrify-ref": "test/petrify"
-        }
-    ]
-}
+build-depends: []
+chunks:
+- build-depends: []
+  morph: hello
+  name: hello
+  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+  repo: test:hello
+  unpetrify-ref: master
+- build-depends: []
+  morph: goodbye
+  name: goodbye
+  ref: d34c96a9f07c2efd1faabc3b44f77c25580a276e
+  repo: test:goodbye
+  unpetrify-ref: test/petrify
+description: ''
+kind: stratum
+name: hello-stratum
 
 Unpetrified:
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "master",
-            "build-depends": []
-        },
-        {
-            "name": "goodbye",
-            "repo": "test:goodbye",
-            "ref": "test/petrify",
-            "build-depends": []
-        }
-    ]
-}
+build-depends: []
+chunks:
+- build-depends: []
+  morph: hello
+  name: hello
+  ref: master
+  repo: test:hello
+- build-depends: []
+  morph: goodbye
+  name: goodbye
+  ref: test/petrify
+  repo: test:goodbye
+description: ''
+kind: stratum
+name: hello-stratum

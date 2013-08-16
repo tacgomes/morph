@@ -1,4 +1,3 @@
-#!/bin/sh
 # Copyright (C) 2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,24 +13,23 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -eu
 
-# Create goodbye chunk
-mkdir "$DATADIR/goodbye"
-cd "$DATADIR/goodbye"
+import cliapp
+import os
 
-cat >goodbye <<'EOF'
-#!/bin/sh
-echo goodbye
-EOF
-chmod +x goodbye
+import morphlib
 
-cat >goodbye.morph <<'EOF'
-name: goodbye
-kind: chunk
-install-commands:
-- install goodbye "$DESTDIR$PREFIX/bin/goodbye"
-EOF
-git init .
-git add goodbye.morph goodbye
-git commit -m "Initial commit"
+
+class PrintArchitecturePlugin(cliapp.Plugin):
+
+    def enable(self):
+        self.app.add_subcommand(
+            'print-architecture', self.print_architecture, arg_synopsis='')
+
+    def disable(self):
+        pass
+
+    def print_architecture(self, args):
+        '''Print the name of the architecture of the host.'''
+
+        self.app.output.write('%s\n' % morphlib.util.get_host_architecture())

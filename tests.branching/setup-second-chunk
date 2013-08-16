@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,11 +28,9 @@ create_chunk() {
     cd "$1"
 
     cat <<EOF > "$1/$2.morph"
-{
-    "name": "$2",
-    "kind": "chunk",
-    "build-system": "dummy"
-}
+build-system: dummy
+kind: chunk
+name: $2
 EOF
 
     git init --quiet
@@ -44,24 +42,17 @@ create_chunk "$DATADIR/goodbye" "hello"
 
 cd "$DATADIR/morphs"
 cat <<EOF > hello-stratum.morph
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "master",
-            "build-depends": []
-        },
-        {
-            "name": "goodbye",
-            "repo": "test:goodbye",
-            "ref": "master",
-            "build-depends": []
-        }
-    ]
-}
+name: hello-stratum
+kind: stratum
+chunks:
+- build-depends: []
+  name: hello
+  ref: master
+  repo: test:hello
+- build-depends: []
+  name: goodbye
+  ref: master
+  repo: test:goodbye
 EOF
 
 git commit -q --all -m "Add goodbye to hello-stratum"

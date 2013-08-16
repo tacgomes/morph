@@ -27,7 +27,7 @@ set -eu
 
 cd "$DATADIR/morphs"
 git mv hello-stratum.morph goodbye-stratum.morph
-sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/' \
+sed -e '/morph: hello-stratum/s/hello-stratum/goodbye-stratum/' \
     -i hello-system.morph
 
 git commit --quiet -am "Rename hello-system"

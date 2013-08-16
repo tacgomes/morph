@@ -359,3 +359,25 @@ def parse_environment_pairs(env, pairs):
     # 3 unnecessary lists, but I felt this was the most
     # easy to read. Using itertools.chain may be more efficicent
     return dict(env.items() + extra_env.items())
+
+
+
+def get_host_architecture(): # pragma: no cover
+    '''Get the canonical Morph name for the host's architecture.'''
+
+    machine = os.uname()[-1]
+
+    table = {
+        'x86_64': 'x86_64',
+        'i386': 'x86_32',
+        'i486': 'x86_32',
+        'i586': 'x86_32',
+        'i686': 'x86_32',
+        'armv7l': 'armv7l',
+        'armv7b': 'armv7b',
+    }
+
+    if machine not in table:
+        raise morphlib.Error('Unknown host architecture %s' % machine)
+
+    return table[machine]

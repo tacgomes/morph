@@ -47,7 +47,7 @@ class SystemBranchDirectory(object):
 
     def __init__(self,
         root_directory, root_repository_url, system_branch_name):
-        self.root_directory = root_directory
+        self.root_directory = os.path.abspath(root_directory)
         self.root_repository_url = root_repository_url
         self.system_branch_name = system_branch_name
 
@@ -100,7 +100,16 @@ class SystemBranchDirectory(object):
 
         return os.path.join(self.root_directory, relative)
 
-    def clone_cached_repo(self, cached_repo, git_branch_name, checkout_ref):
+    def get_filename(self, repo_url, relative):
+        '''Return full pathname to a file in a checked out repository.
+
+        This is a convenience function.
+
+        '''
+
+        return os.path.join(self.get_git_directory_name(repo_url), relative)
+
+    def clone_cached_repo(self, cached_repo, checkout_ref):
         '''Clone a cached git repository into the system branch directory.
 
         The cloned repository will NOT have the system branch's git branch

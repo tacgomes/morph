@@ -33,40 +33,28 @@ mkdir "$DATADIR/repos/morphs1"
 
 # Create system morphology in first morphs repository.
 cat <<EOF > "$DATADIR/repos/morphs1/test-system.morph"
-{
-    "name": "test-system",
-    "kind": "system",
-    "system-kind": "rootfs-tarball",
-    "arch": "$(uname -m)",
-    "disk-size": "1G",
-    "strata": [
-        {
-            "morph": "stratum1",
-            "repo": "repos:morphs1",
-            "ref": "master"
-        },
-        {
-            "morph": "stratum2",
-            "repo": "repos:morphs2",
-            "ref": "master"
-        }
-    ]
-}
+name: test-system
+kind: system
+system-kind: rootfs-tarball
+arch: $(uname -m)
+disk-size: 1G
+strata:
+- morph: stratum1
+  ref: master
+  repo: repos:morphs1
+- morph: stratum2
+  ref: master
+  repo: repos:morphs2
 EOF
 
 # Create stratum that depends on another stratum.
 cat <<EOF > "$DATADIR/repos/morphs1/stratum1.morph"
-{
-    "name": "stratum1",
-    "kind": "stratum",
-    "build-depends": [
-        {
-            "morph": "stratum3",
-            "repo": "repos:morphs2",
-            "ref": "master"
-        }
-    ]
-}
+name: stratum1
+kind: stratum
+build-depends:
+- morph: stratum3
+  ref: master
+  repo: repos:morphs2
 EOF
 
 # Commit all files to the first repository.
@@ -79,23 +67,16 @@ mkdir "$DATADIR/repos/morphs2"
 
 # Create two strata in the second repository.
 cat <<EOF > "$DATADIR/repos/morphs2/stratum2.morph"
-{
-    "name": "stratum2",
-    "kind": "stratum",
-    "build-depends": [
-        {
-            "morph": "stratum3",
-            "repo": "repos:morphs2",
-            "ref": "master"
-        }
-    ]
-}
+name: stratum2
+kind: stratum
+build-depends:
+- morph: stratum3
+  repo: repos:morphs2
+  ref: master
 EOF
 cat <<EOF > "$DATADIR/repos/morphs2/stratum3.morph"
-{
-    "name": "stratum3",
-    "kind": "stratum"
-}
+kind: stratum
+name: stratum3
 EOF
 
 # Commit all files to the second repository.

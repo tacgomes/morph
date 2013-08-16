@@ -37,19 +37,17 @@ diff --git a/hello-stratum.morph b/hello-stratum.morph
 index 3b7be17..c79a9af 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -7,6 +7,12 @@
-             "repo": "test:hello",
-             "ref": "master",
-             "build-depends": []
-+        },
-+        {
-+            "name": "goodbye",
-+            "repo": "test:goodbye",
-+            "ref": "master",
-+            "build-depends": []
-         }
-     ]
- }
+@@ -5,6 +5,10 @@
+   name: hello
+   ref: master
+   repo: test:hello
++- build-depends: []
++  name: goodbye
++  ref: master
++  repo: test:goodbye
+ description: ''
+ kind: stratum
+ name: hello-stratum
 EOF
 
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye

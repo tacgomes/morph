@@ -48,35 +48,24 @@ mkdir "$DATADIR/morphs"
 ln -s "$DATADIR/morphs" "$DATADIR/morphs.git"
 
 cat <<EOF > "$DATADIR/morphs/hello-system.morph"
-{
-    "name": "hello-system",
-    "kind": "system",
-    "system-kind": "rootfs-tarball",
-    "arch": "$(uname -m)",
-    "disk-size": "1G",
-    "strata": [
-        {
-            "morph": "hello-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
-        }
-    ]
-}
+arch: $(uname -m)
+kind: system
+name: hello-system
+strata:
+- morph: hello-stratum
+  ref: master
+  repo: test:morphs
+system-kind: rootfs-tarball
 EOF
 
 cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
-{
-    "name": "hello-stratum",
-    "kind": "stratum",
-    "chunks": [
-        {
-            "name": "hello",
-            "repo": "test:hello",
-            "ref": "master",
-            "build-depends": []
-        }
-    ]
-}
+chunks:
+- build-depends: []
+  name: hello
+  ref: master
+  repo: test:hello
+kind: stratum
+name: hello-stratum
 EOF
 
 scripts/run-git-in "$DATADIR/morphs" init
@@ -96,11 +85,9 @@ scripts/run-git-in "$DATADIR/morphs" checkout master
 mkdir "$DATADIR/hello"
 
 cat <<EOF > "$DATADIR/hello/hello.morph"
-{
-    "name": "hello",
-    "kind": "chunk",
-    "build-system": "dummy"
-}
+build-system: dummy
+kind: chunk
+name: hello
 EOF
 
 scripts/run-git-in "$DATADIR/hello" init

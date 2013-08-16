@@ -68,7 +68,7 @@ else
     echo "NOT RUNNING test.branching"
 fi
 
-if $full
+if $full && false
 then
     cmdtest tests.merging
 else

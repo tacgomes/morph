@@ -64,9 +64,11 @@ another to hold a chunk.
 
     mkdir "$DATADIR/gits/morphs"
 
+    arch=$(run_morph print-architecture)
     cat << EOF > "$DATADIR/gits/morphs/test-system.morph"
     name: test-system
     kind: system
+    arch: $arch
     strata:
     -   name: test-stratum
         repo: test:morphs
@@ -82,6 +84,8 @@ another to hold a chunk.
         repo: test:test-chunk
         ref: master
         morph: test-chunk
+        build-mode: bootstrap
+        build-depends: []
     EOF
 
     run_in "$DATADIR/gits/morphs" git init .
