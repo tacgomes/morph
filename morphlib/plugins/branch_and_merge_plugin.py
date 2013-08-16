@@ -349,7 +349,11 @@ class BranchAndMergePlugin(cliapp.Plugin):
             ],
             'chunk': [
                 'name',
-            ]
+            ],
+            'cluster': [
+                'name',
+                'systems',
+            ],
         }
         
         also_known = {
@@ -376,6 +380,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 'max-jobs',
                 'chunks',
                 'devices',
+            ],
+            'cluster': [
+                'kind'
             ]
         }
         

@@ -379,3 +379,61 @@ class MorphologyTests(unittest.TestCase):
         ''')
         cmds = m.get_commands('build-commands')
         self.assertEqual(cmds, [])
+
+    ## Cluster morphologies tests
+
+    def test_parses_simple_cluster_morph(self):
+        m = Morphology('''
+            name: foo
+            kind: cluster
+            systems:
+                - morph: bar
+        ''')
+        self.assertEqual(m['name'], 'foo')
+        self.assertEqual(m['kind'], 'cluster')
+        self.assertEqual(m['systems'][0]['morph'], 'bar')
+
+    def test_fails_without_systems(self):
+        text = '''
+            name: foo
+            kind: cluster
+            '''
+        self.assertRaises(KeyError, Morphology, text)
+
+    def test_fails_with_empty_systems(self):
+        text = '''
+            name: foo
+            kind: cluster
+            systems:
+            '''
+        self.assertRaises(ValueError, Morphology, text)
+
+    def test_fails_without_morph(self):
+        text = '''
+            name: foo
+            kind: cluster
+            systems:
+                 - deploy:
+            '''
+        self.assertRaises(KeyError, Morphology, text)
+
+    def test_fails_with_invalid_deploy_defaults(self):
+        text = '''
+            name: foo
+            kind: cluster
+            systems:
+                - morph: bar
+                  deploy-defaults: ooops_i_am_not_a_mapping
+            '''
+        self.assertRaises(ValueError, Morphology, text)
+
+    def test_fails_with_invalid_deployment_params(self):
+        text = '''
+            name: foo
+            kind: cluster
+            systems:
+                - morph: bar
+                  deploy:
+                      qux: ooops_i_am_not_a_mapping
+            '''
+        self.assertRaises(ValueError, Morphology, text)
