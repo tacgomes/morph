@@ -135,7 +135,7 @@ class MorphologySet(object):
                     spec['ref'] == orig_ref and
                     spec['morph'] + '.morph' == morph_filename)
 
-        def change_specs(specs):
+        def change_specs(specs, m):
             for spec in specs:
                 if wanted_spec(spec):
                     spec['ref'] = new_ref
@@ -143,10 +143,10 @@ class MorphologySet(object):
 
         def change(m):
             if m['kind'] == 'system':
-                change_specs(m['strata'])
+                change_specs(m['strata'], m)
             elif m['kind'] == 'stratum':
-                change_specs(m['chunks'])
-                change_specs(m['build-depends'])
+                change_specs(m['chunks'], m)
+                change_specs(m['build-depends'], m)
 
         for m in self.morphologies:
             change(m)
