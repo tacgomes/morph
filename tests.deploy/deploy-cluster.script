@@ -16,15 +16,31 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# Test "morph deploy" refuses to deploy if DISK_SIZE is unset.
+# Test "morph deploy" by deploying the systems in cluster morphology.
+
 
 set -eu
 
 
 . "$SRCDIR/tests.deploy/setup-build"
-cd "$DATADIR/workspace/branch1"
-"$SRCDIR/scripts/test-morph" build linux-system
-! "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
-    deploy rawdisk_test_cluster_without_disk_size > /dev/null 2>&1
-test ! -e "$DATADIR/disk.img"
 
+cd "$DATADIR/workspace/branch1"
+
+"$SRCDIR/scripts/test-morph" build hello-system
+
+"$SRCDIR/scripts/test-morph" build linux-system
+
+"$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
+    deploy test_cluster \
+    linux-system-2.HOSTNAME="baserock-rocks-even-more" \
+    > /dev/null
+
+test -e hello-system.img
+test -e linux-system-1.tar
+test -e linux-system-2.tar
+
+hostname1=$(tar -xf linux-system-1.tar ./etc/hostname -O)
+hostname2=$(tar -xf linux-system-2.tar ./etc/hostname -O)
+
+[ "$hostname1" = baserock-rocks ]
+[ "$hostname2" = baserock-rocks-even-more ]

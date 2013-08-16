@@ -166,10 +166,66 @@ cat <<EOF > linux-system.morph
             "repo": "test:morphs",
             "ref": "master"
         }
+    ],
+    "configuration-extensions": [
+        set-hostname
     ]
+
 }
 EOF
 git add linux-system.morph
+
+
+cat <<EOF > rawdisk_test_cluster.morph
+name: rawdisk_test_cluster
+kind: cluster
+systems:
+    - morph: linux-system
+      deploy:
+          linux-system-1:
+              type: rawdisk
+              location: disk.img
+              DISK_SIZE: 1G
+EOF
+git add rawdisk_test_cluster.morph
+
+cat <<EOF > rawdisk_test_cluster_without_disk_size.morph
+name: rawdisk_test_cluster_without_disk_size
+kind: cluster
+systems:
+    - morph: linux-system
+      deploy:
+          linux-system-1:
+              type: rawdisk
+              location: disk.img
+EOF
+git add rawdisk_test_cluster_without_disk_size.morph
+
+cat <<EOF > test_cluster.morph
+name: test_cluster
+kind: cluster
+systems:
+    - morph: hello-system
+      deploy-defaults:
+          type: tar
+      deploy:
+          hello-system:
+              type: rawdisk
+              location: hello-system.img
+              DISK_SIZE: 1G
+    - morph: linux-system
+      deploy-defaults:
+          HOSTNAME: "baserock-rocks"
+      deploy:
+          linux-system-1:
+              type: tar
+              location: linux-system-1.tar
+          linux-system-2:
+              type: tar
+              location: linux-system-2.tar
+EOF
+git add test_cluster.morph
+
 
 git commit --quiet -m "add morphs"
 
@@ -202,4 +258,3 @@ no-distcc = true
 quiet = true
 log = /tmp/morph.log
 EOF
-
