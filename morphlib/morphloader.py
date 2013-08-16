@@ -180,7 +180,7 @@ class MorphologyLoader(object):
 
         '''
 
-        m = self.parse_morphology_text(text, filename)
+        m = self.parse_morphology_text(string, filename)
         m.filename = filename
         self.validate(m)
         self.set_defaults(m)
