@@ -287,11 +287,15 @@ class StagingArea(object):
             cwd = '/'
 
         chroot_dir = self.dirname if self.use_chroot else '/'
+        temp_dir = kwargs["env"].get("TMPDIR", "/tmp")
 
+        staging_dirs = [self.builddirname, self.destdirname]
+        if self.use_chroot:
+            staging_dirs += ["dev", "proc", temp_dir.lstrip('/')]
         do_not_mount_dirs = [os.path.join(self.dirname, d)
-                             for d in (self.builddirname,
-                                       self.destdirname,
-                                       'dev', 'proc', 'tmp')]
+                             for d in staging_dirs]
+        if not self.use_chroot:
+            do_not_mount_dirs += [temp_dir]
 
         logging.debug("Not mounting dirs %r" % do_not_mount_dirs)
 
