@@ -361,7 +361,6 @@ def parse_environment_pairs(env, pairs):
     return dict(env.items() + extra_env.items())
 
 
-
 def get_host_architecture(): # pragma: no cover
     '''Get the canonical Morph name for the host's architecture.'''
 
@@ -381,3 +380,8 @@ def get_host_architecture(): # pragma: no cover
         raise morphlib.Error('Unknown host architecture %s' % machine)
 
     return table[machine]
+
+
+def sanitize_environment(env):
+    for k in env:
+        env[k] = str(env[k])

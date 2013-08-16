@@ -39,7 +39,7 @@ class DeployPlugin(cliapp.Plugin):
     def enable(self):
         self.app.add_subcommand(
             'deploy', self.deploy,
-            arg_synopsis='TYPE SYSTEM LOCATION [KEY=VALUE]')
+            arg_synopsis='CLUSTER [SYSTEM.KEY=VALUE]')
         self.other = \
             morphlib.plugins.branch_and_merge_plugin.BranchAndMergePlugin()
         self.other.app = self.app
@@ -52,30 +52,82 @@ class DeployPlugin(cliapp.Plugin):
 
         Command line arguments:
 
-        * `TYPE` is the type of deployment: to a raw disk image,
-          VirtualBox, or something else. See below.
+        * `CLUSTER` is the name of the cluster to deploy.
 
-        * `SYSTEM` is the name of the system morphology to deploy.
+        * `SYSTEM.KEY=VALUE` can be used to assign `VALUE` to a parameter
+          named `KEY` for the system identified by `SYSTEM` in the cluster
+          morphology (see below). This will override parameters defined
+          in the morphology.
 
-        * `LOCATION` is where the deployed system should end up at. The
-          syntax depends on the deployment type. See below.
+        Morph deploys a set of systems listed in a cluster morphology.
+        "Deployment" here is quite a general concept: it covers anything
+        where a system image is taken, configured, and then put somewhere
+        where it can be run. The deployment mechanism is quite flexible,
+        and can be extended by the user.
 
-        * `KEY=VALUE` is a configuration parameter to pass onto the
-          configuration extension. See below.
+        A cluster morphology defines a list of systems to deploy, and
+        for each system a list of ways to deploy them. It contains the
+        following fields:
 
-        Morph can deploy a system image. The deployment mechanism is
-        quite flexible, and can be extended by the user. "Deployment"
-        here is quite a general concept: it covers anything where a system
-        image is taken, configured, and then put somewhere where it can
-        be run.
+        * **name**: MUST be the same as the basename of the morphology
+         filename, sans .morph suffix.
 
-        `TYPE` specifies the exact way in which the deployment happens.
-        Morph provides four deployment types:
+        * **kind**: MUST be `cluster`.
 
-        * `rawdisk` where Morph builds a raw disk image at `LOCATION`,
-          and sets up the image with a bootloader and configuration
-          so that it can be booted. Disk size is set with `DISK_SIZE`
-          (see below).
+        * **systems**: a list of systems to deploy;
+         the value is a list of mappings, where each mapping has the
+         following keys:
+
+           * **morph**: the system morphology to use in the specified
+             commit.
+
+           * **deploy**: a mapping where each key identifies a
+             system and each system has at least the following keys:
+
+               * **type**: identifies the type of development e.g. (kvm,
+                 nfsboot) (see below).
+               * **location**: where the deployed system should end up
+                 at. The syntax depends on the deployment type (see below).
+                 Any additional item on the dictionary will be added to the
+                 environment as `KEY=VALUE`.
+
+            * **deploy-defaults**: allows multiple deployments of the same
+             system to share some settings, when they can. Default settings
+             will be overridden by those defined inside the deploy mapping.
+
+         # Example
+
+            name: cluster-foo
+            kind: cluster
+            systems:
+                - morph: devel-system-x86_64-generic
+                  deploy:
+                      cluster-foo-x86_64-1:
+                          type: kvm
+                          location: kvm+ssh://user@host/x86_64-1/x86_64-1.img
+                          HOSTNAME: cluster-foo-x86_64-1
+                          DISK_SIZE: 4G
+                          RAM_SIZE: 4G
+                          VCPUS: 2
+                - morph: devel-system-armv7-highbank
+                  deploy-defaults:
+                      type: nfsboot
+                      location: cluster-foo-nfsboot-server
+                  deploy:
+                      cluster-foo-armv7-1:
+                          HOSTNAME: cluster-foo-armv7-1
+                      cluster-foo-armv7-2:
+                          HOSTNAME: cluster-foo-armv7-2
+
+        Each system defined in a cluster morphology can be deployed in
+        multiple ways (`type` in a cluster morphology). Morph provides
+        five types of deployment:
+
+        * `tar` where Morph builds a tar archive of the root file system.
+
+        * `rawdisk` where Morph builds a raw disk image and sets up the
+          image with a bootloader and configuration so that it can be
+          booted. Disk size is set with `DISK_SIZE` (see below).
 
         * `virtualbox-ssh` where Morph creates a VirtualBox disk image,
           and creates a new virtual machine on a remote host, accessed
@@ -87,29 +139,15 @@ class DeployPlugin(cliapp.Plugin):
           `DISK_SIZE` and `RAM_SIZE` (see below).
 
         * `nfsboot` where Morph creates a system to be booted over
-          a network
+          a network.
 
-        The following `KEY=VALUE` parameters are supported for all
-        deployment types:
+        In addition to the deployment type, the user must also give
+        a value for `location`. Its syntax depends on the deployment
+        types. The deployment types provided by Morph use the
+        following syntaxes:
 
-        * `DISK_SIZE=X` to set the size of the disk image. `X`
-          should use a suffix of `K`, `M`, or `G` (in upper or lower
-          case) to indicate kilo-, mega-, or gigabytes. For example,
-          `DISK_SIZE=100G` would create a 100 gigabyte disk image. **This
-          parameter is mandatory**.
-
-        * `RAM_SIZE=X` to set the size of virtual RAM for the virtual
-          machine.  `X` is interpreted in the same was as `DISK_SIZE`,
-          and defaults to `1G`.
-
-        The `kvm` and `virtualbox-ssh` deployment types support an
-        additional parameter:
-
-        * `AUTOSTART=<VALUE>` - allowed values are `yes` and `no`
-          (default)
-
-        The syntax of the `LOCATION` depends on the deployment types. The
-        deployment types provided by Morph use the following syntaxes:
+        * `tar`: pathname to the tar archive to be created; for
+          example, `/home/alice/testsystem.tar`
 
         * `rawdisk`: pathname to the disk image to be created; for
           example, `/home/alice/testsystem.img`
@@ -132,38 +170,47 @@ class DeployPlugin(cliapp.Plugin):
               * `/home/alice/testsys.vdi` and `/home/alice/testys.img` are
                 the pathnames of the disk image files on the target host.
 
+        * `nfsboot`: the address of the nfsboot server. (Note this is just
+          the _address_ of the trove, _not_ `user@...`, since `root@` will
+          automatically be prepended to the server address.)
+
+        The following `KEY=VALUE` parameters are supported for `rawdisk`,
+        `virtualbox-ssh` and `kvm` and deployment types:
+
+        * `DISK_SIZE=X` to set the size of the disk image. `X` should use a
+          suffix of `K`, `M`, or `G` (in upper or lower case) to indicate
+          kilo-, mega-, or gigabytes. For example, `DISK_SIZE=100G` would
+          create a 100 gigabyte disk image. **This parameter is mandatory**.
+
+        The `kvm` and `virtualbox-ssh` deployment types support an additional
+        parameter:
+
+        * `RAM_SIZE=X` to set the size of virtual RAM for the virtual
+          machine. `X` is interpreted in the same was as `DISK_SIZE`,
+          and defaults to `1G`.
+
+        * `AUTOSTART=<VALUE>` - allowed values are `yes` and `no`
+          (default)
+
         For the `nfsboot` write extension,
 
-        * LOCATION is the address of the nfsboot server. (Note this
-          is just the _address_ of the trove, _not_ `user@...`, since
-          `root@` will automatically be prepended to the server address.)
+        * the following `KEY=VALUE` pairs are mandatory
 
-        * the following KEY=VALUE PAIRS are mandatory
-
-              * NFSBOOT_CONFIGURE=yes (or any non-empty value). This
+              * `NFSBOOT_CONFIGURE=yes` (or any non-empty value). This
                 enables the `nfsboot` configuration extension (see
                 below) which MUST be used when using the `nfsboot`
                 write extension.
 
-              * HOSTNAME=<STRING> a unique identifier for that system's
+              * `HOSTNAME=<STRING>` a unique identifier for that system's
                 `nfs` root when it's deployed on the nfsboot server - the
                 extension creates a directory with that name for the `nfs`
                 root, and stores kernels by that name for the tftp server.
 
-        * the following KEY=VALUE PAIRS are optional
+        * the following `KEY=VALUE` pairs are optional
 
-              * VERSION_LABEL=<STRING> - set the name of the system
+              * `VERSION_LABEL=<STRING>` - set the name of the system
                 version being deployed, when upgrading. Defaults to
                 "factory".
-
-        An example command line using `morph deploy with the nfsboot`
-        type is
-
-            morph deploy nfsboot devel-system-x86_64-generic \
-            customer-trove \
-            NFSBOOT_CONFIGURE=yes \
-            HOSTNAME=test-deployment-1 \
-            VERSION_LABEL=inital-test
 
         Each deployment type is implemented by a **write extension**. The
         ones provided by Morph are listed above, but users may also
@@ -172,9 +219,7 @@ class DeployPlugin(cliapp.Plugin):
         script that does whatever is needed for the deployment. A write
         extension is passed two command line parameters: the name of an
         unpacked directory tree that contains the system files (after
-        configuration, see below), and the `LOCATION` argument. Any
-        additional `KEY=VALUE` arguments given to `morph deploy` are
-        set as environment variables when the write extension runs.
+        configuration, see below), and the `location` parameter.
 
         Regardless of the type of deployment, the image may be
         configured for a specific deployment by using **configuration
@@ -201,13 +246,14 @@ class DeployPlugin(cliapp.Plugin):
         * `nfsboot` configures the system for nfsbooting. This MUST
           be used when deploying with the `nfsboot` write extension.
 
-        Any `KEY=VALUE` parameters given to `morph deploy` are set as
-        environment variables when either the configuration or the write
-        extension runs.
+        Any `KEY=VALUE` parameters given in `deploy` or `deploy-defaults`
+        sections of the cluster morphology, or given through the command line
+        are set as environment variables when either the configuration or the
+        write extension runs (except `type` and `location`).
 
         '''
 
-        if len(args) < 3:
+        if not args:
             raise cliapp.AppException(
                 'Too few arguments to deploy command (see help)')
 
@@ -220,14 +266,47 @@ class DeployPlugin(cliapp.Plugin):
             self.app.settings['tempdir-min-space'],
             '/', 0)
 
-        deployment_type = args[0]
-        system_name = args[1]
-        location = args[2]
-        env_vars = args[3:]
+        cluster = args[0]
+        env_vars = args[1:]
 
-        # Set up environment for running extensions.
-        env = morphlib.util.parse_environment_pairs(os.environ, env_vars)
+        branch_dir = self.other.deduce_system_branch()[1]
+        root_repo = self.other.get_branch_config(branch_dir, 'branch.root')
+        root_repo_dir = self.other.find_repository(branch_dir, root_repo)
+        data = self.other.load_morphology(root_repo_dir, cluster)
 
+        for system in data['systems']:
+            self.deploy_system(system, env_vars)
+
+    def deploy_system(self, system, env_vars):
+        morph = system['morph']
+        deploy_defaults = system['deploy-defaults']
+        deployments = system['deploy']
+
+        for system_id, deploy_params in deployments.iteritems():
+            user_env = morphlib.util.parse_environment_pairs(
+                    os.environ,
+                    [pair[len(system_id)+1:]
+                    for pair in env_vars
+                    if pair.startswith(system_id)])
+
+            final_env = dict(deploy_defaults.items() +
+                             deploy_params.items() +
+                             user_env.items())
+
+            deployment_type = final_env.pop('type', None)
+            if not deployment_type:
+                raise morphlib.Error('"type" is undefined '
+                                     'for system "%s"' % system_id)
+
+            location = final_env.pop('location', None)
+            if not location:
+                raise morphlib.Error('"location" is undefined '
+                                     'for system "%s"' % system_id)
+
+            morphlib.util.sanitize_environment(final_env)
+            self.do_deploy(morph, deployment_type, location, final_env)
+
+    def do_deploy(self, system_name, deployment_type, location, env):
         # Deduce workspace and system branch and branch root repository.
         workspace = self.other.deduce_workspace()
         branch, branch_dir = self.other.deduce_system_branch()

@@ -471,4 +471,16 @@ name: foo
         self.loader.set_defaults(m)
         self.assertEqual(m['max-jobs'], 42)
 
-
+    def test_parses_simple_cluster_morph(self):
+        string = '''
+            name: foo
+            kind: cluster
+            systems:
+                - morph: bar
+        '''
+        m = self.loader.parse_morphology_text(string, 'test')
+        self.loader.set_defaults(m)
+        self.loader.validate(m)
+        self.assertEqual(m['name'], 'foo')
+        self.assertEqual(m['kind'], 'cluster')
+        self.assertEqual(m['systems'][0]['morph'], 'bar')

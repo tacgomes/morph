@@ -60,7 +60,8 @@ class Morphology(object):
             ('arch', None),
             ('system-kind', None),
             ('configuration-extensions', []),
-        ]
+        ],
+        'cluster': []
     }
 
     @staticmethod
@@ -129,6 +130,27 @@ class Morphology(object):
                 if name in names:
                    raise ValueError('Duplicate chunk "%s"' % name)
                 names.add(name)
+        elif self['kind'] == 'cluster':
+             if not 'systems' in self:
+                 raise KeyError('"systems" not found')
+             if not self['systems']:
+                 raise ValueError('"systems" is empty')
+             for system in self['systems']:
+                 if 'morph' not in system:
+                     raise KeyError('"morph" not found')
+                 if 'deploy-defaults' in system:
+                     if not isinstance(system['deploy-defaults'], dict):
+                         raise ValueError('deploy defaults for morph "%s" '
+                                          'are not a mapping: %r'
+                                          % (system['morph'],
+                                             system['deploy-defaults']))
+                 if 'deploy' in system:
+                     for system_id, deploy_params in system['deploy'].items():
+                         if not isinstance(deploy_params, dict):
+                             raise ValueError('deployment parameters for '
+                                              'system "%s" are not a mapping:'
+                                              ' %r'
+                                              % (system_id, deploy_params))
 
     def _set_default_value(self, target_dict, key, value):
         '''Change a value in the in-memory representation of the morphology
@@ -157,6 +179,8 @@ class Morphology(object):
 
         if self['kind'] == 'stratum':
             self._set_stratum_defaults()
+        elif self['kind'] == 'cluster':
+            self._set_cluster_defaults()
 
     def _set_stratum_defaults(self):
         for source in self['chunks']:
@@ -170,6 +194,18 @@ class Morphology(object):
                 self._set_default_value(source, 'build-mode', 'staging')
             if 'prefix' not in source:
                 self._set_default_value(source, 'prefix', '/usr')
+
+    def _set_cluster_defaults(self):
+        if 'systems' in self and self['systems']:
+            for system in self['systems']:
+                if 'deploy-defaults' not in system:
+                    self._set_default_value(system,
+                                            'deploy-defaults',
+                                            dict())
+                if 'deploy' not in system:
+                    self._set_default_value(system,
+                                            'deploy',
+                                            dict())
 
     def _parse_size(self, size):
         if isinstance(size, basestring):
