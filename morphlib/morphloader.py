@@ -109,6 +109,10 @@ class MorphologyLoader(object):
             'name',
             'arch',
         ],
+        'cluster': [
+          'name',
+          'systems',
+        ],
     }
 
     _static_defaults = {
@@ -144,6 +148,7 @@ class MorphologyLoader(object):
             'configuration-extensions': [],
             'disk-size': '1G',
         },
+        'cluster': {},
     }
 
     def parse_morphology_text(self, text, whence):
@@ -217,8 +222,10 @@ class MorphologyLoader(object):
 
         # The rest of the validation is dependent on the kind.
 
+        # FIXME: move validation of clusters from morph2 to
+        # here, and use morphload to load the morphology
         kind = morph['kind']
-        if kind not in ('system', 'stratum', 'chunk'):
+        if kind not in ('system', 'stratum', 'chunk', 'cluster'):
             raise UnknownKindError(morph['kind'], morph.filename)
 
         required = ['kind'] + self._required_fields[kind]
@@ -230,9 +237,10 @@ class MorphologyLoader(object):
             self._validate_system(morph)
         elif kind == 'stratum':
             self._validate_stratum(morph)
-        else:
-            assert kind == 'chunk'
+        elif kind == 'chunk':
             self._validate_chunk(morph)
+        else:
+            assert kind == 'cluster'
 
     def _validate_system(self, morph):
         # All stratum names should be unique within a system.
@@ -322,9 +330,10 @@ class MorphologyLoader(object):
             self._set_system_defaults(morphology)
         elif kind == 'stratum':
             self._set_stratum_defaults(morphology)
-        else:
-            assert kind == 'chunk'
+        elif kind == 'chunk':
             self._set_chunk_defaults(morphology)
+        else:
+            assert kind == 'cluster'
 
     def _set_system_defaults(self, morph):
         pass
