@@ -90,7 +90,7 @@ to check for that locally.
 Similarly, attempting to branch a system branch should fail if the
 repository does not contain any system morphologies.
 
-    SCENARIO    checking out a system branch with no systems
+    SCENARIO    branching a system branch with no systems
     GIVEN       a workspace
     AND         a git server
     WHEN        morph attempts to branch a repository with no systems
