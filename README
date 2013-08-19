@@ -29,6 +29,7 @@ really required. Meanwhile a short usage to build a disk image:
     cd workspace
     morph checkout baserock:baserock/morphs master
     morph build base-system-x86_64-generic
+    # FIXME: This has changed; see the wiki for current instruction.
     morph deploy --no-git-update rawkdisk base-system-x86_64-generic \
           disk-image.img
 
