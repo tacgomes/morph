@@ -57,10 +57,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
     def enable(self):
         # User-facing commands
+        self.app.add_subcommand('old-init', self.init, arg_synopsis='[DIR]')
+        self.app.add_subcommand('old-branch', self.branch,
+                                arg_synopsis='REPO NEW [OLD]')
+        self.app.add_subcommand('old-checkout', self.checkout,
+                                arg_synopsis='REPO BRANCH')
         self.app.add_subcommand('merge', self.merge,
                                 arg_synopsis='BRANCH')
-#        self.app.add_subcommand('edit', self.edit,
-#                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
+        self.app.add_subcommand('edit', self.edit,
+                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand('petrify', self.petrify)
         self.app.add_subcommand('unpetrify', self.unpetrify)
         self.app.add_subcommand(
@@ -81,6 +86,15 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # Advanced commands
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='-- COMMAND [ARGS...]')
+
+        # Plumbing commands (FIXME: should be hidden from --help by default)
+        self.app.add_subcommand('old-workspace', self.workspace,
+                                arg_synopsis='')
+        self.app.add_subcommand(
+            'old-show-system-branch', self.show_system_branch,
+            arg_synopsis='')
+        self.app.add_subcommand('old-show-branch-root', self.show_branch_root,
+                                arg_synopsis='')
 
     def disable(self):
         pass
@@ -353,7 +367,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             'cluster': [
                 'name',
                 'systems',
-            ],
+            ]
         }
         
         also_known = {
@@ -541,6 +555,50 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         return system_key, metadata_cache_id_lookup
 
+    def init(self, args):
+        '''Initialize a workspace directory.
+
+        Command line argument:
+
+        * `DIR` is the directory to use as a workspace, and defaults to
+          the current directory.
+
+        This creates a workspace, either in the current working directory,
+        or if `DIR` is given, in that directory. If the directory doesn't
+        exist, it is created. If it does exist, it must be empty.
+
+        You need to run `morph init` to initialise a workspace, or none
+        of the other system branching tools will work: they all assume
+        an existing workspace. Note that a workspace only exists on your
+        machine, not on the git server.
+
+        Example:
+
+            morph init /src/workspace
+            cd /src/workspace
+
+        '''
+
+        if not args:
+            args = ['.']
+        elif len(args) > 1:
+            raise cliapp.AppException('init must get at most one argument')
+
+        dirname = args[0]
+
+        # verify the workspace is empty (and thus, can be used) or
+        # create it if it doesn't exist yet
+        if os.path.exists(dirname):
+            if os.listdir(dirname) != []:
+                raise cliapp.AppException('can only initialize empty '
+                                          'directory as a workspace: %s' %
+                                          dirname)
+        else:
+            os.makedirs(dirname)
+
+        os.mkdir(os.path.join(dirname, '.morph'))
+        self.app.status(msg='Initialized morph workspace', chatty=True)
+
     def _create_branch(self, workspace, branch_name, repo, original_ref):
         '''Create a branch called branch_name based off original_ref.
            
@@ -579,6 +637,81 @@ class BranchAndMergePlugin(cliapp.Plugin):
             logging.info('Removing half-finished branch %s' % branch_name)
             self.remove_branch_dir_safe(workspace, branch_name)
             raise
+
+    @warns_git_identity
+    def branch(self, args):
+        '''Create a new system branch.
+
+        Command line arguments:
+
+        * `REPO` is a repository URL.
+        * `NEW` is the name of the new system branch.
+        * `OLD` is the point from which to branch, and defaults to `master`.
+
+        This creates a new system branch. It needs to be run in an
+        existing workspace (see `morph workspace`). It creates a new
+        git branch in the clone of the repository in the workspace. The
+        system branch will not be visible on the git server until you
+        push your changes to the repository.
+
+        Example:
+
+            cd /src/workspace
+            morph branch baserock:baserock:morphs jrandom/new-feature
+
+        '''
+
+        if len(args) not in [2, 3]:
+            raise cliapp.AppException('morph branch needs name of branch '
+                                      'as parameter')
+
+        repo = args[0]
+        new_branch = args[1]
+        commit = 'master' if len(args) == 2 else args[2]
+
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
+        if self.get_cached_repo(repo).ref_exists(new_branch):
+            raise cliapp.AppException('branch %s already exists in '
+                                      'repository %s' % (new_branch, repo))
+
+        # Create the system branch directory.
+        workspace = self.deduce_workspace()
+        self._create_branch(workspace, new_branch, repo, commit)
+
+    @warns_git_identity
+    def checkout(self, args):
+        '''Check out an existing system branch.
+
+        Command line arguments:
+
+        * `REPO` is the URL to the repository to the root repository of
+          a system branch.
+        * `BRANCH` is the name of the system branch.
+
+        This will check out an existing system branch to an existing
+        workspace.  You must create the workspace first. This only checks
+        out the root repository, not the repositories for individual
+        components. You need to use `morph edit` to check out those.
+
+        Example:
+
+            cd /src/workspace
+            morph checkout baserock:baserock/morphs master
+
+        '''
+
+        if len(args) != 2:
+            raise cliapp.AppException('morph checkout needs a repo and the '
+                                      'name of a branch as parameters')
+
+        repo = args[0]
+        system_branch = args[1]
+
+        self.lrc, self.rrc = morphlib.util.new_repo_caches(self.app)
+
+        # Create the system branch directory.
+        workspace = self.deduce_workspace()
+        self._create_branch(workspace, system_branch, repo, system_branch)
 
     def checkout_repository(self, branch_dir, repo, ref, parent_ref=None):
         '''Make a chunk or stratum repository available for a system branch
@@ -1919,3 +2052,30 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 raise cliapp.AppException(
                     'Command failed at repo %s: %s' % (repo, ' '.join(args)))
 
+    def workspace(self, args):
+        '''Show the toplevel directory of the current workspace.'''
+
+        self.app.output.write('%s\n' % self.deduce_workspace())
+
+    def show_system_branch(self, args):
+        '''Show the name of the current system branch.'''
+
+        branch, dirname = self.deduce_system_branch()
+        self.app.output.write('%s\n' % branch)
+
+    def show_branch_root(self, args):
+        '''Show the name of the repository holding the system morphologies.
+
+        This would, for example, write out something like:
+
+            /src/ws/master/baserock:baserock/morphs
+
+        when the master branch of the `baserock:baserock/morphs`
+        repository is checked out.
+
+        '''
+
+        workspace = self.deduce_workspace()
+        system_branch, branch_dir = self.deduce_system_branch()
+        branch_root = self.get_branch_config(branch_dir, 'branch.root')
+        self.app.output.write('%s\n' % branch_root)
