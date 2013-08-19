@@ -30,7 +30,7 @@ cd "me/add-then-edit"
 cd test:morphs
 
 ## Sub-optimally, to alter the stratum, you have to `morph edit` it first
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+"$SRCDIR/scripts/test-morph" new-edit hello-system hello-stratum
 
 git apply <<'EOF'
 diff --git a/hello-stratum.morph b/hello-stratum.morph
@@ -50,7 +50,7 @@ index 3b7be17..c79a9af 100644
  name: hello-stratum
 EOF
 
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye
+"$SRCDIR/scripts/test-morph" new-edit hello-system hello-stratum goodbye
 
 # check whether the stratum still contains the goodbye chunk
 grep -qFe goodbye hello-stratum.morph

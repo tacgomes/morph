@@ -31,7 +31,7 @@ cd "$DATADIR/workspace"
 # associate hello-stratum and goodbye-stratum at all.
 
 # Rename the stratum
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
+"$SRCDIR/scripts/test-morph" new-edit hello-system hello-stratum
 cd baserock/newbranch/test:morphs
 
 sed -e 's/"morph": "hello-stratum"/"morph": "goodbye-stratum"/'\

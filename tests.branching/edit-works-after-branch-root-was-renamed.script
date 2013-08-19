@@ -35,7 +35,7 @@ cd "$DATADIR/workspace"
 cd "$DATADIR/workspace/master"
 mv test:morphs my-renamed-morphs
 
-"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
+"$SRCDIR/scripts/test-morph" new-edit hello-system hello-stratum hello
 
 "$SRCDIR/scripts/list-tree" "$DATADIR/workspace" | grep -v '/\.git/' |
     sed 's,/cache/gits/file_[^/]*_,/cache/gits/file_,' |

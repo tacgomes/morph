@@ -226,11 +226,11 @@ Editing morphologies with `morph edit`.
 
     IMPLEMENTS WHEN editing stratum (\S+) in system (\S+) in branch (\S+)
     cd "$DATADIR/workspace/$MATCH_3/test:morphs"
-    run_morph edit "$MATCH_2" "$MATCH_1"
+    run_morph new-edit "$MATCH_2" "$MATCH_1"
 
     IMPLEMENTS WHEN editing chunk (\S+) in (\S+) in (\S+) in branch (\S+)
     cd "$DATADIR/workspace/$MATCH_4/test:morphs"
-    run_morph edit "$MATCH_3" "$MATCH_2" "$MATCH_1"
+    run_morph new-edit "$MATCH_3" "$MATCH_2" "$MATCH_1"
 
     IMPLEMENTS THEN edited chunk (\S+) has git branch (\S+)
     ls -l "$DATADIR/workspace/$MATCH_2"
