@@ -252,8 +252,8 @@ class StagingArea(object):
 
         builddir = self.builddir(source)
         destdir = self.destdir(source)
-        self.builddirname = self.relative(builddir).lstrip('/')
-        self.destdirname = self.relative(destdir).lstrip('/')
+        self.builddirname = builddir
+        self.destdirname = destdir
 
         self.do_mounts(setup_mounts)
 
@@ -279,37 +279,42 @@ class StagingArea(object):
             kwargs['env'].update(kwargs['extra_env'])
             del kwargs['extra_env']
 
-        if self.use_chroot:
-            cwd = kwargs.get('cwd') or '/'
-            if 'cwd' in kwargs:
-                cwd = kwargs['cwd']
-                del kwargs['cwd']
-            else:
-                cwd = '/'
-
-            do_not_mount_dirs = [self.builddirname, self.destdirname,
-                                 'dev', 'proc', 'tmp']
-
-            real_argv = ['linux-user-chroot']
-            for d in os.listdir(self.dirname):
-                if d not in do_not_mount_dirs:
-                    if os.path.isdir(os.path.join(self.dirname, d)):
-                        real_argv += ['--mount-readonly', '/'+d]
-            real_argv += ['--unshare-net']
-            real_argv += [self.dirname]
-
-            real_argv += ['sh', '-c', 'cd "$1" && shift && exec "$@"', '--',
-                          cwd]
-            real_argv += argv
-
-            try:
-                return self._app.runcmd(real_argv, **kwargs)
-            except cliapp.AppException as e:
-                raise cliapp.AppException('In staging area %s: running '
-                                          'command \'%s\' failed.' % 
-                                          (self.dirname, ' '.join(argv)))
+        cwd = kwargs.get('cwd') or '/'
+        if 'cwd' in kwargs:
+            cwd = kwargs['cwd']
+            del kwargs['cwd']
         else:
-            return self._app.runcmd(argv, **kwargs)
+            cwd = '/'
+
+        chroot_dir = self.dirname if self.use_chroot else '/'
+        temp_dir = kwargs["env"].get("TMPDIR", "/tmp")
+
+        staging_dirs = [self.builddirname, self.destdirname]
+        if self.use_chroot:
+            staging_dirs += ["dev", "proc", temp_dir.lstrip('/')]
+        do_not_mount_dirs = [os.path.join(self.dirname, d)
+                             for d in staging_dirs]
+        if not self.use_chroot:
+            do_not_mount_dirs += [temp_dir]
+
+        logging.debug("Not mounting dirs %r" % do_not_mount_dirs)
+
+        real_argv = ['linux-user-chroot', '--chdir', cwd, '--unshare-net']
+        for d in morphlib.fsutils.invert_paths(os.walk(chroot_dir),
+                                               do_not_mount_dirs):
+            if not os.path.islink(d):
+                real_argv += ['--mount-readonly', self.relative(d)]
+
+        real_argv += [chroot_dir]
+
+        real_argv += argv
+
+        try:
+            return self._app.runcmd(real_argv, **kwargs)
+        except cliapp.AppException as e:
+            raise cliapp.AppException('In staging area %s: running '
+                                      'command \'%s\' failed.' % 
+                                      (self.dirname, ' '.join(argv)))
 
     def abort(self): # pragma: no cover
         '''Handle what to do with a staging area in the case of failure.
