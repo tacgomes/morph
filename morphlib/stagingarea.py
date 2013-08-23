@@ -279,7 +279,6 @@ class StagingArea(object):
             kwargs['env'].update(kwargs['extra_env'])
             del kwargs['extra_env']
 
-        cwd = kwargs.get('cwd') or '/'
         if 'cwd' in kwargs:
             cwd = kwargs['cwd']
             del kwargs['cwd']
