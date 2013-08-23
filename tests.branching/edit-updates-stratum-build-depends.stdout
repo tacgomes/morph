@@ -1,11 +1,12 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 53e76f3..8417659 100644
+index 73ed482..b3f27b4 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -1,7 +1,10 @@
+@@ -1,8 +1,11 @@
 +build-depends: []
  chunks:
  - build-depends: []
+   build-mode: test
 +  morph: hello
    name: hello
 -  ref: master

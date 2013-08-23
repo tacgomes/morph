@@ -46,10 +46,12 @@ name: hello-stratum
 kind: stratum
 chunks:
 - build-depends: []
+  build-mode: test
   name: hello
   ref: master
   repo: test:hello
 - build-depends: []
+  build-mode: test
   name: goodbye
   ref: master
   repo: test:goodbye

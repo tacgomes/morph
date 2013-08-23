@@ -4,50 +4,70 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 create tag
 
-commit ede2d4bc8b9a806720d195cb5611c576a055adfd
+commit 7253f9b1471f1983e07823d2b84582dde9fb108d
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
     create tag
 
 diff --git a/stratum1.morph b/stratum1.morph
-index c1ef125..3c18ae5 100644
+index 6d439df..074a838 100644
 --- a/stratum1.morph
 +++ b/stratum1.morph
-@@ -2,5 +2,7 @@ name: stratum1
+@@ -2,10 +2,13 @@ name: stratum1
  kind: stratum
  build-depends:
  - morph: stratum3
 -  ref: master
--  repo: repos:morphs2
+-  repo: test:morphs2
 +  ref: tag-across-multiple-repos
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
++  unpetrify-repo: test:morphs2
+ chunks:
+ - build-depends: []
+   name: hello
+-  ref: master
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+   repo: test:hello
++  unpetrify-ref: master
 diff --git a/stratum2.morph b/stratum2.morph
 new file mode 100644
-index 0000000..2546465
+index 0000000..0b421ab
 --- /dev/null
 +++ b/stratum2.morph
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,14 @@
 +name: stratum2
 +kind: stratum
 +build-depends:
 +- morph: stratum3
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  ref: tag-across-multiple-repos
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
++  unpetrify-repo: test:morphs2
++chunks:
++- build-depends: []
++  name: hello
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
++  repo: test:hello
++  unpetrify-ref: master
 diff --git a/stratum3.morph b/stratum3.morph
 new file mode 100644
-index 0000000..d510d1b
+index 0000000..610fae6
 --- /dev/null
 +++ b/stratum3.morph
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,9 @@
 +kind: stratum
 +name: stratum3
++chunks:
++- build-depends: []
++  build-mode: test
++  name: hello
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
++  repo: test:hello
++  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index cdd8d64..b86854a 100644
+index 44d5ae5..08f9adc 100644
 --- a/test-system.morph
 +++ b/test-system.morph
 @@ -5,8 +5,11 @@ arch: x86_64
@@ -56,16 +76,16 @@ index cdd8d64..b86854a 100644
  - morph: stratum1
 -  ref: master
 +  ref: tag-across-multiple-repos
-   repo: repos:morphs1
+   repo: test:morphs1
 +  unpetrify-ref: master
  - morph: stratum2
 -  ref: master
--  repo: repos:morphs2
+-  repo: test:morphs2
 +  ref: tag-across-multiple-repos
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
-commit ede2d4bc8b9a806720d195cb5611c576a055adfd
++  unpetrify-repo: test:morphs2
+commit 7253f9b1471f1983e07823d2b84582dde9fb108d
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -73,50 +93,70 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     create tag
 ---
- stratum1.morph    |    6 ++++--
- stratum2.morph    |    8 ++++++++
- stratum3.morph    |    2 ++
+ stratum1.morph    |    9 ++++++---
+ stratum2.morph    |   14 ++++++++++++++
+ stratum3.morph    |    9 +++++++++
  test-system.morph |    9 ++++++---
- 4 files changed, 20 insertions(+), 5 deletions(-)
+ 4 files changed, 35 insertions(+), 6 deletions(-)
 
 diff --git a/stratum1.morph b/stratum1.morph
-index c1ef125..3c18ae5 100644
+index 6d439df..074a838 100644
 --- a/stratum1.morph
 +++ b/stratum1.morph
-@@ -2,5 +2,7 @@ name: stratum1
+@@ -2,10 +2,13 @@ name: stratum1
  kind: stratum
  build-depends:
  - morph: stratum3
 -  ref: master
--  repo: repos:morphs2
+-  repo: test:morphs2
 +  ref: tag-across-multiple-repos
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
++  unpetrify-repo: test:morphs2
+ chunks:
+ - build-depends: []
+   name: hello
+-  ref: master
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+   repo: test:hello
++  unpetrify-ref: master
 diff --git a/stratum2.morph b/stratum2.morph
 new file mode 100644
-index 0000000..2546465
+index 0000000..0b421ab
 --- /dev/null
 +++ b/stratum2.morph
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,14 @@
 +name: stratum2
 +kind: stratum
 +build-depends:
 +- morph: stratum3
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  ref: tag-across-multiple-repos
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
++  unpetrify-repo: test:morphs2
++chunks:
++- build-depends: []
++  name: hello
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
++  repo: test:hello
++  unpetrify-ref: master
 diff --git a/stratum3.morph b/stratum3.morph
 new file mode 100644
-index 0000000..d510d1b
+index 0000000..610fae6
 --- /dev/null
 +++ b/stratum3.morph
-@@ -0,0 +1,2 @@
+@@ -0,0 +1,9 @@
 +kind: stratum
 +name: stratum3
++chunks:
++- build-depends: []
++  build-mode: test
++  name: hello
++  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
++  repo: test:hello
++  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index cdd8d64..b86854a 100644
+index 44d5ae5..08f9adc 100644
 --- a/test-system.morph
 +++ b/test-system.morph
 @@ -5,8 +5,11 @@ arch: x86_64
@@ -125,12 +165,12 @@ index cdd8d64..b86854a 100644
  - morph: stratum1
 -  ref: master
 +  ref: tag-across-multiple-repos
-   repo: repos:morphs1
+   repo: test:morphs1
 +  unpetrify-ref: master
  - morph: stratum2
 -  ref: master
--  repo: repos:morphs2
+-  repo: test:morphs2
 +  ref: tag-across-multiple-repos
-+  repo: repos:morphs1
++  repo: test:morphs1
 +  unpetrify-ref: master
-+  unpetrify-repo: repos:morphs2
++  unpetrify-repo: test:morphs2
