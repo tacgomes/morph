@@ -149,12 +149,12 @@ def update_submodules(app, repo_dir):  # pragma: no cover
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             app.settings['repo-alias'])
         app.runcmd(['git', 'submodule', 'init'], cwd=repo_dir)
-        urls = app.runcmd(
-            ['git', 'config', '--get-regexp', r'submodule.\w+.url'],
-            cwd=repo_dir)
-        for line in urls.splitlines():
-            setting, url = line.split(' ')
-            app.runcmd(['git', 'config', setting, resolver.pull_url(url)],
+        submodules = Submodules(app, repo_dir, 'HEAD')
+        submodules.load()
+        for submodule in submodules:
+            app.runcmd(['git', 'config',
+                        'submodule.%s.url' % submodule.name,
+                        resolver.pull_url(submodule.url)],
                        cwd=repo_dir)
         app.runcmd(['git', 'submodule', 'update'], cwd=repo_dir)
 
