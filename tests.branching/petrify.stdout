@@ -2,12 +2,14 @@ Petrified:
 build-depends: []
 chunks:
 - build-depends: []
+  build-mode: test
   morph: hello
   name: hello
   ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
   repo: test:hello
   unpetrify-ref: master
 - build-depends: []
+  build-mode: test
   morph: goodbye
   name: goodbye
   ref: d34c96a9f07c2efd1faabc3b44f77c25580a276e
@@ -21,11 +23,13 @@ Unpetrified:
 build-depends: []
 chunks:
 - build-depends: []
+  build-mode: test
   morph: hello
   name: hello
   ref: master
   repo: test:hello
 - build-depends: []
+  build-mode: test
   morph: goodbye
   name: goodbye
   ref: test/petrify

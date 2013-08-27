@@ -8,19 +8,19 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit 6f4900b857108ae696ef90d09417cdf6040353e4
+commit ca7594f436da55bda2cfff2c6484d11aa0ea4cbc
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 53e76f3..d060579 100644
+index 73ed482..2218f63 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -1,7 +1,8 @@
- chunks:
+@@ -2,7 +2,8 @@ chunks:
  - build-depends: []
+   build-mode: test
    name: hello
 -  ref: master
 +  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
@@ -42,7 +42,7 @@ index b0fed3b..875d73a 100644
 +  unpetrify-ref: master
  system-kind: rootfs-tarball
 test:morphs
-commit 6f4900b857108ae696ef90d09417cdf6040353e4
+commit ca7594f436da55bda2cfff2c6484d11aa0ea4cbc
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -50,7 +50,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
-commit 0d291d7caa82fb6535172189f579435471ad6dc6
+commit 1fe013ee284724848d65096d4d88f612fae56fc6
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>

@@ -25,14 +25,11 @@ set -eu
 # Make sure the commits always have the same SHA1s.
 . "$SRCDIR/scripts/fix-committer-info"
 
-# Create new directory for repos used in this test.
-mkdir -p "$DATADIR/repos"
-
 # Create the first morphs repository.
-mkdir "$DATADIR/repos/morphs1"
+mkdir "$DATADIR/morphs1"
 
 # Create system morphology in first morphs repository.
-cat <<EOF > "$DATADIR/repos/morphs1/test-system.morph"
+cat <<EOF > "$DATADIR/morphs1/test-system.morph"
 name: test-system
 kind: system
 system-kind: rootfs-tarball
@@ -41,64 +38,78 @@ disk-size: 1G
 strata:
 - morph: stratum1
   ref: master
-  repo: repos:morphs1
+  repo: test:morphs1
 - morph: stratum2
   ref: master
-  repo: repos:morphs2
+  repo: test:morphs2
 EOF
 
 # Create stratum that depends on another stratum.
-cat <<EOF > "$DATADIR/repos/morphs1/stratum1.morph"
+cat <<EOF > "$DATADIR/morphs1/stratum1.morph"
 name: stratum1
 kind: stratum
 build-depends:
 - morph: stratum3
   ref: master
-  repo: repos:morphs2
+  repo: test:morphs2
+chunks:
+- build-depends: []
+  name: hello
+  ref: master
+  repo: test:hello
 EOF
 
 # Commit all files to the first repository.
-scripts/run-git-in "$DATADIR/repos/morphs1" init -q
-scripts/run-git-in "$DATADIR/repos/morphs1" add .
-scripts/run-git-in "$DATADIR/repos/morphs1" commit -q -m initial
+scripts/run-git-in "$DATADIR/morphs1" init -q
+scripts/run-git-in "$DATADIR/morphs1" add .
+scripts/run-git-in "$DATADIR/morphs1" commit -q -m initial
 
 # Create second morphs repository.
-mkdir "$DATADIR/repos/morphs2"
+mkdir "$DATADIR/morphs2"
 
 # Create two strata in the second repository.
-cat <<EOF > "$DATADIR/repos/morphs2/stratum2.morph"
+cat <<EOF > "$DATADIR/morphs2/stratum2.morph"
 name: stratum2
 kind: stratum
 build-depends:
 - morph: stratum3
-  repo: repos:morphs2
+  repo: test:morphs2
   ref: master
+chunks:
+- build-depends: []
+  name: hello
+  ref: master
+  repo: test:hello
 EOF
-cat <<EOF > "$DATADIR/repos/morphs2/stratum3.morph"
+cat <<EOF > "$DATADIR/morphs2/stratum3.morph"
 kind: stratum
 name: stratum3
+chunks:
+- build-depends: []
+  build-mode: test
+  name: hello
+  ref: master
+  repo: test:hello
 EOF
 
 # Commit all files to the second repository.
-"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" init -q
-"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" add .
-"$SRCDIR/scripts/run-git-in" "$DATADIR/repos/morphs2" commit -q -m initial
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs2" init -q
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs2" add .
+"$SRCDIR/scripts/run-git-in" "$DATADIR/morphs2" commit -q -m initial
 
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 
 # Check out the master system branch.
 "$SRCDIR/scripts/test-morph" \
-    --repo-alias=repos="file://$DATADIR/repos/%s#file://$DATADIR/%s" \
-    checkout repos:morphs1 master
+    checkout test:morphs1 master
 
 # Tag the master system branch.
 "$SRCDIR/scripts/test-morph" \
-    --repo-alias=repos="file://$DATADIR/repos/%s#file://$DATADIR/%s" \
     tag tag-across-multiple-repos -- -m "create tag"
 
 # Show the tag.
-GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
+GIT_DIR="$DATADIR/workspace/master/test:morphs1/.git" \
     git show tag-across-multiple-repos
-GIT_DIR="$DATADIR/workspace/master/repos:morphs1/.git" \
+GIT_DIR="$DATADIR/workspace/master/test:morphs1/.git" \
     git log --format=fuller -n1 -p --stat tag-across-multiple-repos

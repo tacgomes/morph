@@ -61,6 +61,7 @@ EOF
 cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
 chunks:
 - build-depends: []
+  build-mode: test
   name: hello
   ref: master
   repo: test:hello
