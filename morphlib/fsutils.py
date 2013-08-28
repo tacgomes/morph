@@ -103,29 +103,33 @@ def invert_paths(tree_walker, paths):
         dn_copy = list(dirnames)
         for subdir in dn_copy:
             subdirpath = os.path.join(dirpath, subdir)
-            for p in paths:
-                # Subdir is an exact match for a given path
+
+            if any(p == subdirpath for p in paths):
+                # Subdir is an exact match for a path
                 # Don't recurse into it, so remove from list
-                # Also don't yield it as we're inverting
-                if subdirpath == p:
-                    dirnames.remove(subdir)
-                    break
+                # Don't yield it, since we don't return listed paths
+                dirnames.remove(subdir)
+            elif any(is_subpath(subdirpath, p) for p in paths):
                 # This directory is a parent directory of one
-                # of our paths, recurse into it, but don't yield it
-                elif is_subpath(subdirpath, p):
-                    break
+                # of our paths
+                # Recurse into it, so don't remove it from the list
+                # Don't yield it, since we don't return listed paths
+                pass
             else:
+                # This directory is neither one marked for writing,
+                # nor a parent of a file marked for writing
+                # Don't recurse, so remove it from the list
+                # Yield it, since we return listed paths
                 dirnames.remove(subdir)
                 yield subdirpath
 
         for filename in filenames:
             fullpath = os.path.join(dirpath, filename)
-            for p in paths:
+            if any(is_subpath(p, fullpath) for p in paths):
                 # The file path is a child of one of the paths
-                # or is equal. Don't yield because either it is
-                # one of the specified paths, or is a file in a
-                # directory specified by a path
-                if is_subpath(p, fullpath):
-                    break
+                # or is equal.
+                # Don't yield because either it is one of the specified
+                # paths, or is a file in a directory specified by a path
+                pass
             else:
                 yield fullpath
