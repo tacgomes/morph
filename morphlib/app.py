@@ -162,19 +162,6 @@ class Morph(cliapp.Application):
                                group=group_storage,
                                default='4G')
 
-        # These cannot be removed just yet because existing morph.conf files
-        # would fail to parse.
-        group_obsolete = 'Obsolete Options'
-        self.settings.boolean(['staging-chroot'],
-                              'build things in an isolated chroot '
-                              '(default: true)',
-                              default=True,
-                              group=group_obsolete)
-        self.settings.string_list(['staging-filler'],
-                                  'use FILE as contents of build chroot',
-                                  metavar='FILE',
-                                  group=group_obsolete)
-
     def check_time(self):
         # Check that the current time is not far in the past.
         if time.localtime(time.time()).tm_year < 2012:
@@ -186,18 +173,6 @@ class Morph(cliapp.Application):
 
     def process_args(self, args):
         self.check_time()
-
-        # Handle obsolete options
-        if self.settings['staging-chroot'] is not True:
-            raise cliapp.AppException(
-                'The "staging-chroot" option has been set to False. This '
-                'option is obsolete and should be left as the default (True).')
-        if self.settings['staging-filler']:
-            self.status(msg='WARNING! A staging filler was specified. Staging '
-                        'fillers are deprecated and may break new builds. You '
-                        'should only specify this option if you are building '
-                        'a system based on a version of Baserock older than '
-                        'Baserock 6.')
 
         if self.settings['build-ref-prefix'] is None:
             if self.settings['trove-id']:

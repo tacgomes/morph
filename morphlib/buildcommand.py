@@ -275,7 +275,6 @@ class BuildCommand(object):
                                                     extra_env=extra_env,
                                                     extra_path=extra_path)
             try:
-                self.install_fillers(staging_area)
                 self.install_dependencies(staging_area, deps, artifact)
             except BaseException:
                 staging_area.abort()
@@ -369,18 +368,6 @@ class BuildCommand(object):
 
         self.app.status(msg='Removing staging area')
         staging_area.remove()
-
-    def install_fillers(self, staging_area):
-        '''Install staging fillers into the staging area.'''
-
-        logging.debug('Pre-populating staging area %s' % staging_area.dirname)
-        logging.debug('Fillers: %s' %
-                      repr(self.app.settings['staging-filler']))
-        for filename in self.app.settings['staging-filler']:
-            with open(filename, 'rb') as f:
-                self.app.status(msg='Installing %(filename)s',
-                                filename=filename)
-                staging_area.install_artifact(f)
 
     # Nasty hack to avoid installing chunks built in 'bootstrap' mode in a
     # different stratum when constructing staging areas.
