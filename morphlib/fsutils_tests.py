@@ -72,3 +72,28 @@ class InvertPathsTests(unittest.TestCase):
         found = frozenset(morphlib.fsutils.invert_paths(walker, ["./foo"]))
         unexpected = ("./foo", "./foo/bar", "./foo/baz")
         self.assertTrue(all(path not in found for path in unexpected))
+
+    def test_lower_mount_precludes(self):
+        walker = dummy_top_down_walker('.', {
+            "tmp": {
+                "morph": {
+                    "staging": {
+                        "build": None,
+                        "inst": None,
+                    },
+                },
+                "ccache": {
+                    "0": None
+                },
+            },
+            "bin": {
+            },
+        })
+        found = frozenset(morphlib.fsutils.invert_paths(
+            walker, [
+                     "./tmp/morph/staging/build",
+                     "./tmp/morph/staging/inst",
+                     "./tmp",
+                    ]))
+        expected = ("./bin",)
+        self.assertEqual(sorted(found), sorted(expected))
