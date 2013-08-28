@@ -39,7 +39,7 @@ cd test/stratum-build-depends/test:morphs
 # be updated here. Any build-depends of any altered strata also need to
 # be altered, such as the 'tools-stratum' which depends on linux-stratum
 # If they are not updated, the build command will fail.
-"$SRCDIR/scripts/test-morph" new-edit linux-system hello-stratum
+"$SRCDIR/scripts/test-morph" edit linux-system hello-stratum
 
 # Likewise, this command must update build-depends or the 'repo' field will
 # not be changed in the temporary build branch, leading to:
