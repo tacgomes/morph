@@ -385,6 +385,20 @@ name: foo
                 'max-jobs': None,
             })
 
+    def test_unsets_defaults_for_chunks(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'chunk',
+            'name': 'foo',
+            'build-system': 'manual',
+        })
+        self.loader.unset_defaults(m)
+        self.assertEqual(
+            dict(m),
+            {
+                'kind': 'chunk',
+                'name': 'foo',
+            })
+
     def test_sets_defaults_for_strata(self):
         m = morphlib.morph3.Morphology({
             'kind': 'stratum',
@@ -421,6 +435,27 @@ name: foo
                 ],
             })
 
+    def test_unsets_defaults_for_strata(self):
+        test_dict = {
+            'kind': 'stratum',
+            'name': 'foo',
+            'chunks': [
+                {
+                    'name': 'bar',
+                    "ref": "bar",
+                    'build-mode': 'bootstrap',
+                    'build-depends': [],
+                },
+            ],
+        }
+        test_dict_with_build_depends = dict(test_dict)
+        test_dict_with_build_depends["build-depends"] = []
+        m = morphlib.morph3.Morphology(test_dict_with_build_depends)
+        self.loader.unset_defaults(m)
+        self.assertEqual(
+            dict(m),
+            test_dict)
+
     def test_sets_defaults_for_system(self):
         m = morphlib.morph3.Morphology({
             'kind': 'system',
@@ -442,6 +477,22 @@ name: foo
                 'disk-size': '1G',
             })
 
+    def test_unsets_defaults_for_system(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'system',
+            'name': 'foo',
+            'arch': 'x86_64',
+            'strata': [],
+        })
+        self.loader.unset_defaults(m)
+        self.assertEqual(
+            dict(m),
+            {
+                'kind': 'system',
+                'name': 'foo',
+                'arch': 'x86_64',
+            })
+
     def test_sets_stratum_chunks_repo_and_morph_from_name(self):
         m = morphlib.morph3.Morphology(
             {
@@ -460,6 +511,26 @@ name: foo
         self.loader.validate(m)
         self.assertEqual(m['chunks'][0]['repo'], 'le-chunk')
         self.assertEqual(m['chunks'][0]['morph'], 'le-chunk')
+
+    def test_collapses_stratum_chunks_repo_and_morph_from_name(self):
+        m = morphlib.morph3.Morphology(
+            {
+                "name": "foo",
+                "kind": "stratum",
+                "chunks": [
+                    {
+                        "name": "le-chunk",
+                        "repo": "le-chunk",
+                        "morph": "le-chunk",
+                        "ref": "ref",
+                        "build-depends": [],
+                    }
+                ]
+            })
+
+        self.loader.unset_defaults(m)
+        self.assertTrue('repo' not in m['chunks'][0])
+        self.assertTrue('morph' not in m['chunks'][0])
 
     def test_convertes_max_jobs_to_an_integer(self):
         m = morphlib.morph3.Morphology(

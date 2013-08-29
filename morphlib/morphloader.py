@@ -332,8 +332,22 @@ class MorphologyLoader(object):
             self._set_stratum_defaults(morphology)
         elif kind == 'chunk':
             self._set_chunk_defaults(morphology)
-        else:
-            assert kind == 'cluster'
+
+    def unset_defaults(self, morphology):
+        '''If a field is equal to its default, delete it.
+
+        The morphology is assumed to be valid.
+
+        '''
+
+        kind = morphology['kind']
+        defaults = self._static_defaults[kind]
+        for key in defaults:
+            if key in morphology and morphology[key] == defaults[key]:
+                del morphology[key]
+
+        if kind == 'stratum':
+            self._unset_stratum_defaults(morphology)
 
     def _set_system_defaults(self, morph):
         pass
@@ -344,6 +358,13 @@ class MorphologyLoader(object):
                 spec['repo'] = spec['name']
             if 'morph' not in spec:
                 spec['morph'] = spec['name']
+
+    def _unset_stratum_defaults(self, morph):
+        for spec in morph['chunks']:
+            if 'repo' in spec and spec['repo'] == spec['name']:
+                del spec['repo']
+            if 'morph' in spec and spec['morph'] == spec['name']:
+                del spec['morph']
 
     def _set_chunk_defaults(self, morph):
         if morph['max-jobs'] is not None:
