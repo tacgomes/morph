@@ -235,6 +235,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                 logging.debug(
                     'Saving morphology: %s %s %s' %
                         (morph.repo_url, morph.ref, morph.filename))
+                loader.unset_defaults(morph)
                 loader.save_to_file(
                     sb.get_filename(morph.repo_url, morph.filename), morph)
                 morph.dirty = False

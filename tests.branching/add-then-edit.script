@@ -32,23 +32,18 @@ cd test:morphs
 ## Sub-optimally, to alter the stratum, you have to `morph edit` it first
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum
 
-git apply <<'EOF'
-diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 3b7be17..c79a9af 100644
---- a/hello-stratum.morph
-+++ b/hello-stratum.morph
-@@ -5,6 +5,10 @@
-   name: hello
-   ref: master
-   repo: test:hello
-+- build-depends: []
-+  name: goodbye
-+  ref: master
-+  repo: test:goodbye
- description: ''
- kind: stratum
- name: hello-stratum
-EOF
+python -c 'import yaml
+with open("hello-stratum.morph", "r") as f:
+    stratum = yaml.load(f)
+stratum["chunks"].append({
+    "build-depends": [],
+    "name": "goodbye",
+    "ref": "master",
+    "repo": "test:goodbye",
+})
+with open("hello-stratum.morph", "w") as f:
+    yaml.dump(stratum, f)
+'
 
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye
 
