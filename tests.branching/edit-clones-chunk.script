@@ -26,7 +26,7 @@ cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" branch test:morphs newbranch
 
 # Edit chunk.
-"$SRCDIR/scripts/test-morph" new-edit hello-system hello-stratum hello
+"$SRCDIR/scripts/test-morph" edit hello-system hello-stratum hello
 
 echo "Current branches:"
 "$SRCDIR/scripts/test-morph" foreach git branch

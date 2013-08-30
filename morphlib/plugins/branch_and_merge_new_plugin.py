@@ -42,7 +42,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'branch', self.branch, arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand(
-            'new-edit', self.edit, arg_synopsis='SYSTEM STRATUM [CHUNK]')
+            'edit', self.edit, arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
@@ -235,6 +235,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                 logging.debug(
                     'Saving morphology: %s %s %s' %
                         (morph.repo_url, morph.ref, morph.filename))
+                loader.unset_defaults(morph)
                 loader.save_to_file(
                     sb.get_filename(morph.repo_url, morph.filename), morph)
                 morph.dirty = False
@@ -394,6 +395,11 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         also done already, Morph does nothing.
 
         '''
+
+        if len(args) not in (2, 3):
+            raise cliapp.AppException('morph edit needs the names of a system,'
+                                      ' a stratum and optionally a chunk'
+                                      ' as parameters')
 
         system_name = args[0]
         stratum_name = args[1]
