@@ -395,6 +395,11 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         '''
 
+        if len(args) not in (2, 3):
+            raise cliapp.AppException('morph edit needs the names of a system,'
+                                      ' a stratum and optionally a chunk'
+                                      ' as parameters')
+
         system_name = args[0]
         stratum_name = args[1]
         chunk_name = args[2] if len(args) == 3 else None
