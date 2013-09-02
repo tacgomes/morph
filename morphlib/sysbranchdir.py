@@ -95,8 +95,7 @@ class SystemBranchDirectory(object):
 
         # Remove anyleading slashes, or os.path.join below will only
         # use the relative part (since it's absolute, not relative).
-        while relative.startswith('/'):
-            relative = relative[1:]
+        relative = relative.lstrip('/')
 
         return os.path.join(self.root_directory, relative)
 
