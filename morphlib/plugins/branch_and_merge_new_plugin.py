@@ -44,6 +44,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'edit', self.edit, arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand(
+            'petrify', self.petrify, arg_synopsis='')
+        self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
@@ -604,3 +606,92 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                     % (repo, pretty_command))
             self.app.output.write('\n')
             self.app.output.flush()
+
+    def _load_all_sysbranch_morphologies(self, sb, loader):
+        # Read in all the morphologies in the root repository.
+        self.app.status(msg='Loading in all morphologies')
+        morphs = morphlib.morphset.MorphologySet()
+        mf = morphlib.morphologyfinder.MorphologyFinder(
+            morphlib.gitdir.GitDirectory(
+                sb.get_git_directory_name(sb.root_repository_url)))
+        for morph in mf.list_morphologies():
+            text, filename = mf.read_morphology(morph)
+            m = loader.load_from_string(text, filename=filename)
+            m.repo_url = sb.root_repository_url
+            m.ref = sb.system_branch_name
+            morphs.add_morphology(m)
+        return morphs
+
+    def petrify(self, args):
+        '''Convert all chunk refs in a system branch to be fixed SHA1s.
+
+        This modifies all git commit references in system and stratum
+        morphologies, in the current system branch, to be fixed SHA
+        commit identifiers, rather than symbolic branch or tag names.
+        This is useful for making sure none of the components in a system
+        branch change accidentally.
+
+        Consider the following scenario:
+
+        * The `master` system branch refers to `gcc` using the
+          `baserock/morph` ref. This is appropriate, since the main line
+          of development should use the latest curated code.
+
+        * You create a system branch to prepare for a release, called
+          `TROVE_ID/release/2.0`. The reference to `gcc` is still
+          `baserock/morph`.
+
+        * You test everything, and make a release. You deploy the release
+          images onto devices, which get shipped to your customers.
+
+        * A new version GCC is committed to the `baserock/morph` branch.
+
+        * Your release branch suddenly uses a new compiler, which may
+          or may not work for your particular system at that release.
+
+        To avoid this, you need to _petrify_ all git references
+        so that they do not change accidentally. If you've tested
+        your release with the GCC release that is stored in commit
+        `94c50665324a7aeb32f3096393ec54b2e63bfb28`, then you should
+        continue to use that version of GCC, regardless of what might
+        happen in the master system branch. If, and only if, you decide
+        that a new compiler would be good for your release should you
+        include it in your release branch. This way, only the things
+        that you change intentionally change in your release branch.
+
+        '''
+
+        if args:
+            raise cliapp.AppException('morph petrify takes no arguments')
+
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
+        loader = morphlib.morphloader.MorphologyLoader()
+        lrc, rrc = morphlib.util.new_repo_caches(self.app)
+        update_repos = not self.app.settings['no-git-update']
+        done = set()
+
+        morphs = self._load_all_sysbranch_morphologies(sb, loader)
+
+        # Petrify the ref to each stratum and chunk.
+        def petrify_specs(specs):
+            for spec in specs:
+                ref = spec['ref']
+                # Do not double petrify refs
+                if morphlib.git.is_valid_sha1(ref):
+                    continue
+                commit_sha1, tree_sha1 = self.app.resolve_ref(
+                    lrc, rrc, spec['repo'], ref, update=update_repos)
+                assert 'name' in spec or 'morph' in spec
+                filename = '%s.morph' % spec.get('morph', spec.get('name'))
+                morphs.change_ref(spec['repo'], ref, filename, commit_sha1)
+
+        for m in morphs.morphologies:
+            if m['kind'] == 'system':
+                petrify_specs(m['strata'])
+            elif m['kind'] == 'stratum':
+                petrify_specs(m['build-depends'])
+                petrify_specs(m['chunks'])
+
+        # Write morphologies back out again.
+        self._save_dirty_morphologies(loader, sb, morphs.morphologies)

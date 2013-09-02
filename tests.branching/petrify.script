@@ -32,7 +32,7 @@ git push --quiet origin HEAD
 "$SRCDIR/scripts/test-morph" edit hello-system hello-stratum goodbye
 (cd ../test:goodbye && git push --quiet origin HEAD)
 
-"$SRCDIR/scripts/test-morph" petrify
+"$SRCDIR/scripts/test-morph" old-petrify
 echo "Petrified:"
 cat hello-stratum.morph
 
