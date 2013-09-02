@@ -138,6 +138,7 @@ class MorphologySet(object):
         def change_specs(specs, m):
             for spec in specs:
                 if wanted_spec(spec):
+                    spec['unpetrify-ref'] = spec['ref']
                     spec['ref'] = new_ref
                     m.dirty = True
 

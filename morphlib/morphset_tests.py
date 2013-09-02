@@ -127,7 +127,8 @@ class MorphologySetTests(unittest.TestCase):
             {
                 'repo': 'test:morphs',
                 'ref': 'new-ref',
-                'morph': 'foo-stratum'
+                'morph': 'foo-stratum',
+                'unpetrify-ref': 'master',
             })
 
     def test_changes_stratum_ref_in_build_depends(self):
@@ -140,6 +141,7 @@ class MorphologySetTests(unittest.TestCase):
                     'repo': self.stratum.repo_url,
                     'ref': self.stratum.ref,
                     'morph': self.stratum['name'],
+                    'unpetrify-ref': 'master',
                 },
             ]
         })
@@ -157,7 +159,8 @@ class MorphologySetTests(unittest.TestCase):
             {
                 'repo': 'test:morphs',
                 'ref': 'new-ref',
-                'morph': 'foo-stratum'
+                'morph': 'foo-stratum',
+                'unpetrify-ref': 'master',
             })
 
     def test_changes_chunk_ref(self):
@@ -175,6 +178,7 @@ class MorphologySetTests(unittest.TestCase):
                     'repo': 'test:foo-chunk',
                     'ref': 'new-ref',
                     'morph': 'foo-chunk',
+                    'unpetrify-ref': 'master',
                 }
             ])
 
