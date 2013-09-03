@@ -46,6 +46,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'petrify', self.petrify, arg_synopsis='')
         self.app.add_subcommand(
+            'unpetrify', self.unpetrify, arg_synopsis='')
+        self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
@@ -608,7 +610,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             self.app.output.flush()
 
     def _load_all_sysbranch_morphologies(self, sb, loader):
-        # Read in all the morphologies in the root repository.
+        '''Read in all the morphologies in the root repository.'''
         self.app.status(msg='Loading in all morphologies')
         morphs = morphlib.morphset.MorphologySet()
         mf = morphlib.morphologyfinder.MorphologyFinder(
@@ -692,6 +694,50 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             elif m['kind'] == 'stratum':
                 petrify_specs(m['build-depends'])
                 petrify_specs(m['chunks'])
+
+        # Write morphologies back out again.
+        self._save_dirty_morphologies(loader, sb, morphs.morphologies)
+
+    def unpetrify(self, args):
+        '''Reverse the process of petrification.
+
+        This undoes the changes `morph petrify` did.
+
+        '''
+
+        if args:
+            raise cliapp.AppException('morph petrify takes no arguments')
+
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
+        loader = morphlib.morphloader.MorphologyLoader()
+        lrc, rrc = morphlib.util.new_repo_caches(self.app)
+        update_repos = not self.app.settings['no-git-update']
+        done = set()
+
+        morphs = self._load_all_sysbranch_morphologies(sb, loader)
+
+        # Restore the ref for each stratum and chunk
+        def unpetrify_specs(specs):
+            dirty = False
+            for spec in specs:
+                ref = spec['ref']
+                # Don't attempt to unpetrify refs which aren't petrified
+                if not ('unpetrify-ref' in spec
+                        and morphlib.git.is_valid_sha1(ref)):
+                    continue
+                spec['ref'] = spec.pop('unpetrify-ref')
+                dirty = True
+            return dirty
+
+        for m in morphs.morphologies:
+            dirty = False
+            if m['kind'] == 'system':
+                dirty = dirty or unpetrify_specs(m['strata'])
+            elif m['kind'] == 'stratum':
+                dirty = dirty or unpetrify_specs(m['build-depends'])
+                dirty = dirty or unpetrify_specs(m['chunks'])
+            m.dirty = True
 
         # Write morphologies back out again.
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
