@@ -26,7 +26,7 @@ import urllib2
 import shutil
 
 from bottle import Bottle, request, response, run, static_file
-
+from flup.server.fcgi import WSGIServer
 from morphcacheserver.repocache import RepoCache
 
 
@@ -61,6 +61,10 @@ class MorphCacheServer(cliapp.Application):
                               'cache directories are directly managed')
         self.settings.boolean(['enable-writes'],
                               'enable the write methods (fetch and delete)')
+        self.settings.boolean(['fcgi-server'],
+                              'runs a fcgi-server',
+                              default=True)
+
 
     def _fetch_artifact(self, url, filename):
         in_fh = None
@@ -302,8 +306,12 @@ class MorphCacheServer(cliapp.Application):
         
         root = Bottle()
         root.mount(app, '/1.0')
-        
-        run(root, host='0.0.0.0', port=self.settings['port'], reloader=True)
+
+
+	if self.settings['fcgi-server']:
+            WSGIServer(root).run()
+        else:
+            run(root, host='0.0.0.0', port=self.settings['port'], reloader=True)
 
     def _unescape_parameter(self, param):
         return urllib.unquote(param)
