@@ -1,6 +1,7 @@
 test:morphs
 example-tag
 tagged-tag
+
 test:morphs
 tag tagged-tag
 Tagger: developer <developer@example.com>
@@ -41,6 +42,7 @@ index b0fed3b..875d73a 100644
    repo: test:morphs
 +  unpetrify-ref: master
  system-kind: rootfs-tarball
+
 test:morphs
 commit ca7594f436da55bda2cfff2c6484d11aa0ea4cbc
 Author:     developer <developer@example.com>
@@ -57,3 +59,4 @@ Commit:     developer <developer@example.com>
 CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     initial
+
