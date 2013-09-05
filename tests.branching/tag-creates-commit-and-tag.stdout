@@ -38,6 +38,7 @@ index b0fed3b..4c4ee3e 100644
    repo: test:morphs
 +  unpetrify-ref: master
  system-kind: rootfs-tarball
+
 test:morphs
 commit 9509c9c379f8ba643b2ad9a6ec50ecf96993cbb5
 Author:     developer <developer@example.com>
@@ -54,3 +55,4 @@ Commit:     developer <developer@example.com>
 CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     initial
+

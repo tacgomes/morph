@@ -79,7 +79,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                   group=group_branch)
 
         # Advanced commands
-        self.app.add_subcommand('foreach', self.foreach,
+        self.app.add_subcommand('old-foreach', self.foreach,
                                 arg_synopsis='-- COMMAND [ARGS...]')
 
     def disable(self):

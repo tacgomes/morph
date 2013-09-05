@@ -47,6 +47,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
+        self.app.add_subcommand('foreach', self.foreach,
+                                arg_synopsis='-- COMMAND [ARGS...]')
 
     def disable(self):
         pass
@@ -546,3 +548,59 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                 return True
         return False
 
+    def foreach(self, args):
+        '''Run a command in each repository checked out in a system branch.
+
+        Use -- before specifying the command to separate its arguments from
+        Morph's own arguments.
+
+        Command line arguments:
+
+        * `--` indicates the end of option processing for Morph.
+        * `COMMAND` is a command to run.
+        * `ARGS` is a list of arguments or options to be passed onto
+          `COMMAND`.
+
+        This runs the given `COMMAND` in each git repository belonging
+        to the current system branch that exists locally in the current
+        workspace.  This can be a handy way to do the same thing in all
+        the local git repositories.
+
+        For example:
+
+            morph foreach -- git push
+
+        The above command would push any committed changes in each
+        repository to the git server.
+
+        '''
+
+        if not args:
+            raise cliapp.AppException('morph foreach expects a command to run')
+
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
+
+        for gd in sb.list_git_directories():
+            # Get the repository's original name
+            # Continue in the case of error, since the previous iteration
+            # worked in the case of the user cloning a repository in the
+            # system branch's directory.
+            try:
+                repo = gd.get_config('morph.repository')
+            except cliapp.AppException:
+                continue
+
+            self.app.output.write('%s\n' % repo)
+            status, output, error = self.app.runcmd_unchecked(
+                args, cwd=gd.dirname)
+            self.app.output.write(output)
+            if status != 0:
+                self.app.output.write(error)
+                pretty_command = ' '.join(cliapp.shell_quote(arg)
+                                          for arg in args)
+                raise cliapp.AppException(
+                    'Command failed at repo %s: %s'
+                    % (repo, pretty_command))
+            self.app.output.write('\n')
+            self.app.output.flush()
