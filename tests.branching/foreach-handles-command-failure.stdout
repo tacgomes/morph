@@ -1,2 +1,2 @@
-test:morphs
+test:hello
 fatal: No such remote or remote group: non-existant-remote

@@ -1,1 +1,1 @@
-ERROR: Command failed at repo test:morphs: git remote update non-existant-remote
+ERROR: Command failed at repo test:hello: git remote update non-existant-remote

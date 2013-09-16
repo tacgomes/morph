@@ -581,7 +581,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
 
-        for gd in sb.list_git_directories():
+        for gd in sorted(sb.list_git_directories(), key=lambda gd: gd.dirname):
             # Get the repository's original name
             # Continue in the case of error, since the previous iteration
             # worked in the case of the user cloning a repository in the

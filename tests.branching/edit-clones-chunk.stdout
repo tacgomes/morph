@@ -1,19 +1,21 @@
 Current branches:
-test:morphs
+test:hello
   master
 * newbranch
 
-test:hello
+test:morphs
   master
 * newbranch
 
 
 Current origins:
-test:morphs
+test:hello
 * remote origin
-  Fetch URL: file://TMP/morphs
-  Push  URL: file://TMP/morphs
-  HEAD branch: master
+  Fetch URL: file://TMP/hello
+  Push  URL: file://TMP/hello
+  HEAD branch (remote HEAD is ambiguous, may be one of the following):
+    alfred
+    master
   Remote branches:
     alfred tracked
     master tracked
@@ -22,13 +24,11 @@ test:morphs
   Local ref configured for 'git push':
     master pushes to master (up to date)
 
-test:hello
+test:morphs
 * remote origin
-  Fetch URL: file://TMP/hello
-  Push  URL: file://TMP/hello
-  HEAD branch (remote HEAD is ambiguous, may be one of the following):
-    alfred
-    master
+  Fetch URL: file://TMP/morphs
+  Push  URL: file://TMP/morphs
+  HEAD branch: master
   Remote branches:
     alfred tracked
     master tracked
