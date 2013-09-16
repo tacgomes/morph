@@ -1,10 +1,10 @@
 Current branches:
-test:morphs
-* alfred
-
 test:hello
 * alfred
   master
+
+test:morphs
+* alfred
 
 
 Files in hello:
