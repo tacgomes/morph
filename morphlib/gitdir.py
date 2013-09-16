@@ -17,8 +17,25 @@
 
 
 import cliapp
+import glob
+import os
 
 import morphlib
+
+
+class NoWorkingTreeError(cliapp.AppException):
+
+    def __init__(self, repo):
+        cliapp.AppException.__init__(
+            self, 'Git directory %s has no working tree '
+                  '(is bare).' % repo.dirname)
+
+
+class InvalidRefError(cliapp.AppException):
+    def __init__(self, repo, ref):
+        cliapp.AppException.__init__(
+            self, 'Git directory %s has no commit '
+                  'at ref %s.' %(repo.dirname, ref))
 
 
 class GitDirectory(object):
@@ -125,6 +142,58 @@ class GitDirectory(object):
     def update_remotes(self): # pragma: no cover
         '''Run "git remote update --prune".'''
         self._runcmd(['git', 'remote', 'update', '--prune'])
+
+    def is_bare(self):
+        '''Determine whether the repository has no work tree (is bare)'''
+        return self.get_config('core.bare') == 'true'
+
+    def list_files(self, ref=None):
+        '''Return an iterable of the files in the repository.
+
+        If `ref` is specified, list files at that ref, otherwise
+        use the working tree.
+
+        If this is a bare repository and no ref is specified, raises
+        an exception.
+
+        '''
+        if ref is None and self.is_bare():
+            raise NoWorkingTreeError(self)
+        if ref is None:
+            return self._list_files_in_work_tree()
+        else:
+            return self._list_files_in_ref(ref)
+
+    def _rev_parse_tree(self, ref):
+        try:
+            return self._runcmd(['git', 'rev-parse', '--verify',
+                                 '%s^{tree}' % ref]).strip()
+        except cliapp.AppException as e:
+            raise InvalidRefError(self, ref)
+
+    def _list_files_in_work_tree(self):
+        for dirpath, subdirs, filenames in os.walk(self.dirname):
+            if dirpath == self.dirname and '.git' in subdirs:
+                subdirs.remove('.git')
+            for filename in filenames:
+                yield os.path.join(dirpath, filename)[len(self.dirname)+1:]
+
+    def _list_files_in_ref(self, ref):
+        tree = self._rev_parse_tree(ref)
+        output = self._runcmd(['git', 'ls-tree', '--name-only', '-rz', tree])
+        # ls-tree appends \0 instead of interspersing, so we need to
+        # strip the trailing \0 before splitting
+        paths = output.strip('\0').split('\0')
+        return paths
+
+    def read_file(self, filename, ref=None):
+        if ref is None and self.is_bare():
+            raise NoWorkingTreeError(self)
+        if ref is None:
+            with open(os.path.join(self.dirname, filename)) as f:
+                return f.read()
+        tree = self._rev_parse_tree(ref)
+        return self.cat_file('blob', tree, filename)
 
 
 def init(dirname):

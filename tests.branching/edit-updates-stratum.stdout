@@ -1,21 +1,22 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 73ed482..3731d63 100644
+index 73ed482..475fe0f 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -2,7 +2,7 @@ chunks:
+@@ -2,7 +2,8 @@ chunks:
  - build-depends: []
    build-mode: test
    name: hello
 -  ref: master
 +  ref: newbranch
    repo: test:hello
++  unpetrify-ref: master
  kind: stratum
  name: hello-stratum
 diff --git a/hello-system.morph b/hello-system.morph
-index b0fed3b..801a955 100644
+index b0fed3b..199c924 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -3,6 +3,5 @@ kind: system
+@@ -3,6 +3,6 @@ kind: system
  name: hello-system
  strata:
  - morph: hello-stratum
@@ -23,3 +24,4 @@ index b0fed3b..801a955 100644
 +  ref: newbranch
    repo: test:morphs
 -system-kind: rootfs-tarball
++  unpetrify-ref: master

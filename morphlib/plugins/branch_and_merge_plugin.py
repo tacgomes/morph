@@ -61,8 +61,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='BRANCH')
 #        self.app.add_subcommand('edit', self.edit,
 #                                arg_synopsis='SYSTEM STRATUM [CHUNK]')
-        self.app.add_subcommand('petrify', self.petrify)
-        self.app.add_subcommand('unpetrify', self.unpetrify)
+        self.app.add_subcommand('old-petrify', self.petrify)
+        self.app.add_subcommand('old-unpetrify', self.unpetrify)
         self.app.add_subcommand(
             'tag', self.tag, arg_synopsis='TAG-NAME -- [GIT-COMMIT-ARG...]')
         self.app.add_subcommand('build', self.build,

@@ -20,6 +20,7 @@ import ConfigParser
 import logging
 import os
 import re
+import string
 import StringIO
 import time
 
@@ -311,8 +312,7 @@ def clone_into(runcmd, srcpath, targetpath, ref=None):
 def is_valid_sha1(ref):
     '''Checks whether a string is a valid SHA1.'''
 
-    valid_chars = 'abcdefABCDEF0123456789'
-    return len(ref) == 40 and all([x in valid_chars for x in ref])
+    return len(ref) == 40 and all(x in string.hexdigits for x in ref)
 
 def rev_parse(runcmd, gitdir, ref):
     '''Find the sha1 for the given ref'''
