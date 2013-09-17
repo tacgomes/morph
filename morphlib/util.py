@@ -306,26 +306,35 @@ def find_root(dirname, subdir_name):
     return dirname
 
 
-def find_leaf(dirname, subdir_name):
+def find_leaves(search_dir, subdir_name):
     '''This is like find_root, except it looks towards leaves.
 
-    It only looks in a subdirectory if it is the only subdirectory.
-    If there are no subdirectories, or more than one, fail.
-    (Subdirectories whose name starts with a dot are ignored for this.)
+    The directory tree, starting at search_dir is traversed.
+
+    If a directory has a subdirectory called subdir_name, then
+    the directory is returned.
+
+    It does not recurse into a leaf's subdirectories.
 
     '''
 
-    while True:
-        if os.path.exists(os.path.join(dirname, subdir_name)):
-            return dirname
-        pathnames = [
-            os.path.join(dirname, x)
-            for x in os.listdir(dirname)
-            if not x.startswith('.')]
-        subdirs = [x for x in pathnames if os.path.isdir(x)]
-        if len(subdirs) != 1:
-            return None
-        dirname = subdirs[0]
+    for dirname, subdirs, filenames in os.walk(search_dir):
+        if subdir_name in subdirs:
+            del subdirs[:]
+            yield dirname
+
+
+def find_leaf(dirname, subdir_name):
+    '''This is like find_root, except it looks towards leaves.
+
+    If there are no subdirectories, or more than one, fail.
+
+    '''
+
+    leaves = list(find_leaves(dirname, subdir_name))
+    if len(leaves) == 1:
+        return leaves[0]
+    return None
 
 
 class EnvironmentAlreadySetError(morphlib.Error):

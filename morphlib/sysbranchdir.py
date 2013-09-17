@@ -156,13 +156,9 @@ class SystemBranchDirectory(object):
 
         '''
 
-        gitdirs = []
-        for dirname, subdirs, filenames in os.walk(self.root_directory):
-            if os.path.isdir(os.path.join(dirname, '.git')):
-                del subdirs[:]
-                gitdirs.append(morphlib.gitdir.GitDirectory(dirname))
-
-        return gitdirs
+        return (morphlib.gitdir.GitDirectory(dirname)
+                for dirname in
+                morphlib.util.find_leaves(self.root_directory, '.git'))
 
 
 def create(root_directory, root_repository_url, system_branch_name):

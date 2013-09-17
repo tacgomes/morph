@@ -99,3 +99,13 @@ class WorkspaceTests(unittest.TestCase):
         sb = ws.create_system_branch_directory(url, branch)
         self.assertTrue(type(sb), morphlib.sysbranchdir.SystemBranchDirectory)
 
+    def test_lists_created_system_branches(self):
+        self.create_it()
+        ws = morphlib.workspace.open(self.workspace_dir)
+
+        branches = ["branch/1", "branch/2"]
+        for branch in branches:
+            ws.create_system_branch_directory('test:morphs', branch)
+        self.assertEqual(sorted(sb.system_branch_name
+                                for sb in ws.list_system_branches()),
+                         branches)

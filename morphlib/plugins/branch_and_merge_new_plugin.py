@@ -53,6 +53,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             'show-branch-root', self.show_branch_root, arg_synopsis='')
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='-- COMMAND [ARGS...]')
+        self.app.add_subcommand('status', self.status,
+                                arg_synopsis='')
 
     def disable(self):
         pass
@@ -741,3 +743,71 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         # Write morphologies back out again.
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
+
+    def status(self, args):
+        '''Show information about the current system branch or workspace
+
+        This shows the status of every local git repository of the
+        current system branch. This is similar to running `git status`
+        in each repository separately.
+
+        If run in a Morph workspace, but not in a system branch checkout,
+        it lists all checked out system branches in the workspace.
+
+        '''
+
+        if args:
+            raise cliapp.AppException('morph status takes no arguments')
+
+        ws = morphlib.workspace.open('.')
+        try:
+            sb = morphlib.sysbranchdir.open_from_within('.')
+        except morphlib.sysbranchdir.NotInSystemBranch:
+            self._workspace_status(ws)
+        else:
+            self._branch_status(ws, sb)
+
+    def _workspace_status(self, ws):
+        '''Show information about the current workspace
+
+        This lists all checked out system branches in the workspace.
+
+        '''
+        self.app.output.write("System branches in current workspace:\n")
+        branches = sorted(ws.list_system_branches(),
+                          key=lambda x: x.root_directory)
+        for sb in branches:
+            self.app.output.write("    %s\n" % sb.get_config('branch.name'))
+
+    def _branch_status(self, ws, sb):
+        '''Show information about the current branch
+
+        This shows the status of every local git repository of the
+        current system branch. This is similar to running `git status`
+        in each repository separately.
+
+        '''
+        branch = sb.get_config('branch.name')
+        root = sb.get_config('branch.root')
+
+        self.app.output.write("On branch %s, root %s\n" % (branch, root))
+
+        has_uncommitted_changes = False
+        for gd in sorted(sb.list_git_directories(), key=lambda x: x.dirname):
+            try:
+                repo = gd.get_config('morph.repository')
+            except cliapp.AppException:
+                self.app.output.write(
+                    '    %s: not part of system branch\n' % gd.dirname)
+            # TODO: make this less vulnerable to a branch using
+            #       refs/heads/foo instead of foo
+            head = gd.HEAD
+            if head != branch:
+                self.app.output.write(
+                    '    %s: unexpected ref checked out %r\n' % (repo, head))
+            if any(gd.get_uncommitted_changes()):
+                has_uncommitted_changes = True
+                self.app.output.write('    %s: uncommitted changes\n' % repo)
+
+        if not has_uncommitted_changes:
+            self.app.output.write("\nNo repos have outstanding changes.\n")
