@@ -53,7 +53,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             'show-branch-root', self.show_branch_root, arg_synopsis='')
         self.app.add_subcommand('foreach', self.foreach,
                                 arg_synopsis='-- COMMAND [ARGS...]')
-        self.app.add_subcommand('new-status', self.status,
+        self.app.add_subcommand('status', self.status,
                                 arg_synopsis='')
 
     def disable(self):

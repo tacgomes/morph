@@ -67,7 +67,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             'tag', self.tag, arg_synopsis='TAG-NAME -- [GIT-COMMIT-ARG...]')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
-        self.app.add_subcommand('status', self.status)
+        self.app.add_subcommand('old-status', self.status)
         self.app.add_subcommand('branch-from-image', self.branch_from_image,
                                  arg_synopsis='REPO BRANCH')
         group_branch = 'Branching Options'
