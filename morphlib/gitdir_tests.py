@@ -137,3 +137,13 @@ class GitDirectoryContentsTests(unittest.TestCase):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         self.assertRaises(morphlib.gitdir.InvalidRefError,
                           gd.read_file, 'bar', 'no-such-ref')
+
+    def test_HEAD(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        self.assertEqual(gd.HEAD, 'master')
+
+        gd.branch('foo', 'master')
+        self.assertEqual(gd.HEAD, 'master')
+
+        gd.checkout('foo')
+        self.assertEqual(gd.HEAD, 'foo')

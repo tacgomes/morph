@@ -195,6 +195,11 @@ class GitDirectory(object):
         tree = self._rev_parse_tree(ref)
         return self.cat_file('blob', tree, filename)
 
+    @property
+    def HEAD(self):
+        output = self._runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+        return output.strip()
+
 
 def init(dirname):
     '''Initialise a new git repository.'''
