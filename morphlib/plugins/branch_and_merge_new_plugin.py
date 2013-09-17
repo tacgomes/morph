@@ -787,5 +787,27 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         in each repository separately.
 
         '''
-        pass
+        branch = sb.get_config('branch.name')
+        root = sb.get_config('branch.root')
 
+        self.app.output.write("On branch %s, root %s\n" % (branch, root))
+
+        has_uncommitted_changes = False
+        for gd in sorted(sb.list_git_directories(), key=lambda x: x.dirname):
+            try:
+                repo = gd.get_config('morph.repository')
+            except cliapp.AppException:
+                self.app.output.write(
+                    '    %s: not part of system branch\n' % gd.dirname)
+            # TODO: make this less vulnerable to a branch using
+            #       refs/heads/foo instead of foo
+            head = gd.HEAD
+            if head != branch:
+                self.app.output.write(
+                    '    %s: unexpected ref checked out %r\n' % (repo, head))
+            if any(gd.get_uncommitted_changes()):
+                has_uncommitted_changes = True
+                self.app.output.write('    %s: uncommitted changes\n' % repo)
+
+        if not has_uncommitted_changes:
+            self.app.output.write("\nNo repos have outstanding changes.\n")
