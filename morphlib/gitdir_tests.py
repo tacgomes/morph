@@ -147,3 +147,8 @@ class GitDirectoryContentsTests(unittest.TestCase):
 
         gd.checkout('foo')
         self.assertEqual(gd.HEAD, 'foo')
+
+    def test_uncommitted_changes(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        self.assertEqual(sorted(gd.get_uncommitted_changes()),
+                         [(' D', 'foo', None)])
