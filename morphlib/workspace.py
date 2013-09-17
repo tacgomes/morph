@@ -87,6 +87,11 @@ class Workspace(object):
             dirname, root_repository_url, system_branch_name)
         return sb
 
+    def list_system_branches(self):
+        return (morphlib.sysbranchdir.open(dirname)
+                for dirname in
+                morphlib.util.find_leaves(self.root, '.morph-system-branch'))
+
 
 def open(dirname):
     '''Open an existing workspace.
