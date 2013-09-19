@@ -122,6 +122,66 @@ class MorphologySet(object):
             raise ChunkNotInStratumError(stratum_morph['name'], chunk_name)
         return repo_url, ref, morph
 
+    def _traverse_specs(self, cb_process, cb_filter=lambda s: True):
+        '''Higher-order function for processing every spec.
+        
+        This traverses every spec in all the morphologies, so all chunk,
+        stratum and stratum-build-depend specs are visited.
+
+        It is to be passed one or two callbacks. `cb_process` is given
+        a spec, which it may alter, but if it does, it must return True.
+
+        `cb_filter` is given the morphology, the kind of spec it is
+        working on in addition to the spec itself.
+
+        `cb_filter` is expected to decide whether to run `cb_process`
+        on the spec.
+
+        Arguably this could be checked in `cb_process`, but it can be less
+        logic over all since `cb_process` need not conditionally return.
+
+        If any specs have been altered, at the end of iteration, any
+        morphologies in the MorphologySet that are referred to by an
+        altered spec are also changed.
+
+        This requires a full iteration of the MorphologySet, so it is not a
+        cheap operation.
+
+        A coroutine was attempted, but it required the same amount of
+        code at the call site as doing it by hand.
+        
+        '''
+
+        altered_references = {}
+
+        def process_spec_list(m, kind):
+            specs = m[kind]
+            for spec in specs:
+                if cb_filter(m, kind, spec):
+                    orig_spec = (spec['repo'], spec['ref'], spec['morph'])
+                    dirtied = cb_process(m, kind, spec)
+                    if dirtied:
+                        m.dirty = True
+                        altered_references[orig_spec] = spec
+
+        for m in self.morphologies:
+            if m['kind'] == 'system':
+                process_spec_list(m, 'strata')
+            elif m['kind'] == 'stratum':
+                process_spec_list(m, 'build-depends')
+                process_spec_list(m, 'chunks')
+
+        for m in self.morphologies:
+            tup = (m.repo_url, m.ref, m.filename[:-len('.morph')])
+            if tup in altered_references:
+                spec = altered_references[tup]
+                if m.ref != spec['ref']:
+                    m.ref = spec['ref']
+                    m.dirty = True
+                assert (m.filename == spec['morph'] + '.morph'
+                        or m.repo_url == spec['repo']), \
+                       'Moving morphologies is not supported.'
+
     def change_ref(self, repo_url, orig_ref, morph_filename, new_ref):
         '''Change a triplet's ref to a new one in all morphologies in a ref.
 
@@ -130,30 +190,15 @@ class MorphologySet(object):
 
         '''
 
-        def wanted_spec(spec):
+        def wanted_spec(m, kind, spec):
             return (spec['repo'] == repo_url and
                     spec['ref'] == orig_ref and
                     spec['morph'] + '.morph' == morph_filename)
 
-        def change_specs(specs, m):
-            for spec in specs:
-                if wanted_spec(spec):
-                    spec['unpetrify-ref'] = spec['ref']
-                    spec['ref'] = new_ref
-                    m.dirty = True
+        def process_spec(m, kind, spec):
+            spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = new_ref
+            return True
 
-        def change(m):
-            if m['kind'] == 'system':
-                change_specs(m['strata'], m)
-            elif m['kind'] == 'stratum':
-                change_specs(m['chunks'], m)
-                change_specs(m['build-depends'], m)
-
-        for m in self.morphologies:
-            change(m)
-
-        m = self._get_morphology(repo_url, orig_ref, morph_filename)
-        if m and m.ref != new_ref:
-            m.ref = new_ref
-            m.dirty = True
+        self._traverse_specs(process_spec, wanted_spec)
 

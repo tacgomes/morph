@@ -145,6 +145,9 @@ class MorphologySetTests(unittest.TestCase):
                 },
             ]
         })
+        other_stratum.repo_url = 'test:morphs'
+        other_stratum.ref = 'master'
+        other_stratum.filename = 'other-stratum.morph'
 
         self.morphs.add_morphology(self.system)
         self.morphs.add_morphology(self.stratum)
