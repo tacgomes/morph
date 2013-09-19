@@ -708,33 +708,11 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
         loader = morphlib.morphloader.MorphologyLoader()
-        lrc, rrc = morphlib.util.new_repo_caches(self.app)
-        update_repos = not self.app.settings['no-git-update']
-        done = set()
 
         morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
         # Restore the ref for each stratum and chunk
-        def unpetrify_specs(specs):
-            dirty = False
-            for spec in specs:
-                ref = spec['ref']
-                # Don't attempt to unpetrify refs which aren't petrified
-                if not ('unpetrify-ref' in spec
-                        and morphlib.git.is_valid_sha1(ref)):
-                    continue
-                spec['ref'] = spec.pop('unpetrify-ref')
-                dirty = True
-            return dirty
-
-        for m in morphs.morphologies:
-            dirty = False
-            if m['kind'] == 'system':
-                dirty = dirty or unpetrify_specs(m['strata'])
-            elif m['kind'] == 'stratum':
-                dirty = dirty or unpetrify_specs(m['build-depends'])
-                dirty = dirty or unpetrify_specs(m['chunks'])
-            m.dirty = True
+        morphs.unpetrify_all()
 
         # Write morphologies back out again.
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
