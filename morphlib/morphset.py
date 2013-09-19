@@ -202,3 +202,23 @@ class MorphologySet(object):
 
         self._traverse_specs(process_spec, wanted_spec)
 
+    def list_refs(self):
+        '''Return a set of all the (repo, ref) pairs in the MorphologySet.
+
+        This does not dirty the morphologies so they do not need to be
+        written back to the disk.
+
+        '''
+        known = set()
+
+        def wanted_spec(m, kind, spec):
+            return (spec['repo'], spec['ref']) not in known
+
+        def process_spec(spec):
+            known.add((spec['repo'], spec['ref']))
+            return False
+
+        self._traverse_specs(process_spec, wanted_spec)
+
+        return known
+

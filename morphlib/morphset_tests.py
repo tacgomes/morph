@@ -185,3 +185,9 @@ class MorphologySetTests(unittest.TestCase):
                 }
             ])
 
+    def test_list_refs(self):
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.assertEqual(sorted(self.morphs.list_refs()),
+                         [('test:foo-chunk', 'master'),
+                          ('test:morphs', 'master')])
