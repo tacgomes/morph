@@ -272,3 +272,16 @@ class MorphologySet(object):
 
         self._traverse_specs(process_chunk_spec, wanted_chunk_spec)
 
+    def unpetrify_all(self):
+        '''If a spec is petrified, unpetrify it.
+
+        '''
+
+        def wanted_spec(m, kind, spec):
+            return ('unpetrify-ref' in spec and
+                    morphlib.git.is_valid_sha1(spec['ref']))
+        def process_spec(m, kind, spec):
+            spec['ref'] = spec.pop('unpetrify-ref')
+            return True
+
+        self._traverse_specs(process_spec, wanted_spec)
