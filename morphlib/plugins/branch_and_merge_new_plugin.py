@@ -673,29 +673,24 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         loader = morphlib.morphloader.MorphologyLoader()
         lrc, rrc = morphlib.util.new_repo_caches(self.app)
         update_repos = not self.app.settings['no-git-update']
-        done = set()
 
         morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
-        # Petrify the ref to each stratum and chunk.
-        def petrify_specs(specs):
-            for spec in specs:
-                ref = spec['ref']
-                # Do not double petrify refs
-                if morphlib.git.is_valid_sha1(ref):
+        #TODO: Stop using app.resolve_ref
+        def resolve_refs(morphs):
+            for repo, ref in morphs.list_refs():
+                # TODO: Handle refs that are only in workspace in general
+                if (repo == sb.root_repository_url
+                    and ref == sb.system_branch_name):
                     continue
                 commit_sha1, tree_sha1 = self.app.resolve_ref(
-                    lrc, rrc, spec['repo'], ref, update=update_repos)
-                assert 'name' in spec or 'morph' in spec
-                filename = '%s.morph' % spec.get('morph', spec.get('name'))
-                morphs.change_ref(spec['repo'], ref, filename, commit_sha1)
+                    lrc, rrc, repo, ref, update=update_repos)
+                yield ((repo, ref), commit_sha1)
 
-        for m in morphs.morphologies:
-            if m['kind'] == 'system':
-                petrify_specs(m['strata'])
-            elif m['kind'] == 'stratum':
-                petrify_specs(m['build-depends'])
-                petrify_specs(m['chunks'])
+        morphs.repoint_refs(sb.root_repository_url,
+                            sb.system_branch_name)
+
+        morphs.petrify_chunks(dict(resolve_refs(morphs)))
 
         # Write morphologies back out again.
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
