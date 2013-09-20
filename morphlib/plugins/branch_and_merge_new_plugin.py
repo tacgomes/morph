@@ -159,6 +159,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         root_url = args[0]
         system_branch = args[1]
+        base_ref = system_branch
 
         self._require_git_user_config()
 
@@ -174,27 +175,12 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # Check the git branch exists.
         cached_repo.resolve_ref(system_branch)
 
-        root_dir = ws.get_default_system_branch_directory_name(system_branch)
-
-        try:
-            # Create the system branch directory. This doesn't yet clone
-            # the root repository there.
-            sb = morphlib.sysbranchdir.create(
-                root_dir, root_url, system_branch)
-
-            gd = sb.clone_cached_repo(cached_repo, system_branch)
+        with self._initializing_system_branch(
+            ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(root_url, system_branch)
+                raise BranchRootHasNoSystemsError(base_ref)
 
-            gd.update_submodules(self.app)
-            gd.update_remotes()
-        except BaseException as e:
-            # Oops. Clean up.
-            logging.error('Caught exception: %s' % str(e))
-            logging.info('Removing half-finished branch %s' % system_branch)
-            self._remove_branch_dir_safe(ws.root, root_dir)
-            raise
 
     def branch(self, args):
         '''Create a new system branch.
@@ -247,29 +233,14 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # Make sure the base_ref exists.
         cached_repo.resolve_ref(base_ref)
 
-        root_dir = ws.get_default_system_branch_directory_name(system_branch)
+        with self._initializing_system_branch(
+            ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
 
-        try:
-            # Create the system branch directory. This doesn't yet clone
-            # the root repository there.
-            sb = morphlib.sysbranchdir.create(
-                root_dir, root_url, system_branch)
-
-            gd = sb.clone_cached_repo(cached_repo, base_ref)
             gd.branch(system_branch, base_ref)
             gd.checkout(system_branch)
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(root_url, base_ref)
-
-            gd.update_submodules(self.app)
-            gd.update_remotes()
-        except BaseException as e:
-            # Oops. Clean up.
-            logging.error('Caught exception: %s' % str(e))
-            logging.info('Removing half-finished branch %s' % system_branch)
-            self._remove_branch_dir_safe(ws.root, root_dir)
-            raise
+                raise BranchRootHasNoSystemsError(base_ref)
 
     def _save_dirty_morphologies(self, loader, sb, morphs):
         logging.debug('Saving dirty morphologies: start')
