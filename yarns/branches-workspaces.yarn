@@ -168,7 +168,7 @@ somewhere outside a checkout, where exactly one checkout exists below.
 However, it fails if run outside a checkout and there's no system
 branches checked out.
 
-    SCENARIO    morph fails to report system branch with two checked out
+    SCENARIO    morph fails to report system branch with none checked out
     GIVEN       a workspace
     AND         a git server
     WHEN        attempting to report system branch root repository in .
