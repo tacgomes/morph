@@ -191,3 +191,20 @@ class MorphologySetTests(unittest.TestCase):
         self.assertEqual(sorted(self.morphs.list_refs()),
                          [('test:foo-chunk', 'master'),
                           ('test:morphs', 'master')])
+
+    def test_petrify_chunks(self):
+        # TODO: test petrifying a larger morphset
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.morphs.petrify_chunks({('test:foo-chunk', 'master'): '0'*40})
+        self.assertEqual(
+            self.stratum['chunks'],
+            [
+                {
+                    'repo': 'test:foo-chunk',
+                    'ref': '0'*40,
+                    'morph': 'foo-chunk',
+                    'unpetrify-ref': 'master',
+                }
+            ])
+

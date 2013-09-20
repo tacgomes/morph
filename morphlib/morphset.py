@@ -214,11 +214,41 @@ class MorphologySet(object):
         def wanted_spec(m, kind, spec):
             return (spec['repo'], spec['ref']) not in known
 
-        def process_spec(spec):
+        def process_spec(m, kind, spec):
             known.add((spec['repo'], spec['ref']))
             return False
 
         self._traverse_specs(process_spec, wanted_spec)
 
         return known
+
+    def petrify_chunks(self, resolutions):
+        '''Update _every_ chunk's ref to the value resolved in resolutions.
+
+        `resolutions` must be a {(repo, ref): resolved_ref}
+
+        This is subtly different to change_ref, since that works on
+        changing a single spec including its filename, and the morphology
+        those specs refer to, while petrify_chunks is interested in changing
+        _all_ the refs.
+
+        '''
+
+        def wanted_chunk_spec(m, kind, spec):
+            # Do not attempt to petrify non-chunk specs.
+            # This is not handled by previous implementations, and
+            # the details are tricky.
+            if not (m['kind'] == 'stratum' and kind == 'chunks'):
+                return
+            ref = spec['ref']
+            return (not morphlib.git.is_valid_sha1(ref)
+                    and (spec['repo'], ref) in resolutions)
+
+        def process_chunk_spec(m, kind, spec):
+            tup = (spec['repo'], spec['ref'])
+            spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = resolutions[tup]
+            return True
+
+        self._traverse_specs(process_chunk_spec, wanted_chunk_spec)
 
