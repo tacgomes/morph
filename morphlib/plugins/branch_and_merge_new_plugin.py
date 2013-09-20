@@ -15,6 +15,7 @@
 
 
 import cliapp
+import contextlib
 import glob
 import logging
 import os
@@ -96,6 +97,40 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         ws = morphlib.workspace.open('.')
         self.app.output.write('%s\n' % ws.root)
+
+    # TODO: Move this somewhere nicer
+    @contextlib.contextmanager
+    def _initializing_system_branch(self, ws, root_url, system_branch,
+                                    cached_repo, base_ref):
+        '''A context manager for system branches under construction.
+
+        The purpose of this context manager is to factor out the branch
+        cleanup code for if an exception occurs while a branch is being
+        constructed.
+
+        This could be handled by a higher order function which takes
+        a function to initialize the branch as a parameter, but with
+        statements look nicer and are more obviously about resource
+        cleanup.
+
+        '''
+        root_dir = ws.get_default_system_branch_directory_name(system_branch)
+        try:
+            sb = morphlib.sysbranchdir.create(
+                root_dir, root_url, system_branch)
+            gd = sb.clone_cached_repo(cached_repo, base_ref)
+
+            yield (sb, gd)
+
+            gd.update_submodules(self.app)
+            gd.update_remotes()
+
+        except BaseException as e:
+            # Oops. Clean up.
+            logging.error('Caught exception: %s' % str(e))
+            logging.info('Removing half-finished branch %s' % system_branch)
+            self._remove_branch_dir_safe(ws.root, root_dir)
+            raise
 
     def checkout(self, args):
         '''Check out an existing system branch.
