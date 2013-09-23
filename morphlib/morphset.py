@@ -222,6 +222,26 @@ class MorphologySet(object):
 
         return known
 
+    def repoint_refs(self, repo_url, new_ref):
+        '''Change all specs which refer to (repo, *) to (repo, new_ref).
+        
+        This is stunningly similar to change_ref, with the exception of
+        ignoring the morphology name and ref fields.
+
+        It is intended to be used before chunks are petrified
+
+        '''
+        def wanted_spec(m, kind, spec):
+            return spec['repo'] == repo_url
+
+        def process_spec(m, kind, spec):
+            if 'unpetrify-ref' not in spec:
+                spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = new_ref
+            return True
+
+        self._traverse_specs(process_spec, wanted_spec)
+
     def petrify_chunks(self, resolutions):
         '''Update _every_ chunk's ref to the value resolved in resolutions.
 

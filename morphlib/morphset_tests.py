@@ -192,6 +192,20 @@ class MorphologySetTests(unittest.TestCase):
                          [('test:foo-chunk', 'master'),
                           ('test:morphs', 'master')])
 
+    def test_repoint_refs(self):
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.morphs.repoint_refs('test:morphs', 'test')
+        self.assertEqual(self.system['strata'],
+                         [
+                             {
+                                 'morph': 'foo-stratum',
+                                 'ref': 'test',
+                                 'repo': 'test:morphs',
+                                 'unpetrify-ref': 'master',
+                             }
+                         ])
+
     def test_petrify_chunks(self):
         # TODO: test petrifying a larger morphset
         self.morphs.add_morphology(self.system)
