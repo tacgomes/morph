@@ -145,6 +145,9 @@ class MorphologySetTests(unittest.TestCase):
                 },
             ]
         })
+        other_stratum.repo_url = 'test:morphs'
+        other_stratum.ref = 'master'
+        other_stratum.filename = 'other-stratum.morph'
 
         self.morphs.add_morphology(self.system)
         self.morphs.add_morphology(self.stratum)
@@ -182,3 +185,54 @@ class MorphologySetTests(unittest.TestCase):
                 }
             ])
 
+    def test_list_refs(self):
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.assertEqual(sorted(self.morphs.list_refs()),
+                         [('test:foo-chunk', 'master'),
+                          ('test:morphs', 'master')])
+
+    def test_repoint_refs(self):
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.morphs.repoint_refs('test:morphs', 'test')
+        self.assertEqual(self.system['strata'],
+                         [
+                             {
+                                 'morph': 'foo-stratum',
+                                 'ref': 'test',
+                                 'repo': 'test:morphs',
+                                 'unpetrify-ref': 'master',
+                             }
+                         ])
+
+    def test_petrify_chunks(self):
+        # TODO: test petrifying a larger morphset
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.morphs.petrify_chunks({('test:foo-chunk', 'master'): '0'*40})
+        self.assertEqual(
+            self.stratum['chunks'],
+            [
+                {
+                    'repo': 'test:foo-chunk',
+                    'ref': '0'*40,
+                    'morph': 'foo-chunk',
+                    'unpetrify-ref': 'master',
+                }
+            ])
+
+    def test_unpetrify_all(self):
+        self.morphs.add_morphology(self.system)
+        self.morphs.add_morphology(self.stratum)
+        self.morphs.petrify_chunks({('test:foo-chunk', 'master'): '0'*40})
+        self.morphs.unpetrify_all()
+        self.assertEqual(
+            self.stratum['chunks'],
+            [
+                {
+                    'repo': 'test:foo-chunk',
+                    'ref': 'master',
+                    'morph': 'foo-chunk',
+                }
+            ])

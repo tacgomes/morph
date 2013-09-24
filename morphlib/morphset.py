@@ -122,6 +122,66 @@ class MorphologySet(object):
             raise ChunkNotInStratumError(stratum_morph['name'], chunk_name)
         return repo_url, ref, morph
 
+    def _traverse_specs(self, cb_process, cb_filter=lambda s: True):
+        '''Higher-order function for processing every spec.
+        
+        This traverses every spec in all the morphologies, so all chunk,
+        stratum and stratum-build-depend specs are visited.
+
+        It is to be passed one or two callbacks. `cb_process` is given
+        a spec, which it may alter, but if it does, it must return True.
+
+        `cb_filter` is given the morphology, the kind of spec it is
+        working on in addition to the spec itself.
+
+        `cb_filter` is expected to decide whether to run `cb_process`
+        on the spec.
+
+        Arguably this could be checked in `cb_process`, but it can be less
+        logic over all since `cb_process` need not conditionally return.
+
+        If any specs have been altered, at the end of iteration, any
+        morphologies in the MorphologySet that are referred to by an
+        altered spec are also changed.
+
+        This requires a full iteration of the MorphologySet, so it is not a
+        cheap operation.
+
+        A coroutine was attempted, but it required the same amount of
+        code at the call site as doing it by hand.
+        
+        '''
+
+        altered_references = {}
+
+        def process_spec_list(m, kind):
+            specs = m[kind]
+            for spec in specs:
+                if cb_filter(m, kind, spec):
+                    orig_spec = (spec['repo'], spec['ref'], spec['morph'])
+                    dirtied = cb_process(m, kind, spec)
+                    if dirtied:
+                        m.dirty = True
+                        altered_references[orig_spec] = spec
+
+        for m in self.morphologies:
+            if m['kind'] == 'system':
+                process_spec_list(m, 'strata')
+            elif m['kind'] == 'stratum':
+                process_spec_list(m, 'build-depends')
+                process_spec_list(m, 'chunks')
+
+        for m in self.morphologies:
+            tup = (m.repo_url, m.ref, m.filename[:-len('.morph')])
+            if tup in altered_references:
+                spec = altered_references[tup]
+                if m.ref != spec['ref']:
+                    m.ref = spec['ref']
+                    m.dirty = True
+                assert (m.filename == spec['morph'] + '.morph'
+                        or m.repo_url == spec['repo']), \
+                       'Moving morphologies is not supported.'
+
     def change_ref(self, repo_url, orig_ref, morph_filename, new_ref):
         '''Change a triplet's ref to a new one in all morphologies in a ref.
 
@@ -130,30 +190,98 @@ class MorphologySet(object):
 
         '''
 
-        def wanted_spec(spec):
+        def wanted_spec(m, kind, spec):
             return (spec['repo'] == repo_url and
                     spec['ref'] == orig_ref and
                     spec['morph'] + '.morph' == morph_filename)
 
-        def change_specs(specs, m):
-            for spec in specs:
-                if wanted_spec(spec):
-                    spec['unpetrify-ref'] = spec['ref']
-                    spec['ref'] = new_ref
-                    m.dirty = True
+        def process_spec(m, kind, spec):
+            spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = new_ref
+            return True
 
-        def change(m):
-            if m['kind'] == 'system':
-                change_specs(m['strata'], m)
-            elif m['kind'] == 'stratum':
-                change_specs(m['chunks'], m)
-                change_specs(m['build-depends'], m)
+        self._traverse_specs(process_spec, wanted_spec)
 
-        for m in self.morphologies:
-            change(m)
+    def list_refs(self):
+        '''Return a set of all the (repo, ref) pairs in the MorphologySet.
 
-        m = self._get_morphology(repo_url, orig_ref, morph_filename)
-        if m and m.ref != new_ref:
-            m.ref = new_ref
-            m.dirty = True
+        This does not dirty the morphologies so they do not need to be
+        written back to the disk.
 
+        '''
+        known = set()
+
+        def wanted_spec(m, kind, spec):
+            return (spec['repo'], spec['ref']) not in known
+
+        def process_spec(m, kind, spec):
+            known.add((spec['repo'], spec['ref']))
+            return False
+
+        self._traverse_specs(process_spec, wanted_spec)
+
+        return known
+
+    def repoint_refs(self, repo_url, new_ref):
+        '''Change all specs which refer to (repo, *) to (repo, new_ref).
+        
+        This is stunningly similar to change_ref, with the exception of
+        ignoring the morphology name and ref fields.
+
+        It is intended to be used before chunks are petrified
+
+        '''
+        def wanted_spec(m, kind, spec):
+            return spec['repo'] == repo_url
+
+        def process_spec(m, kind, spec):
+            if 'unpetrify-ref' not in spec:
+                spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = new_ref
+            return True
+
+        self._traverse_specs(process_spec, wanted_spec)
+
+    def petrify_chunks(self, resolutions):
+        '''Update _every_ chunk's ref to the value resolved in resolutions.
+
+        `resolutions` must be a {(repo, ref): resolved_ref}
+
+        This is subtly different to change_ref, since that works on
+        changing a single spec including its filename, and the morphology
+        those specs refer to, while petrify_chunks is interested in changing
+        _all_ the refs.
+
+        '''
+
+        def wanted_chunk_spec(m, kind, spec):
+            # Do not attempt to petrify non-chunk specs.
+            # This is not handled by previous implementations, and
+            # the details are tricky.
+            if not (m['kind'] == 'stratum' and kind == 'chunks'):
+                return
+            ref = spec['ref']
+            return (not morphlib.git.is_valid_sha1(ref)
+                    and (spec['repo'], ref) in resolutions)
+
+        def process_chunk_spec(m, kind, spec):
+            tup = (spec['repo'], spec['ref'])
+            spec['unpetrify-ref'] = spec['ref']
+            spec['ref'] = resolutions[tup]
+            return True
+
+        self._traverse_specs(process_chunk_spec, wanted_chunk_spec)
+
+    def unpetrify_all(self):
+        '''If a spec is petrified, unpetrify it.
+
+        '''
+
+        def wanted_spec(m, kind, spec):
+            return ('unpetrify-ref' in spec and
+                    morphlib.git.is_valid_sha1(spec['ref']))
+        def process_spec(m, kind, spec):
+            spec['ref'] = spec.pop('unpetrify-ref')
+            return True
+
+        self._traverse_specs(process_spec, wanted_spec)
