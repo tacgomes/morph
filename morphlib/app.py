@@ -418,3 +418,28 @@ class Morph(cliapp.Application):
 
         # run the command line
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)
+
+    # FIXME: This overrides a private method in cliapp. We need
+    # get cliapp to provide the necessary hooks to do this cleanly.
+    # As it is, this is a copy of the method in cliapp, with the
+    # single change that for subcommand helps, the formatting is
+    # not used.
+    def _help_helper(self, args, show_all): # pragma: no cover
+        try:
+            width = int(os.environ.get('COLUMNS', '78'))
+        except ValueError:
+            width = 78
+
+        fmt = cliapp.TextFormat(width=width)
+
+        if args:
+            usage = self._format_usage_for(args[0])
+            description = self._format_subcommand_help(args[0])
+            text = '%s\n\n%s' % (usage, description)
+        else:
+            usage = self._format_usage(all=show_all)
+            description = fmt.format(self._format_description(all=show_all))
+            text = '%s\n\n%s' % (usage, description)
+
+        text = self.settings.progname.join(text.split('%prog'))
+        self.output.write(text)
