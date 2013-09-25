@@ -9,7 +9,7 @@ chunks:
 - build-depends: []
   build-mode: test
   name: goodbye
-  ref: d34c96a9f07c2efd1faabc3b44f77c25580a276e
+  ref: 717c4a523fb5a94ca2f0a61e665fbc2da6a1f6ac
   repo: test:goodbye
   unpetrify-ref: test/petrify
 kind: stratum

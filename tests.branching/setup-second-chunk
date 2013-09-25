@@ -38,7 +38,7 @@ EOF
     git commit --quiet -m "Initial commit"
 }
 
-create_chunk "$DATADIR/goodbye" "hello"
+create_chunk "$DATADIR/goodbye" "goodbye"
 
 cd "$DATADIR/morphs"
 cat <<EOF > hello-stratum.morph
