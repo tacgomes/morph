@@ -144,6 +144,27 @@ assert_morphologies_are_petrified()
 }
 
 
+nullify_local_refs()
+{
+    python -c 'import yaml, sys
+repo = sys.argv[1]
+ref = sys.argv[2]
+for filename in sys.argv[3:]:
+    with open(filename, "r") as f:
+        d = yaml.load(f)
+    if "strata" in d:
+        for spec in d["strata"]:
+            if spec["repo"] == repo and spec["ref"] == ref:
+                spec["repo"] = spec["ref"] = None
+    if "build-depends" in d:
+        for spec in d["build-depends"]:
+            if spec["repo"] == repo and spec["ref"] == ref:
+                spec["repo"] = spec["ref"] = None
+    with open(filename, "w") as f:
+        yaml.dump(d, f)
+' "$@"
+}
+
 # Currently, yarn isn't setting $SRCDIR to point at the project source
 # directory. We simulate this here.
 
