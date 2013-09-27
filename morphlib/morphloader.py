@@ -62,14 +62,6 @@ class UnknownArchitectureError(morphlib.Error):
             'Unknown architecture %s in morphology %s' % (arch, morphology))
 
 
-class InvalidSystemKindError(morphlib.Error):
-
-    def __init__(self, system_kind, morphology):
-        self.msg = (
-            'system-kind %s not allowed (must be rootfs-tarball), in %s' %
-                (system_kind, morphology))
-
-
 class NoBuildDependenciesError(morphlib.Error):
 
     def __init__(self, stratum_name, chunk_name, morphology):
@@ -144,7 +136,6 @@ class MorphologyLoader(object):
             'strata': [],
             'description': '',
             'arch': None,
-            'system-kind': 'rootfs-tarball',
             'configuration-extensions': [],
         },
         'cluster': {},
@@ -258,12 +249,6 @@ class MorphologyLoader(object):
         # Architecture name must be known.
         if morph['arch'] not in morphlib.valid_archs:
             raise UnknownArchitectureError(morph['arch'], morph.filename)
-
-        # If system-kind is present, it must be rootfs-tarball.
-        if 'system-kind' in morph:
-            if morph['system-kind'] not in (None, 'rootfs-tarball'):
-                raise InvalidSystemKindError(
-                    morph['system-kind'], morph.filename)
 
     def _validate_stratum(self, morph):
         # Require at least one chunk.

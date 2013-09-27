@@ -51,7 +51,6 @@ cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "$(uname -m)",
     "strata": [
         {

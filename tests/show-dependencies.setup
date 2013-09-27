@@ -349,7 +349,6 @@ cat <<EOF > xfce-system.morph
 {
   "name": "xfce-system",
   "kind": "system",
-  "system-kind": "rootfs-tarball",
   "arch": "$(uname -m)",
   "strata": [
     {

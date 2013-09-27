@@ -182,22 +182,6 @@ build-system: dummy
         self.loader.validate(m)
         self.assertEqual(m['arch'], 'armv7l')
 
-    def test_validate_requires_system_kind_to_be_tarball_if_present(self):
-        m = morphlib.morph3.Morphology(
-            {
-                "kind": "system",
-                "name": "foo",
-                "arch": "armv7l",
-                "strata": [],
-                "system-kind": "blah",
-            })
-
-        self.assertRaises(
-            morphlib.morphloader.InvalidSystemKindError,
-            self.loader.validate, m)
-        m['system-kind'] = 'rootfs-tarball'
-        self.loader.validate(m)
-
     def test_validate_requires_build_deps_for_chunks_in_strata(self):
         m = morphlib.morph3.Morphology(
             {
@@ -468,7 +452,6 @@ name: foo
             dict(m),
             {
                 'kind': 'system',
-                'system-kind': 'rootfs-tarball',
                 'name': 'foo',
                 'description': '',
                 'arch': 'x86_64',

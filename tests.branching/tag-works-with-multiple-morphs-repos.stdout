@@ -4,7 +4,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 create tag
 
-commit 8378526fced8e920e486a58d047efe664831aa40
+commit 7323ed5dcc47715e7303fd36d537aef98a04df9a
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -67,10 +67,10 @@ index 0000000..610fae6
 +  repo: test:hello
 +  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index 2fad584..6aa58c2 100644
+index 62d3b08..edb5745 100644
 --- a/test-system.morph
 +++ b/test-system.morph
-@@ -4,8 +4,11 @@ system-kind: rootfs-tarball
+@@ -3,8 +3,11 @@ kind: system
  arch: x86_64
  strata:
  - morph: stratum1
@@ -85,7 +85,7 @@ index 2fad584..6aa58c2 100644
 +  repo: test:morphs1
 +  unpetrify-ref: master
 +  unpetrify-repo: test:morphs2
-commit 8378526fced8e920e486a58d047efe664831aa40
+commit 7323ed5dcc47715e7303fd36d537aef98a04df9a
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -156,10 +156,10 @@ index 0000000..610fae6
 +  repo: test:hello
 +  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index 2fad584..6aa58c2 100644
+index 62d3b08..edb5745 100644
 --- a/test-system.morph
 +++ b/test-system.morph
-@@ -4,8 +4,11 @@ system-kind: rootfs-tarball
+@@ -3,8 +3,11 @@ kind: system
  arch: x86_64
  strata:
  - morph: stratum1

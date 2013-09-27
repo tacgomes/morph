@@ -134,7 +134,6 @@ git add tools-stratum.morph
 cat <<EOF > hello-system.morph
 name: hello-system
 kind: system
-system-kind: rootfs-tarball
 arch: `uname -m`
 strata:
     - morph: hello-stratum
@@ -162,7 +161,6 @@ git add linux-stratum.morph
 cat <<EOF > linux-system.morph
 name: linux-system
 kind: system
-system-kind: rootfs-tarball
 arch: `uname -m`
 strata:
     - morph: hello-stratum

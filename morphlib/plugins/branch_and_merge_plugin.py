@@ -339,7 +339,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         required = {
             'system': [
                 'name',
-                'system-kind',
                 'arch',
                 'strata',
             ],

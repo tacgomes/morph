@@ -108,7 +108,6 @@ cat <<EOF > hello-system.morph
     "name": "hello-system",
     "kind": "system",
     "arch": "$(uname -m)",
-    "system-kind": "rootfs-tarball",
     "strata": [
         {
             "morph": "hello-stratum",

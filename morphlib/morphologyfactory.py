@@ -140,19 +140,6 @@ class MorphologyFactory(object):
                                  (morphology['arch'],
                                   ', '.join(morphlib.valid_archs)))
 
-        kind = morphology['system-kind']
-        if kind == 'rootfs-tarball': # pragma: no cover
-            self._app.status(
-                msg='WARNING: Obsolete field system-kind used in morphology '
-                    '(it is harmless, but should be removed)')
-        elif kind:
-            raise morphlib.Error(
-                'System kind %s is not supported (anymore), '
-                'the whole system-kind field is deprecated. '
-                'Please remove system-kind from your system '
-                'morphologies and morph deploy to create '
-                'the desired output format.' % kind)
-
         name = morphology['name']
         morphology.builds_artifacts = [name + '-rootfs']
 

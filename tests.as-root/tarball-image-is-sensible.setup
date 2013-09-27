@@ -46,7 +46,6 @@ cat <<EOF > hello-tarball.morph
 {
     "name": "hello-tarball",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "$(uname -m)",
     "strata": [
         {

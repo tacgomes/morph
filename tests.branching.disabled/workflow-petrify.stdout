@@ -2,7 +2,6 @@ test/petrify after petrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "strata": [
         {
@@ -55,7 +54,6 @@ test/petrify after editing a chunk:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "strata": [
         {
@@ -107,7 +105,6 @@ test/unpetrify after unpetrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
     "strata": [
         {

@@ -58,7 +58,6 @@ class Morphology(object):
             ('strata', []),
             ('description', ''),
             ('arch', None),
-            ('system-kind', None),
             ('configuration-extensions', []),
         ],
         'cluster': []

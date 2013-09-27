@@ -295,7 +295,6 @@ class MorphologyTests(unittest.TestCase):
     system_text = '''{
     "kind": "system",
     "arch": "x86_64",
-    "system-kind": "rootfs-tarball"
 }'''
 
     def test_nested_dict(self):

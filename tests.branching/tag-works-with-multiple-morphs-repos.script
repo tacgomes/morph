@@ -32,7 +32,6 @@ mkdir "$DATADIR/morphs1"
 cat <<EOF > "$DATADIR/morphs1/test-system.morph"
 name: test-system
 kind: system
-system-kind: rootfs-tarball
 arch: $(uname -m)
 strata:
 - morph: stratum1

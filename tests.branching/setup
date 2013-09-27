@@ -55,7 +55,6 @@ strata:
 - morph: hello-stratum
   ref: master
   repo: test:morphs
-system-kind: rootfs-tarball
 EOF
 
 cat <<EOF > "$DATADIR/morphs/hello-stratum.morph"
