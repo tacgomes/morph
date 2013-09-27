@@ -109,7 +109,6 @@ cat <<EOF > hello-system.morph
     "kind": "system",
     "arch": "$(uname -m)",
     "system-kind": "rootfs-tarball",
-    "disk-size": "1G",
     "strata": [
         {
             "morph": "hello-stratum",

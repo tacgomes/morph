@@ -146,7 +146,6 @@ class MorphologyLoader(object):
             'arch': None,
             'system-kind': 'rootfs-tarball',
             'configuration-extensions': [],
-            'disk-size': '1G',
         },
         'cluster': {},
     }

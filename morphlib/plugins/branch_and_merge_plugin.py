@@ -360,8 +360,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             'system': [
                 'kind',
                 'description',
-                'disk-size',
-                '_disk-size',
                 'configuration-extensions',
             ],
             'stratum': [

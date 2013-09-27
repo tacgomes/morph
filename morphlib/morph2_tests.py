@@ -96,29 +96,16 @@ class MorphologyTests(unittest.TestCase):
         self.assertEqual(m['chunks'][0]['morph'], 'le-chunk')
         self.assertEqual(m['chunks'][0]['build-depends'], None)
 
-    def test_parses_system_disk_size(self):
-        m = Morphology('''
-            {
-                "name": "foo",
-                "kind": "system",
-                "disk-size": "1g"
-            }
-        ''')
-
-        self.assertEqual(m['disk-size'], 1024 ** 3)
-
     def test_returns_dict_keys(self):
         m = Morphology('''
             {
                 "name": "foo",
                 "kind": "system",
-                "disk-size": "1g"
             }
         ''')
 
         self.assertTrue('name' in m.keys())
         self.assertTrue('kind' in m.keys())
-        self.assertTrue('disk-size' in m.keys())
 
     def test_system_indexes_strata(self):
         m = Morphology('''
@@ -307,31 +294,9 @@ class MorphologyTests(unittest.TestCase):
 
     system_text = '''{
     "kind": "system",
-    "disk-size": "1g",
     "arch": "x86_64",
     "system-kind": "rootfs-tarball"
 }'''
-
-    def test_writing_preserves_disk_size(self):
-        text_lines = self.system_text.splitlines()
-        morphology = Morphology(self.system_text)
-
-        output = StringIO.StringIO()
-        morphology.update_text(self.system_text, output)
-        output_lines = output.getvalue().splitlines()
-        self.assertEqual(text_lines, output_lines)
-
-    def test_writing_updates_disk_size(self):
-        text_lines = self.system_text.splitlines()
-        text_lines[2] = '    "disk-size": 512,'
-
-        morphology = Morphology(self.system_text)
-        morphology._dict['disk-size'] = 512
-
-        output = StringIO.StringIO()
-        morphology.update_text(self.system_text, output)
-        output_lines = output.getvalue().splitlines()
-        self.assertEqual(text_lines, output_lines)
 
     def test_nested_dict(self):
         # Real morphologies don't trigger this code path, so we test manually

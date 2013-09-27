@@ -474,7 +474,6 @@ name: foo
                 'arch': 'x86_64',
                 'strata': [],
                 'configuration-extensions': [],
-                'disk-size': '1G',
             })
 
     def test_unsets_defaults_for_system(self):

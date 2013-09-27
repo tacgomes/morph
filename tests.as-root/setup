@@ -136,7 +136,6 @@ name: hello-system
 kind: system
 system-kind: rootfs-tarball
 arch: `uname -m`
-disk-size: 1G
 strata:
     - morph: hello-stratum
       repo: test:morphs
@@ -165,7 +164,6 @@ name: linux-system
 kind: system
 system-kind: rootfs-tarball
 arch: `uname -m`
-disk-size: 1G
 strata:
     - morph: hello-stratum
       repo: test:morphs
