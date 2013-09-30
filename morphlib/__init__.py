@@ -78,6 +78,7 @@ import sourcepool
 import stagingarea
 import stopwatch
 import sysbranchdir
+import systemmetadatadir
 import tempdir
 import util
 import workspace

@@ -15,6 +15,7 @@
 
 
 import cliapp
+import contextlib
 import glob
 import logging
 import os
@@ -55,6 +56,15 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                                 arg_synopsis='-- COMMAND [ARGS...]')
         self.app.add_subcommand('status', self.status,
                                 arg_synopsis='')
+        self.app.add_subcommand('branch-from-image', self.branch_from_image,
+                                arg_synopsis='BRANCH')
+        group_branch = 'Branching Options'
+        self.app.settings.string(['metadata-dir'],
+                                  'Set metadata location for branch-from-image'
+                                  ' (default: /baserock)',
+                                  metavar='DIR',
+                                  default='/baserock',
+                                  group=group_branch)
 
     def disable(self):
         pass
@@ -97,6 +107,40 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         ws = morphlib.workspace.open('.')
         self.app.output.write('%s\n' % ws.root)
 
+    # TODO: Move this somewhere nicer
+    @contextlib.contextmanager
+    def _initializing_system_branch(self, ws, root_url, system_branch,
+                                    cached_repo, base_ref):
+        '''A context manager for system branches under construction.
+
+        The purpose of this context manager is to factor out the branch
+        cleanup code for if an exception occurs while a branch is being
+        constructed.
+
+        This could be handled by a higher order function which takes
+        a function to initialize the branch as a parameter, but with
+        statements look nicer and are more obviously about resource
+        cleanup.
+
+        '''
+        root_dir = ws.get_default_system_branch_directory_name(system_branch)
+        try:
+            sb = morphlib.sysbranchdir.create(
+                root_dir, root_url, system_branch)
+            gd = sb.clone_cached_repo(cached_repo, base_ref)
+
+            yield (sb, gd)
+
+            gd.update_submodules(self.app)
+            gd.update_remotes()
+
+        except BaseException as e:
+            # Oops. Clean up.
+            logging.error('Caught exception: %s' % str(e))
+            logging.info('Removing half-finished branch %s' % system_branch)
+            self._remove_branch_dir_safe(ws.root, root_dir)
+            raise
+
     def checkout(self, args):
         '''Check out an existing system branch.
 
@@ -124,6 +168,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         root_url = args[0]
         system_branch = args[1]
+        base_ref = system_branch
 
         self._require_git_user_config()
 
@@ -139,27 +184,12 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # Check the git branch exists.
         cached_repo.resolve_ref(system_branch)
 
-        root_dir = ws.get_default_system_branch_directory_name(system_branch)
-
-        try:
-            # Create the system branch directory. This doesn't yet clone
-            # the root repository there.
-            sb = morphlib.sysbranchdir.create(
-                root_dir, root_url, system_branch)
-
-            gd = sb.clone_cached_repo(cached_repo, system_branch)
+        with self._initializing_system_branch(
+            ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(root_url, system_branch)
+                raise BranchRootHasNoSystemsError(base_ref)
 
-            gd.update_submodules(self.app)
-            gd.update_remotes()
-        except BaseException as e:
-            # Oops. Clean up.
-            logging.error('Caught exception: %s' % str(e))
-            logging.info('Removing half-finished branch %s' % system_branch)
-            self._remove_branch_dir_safe(ws.root, root_dir)
-            raise
 
     def branch(self, args):
         '''Create a new system branch.
@@ -212,29 +242,14 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # Make sure the base_ref exists.
         cached_repo.resolve_ref(base_ref)
 
-        root_dir = ws.get_default_system_branch_directory_name(system_branch)
+        with self._initializing_system_branch(
+            ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
 
-        try:
-            # Create the system branch directory. This doesn't yet clone
-            # the root repository there.
-            sb = morphlib.sysbranchdir.create(
-                root_dir, root_url, system_branch)
-
-            gd = sb.clone_cached_repo(cached_repo, base_ref)
             gd.branch(system_branch, base_ref)
             gd.checkout(system_branch)
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(root_url, base_ref)
-
-            gd.update_submodules(self.app)
-            gd.update_remotes()
-        except BaseException as e:
-            # Oops. Clean up.
-            logging.error('Caught exception: %s' % str(e))
-            logging.info('Removing half-finished branch %s' % system_branch)
-            self._remove_branch_dir_safe(ws.root, root_dir)
-            raise
+                raise BranchRootHasNoSystemsError(base_ref)
 
     def _save_dirty_morphologies(self, loader, sb, morphs):
         logging.debug('Saving dirty morphologies: start')
@@ -789,3 +804,98 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         if not has_uncommitted_changes:
             self.app.output.write("\nNo repos have outstanding changes.\n")
+
+    def branch_from_image(self, args):
+        '''Produce a branch of an existing system image.
+
+        Given the metadata specified by --metadata-dir, create a new
+        branch then petrify it to the state of the commits at the time
+        the system was built.
+
+        If --metadata-dir is not specified, it defaults to your currently
+        running system.
+
+        '''
+        if len(args) != 1:
+            raise cliapp.AppException(
+                "branch-from-image needs exactly 1 argument "
+                "of the new system branch's name")
+        system_branch = args[0]
+        metadata_path = self.app.settings['metadata-dir']
+        alias_resolver = morphlib.repoaliasresolver.RepoAliasResolver(
+            self.app.settings['repo-alias'])
+
+        self._require_git_user_config()
+
+        ws = morphlib.workspace.open('.')
+
+        system, metadata = self._load_system_metadata(metadata_path)
+        resolved_refs = dict(self._resolve_refs_from_metadata(alias_resolver,
+                                                              metadata))
+        logging.debug('Resolved refs: %r' % resolved_refs)
+        base_ref = system['sha1']
+        # The previous version would fall back to deducing this from the repo
+        # url and the repo alias resolver, but this does not always work, and
+        # new systems always have repo-alias in the metadata
+        root_url = system['repo-alias']
+
+        lrc, rrc = morphlib.util.new_repo_caches(self.app)
+        cached_repo = lrc.get_updated_repo(root_url)
+
+
+        with self._initializing_system_branch(
+            ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
+
+            # TODO: It's nasty to clone to a sha1 then create a branch
+            #       of that sha1 then check it out, a nicer API may be the
+            #       initial clone not checking out a branch at all, then
+            #       the user creates and checks out their own branches
+            gd.branch(system_branch, base_ref)
+            gd.checkout(system_branch)
+
+            loader = morphlib.morphloader.MorphologyLoader()
+            morphs = self._load_all_sysbranch_morphologies(sb, loader)
+
+            morphs.repoint_refs(sb.root_repository_url,
+                                sb.system_branch_name)
+
+            morphs.petrify_chunks(resolved_refs)
+
+            self._save_dirty_morphologies(loader, sb, morphs.morphologies)
+
+    @staticmethod
+    def _load_system_metadata(path):
+        '''Load all metadata in `path` corresponding to a single System.
+        '''
+
+        smd = morphlib.systemmetadatadir.SystemMetadataDir(path)
+        metadata = smd.values()
+        systems = [md for md in metadata
+                   if 'kind' in md and md['kind'] == 'system']
+
+        if not systems:
+            raise cliapp.AppException(
+                'Metadata directory does not contain any systems.')
+        if len(systems) > 1:
+            raise cliapp.AppException(
+                'Metadata directory contains multiple systems.')
+        system_metadatum = systems[0]
+    
+        metadata_cache_id_lookup = dict((md['cache-key'], md)
+                                        for md in metadata)
+
+        return system_metadatum, metadata_cache_id_lookup
+
+    @staticmethod
+    def _resolve_refs_from_metadata(alias_resolver, metadata):
+        '''Pre-resolve a set of refs from existing metadata.
+
+        Given the metadata, generate a mapping of all the (repo, ref)
+        pairs defined in the metadata and the commit id they resolved to.
+
+        '''
+        for md in metadata.itervalues():
+            repourls = set((md['repo-alias'], md['repo']))
+            repourls.update(alias_resolver.aliases_from_url(md['repo']))
+            for repourl in repourls:
+                yield ((repourl, md['original_ref']), md['sha1'])

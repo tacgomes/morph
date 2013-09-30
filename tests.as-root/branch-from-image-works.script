@@ -48,8 +48,7 @@ git commit --quiet -m 'Make hello say goodbye'
 workspace="$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init "$workspace"
 cd "$workspace"
-"$SRCDIR/scripts/test-morph" branch-from-image \
-                             test:morphs mybranch \
+"$SRCDIR/scripts/test-morph" branch-from-image  mybranch \
                              --metadata-dir="$extracted/baserock"
 cd mybranch/test:morphs
 grep -qFe "$hello_chunk_commit" hello-stratum.morph

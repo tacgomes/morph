@@ -68,15 +68,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('old-status', self.status)
-        self.app.add_subcommand('branch-from-image', self.branch_from_image,
-                                 arg_synopsis='REPO BRANCH')
-        group_branch = 'Branching Options'
-        self.app.settings.string(['metadata-dir'],
-                                  'Set metadata location for branch-from-image'
-                                  ' (default: /baserock)',
-                                  metavar='DIR',
-                                  default='/baserock',
-                                  group=group_branch)
+        self.app.add_subcommand('old-branch-from-image',
+                                self.branch_from_image,
+                                arg_synopsis='REPO BRANCH')
 
         # Advanced commands
         self.app.add_subcommand('old-foreach', self.foreach,
