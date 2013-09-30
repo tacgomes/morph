@@ -144,6 +144,11 @@ assert_morphologies_are_petrified()
 }
 
 
+nullify_local_refs()
+{
+    "$SRCDIR/scripts/nullify-local-refs" "$@"
+}
+
 # Currently, yarn isn't setting $SRCDIR to point at the project source
 # directory. We simulate this here.
 

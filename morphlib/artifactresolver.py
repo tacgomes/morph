@@ -155,8 +155,8 @@ class ArtifactResolver(object):
 
         for info in source.morphology['strata']:
             stratum_source = self._source_pool.lookup(
-                info['repo'],
-                info['ref'],
+                info['repo'] or source.repo_name,
+                info['ref'] or source.original_ref,
                 '%s.morph' % info['morph'])
 
             stratum_name = stratum_source.morphology.builds_artifacts[0]
@@ -178,8 +178,8 @@ class ArtifactResolver(object):
         if stratum.source.morphology['build-depends']:
             for stratum_info in stratum.source.morphology['build-depends']:
                 other_source = self._source_pool.lookup(
-                    stratum_info['repo'],
-                    stratum_info['ref'],
+                    stratum_info['repo'] or stratum.source.repo_name,
+                    stratum_info['ref'] or stratum.source.original_ref,
                     '%s.morph' % stratum_info['morph'])
 
                 other_stratum = self._get_artifact(

@@ -95,9 +95,11 @@ class MorphologySet(object):
 
         repo_url, ref, morph = self._find_spec(
             system_morph['strata'], stratum_name)
-        if repo_url is None:
+        if (repo_url, ref, morph) == (None, None, None):
             raise StratumNotInSystemError(system_morph['name'], stratum_name)
-        m = self._get_morphology(repo_url, ref, '%s.morph' % morph)
+        m = self._get_morphology(repo_url or system_morph.repo_url,
+                                 ref or system_morph.ref,
+                                 '%s.morph' % morph)
         if m is None:
             raise StratumNotInSetError(stratum_name)
         return m
@@ -118,7 +120,7 @@ class MorphologySet(object):
 
         repo_url, ref, morph = self._find_spec(
             stratum_morph['chunks'], chunk_name)
-        if repo_url is None:
+        if (repo_url, ref, morph) == (None, None, None):
             raise ChunkNotInStratumError(stratum_morph['name'], chunk_name)
         return repo_url, ref, morph
 

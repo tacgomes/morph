@@ -290,3 +290,65 @@ Creating a tag twice should fail.
     WHEN        attempting to tag system branch foo as test123
     THEN        morph failed
 
+Working with null repositories and refs
+---------------------------------------
+
+It is convenient to not explicitly name the repository and branch of
+a stratum morphology, instead assuming it is the same as the current
+morphology.
+
+These can be checked out like normal system branches.
+
+    SCENARIO    check out an existing system branch with null refs
+    GIVEN       a workspace
+    AND         a git server
+    AND         null refs for local strata
+    WHEN        checking out the master system branch
+    THEN        the system branch master is checked out
+
+Likewise we can also create new system branches from these, and we
+wouldn't need to worry about changing the system branch ref.
+
+
+    SCENARIO    branch off a system branch with null refs
+    GIVEN       a workspace
+    AND         a git server
+    AND         null refs for local strata
+    WHEN        creating system branch foo
+    THEN        the system branch foo is checked out
+
+When we edit a morphology with null refs, they stay null.
+
+    SCENARIO    editing with null refs
+    GIVEN       a workspace
+    AND         a git server
+    AND         null refs for local strata
+
+When creating the branch, the refs remain null.
+
+    WHEN        creating system branch foo
+    THEN        in branch foo, system test-system refs test-stratum in None
+
+After editing the stratum they remain null.
+
+    WHEN    editing stratum test-stratum in system test-system in branch foo
+    THEN    in branch foo, system test-system refs test-stratum in None
+
+Refs to chunks are still altered as usual
+
+    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    THEN in branch foo, system test-system refs test-stratum in None
+    AND  in branch foo, stratum test-stratum refs test-chunk in foo
+    AND  edited chunk test:test-chunk has git branch foo
+
+Petrifying also leaves null refs unmolested
+
+    SCENARIO    morph petrifies null refs
+    GIVEN       a workspace
+    AND         a git server
+    AND         null refs for local strata
+    WHEN        creating system branch foo
+    AND         pushing system branch foo to git server
+    AND         remembering all refs in foo
+    AND         petrifying foo
+    THEN        in branch foo, system test-system refs test-stratum in None

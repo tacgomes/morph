@@ -266,7 +266,9 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # of triplets (repo url, ref, filename).
 
         return [
-            (spec['repo'], spec['ref'], '%s.morph' % spec['morph'])
+            (spec['repo'] or morph.repo_url,
+             spec['ref'] or morph.ref,
+             '%s.morph' % spec['morph'])
             for spec in specs
         ]
 
@@ -679,6 +681,9 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         #TODO: Stop using app.resolve_ref
         def resolve_refs(morphs):
             for repo, ref in morphs.list_refs():
+                # You can't resolve null refs, so don't attempt to.
+                if repo is None or ref is None:
+                    continue
                 # TODO: Handle refs that are only in workspace in general
                 if (repo == sb.root_repository_url
                     and ref == sb.system_branch_name):

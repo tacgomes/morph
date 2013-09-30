@@ -252,7 +252,8 @@ class Morphology(object):
                 continue
 
             value = self._apply_changes_for_key(key, live_dict, original_dict)
-            if value is not None:
+            # VILE HACK to preserve nulls in repo/ref fields
+            if value is not None or key in ('repo', 'ref'):
                 output_dict[key] = value
         return output_dict
 

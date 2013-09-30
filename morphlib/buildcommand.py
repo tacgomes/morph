@@ -163,8 +163,8 @@ class BuildCommand(object):
 
     def _validate_cross_refs_for_xxx(self, src, srcpool, specs, wanted):
         for spec in specs:
-            repo_name = spec['repo']
-            ref = spec['ref']
+            repo_name = spec['repo'] or src.repo_name
+            ref = spec['ref'] or src.original_ref
             filename = '%s.morph' % spec['morph']
             logging.debug(
                 'Validating cross ref to %s:%s:%s' %
