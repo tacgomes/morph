@@ -54,6 +54,11 @@ class InvalidFieldError(morphlib.Error):
         self.msg = (
             'Field %s not allowed in morphology %s' % (field, morphology))
 
+class ObsoleteFieldError(morphlib.Error):
+
+    def __init__(self, field, morphology):
+       self.msg = (
+            'Field %s is now obsolete but present in %s' % (field, morphology))
 
 class UnknownArchitectureError(morphlib.Error):
 
@@ -104,6 +109,13 @@ class MorphologyLoader(object):
         'cluster': [
           'name',
           'systems',
+        ],
+    }
+
+    _obsolete_fields = {
+        'system': [
+            'system-kind',
+            'disk-size',
         ],
     }
 
@@ -219,8 +231,10 @@ class MorphologyLoader(object):
             raise UnknownKindError(morph['kind'], morph.filename)
 
         required = ['kind'] + self._required_fields[kind]
+        obsolete = self._obsolete_fields.get(kind, [])
         allowed = self._static_defaults[kind].keys()
         self._require_fields(required, morph)
+        self._deny_obsolete_fields(obsolete, morph)
         self._deny_unknown_fields(required + allowed, morph)
 
         if kind == 'system':
@@ -291,6 +305,11 @@ class MorphologyLoader(object):
     def _require_fields(self, fields, morphology):
         for field in fields:
             self._require_field(field, morphology)
+
+    def _deny_obsolete_fields(self, fields, morphology):
+        for field in morphology:
+            if field in fields:
+                raise ObsoleteFieldError(field, morphology.filename)
 
     def _deny_unknown_fields(self, allowed, morphology):
         for field in morphology:

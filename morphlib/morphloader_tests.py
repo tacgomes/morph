@@ -94,6 +94,26 @@ build-system: dummy
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
 
+    def test_fails_to_validate_system_with_obsolete_system_kind_field(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'system',
+            'name': 'foo',
+            'arch': 'x86_64',
+            'system-kind': 'foo',
+        })
+        self.assertRaises(
+            morphlib.morphloader.ObsoleteFieldError, self.loader.validate, m)
+
+    def test_fails_to_validate_system_with_obsolete_disk_size_field(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'system',
+            'name': 'foo',
+            'arch': 'x86_64',
+            'disk-size': 'over 9000',
+        })
+        self.assertRaises(
+            morphlib.morphloader.ObsoleteFieldError, self.loader.validate, m)
+
     def test_fails_to_validate_system_with_no_fields(self):
         m = morphlib.morph3.Morphology({
             'kind': 'system',
