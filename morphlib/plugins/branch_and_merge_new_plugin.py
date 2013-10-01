@@ -417,16 +417,6 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         sb = morphlib.sysbranchdir.open_from_within('.')
         loader = morphlib.morphloader.MorphologyLoader()
 
-        # FIXME: The old "morph edit" code did its own morphology validation,
-        # which was much laxer than what MorphologyFactory does, or the
-        # new MorphologyLoader does. This new "morph edit" uses
-        # MorphologyLoader, and the stricter validation breaks the test
-        # suite. However, I want to keep the test suite as untouched as
-        # possible, until all the old code is gone (after which the test
-        # suite will be refactored). Thus, to work around the test suite
-        # breaking, we disable morphology validation for now.
-        loader.validate = lambda *args: None
-
         # Load the system morphology, and all stratum morphologies, including
         # all the strata that are being build-depended on.
 
