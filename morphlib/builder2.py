@@ -439,8 +439,10 @@ class ChunkBuilder(BuilderBase):
                     contents = morphlib.bins.chunk_contents(destdir, patterns)
                     self.write_metadata(destdir, artifact_name, contents)
 
-                    logging.debug('assembling chunk %s' % artifact_name)
-                    logging.debug('assembling into %s' % f.name)
+                    self.app.status(msg='assembling chunk %s' % artifact_name,
+                                    chatty=True)
+                    self.app.status(msg='assembling into %s' % f.name,
+                                    chatty=True)
                     self.app.status(msg='Creating chunk artifact %(name)s',
                                     name=artifact.name)
                     morphlib.bins.create_chunk(destdir, f, patterns)
@@ -700,8 +702,10 @@ class Builder(object):  # pragma: no cover
                                self.remote_artifact_cache, artifact,
                                self.repo_cache, self.max_jobs,
                                self.setup_mounts)
-        logging.debug('Builder.build: artifact %s with %s' %
-                      (artifact.name, repr(o)))
+        self.app.status(msg='Builder.build: artifact %s with %s' %
+                       (artifact.name, repr(o)),
+                       chatty=True)
         built_artifacts = o.build_and_cache()
-        logging.debug('Builder.build: done')
+        self.app.status(msg='Builder.build: done',
+                        chatty=True)
         return built_artifacts

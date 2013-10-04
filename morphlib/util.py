@@ -171,20 +171,20 @@ def new_repo_caches(app):  # pragma: no cover
     return lrc, rrc
 
 
-def log_dict_diff(cur, pre): # pragma: no cover
+def log_dict_diff(app, cur, pre): # pragma: no cover
     '''Log the differences between two dicts to debug log'''
     dictA = cur
     dictB = pre
     for key in dictA.keys():
         if key not in dictB:
-            logging.debug("New environment: %s = %s" % (key, dictA[key]))
+            app.status(msg="New environment: %s = %s" % (key, dictA[key]))
         elif dictA[key] != dictB[key]:
-            logging.debug(
+            app.status(msg= \
                 "Environment changed: %(key)s = %(valA)s to %(key)s = %(valB)s"
                 % {"key": key, "valA": dictA[key], "valB": dictB[key]})
     for key in dictB.keys():
         if key not in dictA:
-            logging.debug("Environment removed:  %s = %s" % (key, dictB[key]))
+            app.status(msg="Environment removed:  %s = %s" % (key, dictB[key]))
 
 
 # This acquired from rdiff-backup which is GPLv2+ and a patch from 2011

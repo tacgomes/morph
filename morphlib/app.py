@@ -417,7 +417,7 @@ class Morph(cliapp.Application):
 
         # Log the environment.
         prev = getattr(self, 'prev_env', {})
-        morphlib.util.log_dict_diff(kwargs['env'], prev)
+        morphlib.util.log_dict_diff(self, kwargs['env'], prev)
         self.prev_env = kwargs['env']
 
         # run the command line
