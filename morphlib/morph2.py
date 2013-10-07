@@ -61,7 +61,9 @@ class Morphology(object):
             ('system-kind', None),
             ('configuration-extensions', []),
         ],
-        'cluster': []
+        'cluster': [
+            ('description', ''),
+        ],
     }
 
     @staticmethod
