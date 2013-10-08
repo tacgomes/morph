@@ -78,7 +78,8 @@ class AutotoolsVersionGuesser(ProjectVersionGuesser):
                 break
 
             # Then, try running autoconf against the configure script
-            version = self._check_autoconf_package_version(filename, data)
+            version = self._check_autoconf_package_version(
+                repo, ref, filename, data)
             if version:
                 self.app.status(
                         msg='%(repo)s: Version of %(ref)s detected '
@@ -107,7 +108,7 @@ class AutotoolsVersionGuesser(ProjectVersionGuesser):
                         return version
         return None
 
-    def _check_autoconf_package_version(self, filename, data):
+    def _check_autoconf_package_version(self, repo, ref, filename, data):
         tempdir = morphlib.tempdir.Tempdir(self.app.settings['tempdir'])
         with open(tempdir.join(filename), 'w') as f:
             f.write(data)
