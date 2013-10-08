@@ -93,10 +93,10 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     create tag
 ---
- stratum1.morph    |    9 ++++++---
- stratum2.morph    |   14 ++++++++++++++
- stratum3.morph    |    9 +++++++++
- test-system.morph |    9 ++++++---
+ stratum1.morph    |  9 ++++++---
+ stratum2.morph    | 14 ++++++++++++++
+ stratum3.morph    |  9 +++++++++
+ test-system.morph |  9 ++++++---
  4 files changed, 35 insertions(+), 6 deletions(-)
 
 diff --git a/stratum1.morph b/stratum1.morph
