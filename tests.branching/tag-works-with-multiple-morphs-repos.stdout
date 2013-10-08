@@ -4,7 +4,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 create tag
 
-commit 7253f9b1471f1983e07823d2b84582dde9fb108d
+commit 7323ed5dcc47715e7303fd36d537aef98a04df9a
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -67,11 +67,11 @@ index 0000000..610fae6
 +  repo: test:hello
 +  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index 44d5ae5..08f9adc 100644
+index 62d3b08..edb5745 100644
 --- a/test-system.morph
 +++ b/test-system.morph
-@@ -5,8 +5,11 @@ arch: x86_64
- disk-size: 1G
+@@ -3,8 +3,11 @@ kind: system
+ arch: x86_64
  strata:
  - morph: stratum1
 -  ref: master
@@ -85,7 +85,7 @@ index 44d5ae5..08f9adc 100644
 +  repo: test:morphs1
 +  unpetrify-ref: master
 +  unpetrify-repo: test:morphs2
-commit 7253f9b1471f1983e07823d2b84582dde9fb108d
+commit 7323ed5dcc47715e7303fd36d537aef98a04df9a
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -156,11 +156,11 @@ index 0000000..610fae6
 +  repo: test:hello
 +  unpetrify-ref: master
 diff --git a/test-system.morph b/test-system.morph
-index 44d5ae5..08f9adc 100644
+index 62d3b08..edb5745 100644
 --- a/test-system.morph
 +++ b/test-system.morph
-@@ -5,8 +5,11 @@ arch: x86_64
- disk-size: 1G
+@@ -3,8 +3,11 @@ kind: system
+ arch: x86_64
  strata:
  - morph: stratum1
 -  ref: master

@@ -112,7 +112,6 @@ cat <<EOF > hello-system.morph
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "$(uname -m)",
     "strata": [
         {
@@ -153,7 +152,6 @@ cat <<EOF > linux-system.morph
 {
     "name": "linux-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "$(uname -m)",
     "strata": [
         {

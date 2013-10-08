@@ -31,9 +31,7 @@ cat <<EOF >overlap-system.morph
 {
   "name": "overlap-system",
   "kind": "system",
-  "system-kind": "rootfs-tarball",
   "arch": "$(uname -m)",
-  "disk-size": "1G",
   "strata": [
     {
       "morph": "foo-baz-stratum",

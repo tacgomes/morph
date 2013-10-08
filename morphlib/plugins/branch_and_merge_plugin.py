@@ -333,7 +333,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         required = {
             'system': [
                 'name',
-                'system-kind',
                 'arch',
                 'strata',
             ],
@@ -354,8 +353,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
             'system': [
                 'kind',
                 'description',
-                'disk-size',
-                '_disk-size',
                 'configuration-extensions',
             ],
             'stratum': [

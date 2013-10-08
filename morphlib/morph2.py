@@ -58,7 +58,6 @@ class Morphology(object):
             ('strata', []),
             ('description', ''),
             ('arch', None),
-            ('system-kind', None),
             ('configuration-extensions', []),
         ],
         'cluster': []
@@ -169,10 +168,6 @@ class Morphology(object):
             self._set_default_value(self._dict, 'max-jobs',
                                     int(self['max-jobs']))
 
-        if 'disk-size' in self:
-            self._set_default_value(self._dict, 'disk-size',
-                                    self._parse_size(self['disk-size']))
-
         for name, value in self.static_defaults[self['kind']]:
             if name not in self._dict:
                 self._set_default_value(self._dict, name, value)
@@ -206,17 +201,6 @@ class Morphology(object):
                     self._set_default_value(system,
                                             'deploy',
                                             dict())
-
-    def _parse_size(self, size):
-        if isinstance(size, basestring):
-            size = size.lower()
-            if size.endswith('g'):
-                return int(size[:-1]) * 1024 ** 3
-            elif size.endswith('m'):  # pragma: no cover
-                return int(size[:-1]) * 1024 ** 2
-            elif size.endswith('k'):  # pragma: no cover
-                return int(size[:-1]) * 1024
-        return int(size) # pragma: no cover
 
     def lookup_child_by_name(self, name):
         '''Find child reference by its name.
@@ -285,10 +269,7 @@ class Morphology(object):
             # Simple values. Use original value unless it has been changed from
             # the default in memmory.
             if live_dict[key] == live_dict.get('_orig_' + key, None):
-                if key in original_dict:
-                    result = original_dict[key]
-                else:
-                    result = None
+                result = original_dict.get(key, None)
             else:
                 result = live_dict[key]
         return result

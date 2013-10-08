@@ -118,7 +118,6 @@ class FakeLocalRepo(object):
         'system.morph': '''{
                 "name": "system",
                 "kind": "system",
-                "system-kind": "%(system_kind)s",
                 "arch": "%(arch)s"
             }''',
         'parse-error.morph': '''{ "name"''',
@@ -130,13 +129,11 @@ class FakeLocalRepo(object):
 
     def __init__(self):
         self.arch = 'x86_64'
-        self.system_kind = ''
 
     def cat(self, sha1, filename):
         if filename in self.morphologies:
             values = {
                 'arch': self.arch,
-                'system_kind': self.system_kind,
             }
             return self.morphologies[filename] % values
         elif filename.endswith('.morph'):
@@ -307,11 +304,6 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.lr.arch = 'armv7'
         morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
         self.assertEqual(morph['arch'], 'armv7l')
-
-    def test_fails_if_system_define_system_kind_that_is_not_tarball(self):
-        self.lr.system_kind = 'blahblah'
-        self.assertRaises(morphlib.Error, self.mf.get_morphology,
-                          'reponame', 'sha1', 'system.morph')
 
     def test_fails_on_parse_error(self):
         self.assertRaises(morphlib.Error, self.mf.get_morphology,

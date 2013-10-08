@@ -2,9 +2,7 @@ test/petrify after petrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
-    "disk-size": "1G",
     "strata": [
         {
             "morph": "hello-stratum",
@@ -56,9 +54,7 @@ test/petrify after editing a chunk:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
-    "disk-size": "1G",
     "strata": [
         {
             "morph": "hello-stratum",
@@ -109,9 +105,7 @@ test/unpetrify after unpetrifying:
 {
     "name": "hello-system",
     "kind": "system",
-    "system-kind": "rootfs-tarball",
     "arch": "x86_64",
-    "disk-size": "1G",
     "strata": [
         {
             "morph": "hello-stratum",

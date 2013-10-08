@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011, 2012  Codethink Limited
+# Copyright (C) 2011-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ cat <<EOF >archless-system.morph
 {
   "name": "archless-system",
   "kind": "system",
-  "disk-size": "1G",
   "strata": [
     {
       "morph": "hello-stratum",

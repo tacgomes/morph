@@ -54,20 +54,18 @@ class InvalidFieldError(morphlib.Error):
         self.msg = (
             'Field %s not allowed in morphology %s' % (field, morphology))
 
+class ObsoleteFieldsError(morphlib.Error):
+
+    def __init__(self, fields, morphology):
+        self.msg = (
+           'Morphology %s uses obsolete fields: %s' % 
+           (morphology, ' '.join(fields)))
 
 class UnknownArchitectureError(morphlib.Error):
 
     def __init__(self, arch, morphology):
         self.msg = (
             'Unknown architecture %s in morphology %s' % (arch, morphology))
-
-
-class InvalidSystemKindError(morphlib.Error):
-
-    def __init__(self, system_kind, morphology):
-        self.msg = (
-            'system-kind %s not allowed (must be rootfs-tarball), in %s' %
-                (system_kind, morphology))
 
 
 class NoBuildDependenciesError(morphlib.Error):
@@ -115,6 +113,13 @@ class MorphologyLoader(object):
         ],
     }
 
+    _obsolete_fields = {
+        'system': [
+            'system-kind',
+            'disk-size',
+        ],
+    }
+
     _static_defaults = {
         'chunk': {
             'description': '',
@@ -144,9 +149,7 @@ class MorphologyLoader(object):
             'strata': [],
             'description': '',
             'arch': None,
-            'system-kind': 'rootfs-tarball',
             'configuration-extensions': [],
-            'disk-size': '1G',
         },
         'cluster': {},
     }
@@ -229,8 +232,10 @@ class MorphologyLoader(object):
             raise UnknownKindError(morph['kind'], morph.filename)
 
         required = ['kind'] + self._required_fields[kind]
+        obsolete = self._obsolete_fields.get(kind, [])
         allowed = self._static_defaults[kind].keys()
         self._require_fields(required, morph)
+        self._deny_obsolete_fields(obsolete, morph)
         self._deny_unknown_fields(required + allowed, morph)
 
         if kind == 'system':
@@ -259,12 +264,6 @@ class MorphologyLoader(object):
         # Architecture name must be known.
         if morph['arch'] not in morphlib.valid_archs:
             raise UnknownArchitectureError(morph['arch'], morph.filename)
-
-        # If system-kind is present, it must be rootfs-tarball.
-        if 'system-kind' in morph:
-            if morph['system-kind'] not in (None, 'rootfs-tarball'):
-                raise InvalidSystemKindError(
-                    morph['system-kind'], morph.filename)
 
     def _validate_stratum(self, morph):
         # Require at least one chunk.
@@ -307,6 +306,11 @@ class MorphologyLoader(object):
     def _require_fields(self, fields, morphology):
         for field in fields:
             self._require_field(field, morphology)
+
+    def _deny_obsolete_fields(self, fields, morphology):
+        obsolete_ones = [x for x in morphology if x in fields]
+        if obsolete_ones:
+            raise ObsoleteFieldsError(obsolete_ones, morphology.filename)
 
     def _deny_unknown_fields(self, allowed, morphology):
         for field in morphology:

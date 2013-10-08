@@ -134,9 +134,7 @@ git add tools-stratum.morph
 cat <<EOF > hello-system.morph
 name: hello-system
 kind: system
-system-kind: rootfs-tarball
 arch: `uname -m`
-disk-size: 1G
 strata:
     - morph: hello-stratum
       repo: test:morphs
@@ -163,9 +161,7 @@ git add linux-stratum.morph
 cat <<EOF > linux-system.morph
 name: linux-system
 kind: system
-system-kind: rootfs-tarball
 arch: `uname -m`
-disk-size: 1G
 strata:
     - morph: hello-stratum
       repo: test:morphs

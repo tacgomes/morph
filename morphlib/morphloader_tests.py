@@ -94,6 +94,26 @@ build-system: dummy
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
 
+    def test_fails_to_validate_system_with_obsolete_system_kind_field(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'system',
+            'name': 'foo',
+            'arch': 'x86_64',
+            'system-kind': 'foo',
+        })
+        self.assertRaises(
+            morphlib.morphloader.ObsoleteFieldsError, self.loader.validate, m)
+
+    def test_fails_to_validate_system_with_obsolete_disk_size_field(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'system',
+            'name': 'foo',
+            'arch': 'x86_64',
+            'disk-size': 'over 9000',
+        })
+        self.assertRaises(
+            morphlib.morphloader.ObsoleteFieldsError, self.loader.validate, m)
+
     def test_fails_to_validate_system_with_no_fields(self):
         m = morphlib.morph3.Morphology({
             'kind': 'system',
@@ -181,22 +201,6 @@ build-system: dummy
             })
         self.loader.validate(m)
         self.assertEqual(m['arch'], 'armv7l')
-
-    def test_validate_requires_system_kind_to_be_tarball_if_present(self):
-        m = morphlib.morph3.Morphology(
-            {
-                "kind": "system",
-                "name": "foo",
-                "arch": "armv7l",
-                "strata": [],
-                "system-kind": "blah",
-            })
-
-        self.assertRaises(
-            morphlib.morphloader.InvalidSystemKindError,
-            self.loader.validate, m)
-        m['system-kind'] = 'rootfs-tarball'
-        self.loader.validate(m)
 
     def test_validate_requires_build_deps_for_chunks_in_strata(self):
         m = morphlib.morph3.Morphology(
@@ -468,13 +472,11 @@ name: foo
             dict(m),
             {
                 'kind': 'system',
-                'system-kind': 'rootfs-tarball',
                 'name': 'foo',
                 'description': '',
                 'arch': 'x86_64',
                 'strata': [],
                 'configuration-extensions': [],
-                'disk-size': '1G',
             })
 
     def test_unsets_defaults_for_system(self):

@@ -5,7 +5,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Message
 
-commit 9509c9c379f8ba643b2ad9a6ec50ecf96993cbb5
+commit 6895ed63425bedb3dccaea3f258c705b1600f6be
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -26,10 +26,10 @@ index 73ed482..2218f63 100644
  kind: stratum
  name: hello-stratum
 diff --git a/hello-system.morph b/hello-system.morph
-index b0fed3b..4c4ee3e 100644
+index 3f7b4d3..d909347 100644
 --- a/hello-system.morph
 +++ b/hello-system.morph
-@@ -3,6 +3,7 @@ kind: system
+@@ -3,5 +3,6 @@ kind: system
  name: hello-system
  strata:
  - morph: hello-stratum
@@ -37,10 +37,9 @@ index b0fed3b..4c4ee3e 100644
 +  ref: example-tag
    repo: test:morphs
 +  unpetrify-ref: master
- system-kind: rootfs-tarball
 
 test:morphs
-commit 9509c9c379f8ba643b2ad9a6ec50ecf96993cbb5
+commit 6895ed63425bedb3dccaea3f258c705b1600f6be
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -48,7 +47,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Message
 
-commit 1fe013ee284724848d65096d4d88f612fae56fc6
+commit e11a36aa9e4c998c41a3ec3209324b9318e484ae
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
