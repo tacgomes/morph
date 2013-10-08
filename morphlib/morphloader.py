@@ -151,7 +151,9 @@ class MorphologyLoader(object):
             'arch': None,
             'configuration-extensions': [],
         },
-        'cluster': {},
+        'cluster': {
+            'description': '',
+        },
     }
 
     def parse_morphology_text(self, text, whence):
