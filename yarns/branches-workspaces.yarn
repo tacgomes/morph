@@ -352,3 +352,11 @@ Petrifying also leaves null refs unmolested
     AND         remembering all refs in foo
     AND         petrifying foo
     THEN        in branch foo, system test-system refs test-stratum in None
+
+Generating a manifest works
+
+    SCENARIO    morph generates a manifest
+    GIVEN       a workspace
+    AND         a system artifact
+    WHEN        morph generates a manifest
+    THEN        the manifest is generated
