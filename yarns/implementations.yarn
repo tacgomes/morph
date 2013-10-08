@@ -382,3 +382,38 @@ Tagging.
         assert_morphologies_are_petrified "$MATCH_1" temptemptemp
     done
 
+Generating a manifest.
+
+    IMPLEMENTS GIVEN a system artifact
+    mkdir "$DATADIR/hello_world"
+
+    git init "$DATADIR/hello_world"
+    touch "$DATADIR/hello_world/configure.ac"
+    run_in "$DATADIR/hello_world" git add configure.ac
+    run_in "$DATADIR/hello_world" git commit -m 'Add configure.ac'
+
+    mkdir "$DATADIR/baserock"
+    run_in "$DATADIR/hello_world" cat << EOF > "$DATADIR/baserock/hello_world.meta"
+    {
+        "artifact-name": "hello_world",
+        "cache-key": "ab8d00a80298a842446ce23507cea6b4d0e34c7ddfa05c67f460318b04d21308",
+        "kind": "chunk",
+        "morphology": "hello_world.morph",
+        "original_ref": "$(run_in "$DATADIR/hello_world" git rev-parse HEAD)",
+        "repo": "file://$DATADIR/hello_world",
+        "repo-alias": "upstream:hello_world",
+        "sha1": "$(run_in "$DATADIR/hello_world" git rev-parse HEAD)",
+        "source-name": "hello_world"
+    }
+    EOF
+    run_in "$DATADIR" tar -c baserock > "$DATADIR/artifact.tar"
+
+    IMPLEMENTS WHEN morph generates a manifest
+    run_morph generate-manifest "$DATADIR/artifact.tar" > "$DATADIR/manifest"
+    
+    IMPLEMENTS THEN the manifest is generated
+
+    # Generated manifest should contain the name of the repository
+    if ! grep -q hello_world "$DATADIR/manifest"; then
+        die "Output isn't what we expect"
+    fi
