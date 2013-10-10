@@ -47,7 +47,7 @@ class BuildCommand(object):
         for repo_name, ref, filename in self.app.itertriplets(args):
             self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
-            self.app.status(msg='Figuring out the right build order')
+            self.app.status(msg='Deciding on task order')
             srcpool = self.create_source_pool(repo_name, ref, filename)
             root_artifact = self.resolve_artifacts(srcpool)
             self.build_in_order(root_artifact)
