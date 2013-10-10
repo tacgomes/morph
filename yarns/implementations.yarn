@@ -394,11 +394,11 @@ Generating a manifest.
 
     mkdir "$DATADIR/baserock"
     run_in "$DATADIR/hello_world" cat << EOF \
-    	   > "$DATADIR/baserock/hello_world.meta"
+        > "$DATADIR/baserock/hello_world.meta"
     {
         "artifact-name": "hello_world",
         "cache-key": 
-	  "ab8d00a80298a842446ce23507cea6b4d0e34c7ddfa05c67f460318b04d21308",
+           "ab8d00a80298a842446ce23507cea6b4d0e34c7ddfa05c67f460318b04d21308",
         "kind": "chunk",
         "morphology": "hello_world.morph",
         "original_ref": "$(run_in "$DATADIR/hello_world" git rev-parse HEAD)",
