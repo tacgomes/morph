@@ -20,10 +20,17 @@ import logging
 import os
 import sys
 import time
+import urlparse
 import warnings
 
 import morphlib
 
+class InvalidUrlError(cliapp.AppException):
+
+    def __init__(self, parameter, url):
+        cliapp.AppException.__init__(
+            self, 'Value %s for argument %s is not a url' %
+            (url, parameter))
 
 defaults = {
     'trove-host': 'git.baserock.org',
@@ -199,6 +206,13 @@ class Morph(cliapp.Application):
             tmpdir_base = os.environ.get('TMPDIR', '/tmp')
             tmpdir = os.path.join(tmpdir_base, 'morph_tmp')
             self.settings['tempdir'] = tmpdir
+
+        if self.settings['tarball-server']:
+            url_split = urlparse.urlparse(self.settings['tarball-server'])
+            if not (url_split.netloc and
+                    url_split.scheme in ('http', 'https', 'file')):
+                raise InvalidUrlError('tarball-server',
+                                      self.settings['tarball-server'])
 
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
