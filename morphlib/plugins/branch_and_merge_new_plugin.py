@@ -822,7 +822,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         system, metadata = self._load_system_metadata(metadata_path)
         resolved_refs = dict(self._resolve_refs_from_metadata(alias_resolver,
                                                               metadata))
-        logging.debug('Resolved refs: %r' % resolved_refs)
+        self.app.status(msg='Resolved refs: %r' % resolved_refs)
         base_ref = system['sha1']
         # The previous version would fall back to deducing this from the repo
         # url and the repo alias resolver, but this does not always work, and

@@ -156,8 +156,8 @@ class StagingArea(object):
 
         '''
 
-        logging.debug('Installing artifact %s' %
-                      getattr(handle, 'name', 'unknown name'))
+        self._app.status(msg='Installing artifact %s' %
+                         getattr(handle, 'name', 'unknown name'))
 
         chunk_cache_dir = os.path.join(self._app.settings['tempdir'], 'chunks')
         unpacked_artifact = os.path.join(
@@ -296,7 +296,7 @@ class StagingArea(object):
         if not self.use_chroot:
             do_not_mount_dirs += [temp_dir]
 
-        logging.debug("Not mounting dirs %r" % do_not_mount_dirs)
+        self._app.status(msg="Not mounting dirs %r" % do_not_mount_dirs)
 
         real_argv = ['linux-user-chroot', '--chdir', cwd, '--unshare-net']
         for d in morphlib.fsutils.invert_paths(os.walk(chroot_dir),
