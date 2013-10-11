@@ -27,5 +27,7 @@ cd "$DATADIR/workspace/branch1"
 "$SRCDIR/scripts/test-morph" build linux-system
 "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
     deploy rawdisk_test_cluster > /dev/null
-test -e disk.img
+
+outputdir="test:morphs"
+test -e $outputdir/disk.img
 

@@ -18,7 +18,6 @@
 
 # Test "morph deploy" by deploying the systems in cluster morphology.
 
-
 set -eu
 
 
@@ -35,12 +34,13 @@ cd "$DATADIR/workspace/branch1"
     linux-system-2.HOSTNAME="baserock-rocks-even-more" \
     > /dev/null
 
-test -e hello-system.img
-test -e linux-system-1.tar
-test -e linux-system-2.tar
+outputdir=test:morphs
+test -e $outputdir/hello-system.img
+test -e $outputdir/linux-system-1.tar
+test -e $outputdir/linux-system-2.tar
 
-hostname1=$(tar -xf linux-system-1.tar ./etc/hostname -O)
-hostname2=$(tar -xf linux-system-2.tar ./etc/hostname -O)
+hostname1=$(tar -xf $outputdir/linux-system-1.tar ./etc/hostname -O)
+hostname2=$(tar -xf $outputdir/linux-system-2.tar ./etc/hostname -O)
 
 [ "$hostname1" = baserock-rocks ]
 [ "$hostname2" = baserock-rocks-even-more ]

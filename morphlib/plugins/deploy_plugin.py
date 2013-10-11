@@ -461,7 +461,7 @@ class DeployPlugin(cliapp.Plugin):
         self.app.runcmd(
             [ext_filename] + args,
             ['sh', '-c', 'while read l; do echo `date "+%F %T"` $l; done'],
-            env=env, stdout=None, stderr=None)
+            cwd=repo_dir, env=env, stdout=None, stderr=None)
         
         if delete_ext:
             os.remove(ext_filename)
