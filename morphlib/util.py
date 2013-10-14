@@ -177,7 +177,8 @@ def log_dict_diff(app, cur, pre): # pragma: no cover
     dictB = pre
     for key in dictA.keys():
         if key not in dictB:
-            app.status(msg="New environment: %s = %s" % (key, dictA[key]))
+            app.status(msg="New environment: %s = %s" % (key, dictA[key]),
+                       chatty=True)
         elif dictA[key] != dictB[key]:
             app.status(msg= \
                 "Environment changed: %(key)s = %(valA)s to %(key)s = %(valB)s"
