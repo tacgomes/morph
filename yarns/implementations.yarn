@@ -453,10 +453,17 @@ Implementation sections for building
     cd "$DATADIR/workspace/$MATCH_2"
     attempt_morph build "$MATCH_1"
 
+Implementation sections for deployment
+======================================
+
+    IMPLEMENTS WHEN attempting to deploy the (system|cluster) (\S+) in branch (\S+)
+    cd "$DATADIR/workspace/$MATCH_3"
+    attempt_morph deploy "$MATCH_2"
+
 Implementations sections for reading error messages
 ===================================================
 
-    IMPLEMENTS THEN the (init|build|checkout|branch) error message includes the string "(.*)"
+    IMPLEMENTS THEN the (init|build|checkout|branch|deploy) error message includes the string "(.*)"
     grep "$MATCH_2" "$DATADIR/result-$MATCH_1"
 
 IMPLEMENTS for test file and directory handling

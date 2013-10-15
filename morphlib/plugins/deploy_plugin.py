@@ -274,6 +274,10 @@ class DeployPlugin(cliapp.Plugin):
         root_repo_dir = self.other.find_repository(branch_dir, root_repo)
         data = self.other.load_morphology(root_repo_dir, cluster)
 
+        if data['kind'] != 'cluster':
+            raise cliapp.AppException(
+                "Error: morph deploy is only supported for cluster"
+                " morphologies.")
         for system in data['systems']:
             self.deploy_system(system, env_vars)
 
