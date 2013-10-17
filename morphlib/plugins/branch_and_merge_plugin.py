@@ -1638,7 +1638,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             }
 
         def add_morphology_info(info, category):
-            repo = info['repo']
+            repo = info['repo'] or branch_root
             if repo in build_repos:
                 repo_dir = build_repos[repo]['dirname']
             else:
@@ -1658,7 +1658,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         # building this system from the system branch.
         system_morphology = self.load_morphology(branch_root_dir, system_name)
         for info in system_morphology['strata']:
-            if info['ref'] == system_branch:
+            if info['ref'] == system_branch or info['ref'] is None:
                 repo_dir = add_morphology_info(info, 'strata')
                 if repo_dir:
                     stratum_morphology = self.load_morphology(
