@@ -32,8 +32,11 @@ class CachedRepoTests(unittest.TestCase):
         "kind": "chunk"
     }'''
 
+    bad_sha1_known_to_rev_parse = 'cafecafecafecafecafecafecafecafecafecafe'
+
     def rev_parse(self, ref):
         output = {
+            self.bad_sha1_known_to_rev_parse: self.bad_sha1_known_to_rev_parse,
             'a4da32f5a81c8bc6d660404724cedc3bc0914a75':
                     'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
             'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9':
@@ -159,7 +162,7 @@ class CachedRepoTests(unittest.TestCase):
     def test_fail_resolving_an_invalid_sha1_ref(self):
         self.assertRaises(cachedrepo.InvalidReferenceError,
                           self.repo.resolve_ref,
-                          '079bbfd447c8534e464ce5d40b80114c2022ebf4')
+                          self.bad_sha1_known_to_rev_parse)
 
     def test_cat_existing_file_in_existing_ref(self):
         data = self.repo.cat('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
