@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -126,7 +126,11 @@ class CachedRepo(object):
         except cliapp.AppException:
             raise InvalidReferenceError(self, ref)
 
-        tree = self._show_tree_hash(absref)
+        try:
+            tree = self._show_tree_hash(absref)
+        except cliapp.AppException:
+            raise InvalidReferenceError(self, ref)
+
         return absref, tree
 
     def cat(self, ref, filename):
@@ -239,11 +243,12 @@ class CachedRepo(object):
         return self.app.runcmd(*args, **kwargs)
 
     def _rev_parse(self, ref):  # pragma: no cover
-        return self._runcmd(['git', 'rev-parse', '--verify', ref])[0:40]
+        return self._runcmd(
+            ['git', 'rev-parse', '--verify', '%s^{commit}' % ref])[0:40]
 
     def _show_tree_hash(self, absref):  # pragma: no cover
         return self._runcmd(
-                ['git', 'log', '-1', '--format=format:%T', absref]).strip()
+            ['git', 'rev-parse', '--verify', '%s^{tree}' % absref]).strip()
 
     def _ls_tree(self, ref):  # pragma: no cover
         result = self._runcmd(['git', 'ls-tree', '--name-only', ref])
