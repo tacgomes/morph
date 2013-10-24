@@ -1,0 +1,14 @@
+"regression" tests
+==================
+
+Tests for check we don't introduce some bugs again.
+
+
+Testing if we can build after checking out from a tag.
+
+    SCENARIO    morph build works after checkout from a tag
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the test-tag system tag
+    THEN        morph build the system simple-system of the tag test-tag of the repo test:morphs
+
