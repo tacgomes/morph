@@ -419,3 +419,80 @@ Generating a manifest.
     if ! grep -q hello_world "$DATADIR/manifest"; then
         die "Output isn't what we expect"
     fi
+
+IMPLEMENTS for test file and directory handling
+===============================================
+
+The IMPLEMENTS sections in this chapter create files and directories
+for use as test data, and set and test their contents and permissions
+and ownerships.
+
+Create a directory
+------------------
+
+    IMPLEMENTS GIVEN a directory called (\S+)
+    mkdir -p "$DATADIR/$MATCH_1"
+
+Create a file
+-------------
+
+The file contents is used as a `printf`(1) format string.
+
+    IMPLEMENTS GIVEN a file called (\S+) containing "(.*)"
+    printf "$MATCH_2" > "$DATADIR/$MATCH_1"
+
+Set attributes on a file or directory
+-------------------------------------
+
+    IMPLEMENTS GIVEN (\S+) is owned by uid (\S+)
+    chown "$MATCH_2" "$DATADIR/$MATCH_1"
+
+    IMPLEMENTS GIVEN (\S+) is owned by gid (\S+)
+    chgrp "$MATCH_2" "$DATADIR/$MATCH_1"
+
+    IMPLEMENTS GIVEN (\S+) has permissions (\S+)
+    chmod "$MATCH_2" "$DATADIR/$MATCH_1"
+
+Check attributes of a file on the filesystem
+--------------------------------------------
+
+    IMPLEMENTS THEN file (\S+) exists
+    test -e "$DATADIR/$MATCH_1"
+
+    IMPLEMENTS THEN file (\S+) has permissions (\S+)
+    stat -c %A "$DATADIR/$MATCH_1" | grep -Fx -e "$MATCH_2"
+
+    IMPLEMENTS THEN file (\S+) is owned by uid (\d+)
+    stat -c %u "$DATADIR/$MATCH_1" | grep -Fx -e "$MATCH_2"
+
+    IMPLEMENTS THEN file (\S+) is owned by gid (\d+)
+    stat -c %g "$DATADIR/$MATCH_1" | grep -Fx -e "$MATCH_2"
+
+    IMPLEMENTS THEN file (\S+) is empty
+    stat -c %s "$DATADIR/$MATCH_1" | grep -Fx 0
+
+Check contents of a file
+------------------------
+
+We treat the contents of the file in the step as a `printf`(1) format
+string, to allow newlines and other such stuff to be expressed.
+
+    IMPLEMENTS THEN file (\S+) contains "(.*)"
+    printf "$MATCH_2" | diff - "$DATADIR/$MATCH_1"
+
+
+IMPLEMENTS for running programs
+===============================
+
+This chapter contains IMPLEMENTS sections for running programs. It is
+currently a bit of a placeholder.
+
+Remember environment variables to set when running
+--------------------------------------------------
+
+We need to manage the environment. We store the extra environment
+variables in `$DATADIR/env`. We treat the value as a format string for
+`printf`(1) so that newlines etc can be used.
+
+    IMPLEMENTS GIVEN an environment variable (\S+) containing "(.*)"
+    printf "export $MATCH_1=$MATCH_2" >> "$DATADIR/env"

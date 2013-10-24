@@ -1,0 +1,62 @@
+`fstab.configure`
+=================
+
+The `fstab.configure` extension appends text to the `/etc/fstab` from
+environment variables beginning with `FSTAB_`. It also sets the
+ownership and permissions of the file.
+
+The first thing to test is that the extension doesn't write anything
+if not requested to do so, but does create the file if it doesn't
+exist.
+
+    SCENARIO fstab.configure does nothing by default
+    GIVEN a directory called tree/etc
+    WHEN fstab.configure is run against tree
+    THEN file tree/etc/fstab exists
+    AND file tree/etc/fstab has permissions -rw-r--r--
+    AND file tree/etc/fstab is owned by uid 0
+    AND file tree/etc/fstab is owned by gid 0
+    AND file tree/etc/fstab is empty
+
+Append a something to the file, and verify the contents are exactly
+correct.
+
+    SCENARIO fstab.configure appends requested lines
+    GIVEN a directory called tree/etc
+    AND an environment variable FSTAB_FOO containing "foo"
+    WHEN fstab.configure is run against tree
+    THEN file tree/etc/fstab exists
+    AND file tree/etc/fstab has permissions -rw-r--r--
+    AND file tree/etc/fstab is owned by uid 0
+    AND file tree/etc/fstab is owned by gid 0
+    AND file tree/etc/fstab contains "foo\n"
+
+Append something to an existing file, with wrong ownership and
+permission.
+
+    SCENARIO fstab.configure appends to existing file
+    GIVEN a directory called tree/etc
+    AND a file called tree/etc/fstab containing "# comment\n"
+    AND tree/etc/fstab is owned by uid 1
+    AND tree/etc/fstab is owned by gid 1
+    AND tree/etc/fstab has permissions 0600
+    AND an environment variable FSTAB_FOO containing "foo"
+    WHEN fstab.configure is run against tree
+    THEN file tree/etc/fstab exists
+    AND file tree/etc/fstab has permissions -rw-r--r--
+    AND file tree/etc/fstab is owned by uid 0
+    AND file tree/etc/fstab is owned by gid 0
+    AND file tree/etc/fstab contains "# comment\nfoo\n"
+
+Implement running `fstab.configure`
+-----------------------------------
+
+When we actually run `fstab.configure`, we source `$DATADIR/env` to
+get the desired environment variables.
+
+    IMPLEMENTS WHEN fstab.configure is run against (\S+)
+    if [ -e "$DATADIR/env" ]
+    then
+        . "$DATADIR/env"
+    fi
+    "$SRCDIR/morphlib/exts/fstab.configure" "$DATADIR/$MATCH_1"
