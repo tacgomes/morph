@@ -1718,8 +1718,9 @@ class BranchAndMergePlugin(cliapp.Plugin):
             # Obtain parent SHA1 for the temporary ref tree to be committed.
             # This will either be the current commit of the temporary ref or
             # HEAD in case the temporary ref does not exist yet.
-            system_branch_sha1 = self.resolve_ref(repo_dir, system_branch)
-            parent_sha1 = self.resolve_ref(repo_dir, build_ref)
+            system_branch_sha1 = self.resolve_ref(
+                repo_dir, '%s^{commit}' % system_branch)
+            parent_sha1 = self.resolve_ref(repo_dir, '%s^{commit}' % build_ref)
             if not parent_sha1:
                 parent_sha1 = system_branch_sha1
 

@@ -76,6 +76,13 @@ another to hold a chunk.
         morph: test-stratum
     EOF
 
+    cat << EOF > "$DATADIR/gits/morphs/simple-system.morph"
+    name: simple-system
+    kind: system
+    arch: $arch
+    strata: []
+    EOF
+
     cat << EOF > "$DATADIR/gits/morphs/test-stratum.morph"
     name: test-stratum
     kind: stratum
@@ -91,6 +98,7 @@ another to hold a chunk.
     run_in "$DATADIR/gits/morphs" git init .
     run_in "$DATADIR/gits/morphs" git add .
     run_in "$DATADIR/gits/morphs" git commit -m Initial.
+    run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
 
     # Create the chunk repository.
 
@@ -112,7 +120,13 @@ another to hold a chunk.
     cat << EOF > "$DATADIR/morph.conf"
     [config]
     repo-alias = test=file://$DATADIR/gits/%s#file://$DATADIR/gits/%s
+    cachedir = $DATADIR/cache
+    tempdir = $DATADIR/tmp
+    trove-host= []
     EOF
+
+    mkdir "$DATADIR/cache"
+    mkdir "$DATADIR/tmp"
 
 Morphologies need to support having a null ref, which means look for the
 stratum in the same repository and ref. Testing this requires different
@@ -132,7 +146,7 @@ Implementation sections for system branch operations
 Checkout out an existing system branch. We parameterise this so the
 same phrase can be used to check out any system branch.
 
-    IMPLEMENTS WHEN checking out the (\S+) system branch
+    IMPLEMENTS WHEN checking out the (\S+) system (branch|tag)
     cd "$DATADIR/workspace"
     run_morph checkout test:morphs "$MATCH_1"
 
@@ -496,3 +510,10 @@ variables in `$DATADIR/env`. We treat the value as a format string for
 
     IMPLEMENTS GIVEN an environment variable (\S+) containing "(.*)"
     printf "export $MATCH_1=$MATCH_2" >> "$DATADIR/env"
+
+Implementations for building systems
+------------------------------------
+
+    IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+) of the repo (\S+)
+    cd "$DATADIR/workspace/$MATCH_3/$MATCH_4"
+    run_morph build "$MATCH_1" 
