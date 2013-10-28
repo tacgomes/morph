@@ -31,7 +31,9 @@
 run_morph()
 {
     "${SRCDIR:-.}"/morph \
-        --no-default-config --config "$DATADIR/morph.conf" "$@"
+        --cachedir-min-space=0 --tempdir-min-space=0 \
+        --no-default-config --config "$DATADIR/morph.conf" "$@" \
+        2> "$DATADIR/result-$1"
 }
 
 

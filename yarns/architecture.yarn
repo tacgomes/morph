@@ -1,0 +1,11 @@
+Morph Cross-Building Tests
+==========================
+
+    SCENARIO building a system for a different architecture
+    GIVEN a workspace
+    AND a git server
+    AND a system called base-system-testarch for architecture testarch in the git server 
+    WHEN checking out the master system branch
+    AND attempting to build the system base-system-testarch in branch master
+    THEN morph failed
+    AND the build error message includes the string "Are you trying to cross-build?"

@@ -128,6 +128,18 @@ another to hold a chunk.
     mkdir "$DATADIR/cache"
     mkdir "$DATADIR/tmp"
 
+    IMPLEMENTS GIVEN a system called (\S+) for architecture (\S+) in the git server
+    cat << EOF > "$DATADIR/gits/morphs/$MATCH_1.morph"
+    arch: $MATCH_2
+    configuration-extensions: []
+    description: A system called $MATCH_1 for architectures $MATCH_2
+    kind: system
+    name: $MATCH_1
+    strata: []
+    EOF
+    run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
+    run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 morphology."
+
 Morphologies need to support having a null ref, which means look for the
 stratum in the same repository and ref. Testing this requires different
 morphologies.
@@ -433,6 +445,19 @@ Generating a manifest.
     if ! grep -q hello_world "$DATADIR/manifest"; then
         die "Output isn't what we expect"
     fi
+
+Implementation sections for building
+====================================
+
+    IMPLEMENTS WHEN attempting to build the system (\S+) in branch (\S+)
+    cd "$DATADIR/workspace/$MATCH_2"
+    attempt_morph build "$MATCH_1"
+
+Implementations sections for reading error messages
+===================================================
+
+    IMPLEMENTS THEN the (init|build|checkout|branch) error message includes the string "(.*)"
+    grep "$MATCH_2" "$DATADIR/result-$MATCH_1"
 
 IMPLEMENTS for test file and directory handling
 ===============================================

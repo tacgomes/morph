@@ -50,6 +50,7 @@ class BuildCommand(object):
             self.app.status(msg='Deciding on task order')
             srcpool = self.create_source_pool(repo_name, ref, filename)
             root_artifact = self.resolve_artifacts(srcpool)
+            self._validate_architecture(root_artifact)
             self.build_in_order(root_artifact)
 
         self.app.status(msg='Build ends successfully')
@@ -87,6 +88,17 @@ class BuildCommand(object):
         self._validate_cross_morphology_references(srcpool)
 
         return srcpool
+
+    def _validate_architecture(self, root_artifact):
+        '''Perform the validation between root and target architectures.'''
+
+        root_arch = root_artifact.source.morphology['arch']
+        host_arch = morphlib.util.get_host_architecture()
+        if root_arch != host_arch:
+            raise morphlib.Error(
+                'Are you trying to cross-build? '
+                    'Host architecture is %s but target is %s'
+                    % (host_arch, root_arch))
 
     def resolve_artifacts(self, srcpool):
         '''Resolve the artifacts that will be built for a set of sources'''
