@@ -118,6 +118,9 @@ then
         fi
 
         case "$x" in
+            # Excluding yarn files since it's not possible to split up the
+            # IMPLEMENTS lines of them 
+            *.yarn) ;;
             *)
                 if awk 'length > 79' "$x" | grep . > /dev/null
                 then
