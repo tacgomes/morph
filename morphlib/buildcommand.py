@@ -395,8 +395,10 @@ class BuildCommand(object):
             if artifact.source.build_mode == 'bootstrap':
                if not self.in_same_stratum(artifact, target_artifact):
                     continue
-            self.app.status(msg='Installing chunk %(chunk_name)s',
-                            chunk_name=artifact.name)
+            self.app.status(msg='Installing chunk %(chunk_name)s '
+                            'from cache %(cache)s',
+                            chunk_name=artifact.name,
+                            cache=artifact.cache_key[:7])
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
 

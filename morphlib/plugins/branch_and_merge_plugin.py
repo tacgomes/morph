@@ -1744,7 +1744,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             self.app.runcmd(['git', 'add'] + changed_files,
                             cwd=repo_dir, env=env)
 
-            self.app.status(msg='%(repo)s: Update morphologies to use '
+            self.app.status(msg='%(repo)s: Updating morphologies to use '
                                 'build branch instead of "%(branch)s"',
                             repo=repo, branch=system_branch)
 

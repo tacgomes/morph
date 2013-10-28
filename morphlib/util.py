@@ -178,16 +178,15 @@ def log_dict_diff(app, cur, pre): # pragma: no cover
     for key in dictA.keys():
         if key not in dictB:
             app.status(msg="New environment: %(key)s = %(value)s",
-                       key=key, value=dictA[key],
-                       chatty=True)
+                       key=key, value=dictA[key], chatty=True)
         elif dictA[key] != dictB[key]:
-            app.status(msg= \
-                "Environment changed: %(key)s = %(valA)s to %(key)s = %(valB)s"
-                % {"key": key, "valA": dictA[key], "valB": dictB[key]})
+            app.status(msg="Environment changed: \
+                %(key)s = %(valA)s to %(key)s = %(valB)s",
+                key=key, valA=dictA[key], valB=dictB[key], chatty=True)
     for key in dictB.keys():
         if key not in dictA:
             app.status(msg="Environment removed:  %(key)s = %(value)s",
-                       key=key, value=dictB[key])
+                       key=key, value=dictB[key], chatty=True)
 
 
 # This acquired from rdiff-backup which is GPLv2+ and a patch from 2011
