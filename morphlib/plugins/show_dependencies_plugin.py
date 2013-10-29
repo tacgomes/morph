@@ -52,9 +52,12 @@ class ShowDependenciesPlugin(cliapp.Plugin):
             self.app.settings['repo-alias'])
         lrc = morphlib.localrepocache.LocalRepoCache(
             self.app, cachedir, repo_resolver, tarball_base_url)
-        if self.app.settings['cache-server']:
+
+        remote_url = morphlib.util.get_git_resolve_cache_server(
+            self.app.settings)
+        if remote_url:
             rrc = morphlib.remoterepocache.RemoteRepoCache(
-                self.app.settings['cache-server'], repo_resolver)
+                remote_url, repo_resolver)
         else:
             rrc = None
             

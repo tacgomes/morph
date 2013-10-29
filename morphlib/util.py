@@ -81,6 +81,22 @@ def create_cachedir(settings):  # pragma: no cover
     return cachedir
 
 
+def get_artifact_cache_server(settings): # pragma: no cover
+    if settings['artifact-cache-server']:
+        return settings['artifact-cache-server']
+    if settings['cache-server']:
+        return settings['cache-server']
+    return None
+
+
+def get_git_resolve_cache_server(settings): # pragma: no cover
+    if settings['git-resolve-cache-server']:
+        return settings['git-resolve-cache-server']
+    if settings['cache-server']:
+        return settings['cache-server']
+    return None
+
+
 def new_artifact_caches(settings):  # pragma: no cover
     '''Create new objects for local and remote artifact caches.
 
@@ -95,7 +111,7 @@ def new_artifact_caches(settings):  # pragma: no cover
 
     lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
 
-    rac_url = settings['cache-server']
+    rac_url = get_artifact_cache_server(settings)
     if rac_url:
         rac = morphlib.remoteartifactcache.RemoteArtifactCache(rac_url)
     else:
@@ -162,7 +178,7 @@ def new_repo_caches(app):  # pragma: no cover
     lrc = morphlib.localrepocache.LocalRepoCache(
         app, gits_dir, repo_resolver, tarball_base_url=tarball_base_url)
 
-    url = app.settings['cache-server']
+    url = get_git_resolve_cache_server(app.settings)
     if url:
         rrc = morphlib.remoterepocache.RemoteRepoCache(url, repo_resolver)
     else:
