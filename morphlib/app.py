@@ -92,6 +92,20 @@ class Morph(cliapp.Application):
                              metavar='URL',
                              default=None,
                              group=group_advanced)
+        self.settings.string(
+            ['artifact-cache-server'],
+            'HTTP URL for the artifact cache server; '
+            'if not set, then the cache-server setting is used instead',
+            metavar='URL',
+            default=None,
+            group=group_advanced)
+        self.settings.string(
+            ['git-resolve-cache-server'],
+            'HTTP URL for the git ref resolving cache server; '
+            'if not set, then the cache-server setting is used instead',
+            metavar='URL',
+            default=None,
+            group=group_advanced)
         self.settings.string(['tarball-server'],
                              'base URL to download tarballs. '
                              'If not provided, defaults to '
