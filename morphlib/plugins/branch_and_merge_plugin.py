@@ -1765,10 +1765,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                             ['git', 'hash-object', '-t', 'blob', '-w', f.name],
                             cwd=repo_dir, env=env)
 
-                    self.app.runcmd(
+                    try:
+                        self.app.runcmd(
                             ['git', 'update-index', '--cacheinfo',
                              '100644', morphology_sha1, '%s.morph' % filename],
                             cwd=repo_dir, env=env)
+                    except cliapp.AppException, e:
+                        raise cliapp.AppException(
+                            "You seem to want to build %s, but '%s.morph' "
+                            "doesn't exist in the morphologies repository. "
+                            "Did you forget to commit it?" %
+                            (filename, filename))
 
             # Create a commit message including the build UUID. This allows us
             # to collect all commits of a build across repositories and thereby

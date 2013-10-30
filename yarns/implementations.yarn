@@ -281,6 +281,16 @@ Editing morphologies with `morph edit`.
     echo "$MATCH_2" > "$DATADIR/git-branch.wanted"
     diff -u "$DATADIR/git-branch.wanted" "$DATADIR/git-branch.actual"
 
+    IMPLEMENTS WHEN creating an uncommitted system morphology called (\S+) for architecture (\S+) in system branch (\S+)
+    cat << EOF > "$DATADIR/workspace/$MATCH_3/test:morphs/$MATCH_1.morph"
+    arch: $MATCH_2
+    configuration-extensions: []
+    description: A system called $MATCH_1 for architectures $MATCH_2
+    kind: system
+    name: $MATCH_1
+    strata: []
+    EOF
+
 Reporting status of checked out repositories:
 
     IMPLEMENTS THEN morph reports no outstanding changes in (\S+)

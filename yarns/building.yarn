@@ -1,0 +1,11 @@
+Morph Building Tests
+======================
+
+    SCENARIO attempting to build a system morphology which has never been committed
+    GIVEN a workspace
+    AND a git server
+    WHEN checking out the master system branch
+    AND creating an uncommitted system morphology called base-system-testarch for architecture testarch in system branch master
+    AND attempting to build the system base-system-testarch in branch master
+    THEN morph failed
+    AND the build error message includes the string "Did you forget to commit it?"
