@@ -19,6 +19,7 @@ Oh, and the one line should contain no spaces, either.
     AND stderr is empty
 
     IMPLEMENTS WHEN morph print-architecture is run
+    set +x
     run_morph print-architecture > "$DATADIR/stdout" 2> "$DATADIR/stderr"
 
     IMPLEMENTS THEN stdout contains a single line
