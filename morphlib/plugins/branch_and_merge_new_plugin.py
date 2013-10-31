@@ -443,6 +443,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         logging.debug('Loading system morphology')
         system_morph = loader.load_from_file(
             sb.get_filename(sb.root_repository_url, system_name + '.morph'))
+        if system_morph['kind'] != 'system':
+            raise cliapp.AppException("%s is not a system" % system_name)
         system_morph.repo_url = sb.root_repository_url
         system_morph.ref = sb.system_branch_name
         system_morph.filename = system_name + '.morph'

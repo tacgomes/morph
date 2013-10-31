@@ -204,6 +204,16 @@ purposes.
     AND  in branch foo, stratum test-stratum refs test-chunk in foo
     AND  edited chunk test:test-chunk has git branch foo
 
+Morph edit should only work with a system argument. 
+
+    SCENARIO    morph edit errors when supplied only a stratum and chunk as arguments
+    GIVEN       a workspace
+    AND         a git server
+    WHEN        checking out the master system branch
+    AND         editing chunk test-chunk in stratum test-stratum with no system specified in branch master
+    THEN        morph failed
+    AND         the edit error message includes the string "is not a system"
+
 Status of system branch checkout
 --------------------------------
 

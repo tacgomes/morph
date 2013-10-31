@@ -281,6 +281,10 @@ Editing morphologies with `morph edit`.
     echo "$MATCH_2" > "$DATADIR/git-branch.wanted"
     diff -u "$DATADIR/git-branch.wanted" "$DATADIR/git-branch.actual"
 
+    IMPLEMENTS WHEN editing chunk (\S+) in stratum (\S+) with no system specified in branch (\S+)
+    cd "$DATADIR/workspace/$MATCH_3"
+    attempt_morph edit "$MATCH_2" "$MATCH_1"
+
     IMPLEMENTS WHEN creating an uncommitted system morphology called (\S+) for architecture (\S+) in system branch (\S+)
     cat << EOF > "$DATADIR/workspace/$MATCH_3/test:morphs/$MATCH_1.morph"
     arch: $MATCH_2
@@ -477,7 +481,7 @@ Implementation sections for deployment
 Implementations sections for reading error messages
 ===================================================
 
-    IMPLEMENTS THEN the (init|build|checkout|branch|deploy) error message includes the string "(.*)"
+    IMPLEMENTS THEN the (branch|build|checkout|deploy|edit|init) error message includes the string "(.*)"
     grep "$MATCH_2" "$DATADIR/result-$MATCH_1"
 
 IMPLEMENTS for test file and directory handling
