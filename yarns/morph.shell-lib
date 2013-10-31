@@ -158,3 +158,22 @@ if ! env | grep '^SRCDIR=' > /dev/null
 then
     export SRCDIR="$(pwd)"
 fi
+
+
+# Added until it's fixed in upstream.
+# It's a solution to create an empty home directory each execution
+export HOME="$DATADIR/home"
+if [ ! -d "$HOME" ]
+then
+    mkdir "$HOME"
+fi
+
+# Generating a default git user to run the tests
+if ! test -r "$HOME/.gitconfig"
+then
+    cat > "$HOME/.gitconfig" <<EOF
+[user]
+     name = Tomjon Codethinker
+     email = tomjon@codethink.co.uk
+EOF
+fi
