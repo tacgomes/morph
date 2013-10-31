@@ -4,7 +4,7 @@ Morph Deployment Tests
     SCENARIO deploying a non-cluster morphology
     GIVEN a workspace
     AND a git server
-    WHEN checking out the master system branch
-    AND attempting to deploy the system test-system in branch master
+    WHEN the user checks out the system branch called master
+    AND the user attempts to deploy the system test-system in branch master
     THEN morph failed
     AND the deploy error message includes the string "morph deploy is only supported for cluster morphologies"

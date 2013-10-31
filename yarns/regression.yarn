@@ -9,7 +9,7 @@ Testing if we can build after checking out from a tag.
     SCENARIO    morph build works after checkout from a tag
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the test-tag system tag
+    WHEN        the user checks out the system tag called test-tag
     THEN        morph build the system simple-system of the tag test-tag of the repo test:morphs
 
 
@@ -19,13 +19,13 @@ remove the existing directory.
     SCENARIO    re-running 'morph branch' fails, original branch untouched 
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        the system branch foo is checked out
 
 The branch is checked out correctly, now it should fail if the user executes
 `morph branch` with the same branch name.
 
-    WHEN        user attempts to create system branch foo
+    WHEN        the user attempts to create a system branch called foo
     THEN        morph failed
     AND         the branch error message includes the string "File exists" 
 
