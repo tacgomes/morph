@@ -72,7 +72,7 @@ We can, instead, create a new system branch, off master.
     SCENARIO    branch off master
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     THEN        the system branch foo is checked out
 
 We can also branch off another system branch. However, we need to first
@@ -82,7 +82,7 @@ to check for that locally.
     SCENARIO    branch off non-master
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     AND         pushing system branch foo to git server
     AND         creating system branch bar, based on foo
     THEN        the system branch bar is checked out
@@ -147,7 +147,7 @@ current directory, things should fail.
     GIVEN       a workspace
     AND         a git server
     WHEN        checking out the master system branch
-    AND         creating system branch foo
+    AND         user creates system branch foo
     AND         attempting to report system branch in .
     THEN        morph failed
 
@@ -186,7 +186,7 @@ all the refs are unchanged.
     SCENARIO    morph branch does not edit refs
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     THEN        in branch foo, system test-system refs test-stratum in master
     AND         in branch foo, stratum test-stratum refs test-chunk in master
 
@@ -214,7 +214,7 @@ repositories referenced in the system branch.
     SCENARIO    morph status reports changes correctly
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     THEN        morph reports no outstanding changes in foo
 
     WHEN editing stratum test-stratum in system test-system in branch foo
@@ -244,7 +244,7 @@ branch checkout.
     SCENARIO morph foreach runs command in each git repo
     GIVEN a workspace
     AND   a git server
-    WHEN  creating system branch foo
+    WHEN  user creates system branch foo
     AND   editing chunk test-chunk in test-stratum in test-system in branch foo
     AND   running shell command in each repo in foo
     THEN  morph ran command in test:morphs in foo
@@ -261,7 +261,7 @@ unpetrify and verify that we have all the same refs as before.
     SCENARIO    morph petrifies and unpetrifies
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     AND         pushing system branch foo to git server
     AND         remembering all refs in foo
     AND         petrifying foo
@@ -279,7 +279,7 @@ system branch itself, only the tag.
     SCENARIO    morph tags a system branch
     GIVEN       a workspace
     AND         a git server
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     AND         tagging system branch foo as test123
     THEN        morph tag test123 in foo is an annotated git tag
     AND         morph tag test123 in foo refers to a petrified commit
@@ -314,7 +314,7 @@ wouldn't need to worry about changing the system branch ref.
     GIVEN       a workspace
     AND         a git server
     AND         null refs for local strata
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     THEN        the system branch foo is checked out
 
 When we edit a morphology with null refs, they stay null.
@@ -326,7 +326,7 @@ When we edit a morphology with null refs, they stay null.
 
 When creating the branch, the refs remain null.
 
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     THEN        in branch foo, system test-system refs test-stratum in None
 
 After editing the stratum they remain null.
@@ -347,7 +347,7 @@ Petrifying also leaves null refs unmolested
     GIVEN       a workspace
     AND         a git server
     AND         null refs for local strata
-    WHEN        creating system branch foo
+    WHEN        user creates system branch foo
     AND         pushing system branch foo to git server
     AND         remembering all refs in foo
     AND         petrifying foo

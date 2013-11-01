@@ -183,9 +183,13 @@ We also need to verify that a system branch has been checked out.
 
 We can create a new branch, off master.
 
-    IMPLEMENTS WHEN creating system branch (\S+)
+    IMPLEMENTS WHEN user creates system branch (\S+)
     cd "$DATADIR/workspace"
     run_morph branch test:morphs "$MATCH_1"
+
+    IMPLEMENTS WHEN user attempts to create system branch (\S+)
+    cd "$DATADIR/workspace"
+    attempt_morph branch test:morphs "$MATCH_1"
 
 We can create a new branch, off another system branch.
 

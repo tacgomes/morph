@@ -134,6 +134,9 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             gd.update_submodules(self.app)
             gd.update_remotes()
 
+        except morphlib.sysbranchdir.SystemBranchDirectoryAlreadyExists as e:
+            logging.error('Caught exception: %s' % str(e))
+            raise
         except BaseException as e:
             # Oops. Clean up.
             logging.error('Caught exception: %s' % str(e))
