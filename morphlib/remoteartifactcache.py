@@ -16,6 +16,7 @@
 
 import cliapp
 import logging
+import urllib
 import urllib2
 import urlparse
 
@@ -108,7 +109,8 @@ class RemoteArtifactCache(object):
         if not server_url.endswith('/'):
             server_url += '/'
         return urlparse.urljoin(
-            server_url, '/1.0/artifacts?filename=%s' % filename)
+            server_url, '/1.0/artifacts?filename=%s' % 
+            urllib.quote(filename))
 
     def __str__(self):  # pragma: no cover
         return self.server_url

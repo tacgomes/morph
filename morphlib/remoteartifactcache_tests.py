@@ -157,3 +157,8 @@ class RemoteArtifactCacheTests(unittest.TestCase):
             self.runtime_artifact.source,
             self.runtime_artifact.cache_key,
             'non-existent-meta')
+
+    def test_escapes_pluses_in_request_urls(self):
+        returned_url = self.cache._request_url('gtk+')
+        correct_url = '%s/1.0/artifacts?filename=gtk%%2B' % self.server_url
+        self.assertEqual(returned_url, correct_url)
