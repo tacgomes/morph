@@ -12,14 +12,14 @@ The first thing a user needs to do is create a workspace.
 
     SCENARIO    create and initialise a new workspace
     GIVEN       no workspace
-    WHEN        morph initialises a workspace
+    WHEN        the user initialises a workspace
     THEN        an empty workspace exists
 
 The workspace directory may exist, if it is empty.
 
     SCENARIO    initialise an empty workspace directory
     GIVEN       an empty workspace directory
-    WHEN        morph initialises a workspace
+    WHEN        the user initialises a workspace
     THEN        an empty workspace exists
 
 However, the directory must really be empty. It must not be
@@ -27,8 +27,8 @@ an empty, but initialised workspace.
 
     SCENARIO    initialise an existing, empty workspace directory
     GIVEN       no workspace
-    WHEN        morph initialises a workspace
-    AND         morph attempts to initialise a workspace
+    WHEN        the user initialises a workspace
+    AND         the user attempts to initialise a workspace
     THEN        morph failed
 
 Likewise, if the directory exists, and is non-empty, but isn't an
@@ -36,7 +36,7 @@ existing workspace, initialising it should fail.
 
     SCENARIO    initialise a non-empty workspace directory
     GIVEN       a non-empty workspace directory
-    WHEN        morph attempts to initialise a workspace
+    WHEN        the user attempts to initialise a workspace
     THEN        morph failed
 
 Checking out or branching system branches
@@ -47,7 +47,7 @@ Once we have a workspace, we can check out a system branch.
     SCENARIO    check out an existing system branch
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
+    WHEN        the user checks out the system branch called master
     THEN        the system branch master is checked out
 
 Checking out a system branch should fail, if the branch doesn't exist.
@@ -55,7 +55,7 @@ Checking out a system branch should fail, if the branch doesn't exist.
     SCENARIO    checking out a system branch that doesn't exist
     GIVEN       a workspace
     AND         a git server
-    WHEN        morph attempts to check out system branch foo
+    WHEN        the user attempts to check out the system branch called foo
     THEN        morph failed
 
 Checking out a system branch should also fail if the repository does
@@ -64,7 +64,7 @@ not contain any system morphologies.
     SCENARIO    checking out a system branch with no systems
     GIVEN       a workspace
     AND         a git server
-    WHEN        morph attempts to check out a repository with no systems
+    WHEN        the user attempts to check out from a repository with no systems
     THEN        morph failed
 
 We can, instead, create a new system branch, off master.
@@ -72,7 +72,7 @@ We can, instead, create a new system branch, off master.
     SCENARIO    branch off master
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        the system branch foo is checked out
 
 We can also branch off another system branch. However, we need to first
@@ -82,9 +82,9 @@ to check for that locally.
     SCENARIO    branch off non-master
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
-    AND         pushing system branch foo to git server
-    AND         creating system branch bar, based on foo
+    WHEN        the user creates a system branch called foo
+    AND         the user pushes the system branch called foo to the git server
+    AND         the user creates a system branch called bar, based on foo
     THEN        the system branch bar is checked out
 
 Query commands in workspaces
@@ -95,8 +95,8 @@ directory, regardless of where the user is. There's a few cases.
 
     SCENARIO    morph workspace works at root of empty workspace
     GIVEN       a workspace
-    WHEN        morph reports workspace in .
-    THEN        workspace is reported correctly
+    WHEN        the user reports the workspace from the directory .
+    THEN        the workspace is reported correctly
 
 Also check it in the root of a system branch checkout, and inside
 a git checkout inside that.
@@ -104,22 +104,22 @@ a git checkout inside that.
     SCENARIO    morph workspace works in system branch checkouts
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
-    AND         morph reports workspace in master
-    THEN        workspace is reported correctly
+    WHEN        the user checks out the system branch called master
+    AND         the user reports the workspace from the directory master
+    THEN        the workspace is reported correctly
 
 We leak a little bit of the implementation here, to keep things simple:
 the (mocked) git server the implementation sets up has the `test:morphs`
 repository, which is the system branch root repository.
 
-    WHEN        morph reports workspace in master/test:morphs
-    THEN        workspace is reported correctly
+    WHEN        the user reports the workspace from the directory  master/test:morphs
+    THEN        the workspace is reported correctly
 
 However, running it outside a workspace should fail.
 
     SCENARIO    morph fails outside workspace
     GIVEN       no workspace
-    WHEN        morph attempts to report workspace
+    WHEN        the user attempts to report the workspace from a non-workspace directory
     THEN        morph failed
 
 `morph show-system-branch` should report the name of the system
@@ -130,15 +130,15 @@ current working directory, it will find it and report it correctly.
     SCENARIO    morph reports system branch
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
-    AND         reporting system branch in master
-    THEN        system branch is reported as master
+    WHEN        the user checks out the system branch called master
+    AND         the user reports the system branch from the directory master
+    THEN        the system branch is reported as master
 
-    WHEN        reporting system branch in master/test:morphs
-    THEN        system branch is reported as master
+    WHEN        the user reports the system branch from the directory master/test:morphs
+    THEN        the system branch is reported as master
 
-    WHEN        reporting system branch  in .
-    THEN        system branch is reported as master
+    WHEN        the user reports the system branch from the directory .
+    THEN        the system branch is reported as master
 
 However, if there's two system branches checked out below the
 current directory, things should fail.
@@ -146,9 +146,9 @@ current directory, things should fail.
     SCENARIO    morph fails to report system branch with two checked out
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
-    AND         user creates system branch foo
-    AND         attempting to report system branch in .
+    WHEN        the user checks out the system branch called master
+    AND         the user creates a system branch called foo
+    AND         the user attempts to report the system branch from the directory .
     THEN        morph failed
 
 `morph show-branch-root` reports the URL (possibly aliases) of the
@@ -158,12 +158,12 @@ somewhere outside a checkout, where exactly one checkout exists below.
     SCENARIO    morph reports system branch root repository
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
-    AND         reporting system branch root repository in master
-    THEN        root repository is reported as test:morphs
+    WHEN        the user checks out the system branch called master
+    AND         the user reports the system branch root repository from the directory master
+    THEN        the system branch root repository is reported as test:morphs
 
-    WHEN        reporting system branch root repository in .
-    THEN        root repository is reported as test:morphs
+    WHEN        the user reports the system branch root repository from the directory .
+    THEN        the system branch root repository is reported as test:morphs
 
 However, it fails if run outside a checkout and there's no system
 branches checked out.
@@ -171,7 +171,7 @@ branches checked out.
     SCENARIO    morph fails to report system branch with none checked out
     GIVEN       a workspace
     AND         a git server
-    WHEN        attempting to report system branch root repository in .
+    WHEN        the user attempts to report the system branch root repository from the directory .
     THEN        morph failed
 
 Editing components
@@ -186,31 +186,31 @@ all the refs are unchanged.
     SCENARIO    morph branch does not edit refs
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        in branch foo, system test-system refs test-stratum in master
     AND         in branch foo, stratum test-stratum refs test-chunk in master
 
 Then edit the stratum.
 
-    WHEN    editing stratum test-stratum in system test-system in branch foo
+    WHEN    the user edits the stratum test-stratum in the system test-system in branch foo
     THEN    in branch foo, system test-system refs test-stratum in foo
 
 Edit the chunk. We make use of special knowledge here: `test:test-chunk`
 is a chunk repository created in the mocked git server, for testing
 purposes.
 
-    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    WHEN the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
     THEN in branch foo, system test-system refs test-stratum in foo
     AND  in branch foo, stratum test-stratum refs test-chunk in foo
-    AND  edited chunk test:test-chunk has git branch foo
+    AND  the edited chunk test:test-chunk has git branch foo
 
 Morph edit should only work with a system argument. 
 
     SCENARIO    morph edit errors when supplied only a stratum and chunk as arguments
     GIVEN       a workspace
     AND         a git server
-    WHEN        checking out the master system branch
-    AND         editing chunk test-chunk in stratum test-stratum with no system specified in branch master
+    WHEN        the user checks out the system branch called master
+    AND         the user edits the chunk test-chunk in the stratum test-stratum with no system specified in branch master
     THEN        morph failed
     AND         the edit error message includes the string "is not a system"
 
@@ -224,13 +224,13 @@ repositories referenced in the system branch.
     SCENARIO    morph status reports changes correctly
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        morph reports no outstanding changes in foo
 
-    WHEN editing stratum test-stratum in system test-system in branch foo
+    WHEN the user edits the stratum test-stratum in the system test-system in branch foo
     THEN morph reports changes in foo in test:morphs only
 
-    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    WHEN the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
     THEN morph reports changes in foo in test:morphs only
 
     WHEN        creating file foo in test:test-chunk in branch foo
@@ -254,8 +254,8 @@ branch checkout.
     SCENARIO morph foreach runs command in each git repo
     GIVEN a workspace
     AND   a git server
-    WHEN  user creates system branch foo
-    AND   editing chunk test-chunk in test-stratum in test-system in branch foo
+    WHEN  the user creates a system branch called foo
+    AND   the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
     AND   running shell command in each repo in foo
     THEN  morph ran command in test:morphs in foo
     AND   morph ran command in test:test-chunk in foo
@@ -271,8 +271,8 @@ unpetrify and verify that we have all the same refs as before.
     SCENARIO    morph petrifies and unpetrifies
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
-    AND         pushing system branch foo to git server
+    WHEN        the user creates a system branch called foo
+    AND         the user pushes the system branch called foo to the git server
     AND         remembering all refs in foo
     AND         petrifying foo
     THEN        foo is petrified
@@ -289,15 +289,15 @@ system branch itself, only the tag.
     SCENARIO    morph tags a system branch
     GIVEN       a workspace
     AND         a git server
-    WHEN        user creates system branch foo
-    AND         tagging system branch foo as test123
+    WHEN        the user creates a system branch called foo
+    AND         the user tags the system branch called foo as test123
     THEN        morph tag test123 in foo is an annotated git tag
     AND         morph tag test123 in foo refers to a petrified commit
     AND         foo is not petrified
 
 Creating a tag twice should fail.
 
-    WHEN        attempting to tag system branch foo as test123
+    WHEN        the user attempts to tag the system branch called foo as test123
     THEN        morph failed
 
 Working with null repositories and refs
@@ -313,7 +313,7 @@ These can be checked out like normal system branches.
     GIVEN       a workspace
     AND         a git server
     AND         null refs for local strata
-    WHEN        checking out the master system branch
+    WHEN        the user checks out the system branch called master
     THEN        the system branch master is checked out
 
 Likewise we can also create new system branches from these, and we
@@ -324,7 +324,7 @@ wouldn't need to worry about changing the system branch ref.
     GIVEN       a workspace
     AND         a git server
     AND         null refs for local strata
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        the system branch foo is checked out
 
 When we edit a morphology with null refs, they stay null.
@@ -336,20 +336,20 @@ When we edit a morphology with null refs, they stay null.
 
 When creating the branch, the refs remain null.
 
-    WHEN        user creates system branch foo
+    WHEN        the user creates a system branch called foo
     THEN        in branch foo, system test-system refs test-stratum in None
 
 After editing the stratum they remain null.
 
-    WHEN    editing stratum test-stratum in system test-system in branch foo
+    WHEN    the user edits the stratum test-stratum in the system test-system in branch foo
     THEN    in branch foo, system test-system refs test-stratum in None
 
 Refs to chunks are still altered as usual
 
-    WHEN editing chunk test-chunk in test-stratum in test-system in branch foo
+    WHEN the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
     THEN in branch foo, system test-system refs test-stratum in None
     AND  in branch foo, stratum test-stratum refs test-chunk in foo
-    AND  edited chunk test:test-chunk has git branch foo
+    AND  the edited chunk test:test-chunk has git branch foo
 
 Petrifying also leaves null refs unmolested
 
@@ -357,8 +357,8 @@ Petrifying also leaves null refs unmolested
     GIVEN       a workspace
     AND         a git server
     AND         null refs for local strata
-    WHEN        user creates system branch foo
-    AND         pushing system branch foo to git server
+    WHEN        the user creates a system branch called foo
+    AND         the user pushes the system branch called foo to the git server
     AND         remembering all refs in foo
     AND         petrifying foo
     THEN        in branch foo, system test-system refs test-stratum in None
