@@ -681,7 +681,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         If the `gcc` repository already had a git branch named after
         the system branch, that is reused. Similarly, if the stratum
-        morphology was already pointing that that branch, it doesn't
+        morphology was already pointing at that branch, it doesn't
         need to be changed again. In that case, the only action Morph
         does is to clone the chunk repository locally, and if that was
         also done already, Morph does nothing.
