@@ -351,18 +351,6 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         logging.debug('All strata loaded')
         return morphset
 
-    def _invent_new_branch(self, cached_repo, default_name):
-        counter = 0
-        candidate = default_name
-        while True:
-            try:
-                cached_repo.resolve_ref(candidate)
-            except morphlib.cachedrepo.InvalidReferenceError:
-                return candidate
-            else:
-                counter += 1
-                candidate = '%s-%s' % (default_name, counter)
-
     def edit(self, args):
         '''Edit or checkout a component in a system branch.
 
