@@ -110,3 +110,14 @@ class ParseEnvironmentPairsTests(unittest.TestCase):
         d = { 'a': 1 }
         morphlib.util.sanitize_environment(d)
         self.assertTrue(isinstance(d['a'], str))
+
+class IterTrickleTests(unittest.TestCase):
+
+    def test_splits(self):
+        self.assertEqual(list(morphlib.util.iter_trickle("foobarbazqux", 3)),
+                         [["f", "o", "o"], ["b", "a", "r"],
+                          ["b", "a", "z"], ["q", "u", "x"]])
+
+    def test_truncated_final_sequence(self):
+        self.assertEqual(list(morphlib.util.iter_trickle("barquux", 3)),
+                         [["b", "a", "r"], ["q", "u", "u"], ["x"]])
