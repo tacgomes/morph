@@ -18,6 +18,8 @@
 
 import collections
 
+import morphlib
+
 
 STATUS_UNTRACKED = '??'
 STATUS_IGNORED = '!!'
@@ -122,3 +124,32 @@ class GitIndex(object):
                                for mode, sha1, path in infos) + '\0'
         self._run_git('update-index', '--add', '-z', '--index-info',
                       feed_stdin=feed_stdin)
+
+    def add_files_from_working_tree(self, paths):
+        '''Add existing files to the index.
+
+        Given an iterable of paths to files in the working tree,
+        relative to the git repository's top-level directory,
+        add the contents of the files to git's object store,
+        and the index.
+
+        This is similar to the following:
+
+            gd = GitDirectory(...)
+            idx = gd.get_index()
+            for path in paths:
+                fullpath = os.path.join(gd,dirname, path)
+                with open(fullpath, 'r') as f:
+                    sha1 = gd.store_blob(f)
+                idx.add_files_from_index_info([(os.stat(fullpath).st_mode,
+                                                sha1, path)])
+
+        '''
+
+        if self._gd.is_bare():
+            raise morphlib.gitdir.NoWorkingTreeError(self._gd)
+        # Handle paths in smaller chunks, so that the runcmd
+        # cannot fail from exceeding command line length
+        # 50 is an arbitrary limit
+        for paths in morphlib.util.iter_trickle(paths, 50):
+            self._run_git('add', *paths)

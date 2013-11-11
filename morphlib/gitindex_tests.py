@@ -73,3 +73,15 @@ class GitIndexTests(unittest.TestCase):
             idx.add_files_from_index_info(
                 [(os.stat(filepath).st_mode, sha1, 'foo')])
         self.assertEqual(list(idx.get_uncommitted_changes()),[])
+
+    def test_add_files_from_working_tree(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        idx = gd.get_index()
+        idx.add_files_from_working_tree(['foo'])
+        self.assertEqual(list(idx.get_uncommitted_changes()),[])
+
+    def test_add_files_from_working_tree_fails_in_bare(self):
+        gd = morphlib.gitdir.GitDirectory(self.mirror)
+        idx = gd.get_index()
+        self.assertRaises(morphlib.gitdir.NoWorkingTreeError,
+                          idx.add_files_from_working_tree, ['foo'])
