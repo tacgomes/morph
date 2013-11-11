@@ -28,10 +28,28 @@ really required. Meanwhile a short usage to build a disk image:
     morph init workspace
     cd workspace
     morph checkout baserock:baserock/morphs master
+    cd master/baserock:baserock/morphs
     morph build base-system-x86_64-generic
-    # FIXME: This has changed; see the wiki for current instruction.
-    morph deploy --no-git-update rawkdisk base-system-x86_64-generic \
-          disk-image.img
+
+For deploying you need to create a cluster morphology. Here is an
+example to deploy to a raw disk image.
+
+    name: foo
+    kind: cluster
+    systems:
+    - morph: base-system-x86_64-generic
+      repo: baserock:baserock/morphs
+      ref: master
+      deploy:
+          my-raw-disk-image:
+              type: rawdisk
+              location: /src/tmp/testdev.img
+              DISK_SIZE: 4G
+
+To deploy it, you only need to run `morph deploy` with the cluster morphology
+created:
+
+    morph deploy foo
 
 You can write a configuration file to avoid having to write options on
 the command line every time. Put it in `~/.morph.conf` and make it look
