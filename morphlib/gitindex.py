@@ -97,3 +97,7 @@ class GitIndex(object):
         for code, to_path, from_path in self._get_status():
             if code not in (STATUS_UNTRACKED, STATUS_IGNORED):
                 yield code, to_path, from_path
+
+    def set_to_tree(self, treeish):
+        '''Modify the index to contain the contents of the treeish.'''
+        self._run_git('read-tree', treeish)

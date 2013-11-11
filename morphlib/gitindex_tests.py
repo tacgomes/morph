@@ -54,3 +54,12 @@ class GitIndexTests(unittest.TestCase):
         self.assertEqual(sorted(idx.get_uncommitted_changes()),
                          [('D ', 'foo', None)])
         # 'D ' means not in the index, but in the working tree
+
+    def test_set_to_tree_alt_index(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        idx = gd.get_index(os.path.join(self.tempdir, 'index'))
+        # Read the HEAD commit into the index, which is the same as the
+        # working tree, so there are no uncommitted changes reported
+        # by status
+        idx.set_to_tree(gd.HEAD)
+        self.assertEqual(list(idx.get_uncommitted_changes()),[])
