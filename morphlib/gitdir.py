@@ -185,12 +185,17 @@ class GitDirectory(object):
         else:
             return self._list_files_in_ref(ref)
 
-    def _rev_parse_tree(self, ref):
+    def _rev_parse(self, ref):
         try:
-            return self._runcmd(['git', 'rev-parse', '--verify',
-                                 '%s^{tree}' % ref]).strip()
+            return self._runcmd(['git', 'rev-parse', '--verify', ref]).strip()
         except cliapp.AppException as e:
             raise InvalidRefError(self, ref)
+
+    def resolve_ref_to_commit(self, ref):
+        return self._rev_parse('%s^{commit}' % ref)
+
+    def resolve_ref_to_tree(self, ref):
+        return self._rev_parse('%s^{tree}' % ref)
 
     def _list_files_in_work_tree(self):
         for dirpath, subdirs, filenames in os.walk(self.dirname):
@@ -200,7 +205,7 @@ class GitDirectory(object):
                 yield os.path.join(dirpath, filename)[len(self.dirname)+1:]
 
     def _list_files_in_ref(self, ref):
-        tree = self._rev_parse_tree(ref)
+        tree = self.resolve_ref_to_tree(ref)
         output = self._runcmd(['git', 'ls-tree', '--name-only', '-rz', tree])
         # ls-tree appends \0 instead of interspersing, so we need to
         # strip the trailing \0 before splitting
@@ -213,7 +218,7 @@ class GitDirectory(object):
         if ref is None:
             with open(os.path.join(self.dirname, filename)) as f:
                 return f.read()
-        tree = self._rev_parse_tree(ref)
+        tree = self.resolve_ref_to_tree(ref)
         return self.get_file_from_ref(tree, filename)
 
     @property

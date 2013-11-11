@@ -148,6 +148,18 @@ class GitDirectoryContentsTests(unittest.TestCase):
         gd.checkout('foo')
         self.assertEqual(gd.HEAD, 'foo')
 
+    def test_resolve_ref(self):
+        # Just tests that you get an object IDs back and that the
+        # commit and tree IDs are different, since checking the actual
+        # value of the commit requires foreknowledge of the result or
+        # re-implementing the body in the test.
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        commit = gd.resolve_ref_to_commit(gd.HEAD)
+        self.assertEqual(len(commit), 40)
+        tree = gd.resolve_ref_to_tree(gd.HEAD)
+        self.assertEqual(len(tree), 40)
+        self.assertNotEqual(commit, tree)
+
     def test_uncommitted_changes(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         self.assertEqual(sorted(gd.get_uncommitted_changes()),
