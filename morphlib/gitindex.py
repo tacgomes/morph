@@ -153,3 +153,7 @@ class GitIndex(object):
         # 50 is an arbitrary limit
         for paths in morphlib.util.iter_trickle(paths, 50):
             self._run_git('add', *paths)
+
+    def write_tree(self):
+        '''Transform the index into a tree in the object store.'''
+        return self._run_git('write-tree').strip()

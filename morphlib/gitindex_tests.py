@@ -85,3 +85,8 @@ class GitIndexTests(unittest.TestCase):
         idx = gd.get_index()
         self.assertRaises(morphlib.gitdir.NoWorkingTreeError,
                           idx.add_files_from_working_tree, ['foo'])
+
+    def test_write_tree(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        idx = gd.get_index()
+        self.assertEqual(idx.write_tree(), gd.resolve_ref_to_tree(gd.HEAD))
