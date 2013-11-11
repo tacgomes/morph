@@ -305,9 +305,9 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
     def _load_morphology_from_git(self, loader, gd, ref, filename):
         try:
-            text = gd.cat_file('blob', ref, filename)
+            text = gd.get_file_from_ref(ref, filename)
         except cliapp.AppException:
-            text = gd.cat_file('blob', 'origin/%s' % ref, filename)
+            text = gd.get_file_from_ref('origin/%s' % ref, filename)
         return loader.load_from_string(text, filename)
 
     def _load_stratum_morphologies(self, loader, sb, system_morph):

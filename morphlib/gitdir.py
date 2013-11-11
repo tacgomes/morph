@@ -96,9 +96,33 @@ class GitDirectory(object):
         parsed_head = self._runcmd(['git', 'rev-parse', 'HEAD']).strip()
         return parsed_ref == parsed_head
 
-    def cat_file(self, obj_type, ref, filename): # pragma: no cover
+    def get_file_from_ref(self, ref, filename): # pragma: no cover
+        '''Get file contents from git by ref and filename.
+
+        `ref` should be a tree-ish e.g. HEAD, master, refs/heads/master,
+        refs/tags/foo, though SHA1 tag, commit or tree IDs are also valid.
+
+        `filename` is the path to the file object from the base of the
+        git directory.
+
+        Returns the contents of the referred to file as a string.
+
+        '''
+
+        # Blob ID is left as the git revision, rather than SHA1, since
+        # we know get_blob_contents will accept it
+        blob_id = '%s:%s' % (ref, filename)
+        return self.get_blob_contents(blob_id)
+
+    def get_blob_contents(self, blob_id): # pragma: no cover
+        '''Get file contents from git by ID'''
         return self._runcmd(
-            ['git', 'cat-file', obj_type, '%s:%s' % (ref, filename)])
+            ['git', 'cat-file', 'blob', blob_id])
+
+    def get_commit_contents(self, commit_id): # pragma: no cover
+        '''Get commit contents from git by ID'''
+        return self._runcmd(
+            ['git', 'cat-file', 'commit', commit_id])
 
     def update_submodules(self, app): # pragma: no cover
         '''Change .gitmodules URLs, and checkout submodules.'''
@@ -190,7 +214,7 @@ class GitDirectory(object):
             with open(os.path.join(self.dirname, filename)) as f:
                 return f.read()
         tree = self._rev_parse_tree(ref)
-        return self.cat_file('blob', tree, filename)
+        return self.get_file_from_ref(tree, filename)
 
     @property
     def HEAD(self):
