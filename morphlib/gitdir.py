@@ -16,9 +16,7 @@
 # =*= License: GPL-2 =*=
 
 
-import collections
 import cliapp
-import glob
 import os
 
 import morphlib
@@ -226,36 +224,8 @@ class GitDirectory(object):
         output = self._runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
         return output.strip()
 
-    def _get_status(self):
-        '''Runs git status and formats its output into something more useful.
-
-        This runs git status such that unusual filenames are preserved
-        and returns its output in a sequence of (status_code, to_path,
-        from_path).
-
-        from_path is None unless the status_code says there was a rename,
-        in which case it is the path it was renamed from.
-
-        Untracked and ignored changes are also included in the output,
-        their status codes are '??' and '!!' respectively.
-
-        '''
-        status = self._runcmd(['git', 'status', '-z', '--ignored'])
-        tokens = collections.deque(status.split('\0'))
-        while True:
-            tok = tokens.popleft()
-            # Terminates with an empty token, since status ends with a \0
-            if not tok:
-                return
-
-            code = tok[:2]
-            to_path = tok[3:]
-            yield code, to_path, tokens.popleft() if code[0] == 'R' else None
-
-    def get_uncommitted_changes(self):
-        for code, to_path, from_path in self._get_status():
-            if code not in ('??', '!!'):
-                yield code, to_path, from_path
+    def get_index(self, index_file=None):
+        return morphlib.gitindex.GitIndex(self, index_file)
 
     def store_blob(self, blob_contents):
         '''Hash `blob_contents`, store it in git and return the sha1.

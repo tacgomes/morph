@@ -60,6 +60,7 @@ import extractedtarball
 import fsutils
 import git
 import gitdir
+import gitindex
 import localartifactcache
 import localrepocache
 import mountableimage

@@ -64,6 +64,12 @@ class GitDirectoryTests(unittest.TestCase):
         gitdir.set_remote_fetch_url('origin', url)
         self.assertEqual(gitdir.get_remote_fetch_url('origin'), url)
 
+    def test_gets_index(self):
+        os.mkdir(self.dirname)
+        gitdir = morphlib.gitdir.init(self.dirname)
+        self.assertIsInstance(gitdir.get_index(), morphlib.gitindex.GitIndex)
+
+
 class GitDirectoryContentsTests(unittest.TestCase):
 
     def setUp(self):
@@ -172,8 +178,3 @@ class GitDirectoryContentsTests(unittest.TestCase):
         with open(os.path.join(self.tempdir, 'blob'), 'r') as f:
             sha1 = gd.store_blob(f)
         self.assertEqual('test string', gd.get_blob_contents(sha1))
-
-    def test_uncommitted_changes(self):
-        gd = morphlib.gitdir.GitDirectory(self.dirname)
-        self.assertEqual(sorted(gd.get_uncommitted_changes()),
-                         [(' D', 'foo', None)])

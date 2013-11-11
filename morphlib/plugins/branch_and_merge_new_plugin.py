@@ -781,7 +781,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             if head != branch:
                 self.app.output.write(
                     '    %s: unexpected ref checked out %r\n' % (repo, head))
-            if any(gd.get_uncommitted_changes()):
+            if any(gd.get_index().get_uncommitted_changes()):
                 has_uncommitted_changes = True
                 self.app.output.write('    %s: uncommitted changes\n' % repo)
 
