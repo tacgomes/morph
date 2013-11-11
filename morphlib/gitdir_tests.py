@@ -16,6 +16,7 @@
 # =*= License: GPL-2 =*=
 
 
+import datetime
 import os
 import shutil
 import tempfile
@@ -178,3 +179,35 @@ class GitDirectoryContentsTests(unittest.TestCase):
         with open(os.path.join(self.tempdir, 'blob'), 'r') as f:
             sha1 = gd.store_blob(f)
         self.assertEqual('test string', gd.get_blob_contents(sha1))
+
+    def test_commit_tree(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        parent = gd.resolve_ref_to_commit(gd.HEAD)
+        tree = gd.resolve_ref_to_tree(parent)
+        aname = 'Author Name'
+        aemail = 'author@email'
+        cname = 'Committer Name'
+        cemail = 'committer@email'
+        pseudo_now = datetime.datetime.fromtimestamp(683074800)
+
+        now_str = "683074800"
+        message= 'MESSAGE'
+        expected = [
+            "tree %(tree)s",
+            "parent %(parent)s",
+            "author %(aname)s <%(aemail)s> %(now_str)s +0000",
+            "committer %(cname)s <%(cemail)s> %(now_str)s +0000",
+            "",
+            "%(message)s",
+            "",
+        ]
+        expected = [l % locals() for l in expected]
+        commit = gd.commit_tree(tree, parent, message=message,
+                                committer_name=cname,
+                                committer_email=cemail,
+                                committer_date=pseudo_now,
+                                author_name=aname,
+                                author_email=aemail,
+                                author_date=pseudo_now,
+                                )
+        self.assertEqual(expected, gd.get_commit_contents(commit).split('\n'))

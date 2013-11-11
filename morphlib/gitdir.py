@@ -17,6 +17,7 @@
 
 
 import cliapp
+import itertools
 import os
 
 import morphlib
@@ -241,6 +242,25 @@ class GitDirectory(object):
             kwargs = {'stdin': blob_contents}
         return self._runcmd(['git', 'hash-object', '-t', 'blob',
                              '-w', '--stdin'], **kwargs).strip()
+
+    def commit_tree(self, tree, parent, message, **kwargs):
+        '''Create a commit'''
+        # NOTE: Will need extension for 0 or N parents.
+        env = {}
+        for who, info in itertools.product(('committer', 'author'),
+                                           ('name', 'email')):
+            argname = '%s_%s' % (who, info)
+            envname = 'GIT_%s_%s' % (who.upper(), info.upper())
+            if argname in kwargs:
+                env[envname] = kwargs[argname]
+        for who in ('committer', 'author'):
+            argname = '%s_date' % who
+            envname = 'GIT_%s_DATE' % who.upper()
+            if argname in kwargs:
+                env[envname] = kwargs[argname].isoformat()
+        return self._runcmd(['git', 'commit-tree', tree,
+                             '-p', parent, '-m', message],
+                            env=env).strip()
 
 
 def init(dirname):
