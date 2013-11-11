@@ -257,6 +257,21 @@ class GitDirectory(object):
             if code not in ('??', '!!'):
                 yield code, to_path, from_path
 
+    def store_blob(self, blob_contents):
+        '''Hash `blob_contents`, store it in git and return the sha1.
+
+        `blob_contents` must either be a string or a value suitable to
+        pass to subprocess.Popen i.e. a file descriptor or file object
+        with fileno() method.
+
+        '''
+        if isinstance(blob_contents, basestring):
+            kwargs = {'feed_stdin': blob_contents}
+        else:
+            kwargs = {'stdin': blob_contents}
+        return self._runcmd(['git', 'hash-object', '-t', 'blob',
+                             '-w', '--stdin'], **kwargs).strip()
+
 
 def init(dirname):
     '''Initialise a new git repository.'''

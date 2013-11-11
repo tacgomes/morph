@@ -160,6 +160,19 @@ class GitDirectoryContentsTests(unittest.TestCase):
         self.assertEqual(len(tree), 40)
         self.assertNotEqual(commit, tree)
 
+    def test_store_blob_with_string(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        sha1 = gd.store_blob('test string')
+        self.assertEqual('test string', gd.get_blob_contents(sha1))
+
+    def test_store_blob_with_file(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        with open(os.path.join(self.tempdir, 'blob'), 'w') as f:
+            f.write('test string')
+        with open(os.path.join(self.tempdir, 'blob'), 'r') as f:
+            sha1 = gd.store_blob(f)
+        self.assertEqual('test string', gd.get_blob_contents(sha1))
+
     def test_uncommitted_changes(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         self.assertEqual(sorted(gd.get_uncommitted_changes()),
