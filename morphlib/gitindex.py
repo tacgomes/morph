@@ -101,3 +101,24 @@ class GitIndex(object):
     def set_to_tree(self, treeish):
         '''Modify the index to contain the contents of the treeish.'''
         self._run_git('read-tree', treeish)
+
+    def add_files_from_index_info(self, infos):
+        '''Add files without interacting with the working tree.
+
+        `infos` is an iterable of (file mode string, object sha1, path)
+        There are no constraints on the size of the iterable
+
+        '''
+
+        # update-index may take NUL terminated input lines of the entries
+        # to add so we generate a string for the input, rather than
+        # having many command line arguments, since for a large amount
+        # of entries, this can be too many arguments to process and the
+        # exec will fail.
+        # Generating the input as a string uses more memory than using
+        # subprocess.Popen directly and using .communicate, but is much
+        # less verbose.
+        feed_stdin = '\0'.join('%o %s\t%s' % (mode, sha1, path)
+                               for mode, sha1, path in infos) + '\0'
+        self._run_git('update-index', '--add', '-z', '--index-info',
+                      feed_stdin=feed_stdin)
