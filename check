@@ -42,6 +42,28 @@ case "$PYTHONPATH" in
 esac
 export PYTHONPATH
 
+# Run the style checks
+
+errors=0
+if [ -d .git ];
+then
+    echo "Checking copyright statements"
+    if ! (git ls-files -z | xargs -0r scripts/check-copyright-year); then
+        errors=1
+    fi
+
+    echo 'Checking source code for silliness'
+    if ! (git ls-files |
+          grep -v '\.gz$' |
+          grep -Ev 'tests[^/]*/.*\.std(out|err)' |
+          grep -vF 'tests.build/build-system-autotools.script' |
+          xargs -r scripts/check-silliness); then
+        errors=1
+    fi
+fi
+if [ "$errors" != 0 ]; then
+    exit "$errors"
+fi
 
 # Clean up artifacts from previous (possibly failed) runs, build,
 # and run the tests.
@@ -97,62 +119,3 @@ then
 else
     echo "NOT RUNNING tests.as-root (requires PyYAML)"
 fi
-
-if [ -d .git ];
-then
-    echo "Checking copyright statements"
-    git ls-files | xargs scripts/check-copyright-year
-    
-    echo 'Checking source code for silliness'
-    git ls-files |
-    grep -v '\.gz$' |
-    grep -Ev 'tests[^/]*/.*\.std(out|err)' |
-    grep -vF 'tests.build/build-system-autotools.script' |
-    while read x
-    do
-        if tr -cd '\t' < "$x" | grep . > /dev/null
-        then
-            echo "ERROR: $x contains TAB characters" 1>&2
-            grep -n -F "$(printf "\t")" "$x" 1>&2
-            errors=1
-        fi
-
-        case "$x" in
-            # Excluding yarn files since it's not possible to split up the
-            # IMPLEMENTS lines of them 
-            *.yarn) ;;
-            *)
-                if awk 'length > 79' "$x" | grep . > /dev/null
-                then
-                    echo "ERROR: $x has lines longer than 79 chars" 1>&2
-                    awk 'length > 79 { print NR, $0 }' "$x" 1>&2
-                    errors=1
-                fi
-                ;;
-        esac
-
-        case "$x" in
-            *.py)
-                if head -1 "$x" | grep '^#!' > /dev/null
-                then
-                    echo "ERROR: $x has a hashbang" 1>&2
-                    errors=1
-                fi
-                if grep except: "$x"
-                then
-                    echo "ERROR: $x has a bare except:" 1>&2
-                    errors=1
-                fi
-                ;;
-        esac
-    done
-
-    echo 'Checking for executable *.py files'
-    find . -type f -name '*.py' -perm +111 |
-    while read x
-    do
-        echo "ERROR: $x is executable" 1>&2
-        errors=1
-    done
-fi
-exit $errors
