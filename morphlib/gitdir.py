@@ -38,6 +38,58 @@ class InvalidRefError(cliapp.AppException):
                   'at ref %s.' %(repo.dirname, ref))
 
 
+class ExpectedSha1Error(cliapp.AppException):
+
+    def __init__(self, ref):
+        self.ref = ref
+        cliapp.AppException.__init__(
+            self, 'SHA1 expected, got %s' % ref)
+
+
+class RefChangeError(cliapp.AppException):
+    pass
+
+
+class RefAddError(RefChangeError):
+
+    def __init__(self, gd, ref, sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.sha1 = sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Adding ref %(ref)s '\
+            'with commit %(sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
+class RefUpdateError(RefChangeError):
+
+    def __init__(self, gd, ref, old_sha1, new_sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.old_sha1 = old_sha1
+        self.new_sha1 = new_sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Updating ref %(ref)s '\
+            'from %(old_sha1)s to %(new_sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
+class RefDeleteError(RefChangeError):
+
+    def __init__(self, gd, ref, sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.sha1 = sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Deleting ref %(ref)s '\
+            'expecting commit %(sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
 class GitDirectory(object):
 
     '''Represent a git working tree + .git directory.
@@ -261,6 +313,77 @@ class GitDirectory(object):
         return self._runcmd(['git', 'commit-tree', tree,
                              '-p', parent, '-m', message],
                             env=env).strip()
+
+    @staticmethod
+    def _check_is_sha1(string):
+        if not morphlib.git.is_valid_sha1(string):
+            raise ExpectedSha1Error(string)
+
+    def _update_ref(self, ref_args, message):
+        args = ['git', 'update-ref']
+        # No test coverage, since while this functionality is useful,
+        # morph does not need an API for inspecting the reflog, so
+        # it existing purely to test ref updates is a tad overkill.
+        if message is not None: # pragma: no cover
+            args.extend(('-m', message))
+        args.extend(ref_args)
+        self._runcmd(args)
+
+    def add_ref(self, ref, sha1, message=None):
+        '''Create a ref called `ref` in the repository pointing to `sha1`.
+
+        `message` is a string to add to the reflog about this change
+        `ref` must not already exist, if it does, use `update_ref`
+        `sha1` must be a 40 character hexadecimal string representing
+        the SHA1 of the commit or tag this ref will point to, this is
+        the result of the commit_tree or resolve_ref_to_commit methods.
+
+        '''
+        self._check_is_sha1(sha1)
+        # 40 '0' characters is code for no previous value
+        # this ensures it will fail if the branch already exists
+        try:
+            return self._update_ref((ref, sha1, '0' * 40), message)
+        except Exception, e:
+            raise RefAddError(self, ref, sha1, e)
+
+    def update_ref(self, ref, sha1, old_sha1, message=None):
+        '''Change the commit the ref `ref` points to, to `sha1`.
+
+        `message` is a string to add to the reflog about this change
+        `sha1` and `old_sha` must be 40 character hexadecimal strings
+        representing the SHA1 of the commit or tag this ref will point
+        to and currently points to respectively. This is the result of
+        the commit_tree or resolve_ref_to_commit methods.
+        `ref` must exist, and point to `old_sha1`.
+        This is to avoid unexpected results when multiple processes
+        attempt to change refs.
+
+        '''
+        self._check_is_sha1(sha1)
+        self._check_is_sha1(old_sha1)
+        try:
+            return self._update_ref((ref, sha1, old_sha1), message)
+        except Exception, e:
+            raise RefUpdateError(self, ref, old_sha1, sha1, e)
+
+    def delete_ref(self, ref, old_sha1, message=None):
+        '''Remove the ref `ref`.
+
+        `message` is a string to add to the reflog about this change
+        `old_sha1` must be a 40 character hexadecimal string representing
+        the SHA1 of the commit or tag this ref will point to, this is
+        the result of the commit_tree or resolve_ref_to_commit methods.
+        `ref` must exist, and point to `old_sha1`.
+        This is to avoid unexpected results when multiple processes
+        attempt to change refs.
+
+        '''
+        self._check_is_sha1(old_sha1)
+        try:
+            return self._update_ref(('-d', ref, old_sha1), message)
+        except Exception, e:
+            raise RefDeleteError(self, ref, old_sha1, e)
 
 
 def init(dirname):

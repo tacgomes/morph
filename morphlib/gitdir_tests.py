@@ -211,3 +211,81 @@ class GitDirectoryContentsTests(unittest.TestCase):
                                 author_date=pseudo_now,
                                 )
         self.assertEqual(expected, gd.get_commit_contents(commit).split('\n'))
+
+
+class GitDirectoryRefTwiddlingTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.dirname = os.path.join(self.tempdir, 'foo')
+        os.mkdir(self.dirname)
+        gd = morphlib.gitdir.init(self.dirname)
+        with open(os.path.join(self.dirname, 'foo'), 'w') as f:
+            f.write('dummy text\n')
+        gd._runcmd(['git', 'add', '.'])
+        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        # Add a second commit for update_ref test, so it has another
+        # commit to roll back from
+        with open(os.path.join(self.dirname, 'bar'), 'w') as f:
+            f.write('dummy text\n')
+        gd._runcmd(['git', 'add', '.'])
+        gd._runcmd(['git', 'commit', '-m', 'Second commit'])
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def test_expects_sha1s(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        self.assertRaises(morphlib.gitdir.ExpectedSha1Error,
+                          gd.add_ref, 'refs/heads/foo', 'HEAD')
+        self.assertRaises(morphlib.gitdir.ExpectedSha1Error,
+                          gd.update_ref, 'refs/heads/foo', 'HEAD', 'HEAD')
+        self.assertRaises(morphlib.gitdir.ExpectedSha1Error,
+                          gd.update_ref, 'refs/heads/master',
+                          gd._rev_parse(gd.HEAD), 'HEAD')
+        self.assertRaises(morphlib.gitdir.ExpectedSha1Error,
+                          gd.update_ref, 'refs/heads/master',
+                          'HEAD', gd._rev_parse(gd.HEAD))
+        self.assertRaises(morphlib.gitdir.ExpectedSha1Error,
+                          gd.delete_ref, 'refs/heads/master', 'HEAD')
+
+    def test_add_ref(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        head_commit = gd.resolve_ref_to_commit(gd.HEAD)
+        gd.add_ref('refs/heads/foo', head_commit)
+        self.assertEqual(gd.resolve_ref_to_commit('refs/heads/foo'),
+                         head_commit)
+
+    def test_add_ref_fail(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        head_commit = gd.resolve_ref_to_commit('refs/heads/master')
+        self.assertRaises(morphlib.gitdir.RefAddError,
+                          gd.add_ref, 'refs/heads/master', head_commit)
+
+    def test_update_ref(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        head_commit = gd._rev_parse('refs/heads/master')
+        prev_commit = gd._rev_parse('refs/heads/master^')
+        gd.update_ref('refs/heads/master', prev_commit, head_commit)
+        self.assertEqual(gd._rev_parse('refs/heads/master'), prev_commit)
+
+    def test_update_ref_fail(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        head_commit = gd._rev_parse('refs/heads/master')
+        prev_commit = gd._rev_parse('refs/heads/master^')
+        gd.delete_ref('refs/heads/master', head_commit)
+        with self.assertRaises(morphlib.gitdir.RefUpdateError):
+            gd.update_ref('refs/heads/master', prev_commit, head_commit)
+
+    def test_delete_ref(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        head_commit = gd._rev_parse('refs/heads/master')
+        gd.delete_ref('refs/heads/master', head_commit)
+        self.assertRaises(morphlib.gitdir.InvalidRefError,
+                          gd._rev_parse, 'refs/heads/master')
+
+    def test_delete_ref_fail(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        prev_commit = gd._rev_parse('refs/heads/master^')
+        with self.assertRaises(morphlib.gitdir.RefDeleteError):
+            gd.delete_ref('refs/heads/master', prev_commit)
