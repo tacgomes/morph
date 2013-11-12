@@ -118,8 +118,8 @@ class GitDirectory(object):
     def get_config(self, key):
         '''Return value for a git repository configuration variable.'''
 
-        value = self._runcmd(['git', 'config', key])
-        return value.strip()
+        value = self._runcmd(['git', 'config', '-z', key])
+        return value.rstrip('\0')
 
     def set_remote_fetch_url(self, remote_name, url):
         '''Set the fetch URL for a remote.'''
