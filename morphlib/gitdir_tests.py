@@ -55,16 +55,6 @@ class GitDirectoryTests(unittest.TestCase):
         gitdir.set_config('foo.bar', 'yoyo')
         self.assertEqual(gitdir.get_config('foo.bar'), 'yoyo')
 
-    def test_sets_remote(self):
-        os.mkdir(self.dirname)
-        gitdir = morphlib.gitdir.init(self.dirname)
-        self.assertEqual(gitdir.get_remote_fetch_url('origin'), None)
-
-        gitdir._runcmd(['git', 'remote', 'add', 'origin', 'foobar'])
-        url = 'git://git.example.com/foo'
-        gitdir.set_remote_fetch_url('origin', url)
-        self.assertEqual(gitdir.get_remote_fetch_url('origin'), url)
-
     def test_gets_index(self):
         os.mkdir(self.dirname)
         gitdir = morphlib.gitdir.init(self.dirname)
@@ -289,3 +279,34 @@ class GitDirectoryRefTwiddlingTests(unittest.TestCase):
         prev_commit = gd._rev_parse('refs/heads/master^')
         with self.assertRaises(morphlib.gitdir.RefDeleteError):
             gd.delete_ref('refs/heads/master', prev_commit)
+
+
+class GitDirectoryRemoteConfigTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.dirname = os.path.join(self.tempdir, 'foo')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def test_sets_fetch_url(self):
+        os.mkdir(self.dirname)
+        gitdir = morphlib.gitdir.init(self.dirname)
+        self.assertEqual(gitdir.get_remote('origin').get_fetch_url(), None)
+
+        gitdir._runcmd(['git', 'remote', 'add', 'origin', 'foobar'])
+        url = 'git://git.example.com/foo'
+        remote = gitdir.get_remote('origin')
+        remote.set_fetch_url(url)
+        self.assertEqual(remote.get_fetch_url(), url)
+
+    def test_nascent_remote(self):
+        os.mkdir(self.dirname)
+        gitdir = morphlib.gitdir.init(self.dirname)
+        remote = gitdir.get_remote(None)
+        self.assertEqual(remote.get_fetch_url(), None)
+
+        url = 'git://git.example.com/foo'
+        remote.set_fetch_url(url)
+        self.assertEqual(remote.get_fetch_url(), url)

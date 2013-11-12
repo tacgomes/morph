@@ -90,6 +90,39 @@ class RefDeleteError(RefChangeError):
             'located at %(dirname)s: %(original_exception)r' % locals())
 
 
+class Remote(object):
+    '''Represent a remote git repository.
+
+    This can either be nascent or concrete, depending on whether the
+    name is given.
+
+    Changes to a concrete remote's config are written-through to git's
+    config files, while a nascent remote keeps changes in-memory.
+
+    '''
+
+    def __init__(self, gd, name=None):
+        self.gd = gd
+        self.name = name
+        self.fetch_url = None
+
+    def set_fetch_url(self, url):
+        self.fetch_url = url
+        if self.name is not None:
+            self.gd._runcmd(['git', 'remote', 'set-url', self.name, url])
+
+    def get_fetch_url(self):
+        if self.name is None:
+            return self.fetch_url
+        try:
+            # git-ls-remote is used, rather than git-config, since
+            # url.*.{push,}insteadof is processed after config is loaded
+            return self.gd._runcmd(
+                ['git', 'ls-remote', '--get-url', self.name]).rstrip('\n')
+        except cliapp.AppException:
+            return None
+
+
 class GitDirectory(object):
 
     '''Represent a git working tree + .git directory.
@@ -196,20 +229,14 @@ class GitDirectory(object):
         value = self._runcmd(['git', 'config', '-z', key])
         return value.rstrip('\0')
 
-    def set_remote_fetch_url(self, remote_name, url):
-        '''Set the fetch URL for a remote.'''
-        self._runcmd(['git', 'remote', 'set-url', remote_name, url])
+    def get_remote(self, *args, **kwargs):
+        '''Get a remote for this Repository.
 
-    def get_remote_fetch_url(self, remote_name):
-        '''Return the fetch URL for a given remote.'''
-        output = self._runcmd(['git', 'remote', '-v'])
-        for line in output.splitlines():
-            words = line.split()
-            if (len(words) == 3 and
-                words[0] == remote_name and
-                words[2] == '(fetch)'):
-                return words[1]
-        return None
+        Gets a previously configured remote if a remote name is given.
+        Otherwise a nascent one is created.
+
+        '''
+        return Remote(self, *args, **kwargs)
 
     def update_remotes(self): # pragma: no cover
         '''Run "git remote update --prune".'''

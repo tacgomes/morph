@@ -141,7 +141,8 @@ class SystemBranchDirectory(object):
         # and not the locally cached copy.
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             cached_repo.app.settings['repo-alias'])
-        gd.set_remote_fetch_url('origin', resolver.pull_url(cached_repo.url))
+        remote = gd.get_remote('origin')
+        remote.set_fetch_url(resolver.pull_url(cached_repo.url))
         gd.set_config(
             'url.%s.pushInsteadOf' %
                 resolver.push_url(cached_repo.original_name),
