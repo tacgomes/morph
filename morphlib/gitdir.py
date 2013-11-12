@@ -104,6 +104,7 @@ class Remote(object):
     def __init__(self, gd, name=None):
         self.gd = gd
         self.name = name
+        self.push_url = None
         self.fetch_url = None
 
     def set_fetch_url(self, url):
@@ -111,16 +112,44 @@ class Remote(object):
         if self.name is not None:
             self.gd._runcmd(['git', 'remote', 'set-url', self.name, url])
 
+    def set_push_url(self, url):
+        self.push_url = url
+        if self.name is not None:
+            self.gd._runcmd(['git', 'remote', 'set-url', '--push',
+                             self.name, url])
+
+    def _get_remote_url(self, remote_name, kind):
+        # As distasteful as it is to parse the output of porcelain
+        # commands, this is the best option.
+        # Git config can be used to get the raw value, but this is
+        # incorrect when url.*.insteadof rules are involved.
+        # Re-implementing the rewrite logic in morph is duplicated effort
+        # and more work to keep it in sync.
+        # It's possible to get the fetch url with `git ls-remote --get-url
+        # <remote>`, but this will just print the remote's name if it
+        # is not defined.
+        # It is only possible to use git to get the push url by parsing
+        # `git remote -v` or `git remote show -n <remote>`, and `git
+        # remote -v` is easier to parse.
+        output = self.gd._runcmd(['git', 'remote', '-v'])
+        for line in output.splitlines():
+            words = line.split()
+            if (len(words) == 3 and
+                words[0] == remote_name and
+                words[2] == '(%s)' % kind):
+                return words[1]
+
+        return None
+
     def get_fetch_url(self):
         if self.name is None:
             return self.fetch_url
-        try:
-            # git-ls-remote is used, rather than git-config, since
-            # url.*.{push,}insteadof is processed after config is loaded
-            return self.gd._runcmd(
-                ['git', 'ls-remote', '--get-url', self.name]).rstrip('\n')
-        except cliapp.AppException:
-            return None
+        return self._get_remote_url(self.name, 'fetch')
+
+    def get_push_url(self):
+        if self.name is None:
+            return self.push_url or self.get_fetch_url()
+        return self._get_remote_url(self.name, 'push')
 
 
 class GitDirectory(object):

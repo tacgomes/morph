@@ -290,23 +290,31 @@ class GitDirectoryRemoteConfigTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def test_sets_fetch_url(self):
+    def test_sets_urls(self):
         os.mkdir(self.dirname)
         gitdir = morphlib.gitdir.init(self.dirname)
-        self.assertEqual(gitdir.get_remote('origin').get_fetch_url(), None)
+        remote = gitdir.get_remote('origin')
+        self.assertEqual(remote.get_fetch_url(), None)
+        self.assertEqual(remote.get_push_url(), None)
 
         gitdir._runcmd(['git', 'remote', 'add', 'origin', 'foobar'])
-        url = 'git://git.example.com/foo'
-        remote = gitdir.get_remote('origin')
-        remote.set_fetch_url(url)
-        self.assertEqual(remote.get_fetch_url(), url)
+        fetch_url = 'git://git.example.com/foo.git'
+        push_url = 'ssh://git@git.example.com/foo.git'
+        remote.set_fetch_url(fetch_url)
+        remote.set_push_url(push_url)
+        self.assertEqual(remote.get_fetch_url(), fetch_url)
+        self.assertEqual(remote.get_push_url(), push_url)
 
-    def test_nascent_remote(self):
+    def test_nascent_remote_fetch(self):
         os.mkdir(self.dirname)
         gitdir = morphlib.gitdir.init(self.dirname)
         remote = gitdir.get_remote(None)
         self.assertEqual(remote.get_fetch_url(), None)
+        self.assertEqual(remote.get_push_url(), None)
 
-        url = 'git://git.example.com/foo'
-        remote.set_fetch_url(url)
-        self.assertEqual(remote.get_fetch_url(), url)
+        fetch_url = 'git://git.example.com/foo.git'
+        push_url = 'ssh://git@git.example.com/foo.git'
+        remote.set_fetch_url(fetch_url)
+        remote.set_push_url(push_url)
+        self.assertEqual(remote.get_fetch_url(), fetch_url)
+        self.assertEqual(remote.get_push_url(), push_url)
