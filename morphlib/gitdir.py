@@ -100,10 +100,6 @@ class GitDirectory(object):
         return self._runcmd(
             ['git', 'cat-file', obj_type, '%s:%s' % (ref, filename)])
 
-    def update_remotes(self): # pragma: no cover
-        '''Update remotes.'''
-        self._runcmd(['git', 'remote', 'update', '--prune'])
-
     def update_submodules(self, app): # pragma: no cover
         '''Change .gitmodules URLs, and checkout submodules.'''
         morphlib.git.update_submodules(app, self.dirname)
