@@ -318,3 +318,134 @@ class GitDirectoryRemoteConfigTests(unittest.TestCase):
         remote.set_push_url(push_url)
         self.assertEqual(remote.get_fetch_url(), fetch_url)
         self.assertEqual(remote.get_push_url(), push_url)
+
+
+class RefSpecTests(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @staticmethod
+    def refspec(*args, **kwargs):
+        return morphlib.gitdir.RefSpec(*args, **kwargs)
+
+    def test_input(self):
+        with self.assertRaises(morphlib.gitdir.InvalidRefSpecError):
+            morphlib.gitdir.RefSpec()
+
+    def test_rs_from_source(self):
+        rs = self.refspec(source='master')
+        self.assertEqual(rs.push_args, ('master:master',))
+
+    def test_rs_from_target(self):
+        rs = self.refspec(target='master')
+        self.assertEqual(rs.push_args, ('%s:master' % ('0' * 40),))
+
+    def test_rs_with_target_and_source(self):
+        rs = self.refspec(source='foo', target='master')
+        self.assertEqual(rs.push_args, ('foo:master',))
+
+    def test_rs_with_source_and_force(self):
+        rs = self.refspec('master', force=True)
+        self.assertEqual(rs.push_args, ('+master:master',))
+
+    def test_rs_revert_from_source(self):
+        revert = self.refspec(source='master').revert()
+        self.assertEqual(revert.push_args, ('%s:master' % ('0' * 40),))
+
+    def test_rs_revert_inc_require(self):
+        revert = self.refspec(source='master', require=('beef'*5)).revert()
+        self.assertEqual(revert.push_args, ('%s:master' % ('beef' * 5),))
+
+    def test_rs_double_revert(self):
+        rs = self.refspec(target='master').revert().revert()
+        self.assertEqual(rs.push_args, ('%s:master' % ('0' * 40),))
+
+
+class GitDirectoryRemotePushTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.dirname = os.path.join(self.tempdir, 'foo')
+        os.mkdir(self.dirname)
+        gd = morphlib.gitdir.init(self.dirname)
+        with open(os.path.join(self.dirname, 'foo'), 'w') as f:
+            f.write('dummy text\n')
+        gd._runcmd(['git', 'add', '.'])
+        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        gd._runcmd(['git', 'checkout', '-b', 'foo'])
+        with open(os.path.join(self.dirname, 'foo'), 'w') as f:
+            f.write('updated text\n')
+        gd._runcmd(['git', 'add', '.'])
+        gd._runcmd(['git', 'commit', '-m', 'Second commit'])
+        self.mirror = os.path.join(self.tempdir, 'mirror')
+        gd._runcmd(['git', 'init', '--bare', self.mirror])
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def test_push_needs_refspecs(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        self.assertRaises(morphlib.gitdir.NoRefspecsError, r.push)
+
+    def test_push_new(self):
+        push_master = morphlib.gitdir.RefSpec('master')
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        self.assertEqual(sorted(r.push(push_master)),
+                         [('*', 'refs/heads/master', 'refs/heads/master',
+                           '[new branch]', None)])
+
+    def test_double_push(self):
+        push_master = morphlib.gitdir.RefSpec('master')
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        r.push(push_master)
+        self.assertEqual(sorted(r.push(push_master)),
+                         [('=', 'refs/heads/master', 'refs/heads/master',
+                           '[up to date]', None)])
+
+    def test_push_update(self):
+        push_master = morphlib.gitdir.RefSpec('master')
+        push_foo = morphlib.gitdir.RefSpec(source='foo', target='master')
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        r.push(push_master)
+        flag, ref_from, ref_to, summary, reason = \
+            list(r.push(push_foo))[0]
+        self.assertEqual((flag, ref_from, ref_to),
+                         (' ', 'refs/heads/foo', 'refs/heads/master'))
+
+    def test_rewind_fail(self):
+        push_master = morphlib.gitdir.RefSpec('master')
+        push_foo = morphlib.gitdir.RefSpec(source='foo', target='master')
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        r.push(push_foo)
+        with self.assertRaises(morphlib.gitdir.PushFailureError) as push_fail:
+            r.push(push_master)
+        self.assertEqual(sorted(push_fail.exception.results),
+                         [('!', 'refs/heads/master', 'refs/heads/master',
+                           '[rejected]', 'non-fast-forward')])
+
+    def test_force_push(self):
+        push_master = morphlib.gitdir.RefSpec('master', force=True)
+        push_foo = morphlib.gitdir.RefSpec(source='foo', target='master')
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        r = gd.get_remote()
+        r.set_push_url(self.mirror)
+        r.push(push_foo)
+        flag, ref_from, ref_to, summary, reason = \
+            list(r.push(push_master))[0]
+        self.assertEqual((flag, ref_from, ref_to, reason),
+                         ('+', 'refs/heads/master', 'refs/heads/master',
+                          'forced update'))

@@ -19,6 +19,7 @@
 import cliapp
 import itertools
 import os
+import re
 
 import morphlib
 
@@ -90,6 +91,133 @@ class RefDeleteError(RefChangeError):
             'located at %(dirname)s: %(original_exception)r' % locals())
 
 
+class InvalidRefSpecError(cliapp.AppException):
+
+    def __init__(self, source, target):
+        self.source = source
+        self.target = target
+        cliapp.AppException.__init__(
+            self, 'source or target must be defined, '\
+                  'got %(source)r and %(target)r respectively.' % locals())
+
+
+class PushError(cliapp.AppException):
+    pass
+
+
+class NoRefspecsError(PushError):
+
+    def __init__(self, remote):
+        self.remote = remote.name
+        PushError.__init__(self,
+                           'Push to remote %r was given no refspecs.' % remote)
+
+
+class PushFailureError(PushError):
+
+    def __init__(self, remote, refspecs, exit, results, stderr):
+        self.remote = remote.name
+        self.push_url = push_url = remote.get_push_url()
+        self.refspecs = refspecs
+        self.exit = exit
+        self.results = results
+        self.stderr = stderr
+        PushError.__init__(self, 'Push to remote %(remote)r, '\
+                                 'push url %(push_url)s '\
+                                 'with refspecs %(refspecs)r '\
+                                 'failed with exit code %(exit)s' % locals())
+
+
+class RefSpec(object):
+    '''Class representing how to push or pull a ref.
+
+    `source` is a reference to the local commit/tag you want to push to
+    the remote.
+    `target` is the ref on the remote you want to push to.
+    `require` is the value that the remote is expected to currently be.
+    Currently `require` is only used to provide a reverse of the respec,
+    but future versions of Git will support requiring the value of
+    `target` on the remote to be at a certain commit, or fail.
+    `force` defaults to false, and if set adds the flag to push even if
+    it's non-fast-forward.
+
+    If `source` is not provided, but `target` is, then the refspec will
+    delete `target` on the remote.
+    If `source` is provided, but `target` is not, then `source` is used
+    as the `target`, since if you specify a ref for the `source`, you
+    can push the same local branch to the same remote branch.
+
+    '''
+
+    def __init__(self, source=None, target=None, require=None, force=False):
+        if source is None and target is None:
+            raise InvalidRefSpecError(source, target)
+        self.source = source
+        self.target = target
+        self.require = require
+        self.force = force
+        if target is None:
+            # Default to source if target not given, source must be a
+            # branch name, or when this refspec is pushed it will fail.
+            self.target = target = source
+        if source is None: # Delete if source not given
+            self.source = source = '0' * 40
+
+    @property
+    def push_args(self):
+        '''Arguments to pass to push to push this ref.
+
+        Returns an iterable of the arguments that would need to be added
+        to a push command to push this ref spec.
+
+        This currently returns a single-element tuple, but it may expand
+        to multiple arguments, e.g.
+        1.  tags expand to `tag "$name"`
+        2.  : expands to all the matching refs
+        3.  When Git 1.8.5 becomes available,
+            `"--force-with-lease=$target:$required"  "$source:$target"`.
+
+        '''
+
+        # TODO: Use require parameter when Git 1.8.5 is available,
+        #       to allow the push to fail if the target ref is not at
+        #       that commit by using the --force-with-lease option.
+        return ('%(force)s%(source)s:%(target)s' % {
+            'force': '+' if self.force else '',
+            'source': self.source,
+            'target': self.target
+        }),
+
+    def revert(self):
+        '''Create a respec which will undo the effect of pushing this one.
+
+        If `require` was not specified, the revert refspec will delete
+        the branch.
+
+        '''
+
+        return self.__class__(source=(self.require or '0' * 40),
+                              target=self.target, require=self.source,
+                              force=self.force)
+
+
+PUSH_FORMAT = re.compile(r'''
+# Match flag, this is the eventual result in a nutshell
+(?P<flag>[- +*=!])\t
+# The refspec is colon separated and separated from the rest by another tab.
+(?P<from>[^:]*):(?P<to>[^\t]*)\t
+# Two possible formats remain, so separate the two with a capture group
+(?:
+    # Summary is an arbitrary string, separated from the reason by a space
+    (?P<summary>.*)[ ]
+    # Reason is enclosed in parenthesis and ends the line
+    \((?P<reason>.*)\)
+    # The reason is optional, so we may instead only have the summary
+    |  (?P<summary_only>.*)
+)
+''', re.VERBOSE)
+
+
 class Remote(object):
     '''Represent a remote git repository.
 
@@ -151,6 +279,44 @@ class Remote(object):
             return self.push_url or self.get_fetch_url()
         return self._get_remote_url(self.name, 'push')
 
+    @staticmethod
+    def _parse_push_output(output):
+        for line in output.splitlines():
+            m = PUSH_FORMAT.match(line)
+            # Push may output lines that are not related to the status,
+            # so ignore any that don't match the status format.
+            if m is None:
+                continue
+            # Ensure the same number of arguments
+            ret = list(m.group('flag', 'from', 'to'))
+            ret.append(m.group('summary') or m.group('summary_only'))
+            ret.append(m.group('reason'))
+            yield tuple(ret)
+
+    def push(self, *refspecs):
+        '''Push given refspecs to the remote and return results.
+
+        If no refspecs are given, an exception is raised.
+
+        Returns an iterable of (flag, from_ref, to_ref, summary, reason)
+
+        If the push fails, a PushFailureError is raised, from which the
+        result can be retrieved with the `results` field.
+
+        '''
+
+        if not refspecs:
+            raise NoRefspecsError(self)
+        push_name = self.name or self.get_push_url()
+        cmdline = ['git', 'push', '--porcelain', push_name]
+        cmdline.extend(itertools.chain.from_iterable(
+            rs.push_args for rs in refspecs))
+        exit, out, err = self.gd._runcmd_unchecked(cmdline)
+        if exit != 0:
+            raise PushFailureError(self, refspecs, exit,
+                                   self._parse_push_output(out), err)
+        return self._parse_push_output(out)
+
 
 class GitDirectory(object):
 
@@ -177,6 +343,9 @@ class GitDirectory(object):
         '''
 
         return cliapp.runcmd(argv, cwd=self.dirname, **kwargs)
+
+    def _runcmd_unchecked(self, *args, **kwargs):
+        return cliapp.runcmd_unchecked(*args, cwd=self.dirname, **kwargs)
 
     def checkout(self, branch_name): # pragma: no cover
         '''Check out a git branch.'''
