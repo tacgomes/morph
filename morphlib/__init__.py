@@ -48,6 +48,7 @@ class Error(cliapp.AppException):
 import artifact
 import artifactcachereference
 import artifactresolver
+import branchmanager
 import bins
 import buildcommand
 import buildenvironment
