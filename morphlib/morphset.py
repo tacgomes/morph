@@ -124,7 +124,7 @@ class MorphologySet(object):
             raise ChunkNotInStratumError(stratum_morph['name'], chunk_name)
         return repo_url, ref, morph
 
-    def _traverse_specs(self, cb_process, cb_filter=lambda s: True):
+    def traverse_specs(self, cb_process, cb_filter=lambda s: True):
         '''Higher-order function for processing every spec.
         
         This traverses every spec in all the morphologies, so all chunk,
@@ -202,7 +202,7 @@ class MorphologySet(object):
             spec['ref'] = new_ref
             return True
 
-        self._traverse_specs(process_spec, wanted_spec)
+        self.traverse_specs(process_spec, wanted_spec)
 
     def list_refs(self):
         '''Return a set of all the (repo, ref) pairs in the MorphologySet.
@@ -220,7 +220,7 @@ class MorphologySet(object):
             known.add((spec['repo'], spec['ref']))
             return False
 
-        self._traverse_specs(process_spec, wanted_spec)
+        self.traverse_specs(process_spec, wanted_spec)
 
         return known
 
@@ -242,7 +242,7 @@ class MorphologySet(object):
             spec['ref'] = new_ref
             return True
 
-        self._traverse_specs(process_spec, wanted_spec)
+        self.traverse_specs(process_spec, wanted_spec)
 
     def petrify_chunks(self, resolutions):
         '''Update _every_ chunk's ref to the value resolved in resolutions.
@@ -272,7 +272,7 @@ class MorphologySet(object):
             spec['ref'] = resolutions[tup]
             return True
 
-        self._traverse_specs(process_chunk_spec, wanted_chunk_spec)
+        self.traverse_specs(process_chunk_spec, wanted_chunk_spec)
 
     def unpetrify_all(self):
         '''If a spec is petrified, unpetrify it.
@@ -286,4 +286,4 @@ class MorphologySet(object):
             spec['ref'] = spec.pop('unpetrify-ref')
             return True
 
-        self._traverse_specs(process_spec, wanted_spec)
+        self.traverse_specs(process_spec, wanted_spec)
