@@ -15,13 +15,12 @@
 
 
 import cliapp
-import gzip
+import contextlib
 import os
 import shutil
 import stat
 import tarfile
 import tempfile
-import urlparse
 import uuid
 
 import morphlib
@@ -266,26 +265,74 @@ class DeployPlugin(cliapp.Plugin):
             self.app.settings['tempdir-min-space'],
             '/', 0)
 
-        cluster = args[0]
+        cluster_name = args[0]
         env_vars = args[1:]
 
-        branch_dir = self.other.deduce_system_branch()[1]
-        root_repo = self.other.get_branch_config(branch_dir, 'branch.root')
-        root_repo_dir = self.other.find_repository(branch_dir, root_repo)
-        data = self.other.load_morphology(root_repo_dir, cluster)
+        ws = morphlib.workspace.open('.')
+        sb = morphlib.sysbranchdir.open_from_within('.')
 
-        if data['kind'] != 'cluster':
+        build_uuid = uuid.uuid4().hex
+
+        build_command = morphlib.buildcommand.BuildCommand(self.app)
+        build_command = self.app.hookmgr.call('new-build-command',
+                                              build_command)
+        loader = morphlib.morphloader.MorphologyLoader()
+        name = morphlib.git.get_user_name(self.app.runcmd)
+        email = morphlib.git.get_user_email(self.app.runcmd)
+        build_ref_prefix = self.app.settings['build-ref-prefix']
+
+        root_repo_dir = morphlib.gitdir.GitDirectory(
+            sb.get_git_directory_name(sb.root_repository_url))
+        mf = morphlib.morphologyfinder.MorphologyFinder(root_repo_dir)
+        cluster_text, cluster_filename = mf.read_morphology(cluster_name)
+        cluster_morphology = loader.load_from_string(cluster_text,
+                                                     filename=cluster_filename)
+
+        if cluster_morphology['kind'] != 'cluster':
             raise cliapp.AppException(
                 "Error: morph deploy is only supported for cluster"
                 " morphologies.")
-        for system in data['systems']:
-            self.deploy_system(system, env_vars)
 
-    def deploy_system(self, system, env_vars):
+        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix,
+                                              push_temporary=False)
+        with contextlib.closing(bb) as bb:
+
+            for gd, build_ref in bb.add_uncommitted_changes():
+                self.app.status(msg='Adding uncommitted changes '\
+                                    'in %(dirname)s to %(ref)s',
+                                dirname=gd.dirname, ref=build_ref, chatty=True)
+
+            for gd in bb.inject_build_refs(loader):
+                self.app.status(msg='Injecting temporary build refs '\
+                                    'into morphologies in %(dirname)s',
+                                dirname=gd.dirname, chatty=True)
+
+            for gd, build_ref in bb.update_build_refs(name, email, build_uuid):
+                self.app.status(msg='Committing changes in %(dirname)s '\
+                                    'to %(ref)s',
+                                dirname=gd.dirname, ref=build_ref, chatty=True)
+
+            for gd, build_ref, remote in bb.push_build_branches():
+                self.app.status(msg='Pushing %(ref)s in %(dirname)s '\
+                                    'to %(remote)s',
+                                ref=build_ref, dirname=gd.dirname,
+                                remote=remote.get_push_url(), chatty=True)
+
+            for system in cluster_morphology['systems']:
+                self.deploy_system(build_command, root_repo_dir,
+                                   bb.root_repo_url, bb.root_ref,
+                                   system, env_vars)
+
+    def deploy_system(self, build_command, root_repo_dir, build_repo, ref,
+                      system, env_vars):
+        # Find the artifact to build
         morph = system['morph']
+        srcpool = build_command.create_source_pool(build_repo, ref,
+                                                   morph + '.morph')
+        artifact = build_command.resolve_artifacts(srcpool)
+
         deploy_defaults = system['deploy-defaults']
         deployments = system['deploy']
-
         for system_id, deploy_params in deployments.iteritems():
             user_env = morphlib.util.parse_environment_pairs(
                     os.environ,
@@ -308,64 +355,11 @@ class DeployPlugin(cliapp.Plugin):
                                      'for system "%s"' % system_id)
 
             morphlib.util.sanitize_environment(final_env)
-            self.do_deploy(morph, deployment_type, location, final_env)
+            self.do_deploy(build_command, root_repo_dir, ref, artifact,
+                           deployment_type, location, final_env)
 
-    def do_deploy(self, system_name, deployment_type, location, env):
-        # Deduce workspace and system branch and branch root repository.
-        workspace = self.other.deduce_workspace()
-        branch, branch_dir = self.other.deduce_system_branch()
-        branch_root = self.other.get_branch_config(branch_dir, 'branch.root')
-        branch_uuid = self.other.get_branch_config(branch_dir, 'branch.uuid')
-
-        # Generate a UUID for the build.
-        build_uuid = uuid.uuid4().hex
-
-        build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command = self.app.hookmgr.call('new-build-command',
-                                              build_command)
-        push = self.app.settings['push-build-branches']
-
-        self.app.status(msg='Starting build %(uuid)s', uuid=build_uuid)
-
-        self.app.status(msg='Collecting morphologies involved in '
-                            'building %(system)s from %(branch)s',
-                            system=system_name, branch=branch)
-
-        # Find system branch root repository on the local disk.
-        root_repo = self.other.get_branch_config(branch_dir, 'branch.root')
-        root_repo_dir = self.other.find_repository(branch_dir, root_repo)
-
-        # Get repositories of morphologies involved in building this system
-        # from the current system branch.
-        build_repos = self.other.get_system_build_repos(
-                branch, branch_dir, branch_root, system_name)
-
-        # Generate temporary build ref names for all these repositories.
-        self.other.generate_build_ref_names(build_repos, branch_uuid)
-
-        # Create the build refs for all these repositories and commit
-        # all uncommitted changes to them, updating all references
-        # to system branch refs to point to the build refs instead.
-        self.other.update_build_refs(build_repos, branch, build_uuid, push)
-
-        if push:
-            self.other.push_build_refs(build_repos)
-            build_branch_root = branch_root
-        else:
-            dirname = build_repos[branch_root]['dirname']
-            build_branch_root = urlparse.urljoin('file://', dirname)
-
-        # Run the build.
-        build_ref = build_repos[branch_root]['build-ref']
-        srcpool = build_command.create_source_pool(
-            build_branch_root,
-            build_ref,
-            system_name + '.morph')
-        artifact = build_command.resolve_artifacts(srcpool)
-
-        if push:
-            self.other.delete_remote_build_refs(build_repos)
-            
+    def do_deploy(self, build_command, root_repo_dir, ref, artifact,
+                  deployment_type, location, env):
 
         # Create a tempdir for this deployment to work in
         deploy_tempdir = tempfile.mkdtemp(
@@ -405,7 +399,7 @@ class DeployPlugin(cliapp.Plugin):
             for name in names:
                 self._run_extension(
                     root_repo_dir,
-                    build_ref,
+                    ref,
                     name,
                     '.configure',
                     [system_tree],
@@ -415,7 +409,7 @@ class DeployPlugin(cliapp.Plugin):
             self.app.status(msg='Writing to device')
             self._run_extension(
                 root_repo_dir,
-                build_ref,
+                ref,
                 deployment_type,
                 '.write',
                 [system_tree, location],
@@ -428,7 +422,7 @@ class DeployPlugin(cliapp.Plugin):
 
         self.app.status(msg='Finished deployment')
 
-    def _run_extension(self, repo_dir, ref, name, kind, args, env):
+    def _run_extension(self, gd, ref, name, kind, args, env):
         '''Run an extension.
         
         The ``kind`` should be either ``.configure`` or ``.write``,
@@ -440,8 +434,9 @@ class DeployPlugin(cliapp.Plugin):
         '''
         
         # Look for extension in the system morphology's repository.
-        ext = self._cat_file(repo_dir, ref, name + kind)
-        if ext is None:
+        try:
+            ext = gd.get_file_from_ref(ref, name + kind)
+        except cliapp.AppException:
             # Not found: look for it in the Morph code.
             code_dir = os.path.dirname(morphlib.__file__)
             ext_filename = os.path.join(code_dir, 'exts', name + kind)
@@ -465,7 +460,7 @@ class DeployPlugin(cliapp.Plugin):
         self.app.runcmd(
             [ext_filename] + args,
             ['sh', '-c', 'while read l; do echo `date "+%F %T"` $l; done'],
-            cwd=repo_dir, env=env, stdout=None, stderr=None)
+            cwd=gd.dirname, env=env, stdout=None, stderr=None)
         
         if delete_ext:
             os.remove(ext_filename)
@@ -474,13 +469,3 @@ class DeployPlugin(cliapp.Plugin):
         st = os.stat(filename)
         mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         return (stat.S_IMODE(st.st_mode) & mask) != 0
-        
-    def _cat_file(self, repo_dir, ref, pathname):
-        '''Retrieve contents of a file from a git repository.'''
-        
-        argv = ['git', 'cat-file', 'blob', '%s:%s' % (ref, pathname)]
-        try:
-            return self.app.runcmd(argv, cwd=repo_dir)
-        except cliapp.AppException:
-            return None
-
