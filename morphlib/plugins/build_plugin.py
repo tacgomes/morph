@@ -26,7 +26,7 @@ class BuildPlugin(cliapp.Plugin):
     def enable(self):
         self.app.add_subcommand('build-morphology', self.build_morphology,
                                 arg_synopsis='(REPO REF FILENAME)...')
-        self.app.add_subcommand('new-build', self.build,
+        self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
 
     def disable(self):
