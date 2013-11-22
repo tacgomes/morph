@@ -497,6 +497,41 @@ name: foo
                 'arch': 'x86_64',
             })
 
+    def test_sets_defaults_for_cluster(self):
+        m = morphlib.morph3.Morphology(
+            name='foo',
+            kind='cluster',
+            systems=[
+                {'morph': 'foo'},
+                {'morph': 'bar'}])
+        self.loader.set_defaults(m)
+        self.loader.validate(m)
+        self.assertEqual(m['systems'],
+            [{'morph': 'foo',
+              'deploy-defaults': {},
+              'deploy': {}},
+             {'morph': 'bar',
+              'deploy-defaults': {},
+              'deploy': {}}])
+
+    def test_unsets_defaults_for_cluster(self):
+        m = morphlib.morph3.Morphology(
+            name='foo',
+            kind='cluster',
+            description='',
+            systems=[
+                {'morph': 'foo',
+                 'deploy-defaults': {},
+                 'deploy': {}},
+                {'morph': 'bar',
+                 'deploy-defaults': {},
+                 'deploy': {}}])
+        self.loader.unset_defaults(m)
+        self.assertNotIn('description', m)
+        self.assertEqual(m['systems'],
+                         [{'morph': 'foo'},
+                          {'morph': 'bar'}])
+
     def test_sets_stratum_chunks_repo_and_morph_from_name(self):
         m = morphlib.morph3.Morphology(
             {

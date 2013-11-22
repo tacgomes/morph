@@ -352,7 +352,9 @@ class MorphologyLoader(object):
             if key not in morphology:
                 morphology[key] = defaults[key]
 
-        if kind == 'system':
+        if kind == 'cluster':
+            self._set_cluster_defaults(morphology)
+        elif kind == 'system':
             self._set_system_defaults(morphology)
         elif kind == 'stratum':
             self._set_stratum_defaults(morphology)
@@ -372,8 +374,22 @@ class MorphologyLoader(object):
             if key in morphology and morphology[key] == defaults[key]:
                 del morphology[key]
 
-        if kind == 'stratum':
-            self._unset_stratum_defaults(morphology)
+        if kind in ('stratum', 'cluster'):
+            getattr(self, '_unset_%s_defaults' % kind)(morphology)
+
+    def _set_cluster_defaults(self, morph):
+        for system in morph.get('systems', []):
+            if 'deploy-defaults' not in system:
+                system['deploy-defaults'] = {}
+            if 'deploy' not in system:
+                system['deploy'] = {}
+
+    def _unset_cluster_defaults(self, morph):
+        for system in morph.get('systems', []):
+            if 'deploy-defaults' in system and system['deploy-defaults'] == {}:
+                del system['deploy-defaults']
+            if 'deploy' in system and system['deploy'] == {}:
+                del system['deploy']
 
     def _set_system_defaults(self, morph):
         pass
