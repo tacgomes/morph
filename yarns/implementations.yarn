@@ -75,13 +75,6 @@ another to hold a chunk.
         morph: test-stratum
     EOF
 
-    cat << EOF > "$DATADIR/gits/morphs/simple-system.morph"
-    name: simple-system
-    kind: system
-    arch: $arch
-    strata: []
-    EOF
-
     cat << EOF > "$DATADIR/gits/morphs/test-stratum.morph"
     name: test-stratum
     kind: stratum
@@ -134,7 +127,11 @@ another to hold a chunk.
     description: A system called $MATCH_1 for architectures $MATCH_2
     kind: system
     name: $MATCH_1
-    strata: []
+    strata:
+    -   name: test-stratum
+        repo: test:morphs
+        ref: master
+        morph: test-stratum
     EOF
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 morphology."
@@ -275,7 +272,11 @@ Editing morphologies with `morph edit`.
     description: A system called $MATCH_1 for architectures $MATCH_2
     kind: system
     name: $MATCH_1
-    strata: []
+    strata:
+    -   name: test-stratum
+        repo: test:morphs
+        ref: master
+        morph: test-stratum
     EOF
 
 Reporting status of checked out repositories:
@@ -425,7 +426,7 @@ Generating a manifest.
         > "$DATADIR/baserock/hello_world.meta"
     {
         "artifact-name": "hello_world",
-        "cache-key": 
+        "cache-key":
            "ab8d00a80298a842446ce23507cea6b4d0e34c7ddfa05c67f460318b04d21308",
         "kind": "chunk",
         "morphology": "hello_world.morph",
@@ -440,7 +441,7 @@ Generating a manifest.
 
     IMPLEMENTS WHEN morph generates a manifest
     run_morph generate-manifest "$DATADIR/artifact.tar" > "$DATADIR/manifest"
-    
+
     IMPLEMENTS THEN the manifest is generated
 
     # Generated manifest should contain the name of the repository
@@ -554,4 +555,4 @@ Implementations for building systems
 
     IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+) of the repo (\S+)
     cd "$DATADIR/workspace/$MATCH_3/$MATCH_4"
-    run_morph build "$MATCH_1" 
+    run_morph build "$MATCH_1"

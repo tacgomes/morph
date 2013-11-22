@@ -16,6 +16,7 @@
 # =*= License: GPL-2 =*=
 
 
+import collections
 import logging
 import yaml
 
@@ -102,6 +103,16 @@ class DuplicateChunkError(morphlib.Error):
                   'in stratum %(stratum_name)s' % locals())
 
 
+class SystemStrataNotListError(morphlib.Error):
+
+    def __init__(self, system_name, strata_type):
+        self.system_name = system_name
+        self.strata_type = strata_type
+        typename = strata_type.__name__
+        morphlib.Error.__init__(
+            self, 'System %(system_name)s has the wrong type for its strata: '\
+                  '%(typename)s, expected list' % locals())
+
 class DuplicateStratumError(morphlib.Error):
 
     def __init__(self, system_name, stratum_name):
@@ -110,6 +121,23 @@ class DuplicateStratumError(morphlib.Error):
         morphlib.Error.__init__(
             self, 'Duplicate stratum %(stratum_name)s '\
                   'in system %(system_name)s' % locals())
+
+
+class SystemStratumSpecsNotMappingError(morphlib.Error):
+
+    def __init__(self, system_name, strata):
+        self.system_name = system_name
+        self.strata = strata
+        morphlib.Error.__init__(
+            self, 'System %(system_name)s has stratum specs '\
+                  'that are not mappings.' % locals())
+
+
+class EmptySystemError(morphlib.Error):
+
+    def __init__(self, system_name):
+        morphlib.Error.__init__(
+            self, 'System %(system_name)s has no strata.' % locals())
 
 
 class MorphologyLoader(object):
@@ -126,6 +154,7 @@ class MorphologyLoader(object):
         'system': [
             'name',
             'arch',
+            'strata',
         ],
         'cluster': [
           'name',
@@ -166,7 +195,6 @@ class MorphologyLoader(object):
             'build-depends': [],
         },
         'system': {
-            'strata': [],
             'description': '',
             'arch': None,
             'configuration-extensions': [],
@@ -270,9 +298,23 @@ class MorphologyLoader(object):
             assert kind == 'cluster'
 
     def _validate_system(self, morph):
+        # A system must contain at least one stratum
+        strata = morph['strata']
+        if (not isinstance(strata, collections.Iterable)
+            or isinstance(strata, collections.Mapping)):
+
+            raise SystemStrataNotListError(morph['name'],
+                                           type(strata))
+
+        if not strata:
+            raise EmptySystemError(morph['name'])
+
+        if not all(isinstance(o, collections.Mapping) for o in strata):
+            raise SystemStratumSpecsNotMappingError(morph['name'], strata)
+
         # All stratum names should be unique within a system.
         names = set()
-        for spec in morph['strata']:
+        for spec in strata:
             name = spec.get('alias', spec['morph'])
             if name in names:
                raise DuplicateStratumError(morph['name'], name)

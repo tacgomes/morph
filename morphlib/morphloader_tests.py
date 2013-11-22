@@ -99,6 +99,9 @@ build-system: dummy
             'kind': 'system',
             'name': 'foo',
             'arch': 'x86_64',
+            'strata': [
+                {'morph': 'bar'},
+            ],
             'system-kind': 'foo',
         })
         self.assertRaises(
@@ -109,6 +112,9 @@ build-system: dummy
             'kind': 'system',
             'name': 'foo',
             'arch': 'x86_64',
+            'strata': [
+                {'morph': 'bar'},
+            ],
             'disk-size': 'over 9000',
         })
         self.assertRaises(
@@ -122,12 +128,14 @@ build-system: dummy
             morphlib.morphloader.MissingFieldError, self.loader.validate, m)
 
     def test_fails_to_validate_system_with_invalid_field(self):
-        m = morphlib.morph3.Morphology({
-            'kind': 'system',
-            'name': 'name',
-            'arch': 'x86_64',
-            'invalid': 'field',
-        })
+        m = morphlib.morph3.Morphology(
+            kind="system",
+            name="foo",
+            arch="blah",
+            strata=[
+                {'morph': 'bar'},
+            ],
+            invalid='field')
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
 
@@ -183,24 +191,24 @@ build-system: dummy
 
     def test_validate_requires_a_valid_architecture(self):
         m = morphlib.morph3.Morphology(
-            {
-                "kind": "system",
-                "name": "foo",
-                "arch": "blah",
-                "strata": [],
-            })
+            kind="system",
+            name="foo",
+            arch="blah",
+            strata=[
+                {'morph': 'bar'},
+            ])
         self.assertRaises(
             morphlib.morphloader.UnknownArchitectureError,
             self.loader.validate, m)
 
     def test_validate_normalises_architecture_armv7_to_armv7l(self):
         m = morphlib.morph3.Morphology(
-            {
-                "kind": "system",
-                "name": "foo",
-                "arch": "armv7",
-                "strata": [],
-            })
+            kind="system",
+            name="foo",
+            arch="armv7",
+            strata=[
+                {'morph': 'bar'},
+            ])
         self.loader.validate(m)
         self.assertEqual(m['arch'], 'armv7l')
 
@@ -275,6 +283,50 @@ build-system: dummy
         self.assertRaises(
             morphlib.morphloader.EmptyStratumError,
             self.loader.validate, m)
+
+    def test_validate_requires_strata_in_system(self):
+        m = morphlib.morph3.Morphology(
+            name='system',
+            kind='system',
+            arch='testarch')
+        self.assertRaises(
+            morphlib.morphloader.MissingFieldError,
+            self.loader.validate, m)
+
+    def test_validate_requires_list_of_strata_in_system(self):
+        for v in (None, {}):
+            m = morphlib.morph3.Morphology(
+                name='system',
+                kind='system',
+                arch='testarch',
+                strata=v)
+            with self.assertRaises(
+                morphlib.morphloader.SystemStrataNotListError) as cm:
+
+                self.loader.validate(m)
+            self.assertEqual(cm.exception.strata_type, type(v))
+
+    def test_validate_requires_non_empty_strata_in_system(self):
+        m = morphlib.morph3.Morphology(
+            name='system',
+            kind='system',
+            arch='testarch',
+            strata=[])
+        self.assertRaises(
+            morphlib.morphloader.EmptySystemError,
+            self.loader.validate, m)
+
+    def test_validate_requires_stratum_specs_in_system(self):
+        m = morphlib.morph3.Morphology(
+            name='system',
+            kind='system',
+            arch='testarch',
+            strata=["foo"])
+        with self.assertRaises(
+            morphlib.morphloader.SystemStratumSpecsNotMappingError) as cm:
+
+            self.loader.validate(m)
+        self.assertEqual(cm.exception.strata, ["foo"])
 
     def test_loads_yaml_from_string(self):
         string = '''\
@@ -463,11 +515,13 @@ name: foo
             test_dict)
 
     def test_sets_defaults_for_system(self):
-        m = morphlib.morph3.Morphology({
-            'kind': 'system',
-            'name': 'foo',
-            'arch': 'x86_64',
-        })
+        m = morphlib.morph3.Morphology(
+            kind='system',
+            name='foo',
+            arch='testarch',
+            strata=[
+                {'morph': 'bar'},
+            ])
         self.loader.set_defaults(m)
         self.loader.validate(m)
         self.assertEqual(
@@ -476,25 +530,35 @@ name: foo
                 'kind': 'system',
                 'name': 'foo',
                 'description': '',
-                'arch': 'x86_64',
-                'strata': [],
+                'arch': 'testarch',
+                'strata': [
+                    {'morph': 'bar'},
+                ],
                 'configuration-extensions': [],
             })
 
     def test_unsets_defaults_for_system(self):
-        m = morphlib.morph3.Morphology({
-            'kind': 'system',
-            'name': 'foo',
-            'arch': 'x86_64',
-            'strata': [],
-        })
+        m = morphlib.morph3.Morphology(
+            {
+                'description': '',
+                'kind': 'system',
+                'name': 'foo',
+                'arch': 'testarch',
+                'strata': [
+                    {'morph': 'bar'},
+                ],
+                'configuration-extensions': [],
+            })
         self.loader.unset_defaults(m)
         self.assertEqual(
             dict(m),
             {
                 'kind': 'system',
                 'name': 'foo',
-                'arch': 'x86_64',
+                'arch': 'testarch',
+                'strata': [
+                    {'morph': 'bar'},
+                ],
             })
 
     def test_sets_defaults_for_cluster(self):
