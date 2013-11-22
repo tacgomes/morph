@@ -305,9 +305,9 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
     def _load_morphology_from_git(self, loader, gd, ref, filename):
         try:
-            text = gd.cat_file('blob', ref, filename)
+            text = gd.get_file_from_ref(ref, filename)
         except cliapp.AppException:
-            text = gd.cat_file('blob', 'origin/%s' % ref, filename)
+            text = gd.get_file_from_ref('origin/%s' % ref, filename)
         return loader.load_from_string(text, filename)
 
     def _load_stratum_morphologies(self, loader, sb, system_morph):
@@ -350,18 +350,6 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         logging.debug('All strata loaded')
         return morphset
-
-    def _invent_new_branch(self, cached_repo, default_name):
-        counter = 0
-        candidate = default_name
-        while True:
-            try:
-                cached_repo.resolve_ref(candidate)
-            except morphlib.cachedrepo.InvalidReferenceError:
-                return candidate
-            else:
-                counter += 1
-                candidate = '%s-%s' % (default_name, counter)
 
     def edit(self, args):
         '''Edit or checkout a component in a system branch.
@@ -793,7 +781,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             if head != branch:
                 self.app.output.write(
                     '    %s: unexpected ref checked out %r\n' % (repo, head))
-            if any(gd.get_uncommitted_changes()):
+            if any(gd.get_index().get_uncommitted_changes()):
                 has_uncommitted_changes = True
                 self.app.output.write('    %s: uncommitted changes\n' % repo)
 

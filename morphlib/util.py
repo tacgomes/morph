@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import itertools
 import os
 import re
 
@@ -412,3 +413,12 @@ def get_host_architecture(): # pragma: no cover
 def sanitize_environment(env):
     for k in env:
         env[k] = str(env[k])
+
+def iter_trickle(iterable, limit):
+    '''Split an iterable up into `limit` length chunks.'''
+    it = iter(iterable)
+    while True:
+        buf = list(itertools.islice(it, limit))
+        if len(buf) == 0:
+           break
+        yield buf

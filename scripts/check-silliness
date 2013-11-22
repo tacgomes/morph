@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Does the file contain any of the code constructs deemed silly?
+#
+# Copyright (C) 2013  Codethink Limited
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+errors=0
+
+for x; do
+    if tr -cd '\t' < "$x" | grep . > /dev/null
+    then
+        echo "ERROR: $x contains TAB characters" 1>&2
+        grep -n -F "$(printf "\t")" "$x" 1>&2
+        errors=1
+    fi
+
+    case "$x" in
+        # Excluding yarn files since it's not possible to split up the
+        # IMPLEMENTS lines of them
+        *.yarn) ;;
+        *)
+            if awk 'length > 79' "$x" | grep . > /dev/null
+            then
+                echo "ERROR: $x has lines longer than 79 chars" 1>&2
+                awk 'length > 79 { print NR, $0 }' "$x" 1>&2
+                errors=1
+            fi
+            ;;
+    esac
+
+    case "$x" in
+        *.py)
+            if head -1 "$x" | grep '^#!' > /dev/null
+            then
+                echo "ERROR: $x has a hashbang" 1>&2
+                errors=1
+            fi
+            if [ -x "$x" ]; then
+                echo "ERROR: $x is executable" 1>&2
+                errors=1
+            fi
+            if grep except: "$x"
+            then
+                echo "ERROR: $x has a bare except:" 1>&2
+                errors=1
+            fi
+            ;;
+    esac
+done
+exit "$errors"

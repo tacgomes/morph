@@ -48,6 +48,7 @@ class Error(cliapp.AppException):
 import artifact
 import artifactcachereference
 import artifactresolver
+import branchmanager
 import bins
 import buildcommand
 import buildenvironment
@@ -60,6 +61,7 @@ import extractedtarball
 import fsutils
 import git
 import gitdir
+import gitindex
 import localartifactcache
 import localrepocache
 import mountableimage

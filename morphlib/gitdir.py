@@ -16,10 +16,10 @@
 # =*= License: GPL-2 =*=
 
 
-import collections
 import cliapp
-import glob
+import itertools
 import os
+import re
 
 import morphlib
 
@@ -37,6 +37,285 @@ class InvalidRefError(cliapp.AppException):
         cliapp.AppException.__init__(
             self, 'Git directory %s has no commit '
                   'at ref %s.' %(repo.dirname, ref))
+
+
+class ExpectedSha1Error(cliapp.AppException):
+
+    def __init__(self, ref):
+        self.ref = ref
+        cliapp.AppException.__init__(
+            self, 'SHA1 expected, got %s' % ref)
+
+
+class RefChangeError(cliapp.AppException):
+    pass
+
+
+class RefAddError(RefChangeError):
+
+    def __init__(self, gd, ref, sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.sha1 = sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Adding ref %(ref)s '\
+            'with commit %(sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
+class RefUpdateError(RefChangeError):
+
+    def __init__(self, gd, ref, old_sha1, new_sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.old_sha1 = old_sha1
+        self.new_sha1 = new_sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Updating ref %(ref)s '\
+            'from %(old_sha1)s to %(new_sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
+class RefDeleteError(RefChangeError):
+
+    def __init__(self, gd, ref, sha1, original_exception):
+        self.gd = gd
+        self.dirname = dirname = gd.dirname
+        self.ref = ref
+        self.sha1 = sha1
+        self.original_exception = original_exception
+        RefChangeError.__init__(self, 'Deleting ref %(ref)s '\
+            'expecting commit %(sha1)s failed in git repository '\
+            'located at %(dirname)s: %(original_exception)r' % locals())
+
+
+class InvalidRefSpecError(cliapp.AppException):
+
+    def __init__(self, source, target):
+        self.source = source
+        self.target = target
+        cliapp.AppException.__init__(
+            self, 'source or target must be defined, '\
+                  'got %(source)r and %(target)r respectively.' % locals())
+
+
+class PushError(cliapp.AppException):
+    pass
+
+
+class NoRefspecsError(PushError):
+
+    def __init__(self, remote):
+        self.remote = remote.name
+        PushError.__init__(self,
+                           'Push to remote %r was given no refspecs.' % remote)
+
+
+class PushFailureError(PushError):
+
+    def __init__(self, remote, refspecs, exit, results, stderr):
+        self.remote = remote.name
+        self.push_url = push_url = remote.get_push_url()
+        self.refspecs = refspecs
+        self.exit = exit
+        self.results = results
+        self.stderr = stderr
+        PushError.__init__(self, 'Push to remote %(remote)r, '\
+                                 'push url %(push_url)s '\
+                                 'with refspecs %(refspecs)r '\
+                                 'failed with exit code %(exit)s' % locals())
+
+
+class RefSpec(object):
+    '''Class representing how to push or pull a ref.
+
+    `source` is a reference to the local commit/tag you want to push to
+    the remote.
+    `target` is the ref on the remote you want to push to.
+    `require` is the value that the remote is expected to currently be.
+    Currently `require` is only used to provide a reverse of the respec,
+    but future versions of Git will support requiring the value of
+    `target` on the remote to be at a certain commit, or fail.
+    `force` defaults to false, and if set adds the flag to push even if
+    it's non-fast-forward.
+
+    If `source` is not provided, but `target` is, then the refspec will
+    delete `target` on the remote.
+    If `source` is provided, but `target` is not, then `source` is used
+    as the `target`, since if you specify a ref for the `source`, you
+    can push the same local branch to the same remote branch.
+
+    '''
+
+    def __init__(self, source=None, target=None, require=None, force=False):
+        if source is None and target is None:
+            raise InvalidRefSpecError(source, target)
+        self.source = source
+        self.target = target
+        self.require = require
+        self.force = force
+        if target is None:
+            # Default to source if target not given, source must be a
+            # branch name, or when this refspec is pushed it will fail.
+            self.target = target = source
+        if source is None: # Delete if source not given
+            self.source = source = '0' * 40
+
+    @property
+    def push_args(self):
+        '''Arguments to pass to push to push this ref.
+
+        Returns an iterable of the arguments that would need to be added
+        to a push command to push this ref spec.
+
+        This currently returns a single-element tuple, but it may expand
+        to multiple arguments, e.g.
+        1.  tags expand to `tag "$name"`
+        2.  : expands to all the matching refs
+        3.  When Git 1.8.5 becomes available,
+            `"--force-with-lease=$target:$required"  "$source:$target"`.
+
+        '''
+
+        # TODO: Use require parameter when Git 1.8.5 is available,
+        #       to allow the push to fail if the target ref is not at
+        #       that commit by using the --force-with-lease option.
+        return ('%(force)s%(source)s:%(target)s' % {
+            'force': '+' if self.force else '',
+            'source': self.source,
+            'target': self.target
+        }),
+
+    def revert(self):
+        '''Create a respec which will undo the effect of pushing this one.
+
+        If `require` was not specified, the revert refspec will delete
+        the branch.
+
+        '''
+
+        return self.__class__(source=(self.require or '0' * 40),
+                              target=self.target, require=self.source,
+                              force=self.force)
+
+
+PUSH_FORMAT = re.compile(r'''
+# Match flag, this is the eventual result in a nutshell
+(?P<flag>[- +*=!])\t
+# The refspec is colon separated and separated from the rest by another tab.
+(?P<from>[^:]*):(?P<to>[^\t]*)\t
+# Two possible formats remain, so separate the two with a capture group
+(?:
+    # Summary is an arbitrary string, separated from the reason by a space
+    (?P<summary>.*)[ ]
+    # Reason is enclosed in parenthesis and ends the line
+    \((?P<reason>.*)\)
+    # The reason is optional, so we may instead only have the summary
+    |  (?P<summary_only>.*)
+)
+''', re.VERBOSE)
+
+
+class Remote(object):
+    '''Represent a remote git repository.
+
+    This can either be nascent or concrete, depending on whether the
+    name is given.
+
+    Changes to a concrete remote's config are written-through to git's
+    config files, while a nascent remote keeps changes in-memory.
+
+    '''
+
+    def __init__(self, gd, name=None):
+        self.gd = gd
+        self.name = name
+        self.push_url = None
+        self.fetch_url = None
+
+    def set_fetch_url(self, url):
+        self.fetch_url = url
+        if self.name is not None:
+            self.gd._runcmd(['git', 'remote', 'set-url', self.name, url])
+
+    def set_push_url(self, url):
+        self.push_url = url
+        if self.name is not None:
+            self.gd._runcmd(['git', 'remote', 'set-url', '--push',
+                             self.name, url])
+
+    def _get_remote_url(self, remote_name, kind):
+        # As distasteful as it is to parse the output of porcelain
+        # commands, this is the best option.
+        # Git config can be used to get the raw value, but this is
+        # incorrect when url.*.insteadof rules are involved.
+        # Re-implementing the rewrite logic in morph is duplicated effort
+        # and more work to keep it in sync.
+        # It's possible to get the fetch url with `git ls-remote --get-url
+        # <remote>`, but this will just print the remote's name if it
+        # is not defined.
+        # It is only possible to use git to get the push url by parsing
+        # `git remote -v` or `git remote show -n <remote>`, and `git
+        # remote -v` is easier to parse.
+        output = self.gd._runcmd(['git', 'remote', '-v'])
+        for line in output.splitlines():
+            words = line.split()
+            if (len(words) == 3 and
+                words[0] == remote_name and
+                words[2] == '(%s)' % kind):
+                return words[1]
+
+        return None
+
+    def get_fetch_url(self):
+        if self.name is None:
+            return self.fetch_url
+        return self._get_remote_url(self.name, 'fetch')
+
+    def get_push_url(self):
+        if self.name is None:
+            return self.push_url or self.get_fetch_url()
+        return self._get_remote_url(self.name, 'push')
+
+    @staticmethod
+    def _parse_push_output(output):
+        for line in output.splitlines():
+            m = PUSH_FORMAT.match(line)
+            # Push may output lines that are not related to the status,
+            # so ignore any that don't match the status format.
+            if m is None:
+                continue
+            # Ensure the same number of arguments
+            ret = list(m.group('flag', 'from', 'to'))
+            ret.append(m.group('summary') or m.group('summary_only'))
+            ret.append(m.group('reason'))
+            yield tuple(ret)
+
+    def push(self, *refspecs):
+        '''Push given refspecs to the remote and return results.
+
+        If no refspecs are given, an exception is raised.
+
+        Returns an iterable of (flag, from_ref, to_ref, summary, reason)
+
+        If the push fails, a PushFailureError is raised, from which the
+        result can be retrieved with the `results` field.
+
+        '''
+
+        if not refspecs:
+            raise NoRefspecsError(self)
+        push_name = self.name or self.get_push_url()
+        cmdline = ['git', 'push', '--porcelain', push_name]
+        cmdline.extend(itertools.chain.from_iterable(
+            rs.push_args for rs in refspecs))
+        exit, out, err = self.gd._runcmd_unchecked(cmdline)
+        if exit != 0:
+            raise PushFailureError(self, refspecs, exit,
+                                   self._parse_push_output(out), err)
+        return self._parse_push_output(out)
 
 
 class GitDirectory(object):
@@ -64,6 +343,9 @@ class GitDirectory(object):
         '''
 
         return cliapp.runcmd(argv, cwd=self.dirname, **kwargs)
+
+    def _runcmd_unchecked(self, *args, **kwargs):
+        return cliapp.runcmd_unchecked(*args, cwd=self.dirname, **kwargs)
 
     def checkout(self, branch_name): # pragma: no cover
         '''Check out a git branch.'''
@@ -96,13 +378,33 @@ class GitDirectory(object):
         parsed_head = self._runcmd(['git', 'rev-parse', 'HEAD']).strip()
         return parsed_ref == parsed_head
 
-    def cat_file(self, obj_type, ref, filename): # pragma: no cover
-        return self._runcmd(
-            ['git', 'cat-file', obj_type, '%s:%s' % (ref, filename)])
+    def get_file_from_ref(self, ref, filename): # pragma: no cover
+        '''Get file contents from git by ref and filename.
 
-    def update_remotes(self): # pragma: no cover
-        '''Update remotes.'''
-        self._runcmd(['git', 'remote', 'update', '--prune'])
+        `ref` should be a tree-ish e.g. HEAD, master, refs/heads/master,
+        refs/tags/foo, though SHA1 tag, commit or tree IDs are also valid.
+
+        `filename` is the path to the file object from the base of the
+        git directory.
+
+        Returns the contents of the referred to file as a string.
+
+        '''
+
+        # Blob ID is left as the git revision, rather than SHA1, since
+        # we know get_blob_contents will accept it
+        blob_id = '%s:%s' % (ref, filename)
+        return self.get_blob_contents(blob_id)
+
+    def get_blob_contents(self, blob_id): # pragma: no cover
+        '''Get file contents from git by ID'''
+        return self._runcmd(
+            ['git', 'cat-file', 'blob', blob_id])
+
+    def get_commit_contents(self, commit_id): # pragma: no cover
+        '''Get commit contents from git by ID'''
+        return self._runcmd(
+            ['git', 'cat-file', 'commit', commit_id])
 
     def update_submodules(self, app): # pragma: no cover
         '''Change .gitmodules URLs, and checkout submodules.'''
@@ -122,23 +424,17 @@ class GitDirectory(object):
     def get_config(self, key):
         '''Return value for a git repository configuration variable.'''
 
-        value = self._runcmd(['git', 'config', key])
-        return value.strip()
+        value = self._runcmd(['git', 'config', '-z', key])
+        return value.rstrip('\0')
 
-    def set_remote_fetch_url(self, remote_name, url):
-        '''Set the fetch URL for a remote.'''
-        self._runcmd(['git', 'remote', 'set-url', remote_name, url])
+    def get_remote(self, *args, **kwargs):
+        '''Get a remote for this Repository.
 
-    def get_remote_fetch_url(self, remote_name):
-        '''Return the fetch URL for a given remote.'''
-        output = self._runcmd(['git', 'remote', '-v'])
-        for line in output.splitlines():
-            words = line.split()
-            if (len(words) == 3 and
-                words[0] == remote_name and
-                words[2] == '(fetch)'):
-                return words[1]
-        return None
+        Gets a previously configured remote if a remote name is given.
+        Otherwise a nascent one is created.
+
+        '''
+        return Remote(self, *args, **kwargs)
 
     def update_remotes(self): # pragma: no cover
         '''Run "git remote update --prune".'''
@@ -165,12 +461,17 @@ class GitDirectory(object):
         else:
             return self._list_files_in_ref(ref)
 
-    def _rev_parse_tree(self, ref):
+    def _rev_parse(self, ref):
         try:
-            return self._runcmd(['git', 'rev-parse', '--verify',
-                                 '%s^{tree}' % ref]).strip()
+            return self._runcmd(['git', 'rev-parse', '--verify', ref]).strip()
         except cliapp.AppException as e:
             raise InvalidRefError(self, ref)
+
+    def resolve_ref_to_commit(self, ref):
+        return self._rev_parse('%s^{commit}' % ref)
+
+    def resolve_ref_to_tree(self, ref):
+        return self._rev_parse('%s^{tree}' % ref)
 
     def _list_files_in_work_tree(self):
         for dirpath, subdirs, filenames in os.walk(self.dirname):
@@ -180,7 +481,7 @@ class GitDirectory(object):
                 yield os.path.join(dirpath, filename)[len(self.dirname)+1:]
 
     def _list_files_in_ref(self, ref):
-        tree = self._rev_parse_tree(ref)
+        tree = self.resolve_ref_to_tree(ref)
         output = self._runcmd(['git', 'ls-tree', '--name-only', '-rz', tree])
         # ls-tree appends \0 instead of interspersing, so we need to
         # strip the trailing \0 before splitting
@@ -193,44 +494,121 @@ class GitDirectory(object):
         if ref is None:
             with open(os.path.join(self.dirname, filename)) as f:
                 return f.read()
-        tree = self._rev_parse_tree(ref)
-        return self.cat_file('blob', tree, filename)
+        tree = self.resolve_ref_to_tree(ref)
+        return self.get_file_from_ref(tree, filename)
 
     @property
     def HEAD(self):
         output = self._runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
         return output.strip()
 
-    def _get_status(self):
-        '''Runs git status and formats its output into something more useful.
+    def get_index(self, index_file=None):
+        return morphlib.gitindex.GitIndex(self, index_file)
 
-        This runs git status such that unusual filenames are preserved
-        and returns its output in a sequence of (status_code, to_path,
-        from_path).
+    def store_blob(self, blob_contents):
+        '''Hash `blob_contents`, store it in git and return the sha1.
 
-        from_path is None unless the status_code says there was a rename,
-        in which case it is the path it was renamed from.
-
-        Untracked and ignored changes are also included in the output,
-        their status codes are '??' and '!!' respectively.
+        `blob_contents` must either be a string or a value suitable to
+        pass to subprocess.Popen i.e. a file descriptor or file object
+        with fileno() method.
 
         '''
-        status = self._runcmd(['git', 'status', '-z', '--ignored'])
-        tokens = collections.deque(status.split('\0'))
-        while True:
-            tok = tokens.popleft()
-            # Terminates with an empty token, since status ends with a \0
-            if not tok:
-                return
+        if isinstance(blob_contents, basestring):
+            kwargs = {'feed_stdin': blob_contents}
+        else:
+            kwargs = {'stdin': blob_contents}
+        return self._runcmd(['git', 'hash-object', '-t', 'blob',
+                             '-w', '--stdin'], **kwargs).strip()
 
-            code = tok[:2]
-            to_path = tok[3:]
-            yield code, to_path, tokens.popleft() if code[0] == 'R' else None
+    def commit_tree(self, tree, parent, message, **kwargs):
+        '''Create a commit'''
+        # NOTE: Will need extension for 0 or N parents.
+        env = {}
+        for who, info in itertools.product(('committer', 'author'),
+                                           ('name', 'email')):
+            argname = '%s_%s' % (who, info)
+            envname = 'GIT_%s_%s' % (who.upper(), info.upper())
+            if argname in kwargs:
+                env[envname] = kwargs[argname]
+        for who in ('committer', 'author'):
+            argname = '%s_date' % who
+            envname = 'GIT_%s_DATE' % who.upper()
+            if argname in kwargs:
+                env[envname] = kwargs[argname].isoformat()
+        return self._runcmd(['git', 'commit-tree', tree,
+                             '-p', parent, '-m', message],
+                            env=env).strip()
 
-    def get_uncommitted_changes(self):
-        for code, to_path, from_path in self._get_status():
-            if code not in ('??', '!!'):
-                yield code, to_path, from_path
+    @staticmethod
+    def _check_is_sha1(string):
+        if not morphlib.git.is_valid_sha1(string):
+            raise ExpectedSha1Error(string)
+
+    def _update_ref(self, ref_args, message):
+        args = ['git', 'update-ref']
+        # No test coverage, since while this functionality is useful,
+        # morph does not need an API for inspecting the reflog, so
+        # it existing purely to test ref updates is a tad overkill.
+        if message is not None: # pragma: no cover
+            args.extend(('-m', message))
+        args.extend(ref_args)
+        self._runcmd(args)
+
+    def add_ref(self, ref, sha1, message=None):
+        '''Create a ref called `ref` in the repository pointing to `sha1`.
+
+        `message` is a string to add to the reflog about this change
+        `ref` must not already exist, if it does, use `update_ref`
+        `sha1` must be a 40 character hexadecimal string representing
+        the SHA1 of the commit or tag this ref will point to, this is
+        the result of the commit_tree or resolve_ref_to_commit methods.
+
+        '''
+        self._check_is_sha1(sha1)
+        # 40 '0' characters is code for no previous value
+        # this ensures it will fail if the branch already exists
+        try:
+            return self._update_ref((ref, sha1, '0' * 40), message)
+        except Exception, e:
+            raise RefAddError(self, ref, sha1, e)
+
+    def update_ref(self, ref, sha1, old_sha1, message=None):
+        '''Change the commit the ref `ref` points to, to `sha1`.
+
+        `message` is a string to add to the reflog about this change
+        `sha1` and `old_sha` must be 40 character hexadecimal strings
+        representing the SHA1 of the commit or tag this ref will point
+        to and currently points to respectively. This is the result of
+        the commit_tree or resolve_ref_to_commit methods.
+        `ref` must exist, and point to `old_sha1`.
+        This is to avoid unexpected results when multiple processes
+        attempt to change refs.
+
+        '''
+        self._check_is_sha1(sha1)
+        self._check_is_sha1(old_sha1)
+        try:
+            return self._update_ref((ref, sha1, old_sha1), message)
+        except Exception, e:
+            raise RefUpdateError(self, ref, old_sha1, sha1, e)
+
+    def delete_ref(self, ref, old_sha1, message=None):
+        '''Remove the ref `ref`.
+
+        `message` is a string to add to the reflog about this change
+        `old_sha1` must be a 40 character hexadecimal string representing
+        the SHA1 of the commit or tag this ref will point to, this is
+        the result of the commit_tree or resolve_ref_to_commit methods.
+        `ref` must exist, and point to `old_sha1`.
+        This is to avoid unexpected results when multiple processes
+        attempt to change refs.
+
+        '''
+        self._check_is_sha1(old_sha1)
+        try:
+            return self._update_ref(('-d', ref, old_sha1), message)
+        except Exception, e:
+            raise RefDeleteError(self, ref, old_sha1, e)
 
 
 def init(dirname):
