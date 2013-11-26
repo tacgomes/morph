@@ -288,14 +288,10 @@ class MorphologyLoader(object):
         self._deny_obsolete_fields(obsolete, morph)
         self._deny_unknown_fields(required + allowed, morph)
 
-        if kind == 'system':
-            self._validate_system(morph)
-        elif kind == 'stratum':
-            self._validate_stratum(morph)
-        elif kind == 'chunk':
-            self._validate_chunk(morph)
-        else:
-            assert kind == 'cluster'
+        getattr(self, '_validate_%s' % kind)(morph)
+
+    def _validate_cluster(self, morph):
+        pass
 
     def _validate_system(self, morph):
         # A system must contain at least one stratum
@@ -394,14 +390,7 @@ class MorphologyLoader(object):
             if key not in morphology:
                 morphology[key] = defaults[key]
 
-        if kind == 'cluster':
-            self._set_cluster_defaults(morphology)
-        elif kind == 'system':
-            self._set_system_defaults(morphology)
-        elif kind == 'stratum':
-            self._set_stratum_defaults(morphology)
-        elif kind == 'chunk':
-            self._set_chunk_defaults(morphology)
+        getattr(self, '_set_%s_defaults' % kind)(morphology)
 
     def unset_defaults(self, morphology):
         '''If a field is equal to its default, delete it.
