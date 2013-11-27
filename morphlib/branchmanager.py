@@ -34,23 +34,58 @@ class RefCleanupError(cliapp.AppException):
 class LocalRefManager(object):
     '''Provide atomic update over a set of refs in a set of repositories.
 
-    Any ref changes made with the update, add and delete methods will
-    be reversed after the end of the with statement the LocalRefManager
-    is used in, if an exception is raised in the aforesaid with statement.
+    When used in a with statement, if an exception is raised in the
+    body, then any ref changes are reverted, so deletes get replaced,
+    new branches get deleted and ref changes are changed back to the
+    value before the LocalRefManager was created.
+
+    By default, changes are kept after the with statement ends. This can
+    be overridden to revert after the manager exits by passing True to
+    the construcor.
+
+        with LocalRefManager(True) as lrm:
+            # Update refs with lrm.update, lrm.add or lrm.delete
+            # Use changed refs
+        # refs are back to their previous value
+
+    There is also an explicit .close() method to clean up after the
+    context has exited like so:
+
+        with LocalRefManager() as lrm:
+            # update refs
+        # Do something with altered refs
+        lrm.close() # Explicitly clean up
+
+    The name .close() was chosen for the cleanup method, so the
+    LocalRefManager object may also be used again in a second with
+    statement using contextlib.closing().
+
+        with LocalRefManager() as lrm:
+            # update refs
+        with contextlib.closing(lrm) as lrm:
+            # Do something with pushed refs and clean up if there is an
+            # exception
+
+    This is also useful if the LocalRefManager is nested in another
+    object, since the .close() method can be called in that object's
+    cleanup method.
 
     '''
 
-    def __init__(self):
-        self._cleanup = None
+    def __init__(self, cleanup_on_success=False):
+        self._cleanup_on_success = cleanup_on_success
+        self._cleanup = collections.deque()
 
     def __enter__(self):
-        self._cleanup = collections.deque()
         return self
 
     def __exit__(self, etype, evalue, estack):
         # No exception was raised, so no cleanup is required
-        if (etype, evalue, estack) == (None, None, None):
+        if not self._cleanup_on_success and evalue is None:
             return
+        self.close(evalue)
+
+    def close(self, primary=None):
         exceptions = []
         d = self._cleanup
         while d:
@@ -60,7 +95,7 @@ class LocalRefManager(object):
             except Exception, e:
                 exceptions.append((op, args, e))
         if exceptions:
-            raise RefCleanupError(evalue, exceptions)
+            raise RefCleanupError(primary, exceptions)
 
     def update(self, gd, ref, commit, old_commit, message=None):
         '''Update a git repository's ref, reverting it on failure.
@@ -116,19 +151,50 @@ class LocalRefManager(object):
 class RemoteRefManager(object):
     '''Provide temporary pushes to remote repositories.
 
-    Any ref changes made with the push method will be reversed after
-    the end of the with statement the RemoteRefManager is used in.
+    When used in a with statement, if an exception is raised in the body,
+    then any pushed refs are reverted, so deletes get replaced and new
+    branches get deleted.
+
+    By default it will also undo pushed refs when an exception is not
+    raised, this can be overridden by passing False to the constructor.
+
+    There is also an explicit .close() method to clean up after the
+    context has exited like so:
+
+        with RemoteRefManager(False) as rrm:
+            # push refs with rrm.push(...)
+        # Do something with pushed refs
+        rrm.close() # Explicitly clean up
+
+    The name .close() was chosen for the cleanup method, so the
+    RemoteRefManager object may also be used again in a second with
+    statement using contextlib.closing().
+
+        with RemoteRefManager(False) as rrm:
+            rrm.push(...)
+        with contextlib.closing(rrm) as rrm:
+            # Do something with pushed refs and clean up if there is an
+            # exception
+
+    This is also useful if the RemoteRefManager is nested in another
+    object, since the .close() method can be called in that object's
+    cleanup method.
 
     '''
 
-    def __init__(self):
-        self._cleanup = None
+    def __init__(self, cleanup_on_success=True):
+        self._cleanup_on_success = cleanup_on_success
+        self._cleanup = collections.deque()
 
     def __enter__(self):
-        self._cleanup = collections.deque()
         return self
 
     def __exit__(self, etype, evalue, estack):
+        if not self._cleanup_on_success and evalue is None:
+            return
+        self.close(evalue)
+
+    def close(self, primary=None):
         exceptions = []
         d = self._cleanup
         while d:
@@ -138,7 +204,7 @@ class RemoteRefManager(object):
             except Exception, e:
                 exceptions.append((remote, refspecs, e))
         if exceptions:
-            raise RefCleanupError(evalue, exceptions)
+            raise RefCleanupError(primary, exceptions)
 
     def push(self, remote, *refspecs):
         '''Push refspecs to remote and revert on failure.

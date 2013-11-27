@@ -74,6 +74,25 @@ class LocalRefManagerTests(unittest.TestCase):
             with self.assertRaises(morphlib.gitdir.InvalidRefError):
                 gd.resolve_ref_to_commit('refs/heads/create%d' % i)
 
+    def test_add_rollback_on_success(self):
+        with self.lrm(True) as lrm:
+            for i, gd in enumerate(self.repos):
+                commit = gd.resolve_ref_to_commit('refs/heads/master')
+                lrm.add(gd, 'refs/heads/create%d' % i, commit)
+        for i, gd in enumerate(self.repos):
+            with self.assertRaises(morphlib.gitdir.InvalidRefError):
+                gd.resolve_ref_to_commit('refs/heads/create%d' % i)
+
+    def test_add_rollback_deferred(self):
+        with self.lrm(False) as lrm:
+            for i, gd in enumerate(self.repos):
+                commit = gd.resolve_ref_to_commit('refs/heads/master')
+                lrm.add(gd, 'refs/heads/create%d' % i, commit)
+        lrm.close()
+        for i, gd in enumerate(self.repos):
+            with self.assertRaises(morphlib.gitdir.InvalidRefError):
+                gd.resolve_ref_to_commit('refs/heads/create%d' % i)
+
     def test_add_rollback_failure(self):
         failure_exception = Exception()
         with self.assertRaises(morphlib.branchmanager.RefCleanupError) as cm:
@@ -117,6 +136,31 @@ class LocalRefManagerTests(unittest.TestCase):
             self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
                              refinfo[i])
 
+    def test_update_rollback_on_success(self):
+        refinfo = []
+        with self.lrm(True) as lrm:
+            for i, gd in enumerate(self.repos):
+                old_master = gd.resolve_ref_to_commit('refs/heads/master')
+                commit = gd.resolve_ref_to_commit('refs/heads/dev-branch')
+                refinfo.append(old_master)
+                lrm.update(gd, 'refs/heads/master', commit, old_master)
+        for i, gd in enumerate(self.repos):
+            self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
+                             refinfo[i])
+
+    def test_update_rollback_deferred(self):
+        refinfo = []
+        with self.lrm(False) as lrm:
+            for i, gd in enumerate(self.repos):
+                old_master = gd.resolve_ref_to_commit('refs/heads/master')
+                commit = gd.resolve_ref_to_commit('refs/heads/dev-branch')
+                refinfo.append(old_master)
+                lrm.update(gd, 'refs/heads/master', commit, old_master)
+        lrm.close()
+        for i, gd in enumerate(self.repos):
+            self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
+                             refinfo[i])
+
     def test_update_rollback_failure(self):
         failure_exception = Exception()
         with self.assertRaises(morphlib.branchmanager.RefCleanupError) as cm:
@@ -150,6 +194,29 @@ class LocalRefManagerTests(unittest.TestCase):
                     refinfo.append(commit)
                     lrm.delete(gd, 'refs/heads/master', commit)
                 raise Exception()
+        for i, gd in enumerate(self.repos):
+            self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
+                             refinfo[i])
+
+    def test_delete_rollback_on_success(self):
+        refinfo = []
+        with self.lrm(True) as lrm:
+            for i, gd in enumerate(self.repos):
+                commit = gd.resolve_ref_to_commit('refs/heads/master')
+                refinfo.append(commit)
+                lrm.delete(gd, 'refs/heads/master', commit)
+        for i, gd in enumerate(self.repos):
+            self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
+                             refinfo[i])
+
+    def test_delete_rollback_deferred(self):
+        refinfo = []
+        with self.lrm(False) as lrm:
+            for i, gd in enumerate(self.repos):
+                commit = gd.resolve_ref_to_commit('refs/heads/master')
+                refinfo.append(commit)
+                lrm.delete(gd, 'refs/heads/master', commit)
+        lrm.close()
         for i, gd in enumerate(self.repos):
             self.assertEqual(gd.resolve_ref_to_commit('refs/heads/master'),
                              refinfo[i])
@@ -250,6 +317,17 @@ class RemoteRefManagerTests(unittest.TestCase):
             self.assert_remote_branches()
         self.assert_no_remote_branches()
 
+    def test_keep_after_create_success(self):
+        with morphlib.branchmanager.RemoteRefManager(False) as rrm:
+            self.push_creates(rrm)
+        self.assert_remote_branches()
+
+    def test_deferred_rollback_after_create_success(self):
+        with morphlib.branchmanager.RemoteRefManager(False) as rrm:
+            self.push_creates(rrm)
+        rrm.close()
+        self.assert_no_remote_branches()
+
     def test_rollback_after_create_failure(self):
         failure_exception = Exception()
         with self.assertRaises(Exception) as cm:
@@ -290,6 +368,27 @@ class RemoteRefManagerTests(unittest.TestCase):
         with morphlib.branchmanager.RemoteRefManager() as rrm:
             self.push_deletes(rrm)
             self.assert_no_remote_branches()
+        self.assert_remote_branches()
+
+    def test_keep_after_deletes_success(self):
+        for name, dirname, gd in self.remotes:
+            self.sgd.get_remote(name).push(
+                 morphlib.gitdir.RefSpec('master'),
+                 morphlib.gitdir.RefSpec('dev-branch'))
+        self.assert_remote_branches()
+        with morphlib.branchmanager.RemoteRefManager(False) as rrm:
+            self.push_deletes(rrm)
+        self.assert_no_remote_branches()
+
+    def test_deferred_rollback_after_deletes_success(self):
+        for name, dirname, gd in self.remotes:
+            self.sgd.get_remote(name).push(
+                 morphlib.gitdir.RefSpec('master'),
+                 morphlib.gitdir.RefSpec('dev-branch'))
+        self.assert_remote_branches()
+        with morphlib.branchmanager.RemoteRefManager(False) as rrm:
+            self.push_deletes(rrm)
+        rrm.close()
         self.assert_remote_branches()
 
     def test_rollback_after_deletes_failure(self):
