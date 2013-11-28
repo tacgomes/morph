@@ -158,6 +158,9 @@ class BuildCommand(object):
             # and Ref specified.
             if src.morphology['kind'] == 'stratum':
                 name = src.morphology['name']
+                ref = src.sha1[:7]
+                self.app.status(msg='Stratum [%(name)s] version is %(ref)s', 
+                                name=name, ref=ref)
                 if name in stratum_names:
                     raise morphlib.Error(
                         "Conflicting versions of stratum '%s' appear in the "
