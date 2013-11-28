@@ -83,7 +83,7 @@ another to hold a chunk.
         repo: test:test-chunk
         ref: master
         morph: test-chunk
-        build-mode: bootstrap
+        build-mode: test
         build-depends: []
     EOF
 

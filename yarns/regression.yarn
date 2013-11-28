@@ -27,8 +27,52 @@ The branch is checked out correctly, now it should fail if the user executes
 
     WHEN        the user attempts to create a system branch called foo
     THEN        morph failed
-    AND         the branch error message includes the string "File exists" 
+    AND         the branch error message includes the string "File exists"
 
 The branch still checked out.
 
     AND         the system branch foo is checked out
+
+
+It doesn't make much sense to be able to build a system with only
+bootstrap chunks, since they will have been constructed without a staging
+area, hence their results cannot be trusted.
+
+    SCENARIO    building a system with only bootstrap chunks fails
+    GIVEN       a workspace
+    AND         a git server
+    AND         a system containing only bootstrap chunks called bootstrap-system
+    WHEN        the user checks out the system branch called master
+    AND         the user attempts to build the system bootstrap-system in branch master
+    THEN        the build error message includes the string "No non-bootstrap chunks found"
+
+
+Implementations
+---------------
+
+    IMPLEMENTS GIVEN a system containing only bootstrap chunks called (\S+)
+    arch=$(run_morph print-architecture)
+    cat <<EOF >"$DATADIR/gits/morphs/$MATCH_1.morph"
+    name: $MATCH_1
+    kind: system
+    arch: $arch
+    strata:
+    - morph: bootstrap-stratum
+      repo: test:morphs
+      ref: master
+    EOF
+
+    cat << EOF > "$DATADIR/gits/morphs/bootstrap-stratum.morph"
+    name: bootstrap-stratum
+    kind: stratum
+    chunks:
+    - name: bootstrap-chunk
+      repo: test:test-chunk
+      ref: master
+      morph: test-chunk
+      build-mode: bootstrap
+      build-depends: []
+    EOF
+
+    run_in "$DATADIR/gits/morphs" git add .
+    run_in "$DATADIR/gits/morphs" git commit -m "Add bootstrap-system"

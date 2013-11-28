@@ -49,8 +49,8 @@ class BuildCommand(object):
                             repo_name=repo_name, ref=ref, filename=filename)
             self.app.status(msg='Deciding on task order')
             srcpool = self.create_source_pool(repo_name, ref, filename)
+            self.validate_sources(srcpool)
             root_artifact = self.resolve_artifacts(srcpool)
-            self._validate_architecture(root_artifact)
             self.build_in_order(root_artifact)
 
         self.app.status(msg='Build ends successfully')
@@ -83,11 +83,27 @@ class BuildCommand(object):
         srcpool = self.app.create_source_pool(
             self.lrc, self.rrc, (repo_name, ref, filename))
 
+        return srcpool
+
+    def validate_sources(self, srcpool):
         self.app.status(
             msg='Validating cross-morphology references', chatty=True)
         self._validate_cross_morphology_references(srcpool)
 
-        return srcpool
+        self.app.status(msg='Validating for there being non-bootstrap chunks',
+                        chatty=True)
+        self._validate_has_non_bootstrap_chunks(srcpool)
+
+    def _validate_root_artifact(self, root_artifact):
+        self._validate_root_kind(root_artifact)
+        self._validate_architecture(root_artifact)
+
+    @staticmethod
+    def _validate_root_kind(root_artifact):
+        root_kind = root_artifact.source.morphology['kind']
+        if root_kind != 'system':
+            raise morphlib.Error(
+                'Building a %s directly is not supported' % root_kind)
 
     def _validate_architecture(self, root_artifact):
         '''Perform the validation between root and target architectures.'''
@@ -99,6 +115,22 @@ class BuildCommand(object):
                 'Are you trying to cross-build? '
                     'Host architecture is %s but target is %s'
                     % (host_arch, root_arch))
+
+    @staticmethod
+    def _validate_has_non_bootstrap_chunks(srcpool):
+        stratum_sources = [src for src in srcpool
+                           if src.morphology['kind'] == 'stratum']
+        # any will return true for an empty iterable, which will give
+        # a false positive when there are no strata.
+        # This is an error by itself, but the source of this error can
+        # be better diagnosed later, so we abort validating here.
+        if not stratum_sources:
+            return
+
+        if not any(spec.get('build-mode', 'staging') != 'bootstrap'
+                   for src in stratum_sources
+                   for spec in src.morphology['chunks']):
+            raise morphlib.Error('No non-bootstrap chunks found.')
 
     def resolve_artifacts(self, srcpool):
         '''Resolve the artifacts that will be built for a set of sources'''
@@ -112,10 +144,12 @@ class BuildCommand(object):
         self.app.status(msg='Computing build order', chatty=True)
         root_artifact = self._find_root_artifact(artifacts)
 
-        root_kind = root_artifact.source.morphology['kind']
-        if root_kind != 'system':
-            raise morphlib.Error(
-                'Building a %s directly is not supported' % root_kind)
+        # Validate the root artifact here, since it's a costly function
+        # to finalise it, so any pre finalisation validation is better
+        # done before that happens, but we also don't want to expose
+        # the root artifact until it's finalised.
+        self.app.status(msg='Validating root artifact', chatty=True)
+        self._validate_root_artifact(root_artifact)
         arch = root_artifact.source.morphology['arch']
 
         self.app.status(msg='Creating build environment for %(arch)s',
