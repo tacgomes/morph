@@ -92,6 +92,26 @@ class EmptyStratumError(morphlib.Error):
                 (stratum_name, morphology))
 
 
+class DuplicateChunkError(morphlib.Error):
+
+    def __init__(self, stratum_name, chunk_name):
+        self.stratum_name = stratum_name
+        self.chunk_name = chunk_name
+        morphlib.Error.__init__(
+            self, 'Duplicate chunk %(chunk_name)s '\
+                  'in stratum %(stratum_name)s' % locals())
+
+
+class DuplicateStratumError(morphlib.Error):
+
+    def __init__(self, system_name, stratum_name):
+        self.system_name = system_name
+        self.stratum_name = stratum_name
+        morphlib.Error.__init__(
+            self, 'Duplicate stratum %(stratum_name)s '\
+                  'in system %(system_name)s' % locals())
+
+
 class MorphologyLoader(object):
 
     '''Load morphologies from disk, or save them back to disk.'''
@@ -255,7 +275,7 @@ class MorphologyLoader(object):
         for spec in morph['strata']:
             name = spec.get('alias', spec['morph'])
             if name in names:
-               raise ValueError('Duplicate stratum "%s"' % name)
+               raise DuplicateStratumError(morph['name'], name)
             names.add(name)
 
         # We allow the ARMv7 little-endian architecture to be specified
@@ -277,7 +297,7 @@ class MorphologyLoader(object):
         for spec in morph['chunks']:
             name = spec.get('alias', spec['name'])
             if name in names:
-               raise ValueError('Duplicate chunk "%s"' % name)
+               raise DuplicateChunkError(morph['name'], name)
             names.add(name)
 
         # Require build-dependencies for the stratum itself, unless

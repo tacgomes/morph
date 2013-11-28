@@ -157,7 +157,8 @@ build-system: dummy
                     }
                 ]
             })
-        self.assertRaises(ValueError, self.loader.validate, m)
+        self.assertRaises(morphlib.morphloader.DuplicateStratumError,
+                          self.loader.validate, m)
 
     def test_validate_requires_unique_chunk_names_within_a_stratum(self):
         m = morphlib.morph3.Morphology(
@@ -177,7 +178,8 @@ build-system: dummy
                     }
                 ]
             })
-        self.assertRaises(ValueError, self.loader.validate, m)
+        self.assertRaises(morphlib.morphloader.DuplicateChunkError,
+                          self.loader.validate, m)
 
     def test_validate_requires_a_valid_architecture(self):
         m = morphlib.morph3.Morphology(
