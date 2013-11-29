@@ -18,7 +18,6 @@ import os
 import re
 
 import morphlib
-import logging
 
 '''Utility functions for morph.'''
 

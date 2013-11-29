@@ -65,7 +65,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand('old-unpetrify', self.unpetrify)
         self.app.add_subcommand(
             'tag', self.tag, arg_synopsis='TAG-NAME -- [GIT-COMMIT-ARG...]')
-        self.app.add_subcommand('build', self.build,
+        self.app.add_subcommand('old-build', self.build,
                                 arg_synopsis='SYSTEM')
         self.app.add_subcommand('old-status', self.status)
         self.app.add_subcommand('old-branch-from-image',

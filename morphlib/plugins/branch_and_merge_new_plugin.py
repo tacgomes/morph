@@ -615,15 +615,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         '''Read in all the morphologies in the root repository.'''
         self.app.status(msg='Loading in all morphologies')
         morphs = morphlib.morphset.MorphologySet()
-        mf = morphlib.morphologyfinder.MorphologyFinder(
-            morphlib.gitdir.GitDirectory(
-                sb.get_git_directory_name(sb.root_repository_url)))
-        for morph in mf.list_morphologies():
-            text, filename = mf.read_morphology(morph)
-            m = loader.load_from_string(text, filename=filename)
-            m.repo_url = sb.root_repository_url
-            m.ref = sb.system_branch_name
-            morphs.add_morphology(m)
+        for morph in sb.load_all_morphologies(loader):
+            morphs.add_morphology(morph)
         return morphs
 
     def petrify(self, args):

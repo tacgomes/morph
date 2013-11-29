@@ -50,6 +50,7 @@ import artifactcachereference
 import artifactresolver
 import branchmanager
 import bins
+import buildbranch
 import buildcommand
 import buildenvironment
 import buildsystem

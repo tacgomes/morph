@@ -75,13 +75,6 @@ another to hold a chunk.
         morph: test-stratum
     EOF
 
-    cat << EOF > "$DATADIR/gits/morphs/simple-system.morph"
-    name: simple-system
-    kind: system
-    arch: $arch
-    strata: []
-    EOF
-
     cat << EOF > "$DATADIR/gits/morphs/test-stratum.morph"
     name: test-stratum
     kind: stratum
@@ -90,7 +83,7 @@ another to hold a chunk.
         repo: test:test-chunk
         ref: master
         morph: test-chunk
-        build-mode: bootstrap
+        build-mode: test
         build-depends: []
     EOF
 
@@ -127,14 +120,21 @@ another to hold a chunk.
     mkdir "$DATADIR/cache"
     mkdir "$DATADIR/tmp"
 
-    IMPLEMENTS GIVEN a system called (\S+) for architecture (\S+) in the git server
+We need a consistent value for the architecture in some tests, so we
+have a morphology using the test architecture.
+
+    IMPLEMENTS GIVEN a system called (\S+) for the test architecture in the git server
     cat << EOF > "$DATADIR/gits/morphs/$MATCH_1.morph"
-    arch: $MATCH_2
+    arch: testarch
     configuration-extensions: []
-    description: A system called $MATCH_1 for architectures $MATCH_2
+    description: A system called $MATCH_1 for test architecture
     kind: system
     name: $MATCH_1
-    strata: []
+    strata:
+    -   name: test-stratum
+        repo: test:morphs
+        ref: master
+        morph: test-stratum
     EOF
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 morphology."
@@ -268,14 +268,23 @@ Editing morphologies with `morph edit`.
     cd "$DATADIR/workspace/$MATCH_3"
     attempt_morph edit "$MATCH_2" "$MATCH_1"
 
-    IMPLEMENTS WHEN the user creates an uncommitted system morphology called (\S+) for architecture (\S+) in system branch (\S+)
-    cat << EOF > "$DATADIR/workspace/$MATCH_3/test:morphs/$MATCH_1.morph"
-    arch: $MATCH_2
+To produce buildable morphologies, we need them to be of the same
+architecture as the machine doing the testing. This uses `morph
+print-architecture` to get a value appropriate for morph.
+
+    IMPLEMENTS WHEN the user creates an uncommitted system morphology called (\S+) for our architecture in system branch (\S+)
+    arch=$(morph print-architecture)
+    cat << EOF > "$DATADIR/workspace/$MATCH_2/test:morphs/$MATCH_1.morph"
+    arch: $arch
     configuration-extensions: []
-    description: A system called $MATCH_1 for architectures $MATCH_2
+    description: A system called $MATCH_1 for architectures $arch
     kind: system
     name: $MATCH_1
-    strata: []
+    strata:
+    -   name: test-stratum
+        repo: test:morphs
+        ref: master
+        morph: test-stratum
     EOF
 
 Reporting status of checked out repositories:
@@ -425,7 +434,7 @@ Generating a manifest.
         > "$DATADIR/baserock/hello_world.meta"
     {
         "artifact-name": "hello_world",
-        "cache-key": 
+        "cache-key":
            "ab8d00a80298a842446ce23507cea6b4d0e34c7ddfa05c67f460318b04d21308",
         "kind": "chunk",
         "morphology": "hello_world.morph",
@@ -440,7 +449,7 @@ Generating a manifest.
 
     IMPLEMENTS WHEN morph generates a manifest
     run_morph generate-manifest "$DATADIR/artifact.tar" > "$DATADIR/manifest"
-    
+
     IMPLEMENTS THEN the manifest is generated
 
     # Generated manifest should contain the name of the repository
@@ -554,4 +563,4 @@ Implementations for building systems
 
     IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+) of the repo (\S+)
     cd "$DATADIR/workspace/$MATCH_3/$MATCH_4"
-    run_morph build "$MATCH_1" 
+    run_morph build "$MATCH_1"

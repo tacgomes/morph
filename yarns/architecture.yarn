@@ -4,7 +4,7 @@ Morph Cross-Building Tests
     SCENARIO building a system for a different architecture
     GIVEN a workspace
     AND a git server
-    AND a system called base-system-testarch for architecture testarch in the git server 
+    AND a system called base-system-testarch for the test architecture in the git server
     WHEN the user checks out the system branch called master
     AND the user attempts to build the system base-system-testarch in branch master
     THEN morph failed
