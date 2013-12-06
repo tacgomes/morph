@@ -6,4 +6,4 @@ Morph Building Tests
     AND a git server
     WHEN the user checks out the system branch called master
     AND the user creates an uncommitted system morphology called base-system for our architecture in system branch master
-    THEN morph build the system base-system of the branch master of the repo test:morphs
+    THEN morph build the system base-system of the branch master

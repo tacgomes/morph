@@ -616,6 +616,6 @@ variables in `$DATADIR/env`. We treat the value as a format string for
 Implementations for building systems
 ------------------------------------
 
-    IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+) of the repo (\S+)
-    cd "$DATADIR/workspace/$MATCH_3/$MATCH_4"
+    IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+)
+    cd "$DATADIR/workspace/$MATCH_3"
     run_morph build "$MATCH_1"
