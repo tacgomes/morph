@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2013  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +19,15 @@ import urllib2
 import os
 
 import cliapp
+import fs.memoryfs
 
 import morphlib
+
+
+class FakeApplication(object):
+
+    def status(self, msg):
+        pass
 
 
 class LocalRepoCacheTests(unittest.TestCase):
@@ -35,35 +42,24 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.tarball_url = '%s%s.tar' % (tarball_base_url, escaped_url)
         self.cachedir = '/cache/dir'
         self.cache_path = '%s/%s' % (self.cachedir, escaped_url)
-        self.cache = set()
         self.remotes = {}
         self.fetched = []
         self.removed = []
         self.lrc = morphlib.localrepocache.LocalRepoCache(
-            object(), self.cachedir, repo_resolver, tarball_base_url)
+            FakeApplication(), self.cachedir, repo_resolver, tarball_base_url)
+        self.lrc.fs = fs.memoryfs.MemoryFS()
         self.lrc._git = self.fake_git
-        self.lrc._exists = self.fake_exists
         self.lrc._fetch = self.not_found
-        self.lrc._mkdir = self.fake_mkdir
-        self.lrc._remove = self.fake_remove
-        self.lrc._runcmd = self.fake_runcmd
-
-    def fake_runcmd(self, args, cwd=None):
-        if args[0:2] == ['tar', 'xf']:
-            self.unpacked_tar = args[2]
-            self.cache.add(cwd)
-        else:
-            raise NotImplementedError()
+        self.lrc._mkdtemp = self.fake_mkdtemp
+        self._mkdtemp_count = 0
 
     def fake_git(self, args, cwd=None):
         if args[0] == 'clone':
             self.assertEqual(len(args), 5)
             remote = args[3]
             local = args[4]
-            if local in self.cache:
-                raise Exception('cloning twice to %s' % local)
             self.remotes['origin'] = {'url': remote, 'updates': 0}
-            self.cache.add(local)
+            self.lrc.fs.makedir(local, recursive=True)
         elif args[0:2] == ['remote', 'set-url']:
             remote = args[2]
             url = args[3]
@@ -79,22 +75,14 @@ class LocalRepoCacheTests(unittest.TestCase):
         else:
             raise NotImplementedError()
 
-    def fake_exists(self, filename):
-        return filename in self.cache
-
-    def fake_mkdir(self, dirname):
-        self.cache.add(dirname)
-
-    def fake_remove(self, filename):
-        self.removed.append(filename)
+    def fake_mkdtemp(self, dirname):
+        thing = "foo"+str(self._mkdtemp_count)
+        self._mkdtemp_count += 1
+        self.lrc.fs.makedir(dirname+"/"+thing)
+        return thing
 
     def not_found(self, url, path):
-        raise urllib2.URLError('Not found')
-
-    def fake_fetch(self, url, path):
-        self.fetched.append(url)
-        self.cache.add(path)
-        return True
+        raise cliapp.AppException('Not found')
 
     def test_has_not_got_shortened_repo_initially(self):
         self.assertFalse(self.lrc.has_repo(self.reponame))
@@ -113,11 +101,11 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertTrue(self.lrc.has_repo(self.repourl))
 
     def test_cachedir_does_not_exist_initially(self):
-        self.assertFalse(self.cachedir in self.cache)
+        self.assertFalse(self.lrc.fs.exists(self.cachedir))
 
     def test_creates_cachedir_if_missing(self):
         self.lrc.cache_repo(self.repourl)
-        self.assertTrue(self.cachedir in self.cache)
+        self.assertTrue(self.lrc.fs.exists(self.cachedir))
 
     def test_happily_caches_same_repo_twice(self):
         self.lrc.cache_repo(self.repourl)
@@ -125,6 +113,7 @@ class LocalRepoCacheTests(unittest.TestCase):
 
     def test_fails_to_cache_when_remote_does_not_exist(self):
         def fail(args):
+            self.lrc.fs.makedir(args[4])
             raise cliapp.AppException('')
         self.lrc._git = fail
         self.assertRaises(morphlib.localrepocache.NoRemote,
@@ -135,12 +124,12 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertEqual(self.fetched, [])
 
     def test_fetches_tarball_when_it_exists(self):
-        self.lrc._fetch = self.fake_fetch
+        self.lrc._fetch = lambda url, path: self.fetched.append(url)
         self.unpacked_tar = ""
         self.mkdir_path = ""
         self.lrc.cache_repo(self.repourl)
         self.assertEqual(self.fetched, [self.tarball_url])
-        self.assertEqual(self.removed, [self.cache_path + '.tar'])
+        self.assertFalse(self.lrc.fs.exists(self.cache_path + '.tar'))
         self.assertEqual(self.remotes['origin']['url'], self.repourl)
 
     def test_gets_cached_shortened_repo(self):
@@ -165,6 +154,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertTrue(self.repourl in str(e))
 
     def test_avoids_caching_local_repo(self):
+        self.lrc.fs.makedir('/local/repo', recursive=True)
         self.lrc.cache_repo('file:///local/repo')
         cached = self.lrc.get_repo('file:///local/repo')
         assert cached.path == '/local/repo'
