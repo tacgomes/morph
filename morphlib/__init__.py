@@ -55,7 +55,6 @@ import buildcommand
 import buildenvironment
 import buildsystem
 import builder2
-import cachedir
 import cachedrepo
 import cachekeycomputer
 import extractedtarball
