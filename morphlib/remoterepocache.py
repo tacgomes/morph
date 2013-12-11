@@ -19,6 +19,7 @@ import json
 import logging
 import urllib2
 import urlparse
+import urllib
 
 
 class ResolveRefError(cliapp.AppException):
@@ -51,7 +52,7 @@ class RemoteRepoCache(object):
         self._resolver = resolver
 
     def resolve_ref(self, repo_name, ref):
-        repo_url = self._resolver.pull_url(repo_name)
+        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
         try:
             return self._resolve_ref_for_repo_url(repo_url, ref)
         except BaseException, e:
@@ -59,7 +60,7 @@ class RemoteRepoCache(object):
             raise ResolveRefError(repo_name, ref)
 
     def cat_file(self, repo_name, ref, filename):
-        repo_url = self._resolver.pull_url(repo_name)
+        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
         try:
             return self._cat_file_for_repo_url(repo_url, ref, filename)
         except BaseException, e:
@@ -67,7 +68,7 @@ class RemoteRepoCache(object):
             raise CatFileError(repo_name, ref, filename)
 
     def ls_tree(self, repo_name, ref):
-        repo_url = self._resolver.pull_url(repo_name)
+        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
         try:
             info = json.loads(self._ls_tree_for_repo_url(repo_url, ref))
             return info['tree'].keys()
