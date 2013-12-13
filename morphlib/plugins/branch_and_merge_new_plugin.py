@@ -417,9 +417,11 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
                                       ' a stratum and optionally a chunk'
                                       ' as parameters')
 
-        system_name = args[0]
-        stratum_name = args[1]
-        chunk_name = args[2] if len(args) == 3 else None
+        system_name  = morphlib.util.strip_morph_extension(args[0])
+        stratum_name  = morphlib.util.strip_morph_extension(args[1])
+        chunk_name = None
+        if len(args) == 3:
+            chunk_name = morphlib.util.strip_morph_extension(args[2])
 
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')

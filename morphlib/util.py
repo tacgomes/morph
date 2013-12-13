@@ -58,6 +58,15 @@ def indent(string, spaces=4):
     return '\n'.join(lines)
 
 
+def strip_morph_extension(morph_name):
+    if morph_name.startswith('.'):
+        raise morphlib.Error(
+            'Invalid morphology name: %s' % morph_name)
+    elif morph_name.endswith('.morph'):
+        return morph_name[:-len('.morph')]
+    return morph_name
+
+
 def make_concurrency(cores=None):
     '''Return the number of concurrent jobs for make.
 

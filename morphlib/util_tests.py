@@ -38,6 +38,28 @@ class IndentTests(unittest.TestCase):
                          '    foo\n    bar')
 
 
+class StripMorphExtensionTests(unittest.TestCase):
+
+    def test_raises_error_when_string_starts_with_period(self):
+        with self.assertRaises(morphlib.Error):
+            morphlib.util.strip_morph_extension('.morph')
+
+    def test_strips_morph_extension_from_string(self):
+        self.assertEqual(morphlib.util.strip_morph_extension('a.morph'), 'a')
+
+    def test_returns_morph_when_not_given_as_extension(self):
+        self.assertEqual(morphlib.util.strip_morph_extension('morph'), 'morph')
+
+    def test_strips_extension_only_once_from_string(self):
+        self.assertEqual(morphlib.util.strip_morph_extension('a.morph.morph'),
+                         'a.morph')
+
+    def test_returns_input_without_modification_if_no_extension(self):
+        self.assertEqual(
+            morphlib.util.strip_morph_extension('completely not a path'),
+            'completely not a path')
+
+
 class MakeConcurrencyTests(unittest.TestCase):
 
     def test_returns_2_for_1_core(self):

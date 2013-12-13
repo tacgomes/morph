@@ -107,7 +107,7 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir'],
             self.app.settings['cachedir-min-space'])
 
-        system_name = args[0]
+        system_name = morphlib.util.strip_morph_extension(args[0])
 
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
