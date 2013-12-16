@@ -265,7 +265,7 @@ class DeployPlugin(cliapp.Plugin):
             self.app.settings['tempdir-min-space'],
             '/', 0)
 
-        cluster_name = args[0]
+        cluster_name = morphlib.util.strip_morph_extension(args[0])
         env_vars = args[1:]
 
         ws = morphlib.workspace.open('.')
