@@ -52,7 +52,7 @@ class RemoteRepoCache(object):
         self._resolver = resolver
 
     def resolve_ref(self, repo_name, ref):
-        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
+        repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._resolve_ref_for_repo_url(repo_url, ref)
         except BaseException, e:
@@ -60,7 +60,7 @@ class RemoteRepoCache(object):
             raise ResolveRefError(repo_name, ref)
 
     def cat_file(self, repo_name, ref, filename):
-        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
+        repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._cat_file_for_repo_url(repo_url, ref, filename)
         except BaseException, e:
@@ -68,7 +68,7 @@ class RemoteRepoCache(object):
             raise CatFileError(repo_name, ref, filename)
 
     def ls_tree(self, repo_name, ref):
-        repo_url = urllib.quote(self._resolver.pull_url(repo_name))
+        repo_url = self._resolver.pull_url(repo_name)
         try:
             info = json.loads(self._ls_tree_for_repo_url(repo_url, ref))
             return info['tree'].keys()
@@ -77,17 +77,23 @@ class RemoteRepoCache(object):
             raise LsTreeError(repo_name, ref)
 
     def _resolve_ref_for_repo_url(self, repo_url, ref):  # pragma: no cover
-        data = self._make_request('sha1s?repo=%s&ref=%s' % (repo_url, ref))
+        data = self._make_request(
+            'sha1s?repo=%s&ref=%s' % self._quote_strings(repo_url, ref))
         info = json.loads(data)
         return info['sha1'], info['tree']
 
     def _cat_file_for_repo_url(self, repo_url, ref,
                                filename):  # pragma: no cover
         return self._make_request(
-            'files?repo=%s&ref=%s&filename=%s' % (repo_url, ref, filename))
+            'files?repo=%s&ref=%s&filename=%s'
+            % self._quote_strings(repo_url, ref, filename))
 
     def _ls_tree_for_repo_url(self, repo_url, ref):  # pragma: no cover
-        return self._make_request('trees?repo=%s&ref=%s' % (repo_url, ref))
+        return self._make_request(
+            'trees?repo=%s&ref=%s' % self._quote_strings(repo_url, ref))
+
+    def _quote_strings(self, *args):  # pragma: no cover
+        return tuple(urllib.quote(string) for string in args)
 
     def _make_request(self, path):  # pragma: no cover
         server_url = self.server_url

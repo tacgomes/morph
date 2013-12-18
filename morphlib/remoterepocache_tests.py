@@ -17,23 +17,22 @@
 import json
 import unittest
 
-import urllib
 import morphlib
 
 
 class RemoteRepoCacheTests(unittest.TestCase):
 
     def _resolve_ref_for_repo_url(self, repo_url, ref):
-        return self.sha1s[urllib.unquote(repo_url)][ref]
+        return self.sha1s[repo_url][ref]
 
     def _cat_file_for_repo_url(self, repo_url, sha1, filename):
-        return self.files[urllib.unquote(repo_url)][sha1][filename]
+        return self.files[repo_url][sha1][filename]
 
     def _ls_tree_for_repo_url(self, repo_url, sha1):
         return json.dumps({
             'repo': repo_url,
             'ref': sha1,
-            'tree': self.files[urllib.unquote(repo_url)][sha1]
+            'tree': self.files[repo_url][sha1]
         })
 
     def setUp(self):
