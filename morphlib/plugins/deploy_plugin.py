@@ -329,6 +329,10 @@ class DeployPlugin(cliapp.Plugin):
         morph = system['morph']
         srcpool = build_command.create_source_pool(build_repo, ref,
                                                    morph + '.morph')
+        def validate(self, root_artifact):
+            pass
+        morphlib.buildcommand.BuildCommand._validate_architecture = validate
+
         artifact = build_command.resolve_artifacts(srcpool)
 
         deploy_defaults = system['deploy-defaults']

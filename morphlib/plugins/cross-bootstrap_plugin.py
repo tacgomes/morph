@@ -267,6 +267,19 @@ class CrossBootstrapPlugin(cliapp.Plugin):
         system_source = srcpool.lookup(root_repo, ref, morph_name)
         system_source.morphology.builds_artifacts = builds_artifacts
 
+        # FIXME: this is a quick fix in order to get it working for
+        # Baserock 13 release, it is not a reasonable fix
+        def validate(self, root_artifact):
+            root_arch = root_artifact.source.morphology['arch']
+            target_arch = arch
+            if root_arch != target_arch:
+                raise morphlib.Error(
+                    'Target architecture is %s '
+                    'but the system architecture is %s'
+                    % (target_arch, root_arch))
+
+        morphlib.buildcommand.BuildCommand._validate_architecture = validate
+
         system_artifact = build_command.resolve_artifacts(srcpool)
 
         # Calculate build order
