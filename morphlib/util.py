@@ -17,6 +17,8 @@ import itertools
 import os
 import re
 
+import fs.osfs
+
 import morphlib
 
 '''Utility functions for morph.'''
@@ -118,13 +120,13 @@ def new_artifact_caches(settings):  # pragma: no cover
     if not os.path.exists(artifact_cachedir):
         os.mkdir(artifact_cachedir)
 
-    lac = morphlib.localartifactcache.LocalArtifactCache(artifact_cachedir)
+    lac = morphlib.localartifactcache.LocalArtifactCache(
+            fs.osfs.OSFS(artifact_cachedir))
 
     rac_url = get_artifact_cache_server(settings)
+    rac = None
     if rac_url:
         rac = morphlib.remoteartifactcache.RemoteArtifactCache(rac_url)
-    else:
-        rac = None
     return lac, rac
 
 

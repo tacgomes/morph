@@ -16,6 +16,7 @@
 
 import collections
 import os
+import time
 
 import morphlib
 
@@ -44,8 +45,8 @@ class LocalArtifactCache(object):
        sense to put the complication there.
        '''
 
-    def __init__(self, cachedir):
-        self.cachedir = cachedir
+    def __init__(self, cachefs):
+        self.cachefs = cachefs
 
     def put(self, artifact):
         filename = self.artifact_filename(artifact)
@@ -93,28 +94,23 @@ class LocalArtifactCache(object):
         return open(filename)
 
     def artifact_filename(self, artifact):
-        basename = artifact.basename()
-        return os.path.join(self.cachedir, basename)
+        return self.cachefs.getsyspath(artifact.basename())
 
     def _artifact_metadata_filename(self, artifact, name):
-        basename = artifact.metadata_basename(name)
-        return os.path.join(self.cachedir, basename)
+        return self.cachefs.getsyspath(artifact.metadata_basename(name))
 
     def _source_metadata_filename(self, source, cachekey, name):
-        basename = '%s.%s' % (cachekey, name)
-        return os.path.join(self.cachedir, basename)
+        return self.cachefs.getsyspath('%s.%s' % (cachekey, name))
 
     def clear(self):
         '''Clear everything from the artifact cache directory.
         
         After calling this, the artifact cache will be entirely empty.
         Caveat caller.
-        
-        '''
 
-        for dirname, subdirs, basenames in os.walk(self.cachedir):
-            for basename in basenames:
-                os.remove(os.path.join(dirname, basename))
+         '''
+        for filename in self.cachefs.walkfiles():
+            self.cachefs.remove(filename)
 
     def list_contents(self):
         '''Return the set of sources cached and related information.
@@ -124,22 +120,20 @@ class LocalArtifactCache(object):
         '''
         CacheInfo = collections.namedtuple('CacheInfo', ('artifacts', 'mtime'))
         contents = collections.defaultdict(lambda: CacheInfo(set(), 0))
-        for dirpath, dirnames, filenames in os.walk(self.cachedir):
-            for filename in filenames:
-                cachekey = filename[:63]
-                artifact = filename[65:]
-                artifacts, max_mtime = contents[cachekey]
-                artifacts.add(artifact)
-                this_mtime = os.stat(os.path.join(dirpath, filename)).st_mtime
-                contents[cachekey] = CacheInfo(artifacts,
-                                               max(max_mtime, this_mtime))
+        for filename in self.cachefs.walkfiles():
+            cachekey = filename[:63]
+            artifact = filename[65:]
+            artifacts, max_mtime = contents[cachekey]
+            artifacts.add(artifact)
+            art_info = self.cachefs.getinfo(filename)
+            time_t = art_info['modified_time'].timetuple()
+            contents[cachekey] = CacheInfo(artifacts,
+                                           max(max_mtime, time.mktime(time_t)))
         return ((cache_key, info.artifacts, info.mtime)
                 for cache_key, info in contents.iteritems())
 
-
     def remove(self, cachekey):
         '''Remove all artifacts associated with the given cachekey.'''
-        for dirpath, dirnames, filenames in os.walk(self.cachedir):
-            for filename in filenames:
-                if filename.startswith(cachekey):
-                    os.remove(os.path.join(dirpath, filename))
+        for filename in (x for x in self.cachefs.walkfiles()
+                         if x.startswith(cachekey)):
+            self.cachefs.remove(filename)

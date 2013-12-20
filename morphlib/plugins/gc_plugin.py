@@ -19,6 +19,7 @@ import os
 import shutil
 import time
 
+import fs.osfs
 import cliapp
 
 import morphlib
@@ -114,7 +115,7 @@ class GCPlugin(cliapp.Plugin):
                             chatty=True)
             return
         lac = morphlib.localartifactcache.LocalArtifactCache(
-            os.path.join(cache_path, 'artifacts'))
+            fs.osfs.OSFS(os.path.join(cache_path, 'artifacts')))
         max_age, min_age = self.calculate_delete_range()
         logging.debug('Must remove artifacts older than timestamp %d'
                       % max_age)
