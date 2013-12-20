@@ -24,4 +24,5 @@ set -eu
 "$SRCDIR/tests.build/setup-build-essential"
 
 "$SRCDIR/scripts/test-morph" cross-bootstrap \
-    x86_32 test:morphs-repo master hello-system
+    $("$SRCDIR/scripts/test-morph" print-architecture) \
+    test:morphs-repo master hello-system
