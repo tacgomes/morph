@@ -19,10 +19,11 @@ import os
 import re
 import urllib2
 import urlparse
-import shutil
 import string
+import tempfile
 
 import cliapp
+import fs.osfs
 
 import morphlib
 
@@ -93,22 +94,13 @@ class LocalRepoCache(object):
 
     def __init__(self, app, cachedir, resolver, tarball_base_url=None):
         self._app = app
+        self.fs = fs.osfs.OSFS('/')
         self._cachedir = cachedir
         self._resolver = resolver
         if tarball_base_url and not tarball_base_url.endswith('/'):
             tarball_base_url += '/'  # pragma: no cover
         self._tarball_base_url = tarball_base_url
         self._cached_repo_objects = {}
-
-    def _exists(self, filename):  # pragma: no cover
-        '''Does a file exist?
-
-        This is a wrapper around os.path.exists, so that unit tests may
-        override it.
-
-        '''
-
-        return os.path.exists(filename)
 
     def _git(self, args, cwd=None):  # pragma: no cover
         '''Execute git command.
@@ -120,67 +112,24 @@ class LocalRepoCache(object):
 
         self._app.runcmd(['git'] + args, cwd=cwd)
 
-    def _runcmd(self, args, cwd=None):  # pragma: no cover
-        '''Execute a command.
-
-        This is a method of its own so that unit tests can easily override
-        all use of the external git command.
-
-        '''
-
-        self._app.runcmd(args, cwd=cwd)
-
-    def _fetch(self, url, filename):  # pragma: no cover
+    def _fetch(self, url, path):  # pragma: no cover
         '''Fetch contents of url into a file.
 
         This method is meant to be overridden by unit tests.
 
         '''
         self._app.status(msg="Trying to fetch %(tarball)s to seed the cache",
-                         tarball=url,
-                         chatty=True)
-        source_handle = None
-        try:
-            source_handle = urllib2.urlopen(url)
-            with open(filename, 'wb') as target_handle:
-                shutil.copyfileobj(source_handle, target_handle)
-            self._app.status(msg="Tarball fetch successful",
-                             chatty=True)
-        except Exception, e:
-            self._app.status(msg="Tarball fetch failed: %(reason)s",
-                             reason=e,
-                             chatty=True)
-            raise
-        finally:
-            if source_handle is not None:
-                source_handle.close()
+                         tarball=url, chatty=True)
+        self._app.runcmd(['wget', '-q', '-O-', url],
+                         ['tar', 'xf', '-'], cwd=path)
 
-    def _mkdir(self, dirname):  # pragma: no cover
-        '''Create a directory.
+    def _mkdtemp(self, dirname):  # pragma: no cover
+        '''Creates a temporary directory.
 
         This method is meant to be overridden by unit tests.
 
         '''
-
-        os.mkdir(dirname)
-
-    def _remove(self, filename):  # pragma: no cover
-        '''Remove given file.
-
-        This method is meant to be overridden by unit tests.
-
-        '''
-
-        os.remove(filename)
-
-    def _rmtree(self, dirname):  # pragma: no cover
-        '''Remove given directory tree.
-
-        This method is meant to be overridden by unit tests.
-
-        '''
-
-        shutil.rmtree(dirname)
+        return tempfile.mkdtemp(dir=dirname)
 
     def _escape(self, url):
         '''Escape a URL so it can be used as a basename in a file.'''
@@ -194,45 +143,31 @@ class LocalRepoCache(object):
 
     def _cache_name(self, url):
         scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
-        if scheme == 'file':
-            return path
-        else:
-            basename = self._escape(url)
-            path = os.path.join(self._cachedir, basename)
-            return path
+        if scheme != 'file':
+            path = os.path.join(self._cachedir, self._escape(url))
+        return path
 
     def has_repo(self, reponame):
         '''Have we already got a cache of a given repo?'''
         url = self._resolver.pull_url(reponame)
         path = self._cache_name(url)
-        return self._exists(path)
+        return self.fs.exists(path)
 
     def _clone_with_tarball(self, repourl, path):
-        escaped = self._escape(repourl)
         tarball_url = urlparse.urljoin(self._tarball_base_url,
-                                       escaped) + '.tar'
-        tarball_path = path + '.tar'
-
+                                       self._escape(repourl)) + '.tar'
         try:
-            self._fetch(tarball_url, tarball_path)
-        except urllib2.URLError, e:
-            return False, 'Unable to fetch tarball %s: %s' % (tarball_url, e)
-
-        try:
-            self._mkdir(path)
-            self._runcmd(['tar', 'xf', tarball_path], cwd=path)
+            self.fs.makedir(path)
+            self._fetch(tarball_url, path)
             self._git(['config', 'remote.origin.url', repourl], cwd=path)
             self._git(['config', 'remote.origin.mirror', 'true'], cwd=path)
             self._git(['config', 'remote.origin.fetch', '+refs/*:refs/*'],
                       cwd=path)
-        except cliapp.AppException, e:  # pragma: no cover
-            if self._exists(path):
-                shutil.rmtree(path)
+        except BaseException, e:  # pragma: no cover
+            if self.fs.exists(path):
+                self.fs.removedir(path, force=True)
             return False, 'Unable to extract tarball %s: %s' % (
-                tarball_path, e)
-        finally:
-            if self._exists(tarball_path):
-                self._remove(tarball_path)
+                tarball_url, e)
 
         return True, None
 
@@ -243,32 +178,35 @@ class LocalRepoCache(object):
 
         '''
         errors = []
-        if not self._exists(self._cachedir):
-            self._mkdir(self._cachedir)
+        if not self.fs.exists(self._cachedir):
+            self.fs.makedir(self._cachedir, recursive=True)
 
         try:
             return self.get_repo(reponame)
         except NotCached, e:
             pass
 
+        repourl = self._resolver.pull_url(reponame)
+        path = self._cache_name(repourl)
         if self._tarball_base_url:
-            repourl = self._resolver.pull_url(reponame)
-            path = self._cache_name(repourl)
             ok, error = self._clone_with_tarball(repourl, path)
             if ok:
                 return self.get_repo(reponame)
             else:
                 errors.append(error)
-
-        repourl = self._resolver.pull_url(reponame)
-        path = self._cache_name(repourl)
+                self._app.status(
+                    msg='Failed to fetch tarball, falling back to git clone.')
+        target = self._mkdtemp(self._cachedir)
         try:
-            self._git(['clone', '--mirror', '-n', repourl, path])
+            self._git(['clone', '--mirror', '-n', repourl, target])
         except cliapp.AppException, e:
             errors.append('Unable to clone from %s to %s: %s' %
-                          (repourl, path, e))
+                          (repourl, target, e))
+            if self.fs.exists(target):
+                self.fs.removedir(target, recursive=True, force=True)
             raise NoRemote(reponame, errors)
 
+        self.fs.rename(target, path)
         return self.get_repo(reponame)
 
     def get_repo(self, reponame):
@@ -279,7 +217,7 @@ class LocalRepoCache(object):
         else:
             repourl = self._resolver.pull_url(reponame)
             path = self._cache_name(repourl)
-            if self._exists(path):
+            if self.fs.exists(path):
                 repo = morphlib.cachedrepo.CachedRepo(self._app, reponame,
                                                       repourl, path)
                 self._cached_repo_objects[reponame] = repo

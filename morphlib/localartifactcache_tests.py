@@ -17,13 +17,15 @@
 import unittest
 import os
 
+import fs.tempfs
+
 import morphlib
 
 
 class LocalArtifactCacheTests(unittest.TestCase):
 
     def setUp(self):
-        self.tempdir = morphlib.tempdir.Tempdir()
+        self.tempfs = fs.tempfs.TempFS()
 
         morph = morphlib.morph2.Morphology(
             '''
@@ -52,20 +54,14 @@ class LocalArtifactCacheTests(unittest.TestCase):
             self.source, 'chunk-devel')
         self.devel_artifact.cache_key = '0'*64
 
-    def tearDown(self):
-        self.tempdir.remove()
-
     def test_artifact_filename(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
         filename = cache.artifact_filename(self.devel_artifact)
-        expected_name = os.path.join(self.tempdir.dirname,
-                                     self.devel_artifact.basename())
+        expected_name = self.tempfs.getsyspath(self.devel_artifact.basename())
         self.assertEqual(filename, expected_name)
 
     def test_put_artifacts_and_check_whether_the_cache_has_them(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put(self.runtime_artifact)
         handle.write('runtime')
@@ -81,8 +77,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.assertTrue(cache.has(self.devel_artifact))
 
     def test_put_artifacts_and_get_them_afterwards(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put(self.runtime_artifact)
         handle.write('runtime')
@@ -111,8 +106,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.assertEqual(stored_data, 'devel')
 
     def test_put_check_and_get_artifact_metadata(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put_artifact_metadata(self.runtime_artifact, 'log')
         handle.write('log line 1\nlog line 2\n')
@@ -128,8 +122,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.assertEqual(stored_metadata, 'log line 1\nlog line 2\n')
 
     def test_put_check_and_get_source_metadata(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put_source_metadata(self.source, 'mycachekey', 'log')
         handle.write('source log line 1\nsource log line 2\n')
@@ -146,8 +139,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
                          'source log line 1\nsource log line 2\n')
 
     def test_clears_artifact_cache(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put(self.runtime_artifact)
         handle.write('runtime')
@@ -158,8 +150,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.assertFalse(cache.has(self.runtime_artifact))
 
     def test_put_artifacts_and_list_them_afterwards(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put(self.runtime_artifact)
         handle.write('runtime')
@@ -174,8 +165,7 @@ class LocalArtifactCacheTests(unittest.TestCase):
         self.assertTrue(len(list(cache.list_contents())) == 1)
 
     def test_put_artifacts_and_remove_them_afterwards(self):
-        cache = morphlib.localartifactcache.LocalArtifactCache(
-            self.tempdir.dirname)
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
         handle = cache.put(self.runtime_artifact)
         handle.write('runtime')

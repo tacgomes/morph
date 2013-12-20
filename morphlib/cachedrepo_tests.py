@@ -18,11 +18,10 @@ import logging
 import os
 import unittest
 
+import fs.tempfs
 import cliapp
 
 import morphlib
-
-from morphlib import cachedrepo
 
 
 class CachedRepoTests(unittest.TestCase):
@@ -114,7 +113,7 @@ class CachedRepoTests(unittest.TestCase):
         self.repo_name = 'foo'
         self.repo_url = 'git://foo.bar/foo.git'
         self.repo_path = '/tmp/foo'
-        self.repo = cachedrepo.CachedRepo(
+        self.repo = morphlib.cachedrepo.CachedRepo(
             object(), self.repo_name, self.repo_url, self.repo_path)
         self.repo._rev_parse = self.rev_parse
         self.repo._show_tree_hash = self.show_tree_hash
@@ -123,10 +122,7 @@ class CachedRepoTests(unittest.TestCase):
         self.repo._checkout_ref = self.checkout_ref
         self.repo._ls_tree = self.ls_tree
         self.repo._clone_into = self.clone_into
-        self.tempdir = morphlib.tempdir.Tempdir()
-
-    def tearDown(self):
-        self.tempdir.remove()
+        self.tempfs = fs.tempfs.TempFS()
 
     def test_constructor_sets_name_and_url_and_path(self):
         self.assertEqual(self.repo.original_name, self.repo_name)
@@ -150,7 +146,7 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(tree, 'ffffffffffffffffffffffffffffffffffffffff')
 
     def test_fail_resolving_invalid_named_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError,
+        self.assertRaises(morphlib.cachedrepo.InvalidReferenceError,
                           self.repo.resolve_ref, 'foo/bar')
 
     def test_resolve_sha1_ref(self):
@@ -160,7 +156,7 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(tree, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
 
     def test_fail_resolving_an_invalid_sha1_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError,
+        self.assertRaises(morphlib.cachedrepo.InvalidReferenceError,
                           self.repo.resolve_ref,
                           self.bad_sha1_known_to_rev_parse)
 
@@ -170,9 +166,10 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(data, self.EXAMPLE_MORPH)
 
     def test_fail_cat_file_in_invalid_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.cat,
-                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
-                          'doesnt-matter-whether-this-file-exists')
+        self.assertRaises(
+            morphlib.cachedrepo.InvalidReferenceError, self.repo.cat,
+            '079bbfd447c8534e464ce5d40b80114c2022ebf4',
+            'doesnt-matter-whether-this-file-exists')
 
     def test_fail_cat_non_existent_file_in_existing_ref(self):
         self.assertRaises(IOError, self.repo.cat,
@@ -180,37 +177,40 @@ class CachedRepoTests(unittest.TestCase):
                           'file-that-does-not-exist')
 
     def test_fail_cat_non_existent_file_in_invalid_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.cat,
-                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
-                          'file-that-does-not-exist')
+        self.assertRaises(
+            morphlib.cachedrepo.InvalidReferenceError, self.repo.cat,
+            '079bbfd447c8534e464ce5d40b80114c2022ebf4',
+            'file-that-does-not-exist')
 
     def test_fail_because_cat_in_named_ref_is_not_allowed(self):
-        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
+        self.assertRaises(morphlib.cachedrepo.UnresolvedNamedReferenceError,
                           self.repo.cat, 'master', 'doesnt-matter')
 
     def test_fail_clone_checkout_into_existing_directory(self):
-        self.assertRaises(cachedrepo.CheckoutDirectoryExistsError,
+        self.assertRaises(morphlib.cachedrepo.CheckoutDirectoryExistsError,
                           self.repo.clone_checkout,
                           'e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
-                          self.tempdir.dirname)
+                          self.tempfs.root_path)
 
     def test_fail_checkout_due_to_clone_error(self):
-        self.assertRaises(cachedrepo.CloneError, self.repo.clone_checkout,
-                          'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-                          self.tempdir.join('failed-checkout'))
+        self.assertRaises(
+            morphlib.cachedrepo.CloneError, self.repo.clone_checkout,
+            'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
+            self.tempfs.getsyspath('failed-checkout'))
 
     def test_fail_checkout_due_to_copy_error(self):
-        self.assertRaises(cachedrepo.CopyError, self.repo.checkout,
+        self.assertRaises(morphlib.cachedrepo.CopyError, self.repo.checkout,
                           'a4da32f5a81c8bc6d660404724cedc3bc0914a75',
-                          self.tempdir.join('failed-checkout'))
+                          self.tempfs.getsyspath('failed-checkout'))
 
     def test_fail_checkout_from_invalid_ref(self):
-        self.assertRaises(cachedrepo.CheckoutError, self.repo.checkout,
-                          '079bbfd447c8534e464ce5d40b80114c2022ebf4',
-                          self.tempdir.join('checkout-from-invalid-ref'))
+        self.assertRaises(
+            morphlib.cachedrepo.CheckoutError, self.repo.checkout,
+            '079bbfd447c8534e464ce5d40b80114c2022ebf4',
+            self.tempfs.getsyspath('checkout-from-invalid-ref'))
 
     def test_checkout_from_existing_ref_into_new_directory(self):
-        unpack_dir = self.tempdir.join('unpack-dir')
+        unpack_dir = self.tempfs.getsyspath('unpack-dir')
         self.repo.checkout('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                            unpack_dir)
         self.assertTrue(os.path.exists(unpack_dir))
@@ -227,11 +227,12 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(data, ['foo.morph'])
 
     def test_fail_ls_tree_in_invalid_ref(self):
-        self.assertRaises(cachedrepo.InvalidReferenceError, self.repo.ls_tree,
-                          '079bbfd447c8534e464ce5d40b80114c2022ebf4')
+        self.assertRaises(
+            morphlib.cachedrepo.InvalidReferenceError, self.repo.ls_tree,
+            '079bbfd447c8534e464ce5d40b80114c2022ebf4')
 
     def test_fail_because_ls_tree_in_named_ref_is_not_allowed(self):
-        self.assertRaises(cachedrepo.UnresolvedNamedReferenceError,
+        self.assertRaises(morphlib.cachedrepo.UnresolvedNamedReferenceError,
                           self.repo.ls_tree, 'master')
 
     def test_successful_update(self):
@@ -240,10 +241,10 @@ class CachedRepoTests(unittest.TestCase):
 
     def test_failing_update(self):
         self.repo._update = self.update_with_failure
-        self.assertRaises(cachedrepo.UpdateError, self.repo.update)
+        self.assertRaises(morphlib.cachedrepo.UpdateError, self.repo.update)
 
     def test_no_update_if_local(self):
-        self.repo = cachedrepo.CachedRepo(
+        self.repo = morphlib.cachedrepo.CachedRepo(
             object(), 'local:repo', 'file:///local/repo/', '/local/repo/')
         self.repo._update = self.update_with_failure
         self.repo.update()

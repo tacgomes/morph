@@ -55,7 +55,6 @@ import buildcommand
 import buildenvironment
 import buildsystem
 import builder2
-import cachedir
 import cachedrepo
 import cachekeycomputer
 import extractedtarball
@@ -82,7 +81,6 @@ import stagingarea
 import stopwatch
 import sysbranchdir
 import systemmetadatadir
-import tempdir
 import util
 import workspace
 
