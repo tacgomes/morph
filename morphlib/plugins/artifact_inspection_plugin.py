@@ -19,6 +19,9 @@ import glob
 import json
 import os
 import re
+import contextlib
+
+import fs.tempfs
 
 import morphlib
 
@@ -109,25 +112,25 @@ class AutotoolsVersionGuesser(ProjectVersionGuesser):
         return None
 
     def _check_autoconf_package_version(self, repo, ref, filename, data):
-        tempdir = morphlib.tempdir.Tempdir(self.app.settings['tempdir'])
-        with open(tempdir.join(filename), 'w') as f:
-            f.write(data)
-        exit_code, output, errors = self.app.runcmd_unchecked(
+        with contextlib.closing(fs.tempfs.TempFS(
+                temp_dir=self.app.settings['tempdir'])) as tempdir:
+            with open(tempdir.getsyspath(filename), 'w') as f:
+                f.write(data)
+            exit_code, output, errors = self.app.runcmd_unchecked(
                 ['autoconf', filename],
                 ['grep', '^PACKAGE_VERSION='],
                 ['cut', '-d=', '-f2'],
                 ['sed', "s/'//g"],
-                cwd=tempdir.dirname)
-        tempdir.remove()
-        version = None
-        if output:
-            output = output.strip()
-            if output and output[0].isdigit():
-                version = output
-        if exit_code != 0:
-            self.app.status(
+                cwd=tempdir.root_path)
+            version = None
+            if output:
+                output = output.strip()
+                if output and output[0].isdigit():
+                    version = output
+            if exit_code != 0:
+                self.app.status(
                     msg='%(repo)s: Failed to detect version from '
-                        '%(ref)s:%(filename)s',
+                    '%(ref)s:%(filename)s',
                     repo=repo, ref=ref, filename=filename, chatty=True)
         return version
 
