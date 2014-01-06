@@ -20,16 +20,17 @@ New features added:
 * The `morph build` command is now a new implementation. The old
   implementation is still available as `morph old-build`, just in case
   the new code is buggy, but will be removed in a future release.
-  (Baserock 12 had them swapped the other way around.)
+  Likewise, `morph deploy` has a new implementation, but no
+  `old-deploy`. Both new implementations should work exactly as the
+  old ones, except for bugs.
 
 Bugs fixed:
 
 * When Morph reads git configuration files, it now correctly handles
   whitespace at the end of configuration values.
 
-* `morph deploy` no longer creates a useless temporary build branch.
-  The branch wasn't useful for determining the system artifact needed,
-  so it was merely wasteful.
+* `morph deploy` no longer creates and pushes a temporary build
+  branch. Pushing it wasn't useful, merely wasteful.
 
 * `morph deploy` now allows cross-architecture deployments, and
   and `morph cross-bootstrap` checks that the system is being built
