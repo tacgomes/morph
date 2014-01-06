@@ -1,7 +1,49 @@
 NEWS for Morph
 ==============
 
-This file contains high-level summaries of what's changed in each release.
+This file contains high-level summaries of user-visible changes in
+each Morph release.
+
+Version 13, released 2014-01-10
+-------------------------------
+
+New features added:
+
+* New CPU architecture: ppc64 architecture (POWER PC 64-bit). This is
+  the change specific for Morph. There are changes to the morphologies
+  (in a different git repository) to actually build such systems.
+
+* `morph build` and `morph deploy` now allow `.morph` suffixes in
+  command line arguments. The suffixes are stripped internally, so
+  Morph behaves as if they suffix wasn't there in the first place.
+
+* The `morph build` command is now a new implementation. The old
+  implementation is still available as `morph old-build`, just in case
+  the new code is buggy, but will be removed in a future release.
+  Likewise, `morph deploy` has a new implementation, but no
+  `old-deploy`. Both new implementations should work exactly as the
+  old ones, except for bugs.
+
+Bugs fixed:
+
+* When Morph reads git configuration files, it now correctly handles
+  whitespace at the end of configuration values.
+
+* `morph deploy` no longer creates and pushes a temporary build
+  branch. Pushing it wasn't useful, merely wasteful.
+
+* `morph deploy` now allows cross-architecture deployments, and
+  and `morph cross-bootstrap` checks that the system is being built
+  supports the target architecture.
+
+Other user-visible changes:
+
+* When preparing to build (when construcing the build graph), Morph
+  now reports the ref (SHA1) it uses for each stratum.
+
+* Systems being built must now have at least one stratum, and the
+  strata in a system must have at least one chunk that is built using
+  the normal (staging area) mode, rather than bootstrap mode.
 
 Version 12, released 2013-11-15
 -------------------------------
