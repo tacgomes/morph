@@ -476,8 +476,8 @@ class ChunkBuilder(BuilderBase):
         s = self.artifact.source
         extract_sources(self.app, self.repo_cache, s.repo, s.sha1, srcdir)
 
-class StratumBuilder(BuilderBase):
 
+class StratumBuilder(BuilderBase):
     '''Build stratum artifacts.'''
 
     def is_constituent(self, artifact):  # pragma: no cover
@@ -513,16 +513,14 @@ class StratumBuilder(BuilderBase):
 
             with self.build_watch('create-chunk-list'):
                 lac = self.local_artifact_cache
-                artifact_name = self.artifact.source.morphology['name']
-                artifact = self.new_artifact(artifact_name)
-                contents = [x.name for x in constituents]
-                meta = self.create_metadata(artifact_name, contents)
-                with lac.put_artifact_metadata(artifact, 'meta') as f:
+                meta = self.create_metadata(self.artifact.name,
+                                            [x.name for x in constituents])
+                with lac.put_artifact_metadata(self.artifact, 'meta')  as f:
                     json.dump(meta, f, indent=4, sort_keys=True)
-                with self.local_artifact_cache.put(artifact) as f:
+                with self.local_artifact_cache.put(self.artifact) as f:
                     json.dump([c.basename() for c in constituents], f)
         self.save_build_times()
-        return [artifact]
+        return [self.artifact]
 
 
 class SystemBuilder(BuilderBase):  # pragma: no cover
