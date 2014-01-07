@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ class Source(object):
     * ``tree`` -- the SHA1 of the tree corresponding to the commit
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
+    * ``artifacts`` -- the set of artifacts this source produces.
 
     '''
 
@@ -42,6 +43,8 @@ class Source(object):
         self.tree = tree
         self.morphology = morphology
         self.filename = filename
+        self.artifacts = {name: morphlib.artifact.Artifact(self, name)
+                          for name in morphology.builds_artifacts}
 
     def __str__(self):  # pragma: no cover
         return '%s|%s|%s' % (self.repo_name,
