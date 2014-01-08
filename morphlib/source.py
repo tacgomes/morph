@@ -31,6 +31,7 @@ class Source(object):
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
     * ``artifacts`` -- the set of artifacts this source produces.
+    * ``split_rules`` -- rules for splitting the source's produced artifacts
 
     '''
 
@@ -43,8 +44,13 @@ class Source(object):
         self.tree = tree
         self.morphology = morphology
         self.filename = filename
+
+        kind = morphology['kind']
+        unifier = getattr(morphlib.artifactsplitrule,
+                          'unify_%s_matches' % kind)
+        self.split_rules = unifier(morphology)
         self.artifacts = {name: morphlib.artifact.Artifact(self, name)
-                          for name in morphology.builds_artifacts}
+                          for name in self.split_rules.artifacts}
 
     def __str__(self):  # pragma: no cover
         return '%s|%s|%s' % (self.repo_name,
