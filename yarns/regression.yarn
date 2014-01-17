@@ -10,7 +10,7 @@ Testing if we can build after checking out from a tag.
     GIVEN       a workspace
     AND         a git server
     WHEN        the user checks out the system tag called test-tag
-    THEN        morph build the system test-system of the tag test-tag of the repo test:morphs
+    THEN        morph build the system test-system of the tag test-tag
 
 
 Running `morph branch` when the branch directory exists doesn't

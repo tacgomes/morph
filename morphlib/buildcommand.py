@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013  Codethink Limited
+# Copyright (C) 2011-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,14 @@ import logging
 import tempfile
 
 import morphlib
+
+
+class MultipleRootArtifactsError(morphlib.Error):
+
+    def __init__(self, artifacts):
+        self.msg = ('System build has multiple root artifacts: %r'
+                    % [a.name for a in artifacts])
+        self.artifacts = artifacts
 
 
 class BuildCommand(object):
@@ -142,7 +150,15 @@ class BuildCommand(object):
         artifacts = ar.resolve_artifacts(srcpool)
 
         self.app.status(msg='Computing build order', chatty=True)
-        root_artifact = self._find_root_artifact(artifacts)
+        root_artifacts = self._find_root_artifacts(artifacts)
+        if len(root_artifacts) > 1:
+            # Validate root artifacts, since validation covers errors
+            # such as trying to build a chunk or stratum directly,
+            # and this is one cause for having multiple root artifacts
+            for root_artifact in root_artifacts:
+                self._validate_root_artifact(root_artifact)
+            raise MultipleRootArtifactsError(root_artifacts)
+        root_artifact = root_artifacts[0]
 
         # Validate the root artifact here, since it's a costly function
         # to finalise it, so any pre finalisation validation is better
@@ -231,8 +247,8 @@ class BuildCommand(object):
                          other.morphology['kind'],
                          wanted))
 
-    def _find_root_artifact(self, artifacts):
-        '''Find the root artifact among a set of artifacts in a DAG.
+    def _find_root_artifacts(self, artifacts):
+        '''Find all the root artifacts among a set of artifacts in a DAG.
         
         It would be nice if the ArtifactResolver would return its results in a
         more useful order to save us from needing to do this -- the root object
@@ -240,13 +256,7 @@ class BuildCommand(object):
         
         '''
 
-        maybe = set(artifacts)
-        for a in artifacts:
-            for dep in a.dependencies:
-                if dep in maybe:
-                    maybe.remove(dep)
-        assert len(maybe) == 1
-        return maybe.pop()
+        return [a for a in artifacts if not a.dependents]
 
     def build_in_order(self, root_artifact):
         '''Build everything specified in a build order.'''

@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,6 +77,99 @@ build-system: dummy
         })
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
+
+    def test_validate_requires_products_list(self):
+        m = morphlib.morph3.Morphology(
+            kind='chunk',
+            name='foo',
+            products={
+                'foo-runtime': ['.'],
+                'foo-devel': ['.'],
+            })
+        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
+            self.loader.validate(m)
+        e = cm.exception
+        self.assertEqual(e.field, 'products')
+        self.assertEqual(e.expected, list)
+        self.assertEqual(e.actual, dict)
+        self.assertEqual(e.morphology_name, 'foo')
+
+    def test_validate_requires_products_list_of_mappings(self):
+        m = morphlib.morph3.Morphology(
+            kind='chunk',
+            name='foo',
+            products=[
+                'foo-runtime',
+            ])
+        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
+            self.loader.validate(m)
+        e = cm.exception
+        self.assertEqual(e.field, 'products[0]')
+        self.assertEqual(e.expected, dict)
+        self.assertEqual(e.actual, str)
+        self.assertEqual(e.morphology_name, 'foo')
+
+    def test_validate_requires_products_list_required_fields(self):
+        m = morphlib.morph3.Morphology(
+            kind='chunk',
+            name='foo',
+            products=[
+                {
+                    'factiart': 'foo-runtime',
+                    'cludein': [],
+                }
+            ])
+        with self.assertRaises(morphlib.morphloader.MultipleValidationErrors) \
+        as cm:
+            self.loader.validate(m)
+        exs = cm.exception.errors
+        self.assertEqual(type(exs[0]), morphlib.morphloader.MissingFieldError)
+        self.assertEqual(exs[0].field, 'products[0].artifact')
+        self.assertEqual(type(exs[1]), morphlib.morphloader.MissingFieldError)
+        self.assertEqual(exs[1].field, 'products[0].include')
+        self.assertEqual(type(exs[2]), morphlib.morphloader.InvalidFieldError)
+        self.assertEqual(exs[2].field, 'products[0].cludein')
+        self.assertEqual(type(exs[3]), morphlib.morphloader.InvalidFieldError)
+        self.assertEqual(exs[3].field, 'products[0].factiart')
+
+    def test_validate_requires_products_list_include_is_list(self):
+        m = morphlib.morph3.Morphology(
+            kind='chunk',
+            name='foo',
+            products=[
+                {
+                    'artifact': 'foo-runtime',
+                    'include': '.*',
+                }
+            ])
+        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
+            self.loader.validate(m)
+        ex = cm.exception
+        self.assertEqual(ex.field, 'products[0].include')
+        self.assertEqual(ex.expected, list)
+        self.assertEqual(ex.actual, str)
+        self.assertEqual(ex.morphology_name, 'foo')
+
+    def test_validate_requires_products_list_include_is_list_of_strings(self):
+        m = morphlib.morph3.Morphology(
+            kind='chunk',
+            name='foo',
+            products=[
+                {
+                    'artifact': 'foo-runtime',
+                    'include': [
+                        123,
+                    ]
+                }
+            ])
+        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
+            self.loader.validate(m)
+        ex = cm.exception
+        self.assertEqual(ex.field, 'products[0].include[0]')
+        self.assertEqual(ex.expected, str)
+        self.assertEqual(ex.actual, int)
+        self.assertEqual(ex.morphology_name, 'foo')
+
 
     def test_fails_to_validate_stratum_with_no_fields(self):
         m = morphlib.morph3.Morphology({
@@ -438,7 +531,7 @@ name: foo
                 'pre-install-commands': [],
                 'post-install-commands': [],
 
-                'chunks': [],
+                'products': [],
                 'devices': [],
                 'max-jobs': None,
             })
@@ -491,6 +584,7 @@ name: foo
                         'build-depends': [],
                     },
                 ],
+                'products': [],
             })
 
     def test_unsets_defaults_for_strata(self):

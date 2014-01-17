@@ -30,6 +30,14 @@ we can test it later in a THEN step.
         0) die "Morph should have failed, but didn't. Unexpected success!" ;;
     esac
 
+    IMPLEMENTS THEN morph succeeded
+    case $(cat "$DATADIR/morph-exit") in
+    0)  echo "Morph succeeded!"
+        ;;
+    *)  die "Morph should have succeeded, but didn't. Unexpected failure!"
+        ;;
+    esac
+
 We need to check that a workspace creation worked. This requires the
 directory to exist, and its `.morph` subdirectory to exist, and nothing
 else.
@@ -96,10 +104,142 @@ another to hold a chunk.
 
     mkdir "$DATADIR/gits/test-chunk"
 
-    cat << EOF > "$DATADIR/gits/test-chunk/test-chunk.morph"
+    # To verify that chunk splitting works, we have a chunk that installs
+    # dummy files in all the places that different kinds of files are
+    # usually installed. e.g. executables in `/bin` and `/usr/bin`
+
+    cat << 'EOF' > "$DATADIR/gits/test-chunk/test-chunk.morph"
     name: test-chunk
     kind: chunk
-    build-system: dummy
+    build-system: manual
+
+    # `install-commands` is a list of shell commands to run. Commands
+    # may be on multiple lines, and indeed anything programmatic will
+    # benefit from doing so. Arguably we could have just one command,
+    # but it's split into multiple so that morph can inform us which
+    # command failed without us having to include a lot of status
+    # information in the command and look at the error message.
+
+    install-commands:
+
+    # It's important that we can test whether executables get
+    # installed, so we install an empty script into `/usr/bin/test` and
+    # `/usr/sbin/test`.
+
+    # `install -D` will create the leading components for us, and install
+    # defaults to creating the file with its executable bit set.
+
+    # `install` needs a source file to install, but since we only care
+    # that the file exists, rather than its contents, we can use /dev/null
+    # as the source.
+
+    - |
+      for bindir in bin sbin; do
+          install -D /dev/null "$DESTDIR/$PREFIX/$bindir/test"
+      done
+
+    # We need shared libraries too, sometimes they're libraries to support
+    # the executables that a chunk provides, sometimes for other chunks.
+
+    # Libraries can be found in a variety of places, hence why we install
+    # them into lib, lib32 and lib64.
+
+    # Shared libraries' file names start with lib and end with `.so`
+    # for shared-object, with version numbers optionally suffixed.
+
+    - |
+      for libdir in lib lib32 lib64; do
+          dirpath="$DESTDIR/$PREFIX/$libdir"
+          install -D /dev/null "$dirpath/libtest.so"
+          ln -s libtest.so "$dirpath/libtest.so.0"
+          ln -s libtest.so.0 "$dirpath/libtest.so.0.0"
+          ln -s libtest.so.0.0 "$dirpath/libtest.so.0.0.0"
+      done
+
+    # Shared objects aren't the only kind of library, some executable
+    # binaries count as libraries, such as git's plumbing commands.
+
+    # In some distributions they go into /lib, in others, and the default
+    # autotools configuration, they go into /libexec.
+
+    - |
+      install -D /dev/null "$DESTDIR/$PREFIX/libexec/test-bin"
+
+    # As well as run-time libraries, there's development files. For C
+    # this is headers, which describe the API of the libraries, which
+    # then use the shared objects, and other files which are needed
+    # to build the executables, but aren't needed to run them, such as
+    # static libraries.
+
+    # Header files go into `include` and end with `.h`. They are not
+    # executable, so the install command changes the permissions with the
+    # `-m` option.
+
+    - |
+      install -D -m 644 /dev/null "$DESTDIR/$PREFIX/include/test.h"
+
+    # `pkg-config` is a standard way to locate libraries and get the
+    # compiler flags needed to build with the library. It's also used
+    # for other configuration for packages that don't install binaries,
+    # so as well as being found in `lib/pkgconfig`, it can be found in
+    # `share/pkgconfig`, so we install dummy files to both.
+
+    - |
+      for pkgdir in lib lib32 lib64 share; do
+          install -D -m 644 /dev/null \
+              "$DESTDIR/$PREFIX/$pkgdir/pkgconfig/test.pc"
+      done
+
+    # Static libraries can be used to build static binaries, which don't
+    # require their dependencies to be installed. They are typically in
+    # the form of `.a` archive and `.la` libtool archives.
+
+    - |
+      for libdir in lib lib32 lib64; do
+          for libname in libtest.a libtest.la; do
+              install -D -m 644 /dev/null "$DESTDIR/$PREFIX/$libdir/$libname"
+          done
+      done
+
+    # Packages may also install documentation, this comes in a variety
+    # of formats, but info pages, man pages and html documentation are
+    # the most common.
+
+    - |
+      for docfile in info/test.info.gz man/man3/test.3.gz doc/test/doc.html; do
+          install -D -m 644 /dev/null "$DESTDIR/$PREFIX/share/$docfile"
+      done
+
+    # Locale covers translations, timezones, keyboard layouts etc. in
+    # all manner of strange file formats and locations.
+
+    # Locale provides various translations for specific messages.
+
+    - |
+      install -D -m 644 /dev/null \
+          "$DESTDIR/$PREFIX/share/locale/en_GB/LC_MESSAGES/test.mo"
+
+    # Internationalisation (i18n) includes character maps and other data
+    # such as currency.
+
+    - |
+      for localefile in i18n/locales/en_GB charmaps/UTF-8.gz; do
+          install -D -m 644 /dev/null "$DESTDIR/$PREFIX/share/$localefile"
+      done
+
+    # Timezones are another kind of localisation.
+
+    - |
+      install -D -m 644 /dev/null "$DESTDIR/$PREFIX/share/zoneinfo/UTC"
+
+    # We also need a catch rule for everything that doesn't fit into
+    # the above categories, so to test that, we create some files that
+    # don't belong in one.
+
+    - |
+      for cfgfile in test.conf README; do
+          install -D -m 644 /dev/null "$DESTDIR/$PREFIX/etc/test.d/$cfgfile"
+      done
     EOF
 
     run_in "$DATADIR/gits/test-chunk" git init .
@@ -524,11 +664,40 @@ Implementation sections for cross-bootstraping
 Implementation sections for deployment
 ======================================
 
-    IMPLEMENTS WHEN the user (attempts to deploy|deploys) the (system|cluster) (\S+) in branch (\S+)
+Defaults are set in the cluster morphology, so we can deploy without
+setting any extra parameters, but we also need to be able to override
+them, so they can be added to the end of the implements section.
+
+    IMPLEMENTS WHEN the user (attempts to deploy|deploys) the (system|cluster) (\S+) in branch (\S+)( with options (.*))?
     cd "$DATADIR/workspace/$MATCH_4"
-    set build "$MATCH_3"
+    set -- deploy "$MATCH_3"
+    if [ "$MATCH_5" != '' ]; then
+        # eval used so word splitting in the text is preserved
+        eval set -- '"$@"' $MATCH_6
+    fi
     if [ $MATCH_1 == "deploys" ]; then run_morph "$@"
-    else attempt_morph deploy "$MATCH_3"; fi
+    else attempt_morph "$@"; fi
+
+To successfully deploy systems, we need a cluster morphology. Since the
+common case is to just have one system, we generate a stub morphology
+with only the minimal information.
+
+    IMPLEMENTS GIVEN a cluster called (\S+) for deploying only the (\S+) system as type (\S+) in system branch (\S+)
+    name="$MATCH_1"
+    system="$MATCH_2"
+    type="$MATCH_3"
+    branch="$MATCH_4"
+    cat << EOF > "$DATADIR/workspace/$branch/test:morphs/$name.morph"
+    name: $name
+    kind: cluster
+    systems:
+    - morph: $system
+      repo: test:morphs
+      ref: $branch
+      deploy:
+        system:
+          type: $type
+    EOF
 
 Implementations sections for reading error messages
 ===================================================
@@ -616,6 +785,15 @@ variables in `$DATADIR/env`. We treat the value as a format string for
 Implementations for building systems
 ------------------------------------
 
-    IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+) of the repo (\S+)
-    cd "$DATADIR/workspace/$MATCH_3/$MATCH_4"
+    IMPLEMENTS THEN morph build the system (\S+) of the (branch|tag) (\S+)
+    cd "$DATADIR/workspace/$MATCH_3"
     run_morph build "$MATCH_1"
+
+Implementations for tarball inspection
+--------------------------------------
+
+    IMPLEMENTS THEN tarball (\S+) contains (.*)
+    tar -tf "$DATADIR/$MATCH_1" | grep -Fe "$MATCH_2"
+
+    IMPLEMENTS THEN tarball (\S+) doesn't contain (.*)
+    ! tar -tf "$DATADIR/$MATCH_1" | grep -Fe "$MATCH_2"
