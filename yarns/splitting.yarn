@@ -1,31 +1,67 @@
 Artifact splitting tests
 ========================
 
+Parsing and validation
+----------------------
+
+To verify that the products fields are parsed correctly, we have a
+scenario that uses all of them, not relying on the default rules.
+
     SCENARIO building a system with morphologies that have splitting rules
     GIVEN a workspace
     AND a git server
+
+To test that all the fields are recognised, we set the new fields to
+their default values.
 
     AND chunk test-chunk includes the default splitting rules
     AND stratum test-stratum includes the default splitting rules
     AND system test-system includes the default splitting rules
 
+The default rules produce a system that is identical to not providing
+them, and since this test is about validation, we don't care about the
+result, so much as it succeeding to build something.
+
     WHEN the user checks out the system branch called master
     THEN morph build the system test-system of the branch master
 
+Smaller systems
+---------------
 
+An example use-case for splitting is to only include the runtime
+strata for a target system, rather than including all the development
+information, such as the documentation, C library headers and C static
+libraries.
 
     SCENARIO building a system only using runtime strata
     GIVEN a workspace
     AND a git server
+
+The only change we need to make is to add a field to the system morphology
+to select which artifact to use in the system.
+
     AND system test-system only uses test-stratum-runtime from test-stratum
     WHEN the user checks out the system branch called master
+
+The best way to test that only using some stratum artifacts works is
+to check which files the output has, so we deploy a tarball and inspect
+its contents.
+
     GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
     WHEN the user builds the system test-system in branch master
     AND the user attempts to deploy the cluster test-cluster in branch master with options system.location="$DATADIR/test.tar"
+
+The -runtime artifacts include executables and shared libraries.
+
     THEN tarball test.tar contains bin/test
     AND tarball test.tar contains lib/libtest.so
+
+The -devel artifacts include static libraries and documentation, so if
+we've successfully excluded it, we won't have those files.
+
     AND tarball test.tar doesn't contain lib/libtest.a
     AND tarball test.tar doesn't contain man/man3/test.3.gz
+
 
 Implementations
 ---------------
