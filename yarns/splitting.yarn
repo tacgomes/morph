@@ -62,6 +62,23 @@ we've successfully excluded it, we won't have those files.
     AND tarball test.tar doesn't contain lib/libtest.a
     AND tarball test.tar doesn't contain man/man3/test.3.gz
 
+As a consequence of how dependencies are generated, if we select strata
+to go into our system, such that there are chunk artifacts that are not
+needed, then they don't get built.
+
+    SCENARIO building a system that has unused chunks
+    GIVEN a workspace
+    AND a git server
+
+This GIVEN has a chunk in the stratum that never successfully builds,
+so we know that if the system successfully builds, then we only built
+chunks that were needed.
+
+    AND stratum test-stratum has chunks that aren't used in test-stratum-minimal
+    AND system test-system only uses test-stratum-minimal from test-stratum
+    WHEN the user checks out the system branch called master
+    THEN morph build the system test-system of the branch master
+
 
 Implementations
 ---------------
@@ -163,3 +180,41 @@ Implementations
     ' "$DATADIR/gits/morphs/$MATCH_1.morph" "$MATCH_2" "$MATCH_3"
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m "Make $MATCH_1 only use $MATCH_2"
+
+    IMPLEMENTS GIVEN stratum (\S+) has chunks that aren't used in (\1-\S+)
+    # Create an extra chunk that will never successfully build
+    cat >"$DATADIR/gits/test-chunk/unbuildable-chunk.morph" <<EOF
+    name: unbuildable-chunk
+    kind: chunk
+    install-commands:
+    - "false"
+    EOF
+    run_in "$DATADIR/gits/test-chunk" git add unbuildable-chunk.morph
+    run_in "$DATADIR/gits/test-chunk" git commit -m 'Add unbuildable chunk'
+
+    # Create a stratum that has an artifact that doesn't include any
+    # artifacts from unbuildable-chunk
+    cat >"$DATADIR/gits/morphs/$MATCH_1.morph" <<EOF
+    name: $MATCH_1
+    kind: stratum
+    products:
+    - artifact: $MATCH_2
+      include:
+      - test-chunk-.*
+    chunks:
+    - name: test-chunk
+      repo: test:test-chunk
+      ref: master
+      morph: test-chunk
+      build-mode: test
+      build-depends: []
+    - name: unbuildable-chunk
+      repo: test:test-chunk
+      ref: refs/heads/master
+      morph: unbuildable-chunk
+      build-mode: test
+      build-depends:
+      - test-chunk
+    EOF
+    run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
+    run_in "$DATADIR/gits/morphs" git commit -m "add -$MATCH_2 to stratum"
