@@ -81,7 +81,8 @@ class CacheKeyComputer(object):
         keys = {
             'env': self._filterenv(self._build_env.env),
             'filename': artifact.source.filename,
-            'kids': [self.compute_key(x) for x in artifact.dependencies],
+            'kids': [{'artifact': a.name, 'cache-key': self.compute_key(a)}
+                     for a in artifact.dependencies],
             'metadata-version': artifact.metadata_version
         }
 
