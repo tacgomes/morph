@@ -81,7 +81,8 @@ class CacheKeyComputer(object):
         keys = {
             'env': self._filterenv(self._build_env.env),
             'filename': artifact.source.filename,
-            'kids': [self.compute_key(x) for x in artifact.dependencies],
+            'kids': [{'artifact': a.name, 'cache-key': self.compute_key(a)}
+                     for a in artifact.dependencies],
             'metadata-version': artifact.metadata_version
         }
 
@@ -97,8 +98,12 @@ class CacheKeyComputer(object):
             le_dict = dict((k, morphology[k]) for k in morphology.keys())
 
             # Disregard all fields of a morphology that aren't important
-            ignored_fields = ('strata', 'build-depends', 'description',
-                              'chunks')
+            ignored_fields = (
+                'description', # purely cosmetic, doesn't change builds
+                # The following are used to determine dependencies,
+                # so are already handled by the 'kids' field.
+                'strata', 'build-depends', 'chunks',
+                'products')
             for ignored_field in ignored_fields:
                 if ignored_field in le_dict:
                     del le_dict[ignored_field]
