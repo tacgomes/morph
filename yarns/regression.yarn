@@ -46,6 +46,25 @@ area, hence their results cannot be trusted.
     AND         the user attempts to build the system bootstrap-system in branch master
     THEN        the build error message includes the string "No non-bootstrap chunks found"
 
+When we started allowing multiple artifacts, a long-standing bug in
+cache-key computation was discovered, it didn't include artifact names,
+which would cause a collision if a morphology changed which artifacts
+from a source it depended on, but not the number of artifacts from that
+source it depended on.
+
+    SCENARIO changing the artifacts a system uses
+    GIVEN    a workspace
+    AND      a git server
+    AND      system test-system uses test-stratum-runtime from test-stratum
+    AND      stratum test-stratum has match rules: [{artifact: test-stratum-runtime, include: [.*-(bins|libs|locale)]}, {artifact: test-stratum-devel, include: [.*-(devel|doc|misc)]}]
+    WHEN     the user checks out the system branch called master
+    GIVEN    a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
+    WHEN     the user builds the system test-system in branch master
+    GIVEN    stratum test-stratum in system branch master has match rules: [{artifact: test-stratum-runtime, include: [.*-(bins|libs|misc)]}, {artifact: test-stratum-devel, include: [.*-(devel|doc|locale)]}]
+    WHEN     the user builds the system test-system in branch master
+    AND      the user deploys the cluster test-cluster in branch master with options system.location="$DATADIR/test.tar"
+    THEN     tarball test.tar contains baserock/test-chunk-misc.meta
+
 
 Implementations
 ---------------

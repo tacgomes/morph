@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 import cliapp
 import os
 import re
+import yaml
 
 import morphlib
 
@@ -199,5 +200,49 @@ class EditMorph(cliapp.Application):
             result.append(chunk_dict[chunk_name])
 
         return result
+
+    def cmd_set_system_artifact_depends(self, args):
+        '''Change the artifacts used by a System.
+
+        Usage: MORPHOLOGY_FILE STRATUM_NAME ARTIFACTS
+
+        ARTIFACTS is an English language string describing which artifacts
+        to include, since the primary use of this command is to assist
+        yarn tests.
+
+        Example: edit-morph set-system-artifact-depends system.morph \
+                 build-essential "build-essential-minimal,
+                 build-essential-runtime and build-essential-devel"
+
+        '''
+
+        file_path = args[0]
+        stratum_name = args[1]
+        artifacts = re.split(r"\s+and\s+|,?\s*", args[2])
+        with open(file_path, "r") as f:
+            d = yaml.load(f)
+        for spec in d["strata"]:
+            if spec.get("alias", spec["name"]) == stratum_name:
+                spec["artifacts"] = artifacts
+        with open(file_path, "w") as f:
+            yaml.dump(d, f)
+
+    def cmd_set_stratum_match_rules(self, (file_path, match_rules)):
+        '''Set a stratum's match rules.
+
+        Usage: FILE_PATH MATCH_RULES_YAML
+
+        This sets the stratum's "products" field, which is used to
+        determine which chunk artifacts go into which stratum artifacts
+        the stratum produces.
+
+        The match rules must be a string that yaml can parse.
+
+        '''
+        with open(file_path, "r") as f:
+            d = yaml.load(f)
+        d['products'] = yaml.load(match_rules)
+        with open(file_path, "w") as f:
+            yaml.dump(d, f)
 
 EditMorph().run()
