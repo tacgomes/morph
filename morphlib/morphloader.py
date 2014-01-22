@@ -120,6 +120,27 @@ class DuplicateChunkError(morphlib.Error):
                   'in stratum %(stratum_name)s' % locals())
 
 
+class EmptyRefError(morphlib.Error):
+
+    def __init__(self, ref_location, morphology):
+        self.ref_location = ref_location
+        self.morphology = morphology
+        morphlib.Error.__init__(
+            self, 'Empty ref found for %(ref_location)s '\
+                  'in %(morphology)s' % locals())
+
+
+class ChunkSpecRefNotStringError(morphlib.Error):
+
+    def __init__(self, ref_value, chunk_name, stratum_name):
+        self.ref_value = ref_value
+        self.chunk_name = chunk_name
+        self.stratum_name = stratum_name
+        morphlib.Error.__init__(
+            self, 'Ref %(ref_value)s for %(chunk_name)s '\
+                  'in stratum %(stratum_name)s is not a string' % locals())
+
+
 class SystemStrataNotListError(morphlib.Error):
 
     def __init__(self, system_name, strata_type):
@@ -129,6 +150,7 @@ class SystemStrataNotListError(morphlib.Error):
         morphlib.Error.__init__(
             self, 'System %(system_name)s has the wrong type for its strata: '\
                   '%(typename)s, expected list' % locals())
+
 
 class DuplicateStratumError(morphlib.Error):
 
@@ -365,6 +387,17 @@ class MorphologyLoader(object):
             if name in names:
                raise DuplicateChunkError(morph['name'], name)
             names.add(name)
+
+        # All chunk refs must be strings.
+        for spec in morph['chunks']:
+            if 'ref' in spec:
+                ref = spec['ref']
+                if ref == None:
+                    raise EmptyRefError(
+                        spec.get('alias', spec['name']), morph.filename)
+                elif not isinstance(ref, basestring):
+                    raise ChunkSpecRefNotStringError(
+                        ref, spec.get('alias', spec['name']), morph.filename)
 
         # Require build-dependencies for the stratum itself, unless
         # it has chunks built in bootstrap mode.

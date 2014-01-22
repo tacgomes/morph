@@ -187,6 +187,42 @@ build-system: dummy
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
 
+    def test_validate_requires_chunk_refs_in_stratum_to_be_strings(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'repo': 'test:repo',
+                    'ref': 1,
+                    'build-depends': []
+                }
+            ]
+        })
+        with self.assertRaises(
+                morphlib.morphloader.ChunkSpecRefNotStringError):
+            self.loader.validate(m)
+
+    def test_fails_to_validate_stratum_with_empty_refs_for_a_chunk(self):
+        m = morphlib.morph3.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks' : [
+                {
+                    'name': 'chunk',
+                    'repo': 'test:repo',
+                    'ref': None,
+                    'build-depends': []
+                }
+            ]
+        })
+        with self.assertRaises(
+                morphlib.morphloader.EmptyRefError):
+            self.loader.validate(m)
+
     def test_fails_to_validate_system_with_obsolete_system_kind_field(self):
         m = morphlib.morph3.Morphology({
             'kind': 'system',
