@@ -238,7 +238,7 @@ another to hold a chunk.
 
     - |
       for cfgfile in test.conf README; do
-          install -D -m 644 /dev/null "$DESTDIR/$PREFIX/etc/test.d/$cfgfile"
+          install -D -m 644 /dev/null "$DESTDIR/etc/test.d/$cfgfile"
       done
     EOF
 
