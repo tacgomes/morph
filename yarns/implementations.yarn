@@ -809,3 +809,18 @@ Altering morphologies in their source repositories
       "$DATADIR/gits/morphs/$MATCH_1.morph" "$MATCH_3" "$MATCH_2"
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m "Make $MATCH_1 only use $MATCH_2"
+
+    IMPLEMENTS GIVEN stratum (\S+) has match rules: (.*)
+    cd "$DATADIR/gits/morphs"
+    "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
+      "$MATCH_1.morph" "$MATCH_2"
+    git add "$MATCH_1.morph"
+    git commit -m "Make $MATCH_1 match $MATCH_2"
+
+Altering morphologies in the workspace
+--------------------------------------
+
+    IMPLEMENTS GIVEN stratum (\S+) in system branch (\S+) has match rules: (.*)
+    cd "$DATADIR/workspace/$MATCH_2/test:morphs"
+    "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
+      "$MATCH_1.morph" "$MATCH_3"

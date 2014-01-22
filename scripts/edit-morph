@@ -227,4 +227,22 @@ class EditMorph(cliapp.Application):
         with open(file_path, "w") as f:
             yaml.dump(d, f)
 
+    def cmd_set_stratum_match_rules(self, (file_path, match_rules)):
+        '''Set a stratum's match rules.
+
+        Usage: FILE_PATH MATCH_RULES_YAML
+
+        This sets the stratum's "products" field, which is used to
+        determine which chunk artifacts go into which stratum artifacts
+        the stratum produces.
+
+        The match rules must be a string that yaml can parse.
+
+        '''
+        with open(file_path, "r") as f:
+            d = yaml.load(f)
+        d['products'] = yaml.load(match_rules)
+        with open(file_path, "w") as f:
+            yaml.dump(d, f)
+
 EditMorph().run()
