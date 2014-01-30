@@ -49,13 +49,16 @@ class GCPlugin(cliapp.Plugin):
     def gc(self, args):
         '''Make space by removing unused files.
 
-           This removes all artifacts older than
-           --cachedir-artifact-delete-older-than, and may delete artifacts
-           older than --cachedir-artifact-keep-younger-than if it still
-           needs to make space.
+           This command removes all artifacts older than
+           --cachedir-artifact-delete-older-than if the file system
+           that holds the cache directory has less than --cachedir-min-space
+           bytes free.
 
-           This removes extracted chunks and staging areas for failed builds
-           from the directory specified by --tempdir.
+           It may delete artifacts older than
+           --cachedir-artifact-keep-younger-than if it still needs to make space.
+
+           It also removes any left over temporary chunks and staging areas
+           from failed builds.
 
         '''
 
