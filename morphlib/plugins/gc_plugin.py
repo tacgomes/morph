@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,7 +55,8 @@ class GCPlugin(cliapp.Plugin):
            bytes free.
 
            It may delete artifacts older than
-           --cachedir-artifact-keep-younger-than if it still needs to make space.
+           --cachedir-artifact-keep-younger-than if it still needs to make
+           space.
 
            It also removes any left over temporary chunks and staging areas
            from failed builds.
