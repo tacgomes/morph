@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -125,7 +125,7 @@ class BuildBranch(object):
             sb_info[repo, ref] = (gd, build_ref)
 
         def filter(m, kind, spec):
-            return (spec['repo'], spec['ref']) in sb_info
+            return (spec.get('repo'), spec.get('ref')) in sb_info
         def process(m, kind, spec):
             repo, ref = spec['repo'], spec['ref']
             gd, build_ref = sb_info[repo, ref]

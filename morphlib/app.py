@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013  Codethink Limited
+# Copyright (C) 2011-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -346,14 +346,14 @@ class Morph(cliapp.Application):
 
             visit(reponame, ref, filename, absref, tree, morphology)
             if morphology['kind'] == 'system':
-                queue.extend((s['repo'] or reponame,
-                              s['ref'] or ref,
+                queue.extend((s.get('repo') or reponame,
+                              s.get('ref') or ref,
                               '%s.morph' % s['morph'])
                              for s in morphology['strata'])
             elif morphology['kind'] == 'stratum':
                 if morphology['build-depends']:
-                    queue.extend((s['repo'] or reponame,
-                                  s['ref'] or ref,
+                    queue.extend((s.get('repo') or reponame,
+                                  s.get('ref') or ref,
                                   '%s.morph' % s['morph'])
                                  for s in morphology['build-depends'])
                 queue.extend((c['repo'], c['ref'], '%s.morph' % c['morph'])

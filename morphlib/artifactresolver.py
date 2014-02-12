@@ -140,8 +140,8 @@ class ArtifactResolver(object):
 
         for info in source.morphology['strata']:
             stratum_source = self._source_pool.lookup(
-                info['repo'] or source.repo_name,
-                info['ref'] or source.original_ref,
+                info.get('repo') or source.repo_name,
+                info.get('ref') or source.original_ref,
                 '%s.morph' % info['morph'])
             stratum_name = stratum_source.morphology['name']
 
@@ -165,8 +165,8 @@ class ArtifactResolver(object):
 
         for stratum_info in source.morphology.get('build-depends') or []:
             other_source = self._source_pool.lookup(
-                stratum_info['repo'] or source.repo_name,
-                stratum_info['ref'] or source.original_ref,
+                stratum_info.get('repo') or source.repo_name,
+                stratum_info.get('ref') or source.original_ref,
                 '%s.morph' % stratum_info['morph'])
 
             # Make every stratum artifact this stratum source produces

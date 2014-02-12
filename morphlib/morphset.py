@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ class MorphologySet(object):
         for spec in specs:
             name = spec.get('morph', spec.get('name'))
             if name == wanted_name:
-                return spec['repo'], spec['ref'], name
+                return spec.get('repo'), spec.get('ref'), name
         return None, None, None
 
     def get_stratum_in_system(self, system_morph, stratum_name):
@@ -160,7 +160,8 @@ class MorphologySet(object):
             specs = m[kind]
             for spec in specs:
                 if cb_filter(m, kind, spec):
-                    orig_spec = (spec['repo'], spec['ref'], spec['morph'])
+                    orig_spec = (spec.get('repo'), spec.get('ref'),
+                                 spec['morph'])
                     dirtied = cb_process(m, kind, spec)
                     if dirtied:
                         m.dirty = True
@@ -177,11 +178,11 @@ class MorphologySet(object):
             tup = (m.repo_url, m.ref, m.filename[:-len('.morph')])
             if tup in altered_references:
                 spec = altered_references[tup]
-                if m.ref != spec['ref']:
-                    m.ref = spec['ref']
+                if m.ref != spec.get('ref'):
+                    m.ref = spec.get('ref')
                     m.dirty = True
                 assert (m.filename == spec['morph'] + '.morph'
-                        or m.repo_url == spec['repo']), \
+                        or m.repo_url == spec.get('repo')), \
                        'Moving morphologies is not supported.'
 
     def change_ref(self, repo_url, orig_ref, morph_filename, new_ref):
@@ -193,12 +194,12 @@ class MorphologySet(object):
         '''
 
         def wanted_spec(m, kind, spec):
-            return (spec['repo'] == repo_url and
-                    spec['ref'] == orig_ref and
+            return (spec.get('repo') == repo_url and
+                    spec.get('ref') == orig_ref and
                     spec['morph'] + '.morph' == morph_filename)
 
         def process_spec(m, kind, spec):
-            spec['unpetrify-ref'] = spec['ref']
+            spec['unpetrify-ref'] = spec.get('ref')
             spec['ref'] = new_ref
             return True
 
@@ -214,10 +215,10 @@ class MorphologySet(object):
         known = set()
 
         def wanted_spec(m, kind, spec):
-            return (spec['repo'], spec['ref']) not in known
+            return (spec.get('repo'), spec.get('ref')) not in known
 
         def process_spec(m, kind, spec):
-            known.add((spec['repo'], spec['ref']))
+            known.add((spec.get('repo'), spec.get('ref')))
             return False
 
         self.traverse_specs(process_spec, wanted_spec)
@@ -234,11 +235,11 @@ class MorphologySet(object):
 
         '''
         def wanted_spec(m, kind, spec):
-            return spec['repo'] == repo_url
+            return spec.get('repo') == repo_url
 
         def process_spec(m, kind, spec):
             if 'unpetrify-ref' not in spec:
-                spec['unpetrify-ref'] = spec['ref']
+                spec['unpetrify-ref'] = spec.get('ref')
             spec['ref'] = new_ref
             return True
 
@@ -262,13 +263,13 @@ class MorphologySet(object):
             # the details are tricky.
             if not (m['kind'] == 'stratum' and kind == 'chunks'):
                 return
-            ref = spec['ref']
+            ref = spec.get('ref')
             return (not morphlib.git.is_valid_sha1(ref)
-                    and (spec['repo'], ref) in resolutions)
+                    and (spec.get('repo'), ref) in resolutions)
 
         def process_chunk_spec(m, kind, spec):
-            tup = (spec['repo'], spec['ref'])
-            spec['unpetrify-ref'] = spec['ref']
+            tup = (spec.get('repo'), spec.get('ref'))
+            spec['unpetrify-ref'] = spec.get('ref')
             spec['ref'] = resolutions[tup]
             return True
 
@@ -281,7 +282,7 @@ class MorphologySet(object):
 
         def wanted_spec(m, kind, spec):
             return ('unpetrify-ref' in spec and
-                    morphlib.git.is_valid_sha1(spec['ref']))
+                    morphlib.git.is_valid_sha1(spec.get('ref')))
         def process_spec(m, kind, spec):
             spec['ref'] = spec.pop('unpetrify-ref')
             return True
