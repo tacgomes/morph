@@ -36,6 +36,13 @@ import morphlib.plugins.branch_and_merge_plugin
 class DeployPlugin(cliapp.Plugin):
 
     def enable(self):
+        group_deploy = 'Deploy Options'
+        self.app.settings.boolean(['upgrade'],
+                                  'specify that you want to upgrade an '
+                                  'existing cluster of systems rather than do '
+                                  'an initial deployment',
+                                  group=group_deploy)
+
         self.app.add_subcommand(
             'deploy', self.deploy,
             arg_synopsis='CLUSTER [SYSTEM.KEY=VALUE]')
