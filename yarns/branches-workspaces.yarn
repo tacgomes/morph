@@ -187,21 +187,14 @@ all the refs are unchanged.
     GIVEN       a workspace
     AND         a git server
     WHEN        the user creates a system branch called foo
-    THEN        in branch foo, system test-system refs test-stratum in master
-    AND         in branch foo, stratum test-stratum refs test-chunk in master
-
-Then edit the stratum.
-
-    WHEN    the user edits the stratum test-stratum in the system test-system in branch foo
-    THEN    in branch foo, system test-system refs test-stratum in foo
+    THEN        in branch foo, stratum test-stratum refs test-chunk in master
 
 Edit the chunk. We make use of special knowledge here: `test:test-chunk`
 is a chunk repository created in the mocked git server, for testing
 purposes.
 
     WHEN the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
-    THEN in branch foo, system test-system refs test-stratum in foo
-    AND  in branch foo, stratum test-stratum refs test-chunk in foo
+    THEN in branch foo, stratum test-stratum refs test-chunk in foo
     AND  the edited chunk test:test-chunk has git branch foo
 
 Morph edit should only work with a system argument. 
@@ -228,9 +221,7 @@ repositories referenced in the system branch.
     THEN        morph reports no outstanding changes in foo
 
     WHEN the user edits the stratum test-stratum in the system test-system in branch foo
-    THEN morph reports changes in foo in test:morphs only
-
-    WHEN the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
+    AND the user edits the chunk test-chunk in the stratum test-stratum in the system test-system in branch foo
     THEN morph reports changes in foo in test:morphs only
 
     WHEN        creating file foo in test:test-chunk in branch foo

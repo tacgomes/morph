@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012,2014  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,10 +27,12 @@ set -eu
 # distributed builds, which invoke morph as a sub-process.
 export PATH="$SRCDIR:$PATH"
 
+WARNING_IGNORES='-W ignore:(stratum|system)\s+morphology'
 if [ "$1" = "--find-system-artifact" ]; then
     shift
 
-    "$SRCDIR/morph" --no-default-config \
+    python $WARNING_IGNORES \
+        "$SRCDIR/morph" --no-default-config \
         --tarball-server= --cache-server= \
         --cachedir-min-space=0 --tempdir-min-space=0 \
         --config="$DATADIR/morph.conf" --verbose "$@" > $DATADIR/stdout
@@ -46,7 +48,9 @@ if [ "$1" = "--find-system-artifact" ]; then
 
     echo $ARTIFACT
 else
-    "$SRCDIR/scripts/cmd-filter" "$SRCDIR/morph" --no-default-config \
+    "$SRCDIR/scripts/cmd-filter" \
+        python $WARNING_IGNORES \
+        "$SRCDIR/morph" --no-default-config \
         --cachedir-min-space=0 --tempdir-min-space=0 \
         --tarball-server= --cache-server= \
         --config="$DATADIR/morph.conf" "$@"

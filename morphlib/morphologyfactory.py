@@ -145,6 +145,11 @@ class MorphologyFactory(object):
 
         morphology.needs_artifact_metadata_cached = False
 
+        morphlib.morphloader.MorphologyLoader._validate_stratum_specs_fields(
+            morphology, 'strata')
+        morphlib.morphloader.MorphologyLoader._set_stratum_specs_defaults(
+            morphology, 'strata')
+
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
 
@@ -163,6 +168,11 @@ class MorphologyFactory(object):
 
         morphology.builds_artifacts = [morphology['name']]
         morphology.needs_artifact_metadata_cached = True
+
+        morphlib.morphloader.MorphologyLoader._validate_stratum_specs_fields(
+            morphology, 'build-depends')
+        morphlib.morphloader.MorphologyLoader._set_stratum_specs_defaults(
+            morphology, 'build-depends')
 
     def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
         '''Check and tweak a chunk morphology.'''
