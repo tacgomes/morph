@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012,2013,2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -610,10 +610,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
                        root_repo_dir):
         '''Check out the morphology that 'spec' refers to, for editing'''
 
-        if spec['repo'] == root_repo:
+        if spec.get('repo') in (None, root_repo):
             # This is only possible for stratum morphologies
             repo_dir = root_repo_dir
-            if spec['ref'] != branch:
+            if spec.get('ref') not in (None, root_repo):
                 # Bring the morphology forward from its ref to the current HEAD
                 repo = self.lrc.get_repo(root_repo)
                 m = repo.load_morphology(spec['ref'], spec['morph'])
@@ -1138,11 +1138,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         if 'strata' in morphology and morphology['strata']:
             strata += morphology['strata']
         for info in strata:
-            # Obtain the commit SHA1 this stratum would be built from.
-            commit = self.resolve_info(info, resolved_refs)
             stratum_repo_dir = self.make_available(
                     info, branch, branch_dir, repo, repo_dir)
-            info['ref'] = branch
 
             # Load the stratum morphology and petrify it recursively if
             # that hasn't happened yet.
@@ -1150,23 +1147,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
             if not stratum in petrified_morphologies:
                 self.petrify_morphology(branch, branch_dir,
                                         branch_root, branch_root_dir,
-                                        info['repo'], stratum_repo_dir,
-                                        tagref, info['morph'], stratum,
+                                        info.get('repo') or branch_root,
+                                        stratum_repo_dir, tagref,
+                                        info['morph'], stratum,
                                         petrified_morphologies,
                                         resolved_refs, env,
                                         update_working_tree)
-
-            # Change the ref for this morphology to the tag we're creating.
-            if info['ref'] != tagref:
-                info['unpetrify-ref'] = info['ref']
-                info['ref'] = tagref
-
-            # We'll be copying all systems/strata into the tag commit
-            # in the branch root repo, so make sure to note what repos
-            # they all came from
-            if info['repo'] != branch_root:
-                info['unpetrify-repo'] = info['repo']
-                info['repo'] = branch_root
 
         # If this morphology is a stratum, resolve the refs of all its
         # chunks into SHA1s.
@@ -1202,7 +1188,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
     def resolve_info(self, info, resolved_refs):
         '''Takes a morphology info and resolves its ref with cache support.'''
 
-        key = (info['repo'], info['ref'])
+        key = (info.get('repo'), info.get('ref'))
         if not key in resolved_refs:
             commit_sha1, tree_sha1 = self.app.resolve_ref(
                     self.lrc, self.rrc, info['repo'], info['ref'],
@@ -1292,10 +1278,10 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         def component_key(info):
             # This function needs only to be stable and reproducible
-            key = info['repo'] + '|' + info['morph']
             if 'name' in info:
-                key += '|' + info['name']
-            return key
+                return (info.get('repo'), info['morph'], info['name'])
+            else:
+                return (info.get('repo'), info['morph'])
 
         if from_morph['name'] != to_morph['name']:
             # We should enforce name == filename in load_morphology()
@@ -1471,12 +1457,12 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
             changed = False
             edited_strata = [si for si in from_morph['strata']
-                             if si['ref'] == from_branch]
+                             if si.get('ref') == from_branch]
             for si in edited_strata:
                 for old_si in to_morph['strata']:
                     # We make no attempt at rename / move detection
                     if (old_si['morph'] == si['morph']
-                            and old_si['repo'] == si['repo']):
+                            and old_si.get('repo') == si.get('repo')):
                         break
                 else:
                     raise cliapp.AppException(
@@ -1484,7 +1470,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
                         'subsequently edited. This is not yet supported: '
                         'refusing to merge.' % si['morph'])
                 changed = True
-                si['ref'] = old_si['ref']
+                si['ref'] = old_si.get('ref')
                 merge_stratum(name, old_si, si)
             if changed:
                 self.update_morphology(to_root_dir, name, to_morph)
