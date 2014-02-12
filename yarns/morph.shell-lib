@@ -3,7 +3,7 @@
 # The shell functions in this library are meant to make writing IMPLEMENTS
 # sections for yarn scenario tests easier.
 
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -151,11 +151,6 @@ assert_morphologies_are_petrified()
     done
 }
 
-
-nullify_local_refs()
-{
-    "$SRCDIR/scripts/nullify-local-refs" "$@"
-}
 
 # Currently, yarn isn't setting $SRCDIR to point at the project source
 # directory. We simulate this here.
