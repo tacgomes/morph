@@ -382,8 +382,6 @@ build-system: dummy
 
         m['build-depends'] = [
             {
-                "repo": "foo",
-                "ref": "foo",
                 "morph": "foo",
             },
         ]
@@ -655,17 +653,19 @@ name: foo
         self.loader.set_defaults(m)
         self.loader.validate(m)
         self.assertEqual(
-            dict(m),
             {
                 'kind': 'system',
                 'name': 'foo',
                 'description': '',
                 'arch': 'testarch',
                 'strata': [
-                    {'morph': 'bar'},
+                    {
+                        'morph': 'bar',
+                    },
                 ],
                 'configuration-extensions': [],
-            })
+            },
+            dict(m))
 
     def test_unsets_defaults_for_system(self):
         m = morphlib.morph3.Morphology(

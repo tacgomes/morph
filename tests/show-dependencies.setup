@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -197,8 +197,6 @@ cat <<EOF > xfce-core.morph
   "build-depends": [
     {
       "morph": "gtk-stack",
-      "repo": "test:test-repo",
-      "ref": "master"
     }
   ],
   "chunks": [
@@ -352,8 +350,6 @@ cat <<EOF > xfce-system.morph
   "arch": "$(uname -m)",
   "strata": [
     {
-      "repo": "test:test-repo",
-      "ref": "master",
       "build-mode": "test",
       "morph": "xfce-core"
     }

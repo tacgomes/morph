@@ -103,8 +103,6 @@ class FakeLocalRepo(object):
                 "kind": "stratum",
                 "build-depends": [
                     {
-                        "repo": "test:repo",
-                        "ref": "sha1",
                         "morph": "stratum"
                     }
                 ],

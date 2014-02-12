@@ -78,8 +78,6 @@ another to hold a chunk.
     arch: $arch
     strata:
     -   name: test-stratum
-        repo: test:morphs
-        ref: master
         morph: test-stratum
     EOF
 
@@ -293,8 +291,6 @@ have a morphology using the test architecture.
     kind: stratum
     build-depends:
     - morph: build-essential
-      ref: master
-      repo: test:morphs
     chunks:
     -   name: test-chunk
         repo: test:test-chunk
@@ -312,12 +308,8 @@ have a morphology using the test architecture.
     name: $MATCH_1
     strata:
     -   name: build-essential
-        repo: test:morphs
-        ref: master
         morph: build-essential
     -   name: core
-        repo: test:morphs
-        ref: master
         morph: core
     EOF
 
@@ -469,8 +461,6 @@ print-architecture` to get a value appropriate for morph.
     name: $MATCH_1
     strata:
     -   name: test-stratum
-        repo: test:morphs
-        ref: master
         morph: test-stratum
     EOF
 

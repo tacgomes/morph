@@ -158,8 +158,6 @@ Implementations
     arch: $(run_morph print-architecture)
     strata:
     -   name: test-stratum
-        repo: test:morphs
-        ref: master
         morph: test-stratum
         artifacts:
         - test-stratum-runtime
