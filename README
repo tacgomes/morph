@@ -257,6 +257,10 @@ and reproducible.
 Hacking morph
 -------------
 
+When running Morph from a Git checkout, remember to set PYTHONPATH to
+point to your checkout. This will cause Morph to load the plugins and
+write extensions from your checkout correctly.
+
 Run the test suite with this command:
 
     ./check --full
