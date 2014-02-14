@@ -409,12 +409,11 @@ Report system branch root repository.
 
 Editing morphologies with `morph edit`.
 
-    IMPLEMENTS THEN in branch (\S+), (system|stratum) (\S+) refs (\S+) in (\S+)
-    if [ $MATCH_2 == system ]; then set strata; else set chunks; fi
+    IMPLEMENTS THEN in branch (\S+), stratum (\S+) refs (\S+) in (\S+)
     "$SRCDIR/scripts/yaml-extract" \
-        "$DATADIR/workspace/$MATCH_1/test:morphs/$MATCH_3.morph" \
-        $@ name="$MATCH_4" ref > "$DATADIR/ref.actual"
-    echo "$MATCH_5" > "$DATADIR/ref.wanted"
+        "$DATADIR/workspace/$MATCH_1/test:morphs/$MATCH_2.morph" \
+        chunks name="$MATCH_3" ref > "$DATADIR/ref.actual"
+    echo "$MATCH_4" > "$DATADIR/ref.wanted"
     diff -u "$DATADIR/ref.wanted" "$DATADIR/ref.actual"
 
     IMPLEMENTS WHEN the user edits the stratum (\S+) in the system (\S+) in branch (\S+)
