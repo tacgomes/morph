@@ -9,7 +9,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit 476e4ff4b19c38eb64ad3a151b7c58a7ab95c9ee
+commit 332fc39a03b63a9586950e0826374dc6fa4ceaf8
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -29,21 +29,9 @@ index 73ed482..2218f63 100644
 +  unpetrify-ref: master
  kind: stratum
  name: hello-stratum
-diff --git a/hello-system.morph b/hello-system.morph
-index 3f7b4d3..431e15d 100644
---- a/hello-system.morph
-+++ b/hello-system.morph
-@@ -3,5 +3,6 @@ kind: system
- name: hello-system
- strata:
- - morph: hello-stratum
--  ref: master
-+  ref: tagged-tag
-   repo: test:morphs
-+  unpetrify-ref: master
 
 test:morphs
-commit 476e4ff4b19c38eb64ad3a151b7c58a7ab95c9ee
+commit 332fc39a03b63a9586950e0826374dc6fa4ceaf8
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -51,7 +39,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
-commit e11a36aa9e4c998c41a3ec3209324b9318e484ae
+commit acb64a107d0ebdbbf0b6850b8272301a66c0a4b7
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>

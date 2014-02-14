@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012,2013,2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -284,8 +284,8 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # of triplets (repo url, ref, filename).
 
         return [
-            (spec['repo'] or morph.repo_url,
-             spec['ref'] or morph.ref,
+            (spec.get('repo') or morph.repo_url,
+             spec.get('ref') or morph.ref,
              '%s.morph' % spec['morph'])
             for spec in specs
         ]

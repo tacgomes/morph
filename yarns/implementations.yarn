@@ -78,8 +78,6 @@ another to hold a chunk.
     arch: $arch
     strata:
     -   name: test-stratum
-        repo: test:morphs
-        ref: master
         morph: test-stratum
     EOF
 
@@ -293,8 +291,6 @@ have a morphology using the test architecture.
     kind: stratum
     build-depends:
     - morph: build-essential
-      ref: master
-      repo: test:morphs
     chunks:
     -   name: test-chunk
         repo: test:test-chunk
@@ -312,12 +308,8 @@ have a morphology using the test architecture.
     name: $MATCH_1
     strata:
     -   name: build-essential
-        repo: test:morphs
-        ref: master
         morph: build-essential
     -   name: core
-        repo: test:morphs
-        ref: master
         morph: core
     EOF
 
@@ -325,17 +317,6 @@ have a morphology using the test architecture.
     run_in "$DATADIR/gits/morphs" git add "core.morph"
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 and strata morphologies."
-
-Morphologies need to support having a null ref, which means look for the
-stratum in the same repository and ref. Testing this requires different
-morphologies.
-
-    IMPLEMENTS GIVEN null refs for local strata
-    nullify_local_refs test:morphs master \
-        "$DATADIR/gits/morphs/test-system.morph" \
-        "$DATADIR/gits/morphs/test-stratum.morph"
-    run_in "$DATADIR/gits/morphs" git add .
-    run_in "$DATADIR/gits/morphs" git commit -m "Use null refs."
 
 
 Implementation sections for system branch operations
@@ -469,8 +450,6 @@ print-architecture` to get a value appropriate for morph.
     name: $MATCH_1
     strata:
     -   name: test-stratum
-        repo: test:morphs
-        ref: master
         morph: test-stratum
     EOF
 

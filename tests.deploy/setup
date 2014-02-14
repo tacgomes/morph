@@ -10,7 +10,7 @@
 # The stratum repository contains a single branch, "master", with a
 # stratum and a system morphology that include the chunk above.
 #
-# Copyright (C) 2011, 2012, 2013  Codethink Limited
+# Copyright (C) 2011, 2012, 2013, 2014  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -116,8 +116,6 @@ cat <<EOF > hello-system.morph
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
         }
     ]
 }
@@ -131,8 +129,6 @@ cat <<EOF > linux-stratum.morph
     "build-depends": [
         {
             "morph": "hello-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
         }
     ],
     "chunks": [
@@ -156,13 +152,9 @@ cat <<EOF > linux-system.morph
     "strata": [
         {
             "morph": "hello-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
         },
         {
             "morph": "linux-stratum",
-            "repo": "test:morphs",
-            "ref": "master"
         }
     ],
     "configuration-extensions": [

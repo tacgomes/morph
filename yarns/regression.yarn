@@ -77,8 +77,6 @@ Implementations
     arch: $arch
     strata:
     - morph: bootstrap-stratum
-      repo: test:morphs
-      ref: master
     EOF
 
     cat << EOF > "$DATADIR/gits/morphs/bootstrap-stratum.morph"
