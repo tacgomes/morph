@@ -416,6 +416,13 @@ Editing morphologies with `morph edit`.
     echo "$MATCH_4" > "$DATADIR/ref.wanted"
     diff -u "$DATADIR/ref.wanted" "$DATADIR/ref.actual"
 
+    IMPLEMENTS THEN in branch (\S+), (system|stratum) (\S+) refers to (\S+) without (\S+)
+    if [ $MATCH_2 == system ]; then field=strata; else field=build-depends; fi
+    { ! "$SRCDIR/scripts/yaml-extract" \
+        "$DATADIR/workspace/$MATCH_1/test:morphs/$MATCH_3.morph" \
+        "$field" name="$MATCH_4" "$MATCH_5"; } 2>&1 |
+        grep -qFe "Object does not contain $MATCH_5"
+
     IMPLEMENTS WHEN the user edits the stratum (\S+) in the system (\S+) in branch (\S+)
     cd "$DATADIR/workspace/$MATCH_3/test:morphs"
     run_morph edit "$MATCH_2" "$MATCH_1"
