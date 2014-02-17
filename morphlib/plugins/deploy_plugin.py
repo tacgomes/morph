@@ -33,6 +33,10 @@ import morphlib
 import morphlib.plugins.branch_and_merge_plugin
 
 
+class ExtensionNotFoundError(morphlib.Error):
+    pass
+
+
 class DeployPlugin(cliapp.Plugin):
 
     def enable(self):
@@ -355,6 +359,9 @@ class DeployPlugin(cliapp.Plugin):
                              deploy_params.items() +
                              user_env.items())
 
+            is_upgrade = 'yes' if self.app.settings['upgrade'] else 'no'
+            final_env['UPGRADE'] = is_upgrade
+
             deployment_type = final_env.pop('type', None)
             if not deployment_type:
                 raise morphlib.Error('"type" is undefined '
@@ -371,6 +378,15 @@ class DeployPlugin(cliapp.Plugin):
 
     def do_deploy(self, build_command, root_repo_dir, ref, artifact,
                   deployment_type, location, env):
+        # Run optional write check extension. These are separate from the write
+        # extension because it may be several minutes before the write
+        # extension itself has the chance to raise an error.
+        try:
+            self._run_extension(
+                root_repo_dir, ref, deployment_type, '.check',
+                [location], env)
+        except ExtensionNotFoundError:
+            pass
 
         # Create a tempdir for this deployment to work in
         deploy_tempdir = tempfile.mkdtemp(
@@ -452,7 +468,7 @@ class DeployPlugin(cliapp.Plugin):
             code_dir = os.path.dirname(morphlib.__file__)
             ext_filename = os.path.join(code_dir, 'exts', name + kind)
             if not os.path.exists(ext_filename):
-                raise morphlib.Error(
+                raise ExtensionNotFoundError(
                     'Could not find extension %s%s' % (name, kind))
             if not self._is_executable(ext_filename):
                 raise morphlib.Error(
