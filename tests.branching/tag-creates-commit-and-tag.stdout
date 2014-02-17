@@ -5,14 +5,14 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Message
 
-commit 790f78a3fc6626189418ab744e39062ed4f41896
+commit 74b7fcdd21ac4756e473eb8a577caaabeab208b0
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
     Message
 
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index e012b5f..1a6f974 100644
+index e012b5f..50da61b 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
 @@ -3,6 +3,7 @@ kind: stratum
@@ -21,12 +21,12 @@ index e012b5f..1a6f974 100644
    repo: test:hello
 -  ref: master
 +  ref: 293fa0b08f0382c63181c36b6efa602876aa8c87
++  unpetrify-ref: master
    build-depends: []
    build-mode: test
-+  unpetrify-ref: master
 
 test:morphs
-commit 790f78a3fc6626189418ab744e39062ed4f41896
+commit 74b7fcdd21ac4756e473eb8a577caaabeab208b0
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
