@@ -28,7 +28,7 @@
 # values for missing fields (e.g., the morph field if name is given).
 # Construct your tests accordingly.
 
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,6 +52,8 @@ with open(sys.argv[1]) as f:
     obj = yaml.safe_load(f)
 for thing in sys.argv[2:]:
     if type(obj) == dict:
+        if thing not in obj:
+            raise Exception("Object does not contain %s" % thing)
         obj = obj[thing]
     elif type(obj) == list:
         if '=' in thing:
