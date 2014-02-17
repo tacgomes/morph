@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,14 +40,6 @@ build-system: manual
         ('kind', 'chunk'),
         ('build-system', 'manual'),
     ])
-
-    def test_loads_as_ordered_dict(self):
-        m = yamlparse.load(self.example_text)
-        self.assertEqual(type(m), OrderedDict)
-
-    def test_dumps_ordered_dicts(self):
-        self.assertEqual(self.example_text,
-                         yamlparse.dump(self.example_dict))
 
     def test_non_map_raises(self):
         incorrect_type = '''\
