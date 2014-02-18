@@ -238,7 +238,7 @@ class Morphology(object):
         to set default values during construction.
 
         '''
-        output_dict = OrderedDict()
+        output_dict = {}
 
         for key in live_dict.keys():
             if key.startswith('_orig_'):

@@ -19,6 +19,8 @@ import json
 import StringIO
 import unittest
 
+import yaml
+
 import morphlib
 from morphlib.morph2 import Morphology
 
@@ -251,19 +253,6 @@ class MorphologyTests(unittest.TestCase):
     ]
 }'''
 
-    def test_writing_preserves_chunk_order(self):
-        text_lines = self.stratum_text.splitlines()
-        text_lines[6] = '            "ref": "new-ref",'
-
-        # Change one of the fields
-        morphology = Morphology(self.stratum_text)
-        morphology['chunks'][0]['ref'] = 'new-ref'
-
-        output = StringIO.StringIO()
-        morphology.update_text(self.stratum_text, output)
-        output_lines = output.getvalue().splitlines()
-        self.assertEqual(text_lines, output_lines)
-
     def test_writing_handles_added_chunks(self):
         text_lines = self.stratum_text.splitlines()
         text_lines = text_lines[0:16] + text_lines[8:17] + text_lines[17:]
@@ -276,8 +265,8 @@ class MorphologyTests(unittest.TestCase):
 
         output = StringIO.StringIO()
         morphology.update_text(self.stratum_text, output)
-        output_lines = output.getvalue().splitlines()
-        self.assertEqual(text_lines, output_lines)
+        d = yaml.load(output.getvalue())
+        self.assertEqual(d['chunks'][2]['name'], 'baz')
 
     def test_writing_handles_deleted_chunks(self):
         text_lines = self.stratum_text.splitlines()
@@ -289,8 +278,8 @@ class MorphologyTests(unittest.TestCase):
 
         output = StringIO.StringIO()
         morphology.update_text(self.stratum_text, output)
-        output_lines = output.getvalue().splitlines()
-        self.assertEqual(text_lines, output_lines)
+        d = yaml.load(output.getvalue())
+        self.assertEqual(len(d['chunks']), 1)
 
     system_text = '''{
     "kind": "system",

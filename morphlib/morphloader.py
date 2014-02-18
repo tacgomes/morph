@@ -205,6 +205,61 @@ class MultipleValidationErrors(morphlib.Error):
             self.msg += ('\t' + str(error))
 
 
+class OrderedDumper(yaml.SafeDumper):
+    keyorder = (
+        'name',
+        'kind',
+        'description',
+        'arch',
+        'strata',
+        'configuration-extensions',
+        'morph',
+        'repo',
+        'ref',
+        'unpetrify-ref',
+        'build-depends',
+        'build-mode',
+        'artifacts',
+        'max-jobs',
+        'products',
+        'chunks',
+        'build-system',
+        'pre-configure-commands',
+        'configure-commands',
+        'post-configure-commands',
+        'pre-build-commands',
+        'build-commands',
+        'post-build-commands',
+        'pre-install-commands',
+        'install-commands',
+        'post-install-commands',
+        'artifact',
+        'include',
+        'systems',
+        'deploy',
+        'type',
+        'location',
+    )
+
+    @classmethod
+    def _iter_in_global_order(cls, mapping):
+        for key in cls.keyorder:
+            if key in mapping:
+                yield key, mapping[key]
+        for key in sorted(mapping.iterkeys()):
+            if key not in cls.keyorder:
+                yield key, mapping[key]
+
+    @classmethod
+    def _represent_dict(cls, dumper, mapping):
+        return dumper.represent_mapping('tag:yaml.org,2002:map',
+                                        cls._iter_in_global_order(mapping))
+
+    def __init__(self, *args, **kwargs):
+        yaml.SafeDumper.__init__(self, *args, **kwargs)
+        self.add_representer(dict, self._represent_dict)
+
+
 class MorphologyLoader(object):
 
     '''Load morphologies from disk, or save them back to disk.'''
@@ -324,7 +379,8 @@ class MorphologyLoader(object):
     def save_to_string(self, morphology):
         '''Return normalised textual form of morphology.'''
 
-        return yaml.safe_dump(morphology.data, default_flow_style=False)
+        return yaml.dump(morphology.data, Dumper=OrderedDumper,
+                         default_flow_style=False)
 
     def save_to_file(self, filename, morphology):
         '''Save a morphology object to a named file.'''

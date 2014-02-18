@@ -505,9 +505,9 @@ build-system: dummy
         # The following verifies that the YAML is written in a normalised
         # fashion.
         self.assertEqual(text, '''\
-build-system: dummy
-kind: chunk
 name: foo
+kind: chunk
+build-system: dummy
 ''')
 
     def test_saves_to_file(self):
@@ -524,9 +524,9 @@ name: foo
         # The following verifies that the YAML is written in a normalised
         # fashion.
         self.assertEqual(text, '''\
-build-system: dummy
-kind: chunk
 name: foo
+kind: chunk
+build-system: dummy
 ''')
 
     def test_validate_does_not_set_defaults(self):
@@ -862,3 +862,35 @@ name: foo
                 self.assertEqual(warning.morphology_name, 'foo')
                 self.assertEqual(warning.stratum_name, 'bar')
                 self.assertEqual(warning.field, obsolete_field)
+
+    def test_unordered_asciibetically_after_ordered(self):
+        # We only get morphologies with arbitrary keys in clusters
+        m = morphlib.morph3.Morphology(
+            name='foo',
+            kind='cluster',
+            systems=[
+                {
+                    'morph': 'system-name',
+                    'repo': 'test:morphs',
+                    'ref': 'master',
+                    'deploy': {
+                        'deployment-foo': {
+                            'type': 'tarball',
+                            'location': '/tmp/path.tar',
+                            'HOSTNAME': 'aasdf',
+                        }
+                    }
+                }
+            ]
+        )
+        s = self.loader.save_to_string(m)
+        # root field order
+        self.assertLess(s.find('name'), s.find('kind'))
+        self.assertLess(s.find('kind'), s.find('systems'))
+        # systems field order
+        self.assertLess(s.find('morph'), s.find('repo'))
+        self.assertLess(s.find('repo'), s.find('ref'))
+        self.assertLess(s.find('ref'), s.find('deploy'))
+        # deployment keys field order
+        self.assertLess(s.find('type'), s.find('location'))
+        self.assertLess(s.find('location'), s.find('HOSTNAME'))

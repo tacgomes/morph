@@ -9,29 +9,28 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit 332fc39a03b63a9586950e0826374dc6fa4ceaf8
+commit ed4fa3a98076e92d61983202ed44455b3689bc16
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index 73ed482..2218f63 100644
+index e012b5f..50da61b 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -2,7 +2,8 @@ chunks:
- - build-depends: []
-   build-mode: test
-   name: hello
--  ref: master
-+  ref: 6c7ddb7a9c0c5bf4ee02a8de030f0892a399c6bb
+@@ -3,6 +3,7 @@ kind: stratum
+ chunks:
+ - name: hello
    repo: test:hello
+-  ref: master
++  ref: 293fa0b08f0382c63181c36b6efa602876aa8c87
 +  unpetrify-ref: master
- kind: stratum
- name: hello-stratum
+   build-depends: []
+   build-mode: test
 
 test:morphs
-commit 332fc39a03b63a9586950e0826374dc6fa4ceaf8
+commit ed4fa3a98076e92d61983202ed44455b3689bc16
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -39,7 +38,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
-commit acb64a107d0ebdbbf0b6850b8272301a66c0a4b7
+commit dc323150575be26e3df0d2dab678560c04281b9f
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
