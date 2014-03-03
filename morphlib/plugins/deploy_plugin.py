@@ -16,6 +16,7 @@
 
 import cliapp
 import contextlib
+import json
 import os
 import shutil
 import stat
@@ -261,6 +262,13 @@ class DeployPlugin(cliapp.Plugin):
         are set as environment variables when either the configuration or the
         write extension runs (except `type` and `location`).
 
+        Deployment configuration is stored in the deployed system as
+        /baserock/deployment.meta. THIS CONTAINS ALL ENVIRONMENT VARIABLES SET
+        DURINGR DEPLOYMENT, so make sure you have no sensitive information in
+        your environment that is being leaked. As a special case, any
+        environment/deployment variable that contains 'PASSWORD' in its name is
+        stripped out and not stored in the final system.
+
         '''
 
         if not args:
@@ -419,6 +427,14 @@ class DeployPlugin(cliapp.Plugin):
                 msg='System unpacked at %(system_tree)s',
                 system_tree=system_tree)
 
+            self.app.status(
+                msg='Writing deployment metadata file')
+            metadata = self.create_metadata(
+                    artifact, root_repo_dir, deployment_type, location, env)
+            metadata_path = os.path.join(
+                    system_tree, 'baserock', 'deployment.meta')
+            with morphlib.savefile.SaveFile(metadata_path, 'w') as f:
+                f.write(json.dumps(metadata, indent=4, sort_keys=True))
 
             # Run configuration extensions.
             self.app.status(msg='Configure system')
@@ -496,3 +512,41 @@ class DeployPlugin(cliapp.Plugin):
         st = os.stat(filename)
         mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         return (stat.S_IMODE(st.st_mode) & mask) != 0
+
+    def create_metadata(self, system_artifact, root_repo_dir, deployment_type,
+                        location, env):
+        '''Deployment-specific metadata.
+
+        The `build` and `deploy` operations must be from the same ref, so full
+        info on the root repo that the system came from is in
+        /baserock/${system_artifact}.meta and is not duplicated here. We do
+        store a `git describe` of the definitions.git repo as a convenience for
+        post-upgrade hooks that we may need to implement at a future date:
+        the `git describe` output lists the last tag, which will hopefully help
+        us to identify which release of a system was deployed without having to
+        keep a list of SHA1s somewhere or query a Trove.
+
+        '''
+
+        def remove_passwords(env):
+            def is_password(key):
+                return 'PASSWORD' in key
+            return { k:v for k, v in env.iteritems() if not is_password(k) }
+
+        meta = {
+            'system-artifact-name': system_artifact.name,
+            'configuration': remove_passwords(env),
+            'deployment-type': deployment_type,
+            'location': location,
+            'definitions-version': {
+                'describe': root_repo_dir.describe(),
+            },
+            'morph-version': {
+                'ref': morphlib.gitversion.ref,
+                'tree': morphlib.gitversion.tree,
+                'commit': morphlib.gitversion.commit,
+                'version': morphlib.gitversion.version,
+            },
+        }
+
+        return meta
