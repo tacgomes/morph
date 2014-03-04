@@ -9,11 +9,39 @@ Morph Deployment Tests
     THEN morph failed
     AND the deploy error message includes the string "morph deploy is only supported for cluster morphologies"
 
-    SCENARIO deploying a cluster morphology
+    SCENARIO deploying a cluster morphology as a tarfile
     GIVEN a workspace
     AND a git server
     WHEN the user checks out the system branch called master
     GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
     WHEN the user builds the system test-system in branch master
     AND the user attempts to deploy the cluster test-cluster in branch master with options system.location=test.tar
+    THEN morph succeeded
+
+Some deployment types support upgrades, but some do not and Morph needs to make
+this clear.
+
+    SCENARIO attempting to upgrade a tarfile deployment
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
+    WHEN the user builds the system test-system in branch master
+    AND the user attempts to upgrade the cluster test-cluster in branch master with options system.location=test.tar
+    THEN morph failed
+
+The rawdisk write extension supports both initial deployment and subsequent
+upgrades. Note that the rawdisk upgrade code needs bringing up to date to use
+the new Baserock OS version manager tool. Also, the test deploys an identical
+base OS as an upgrade. While pointless, this is permitted and does exercise
+the same code paths as a real upgrade.
+
+    SCENARIO deploying a cluster morphology as rawdisk and then upgrading it
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    GIVEN a cluster called test-cluster for deploying only the test-system system as type rawdisk in system branch master
+    WHEN the user builds the system test-system in branch master
+    AND the user attempts to deploy the cluster test-cluster in branch master with options system.location=test.img system.DISK_SIZE=10M system.VERSION_LABEL=test1
+    AND the user attempts to upgrade the cluster test-cluster in branch master with options system.location=test.img system.VERSION_LABEL=test2
     THEN morph succeeded

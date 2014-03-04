@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -609,6 +609,11 @@ class GitDirectory(object):
             return self._update_ref(('-d', ref, old_sha1), message)
         except Exception, e:
             raise RefDeleteError(self, ref, old_sha1, e)
+
+    def describe(self):
+        version = self._runcmd(
+            ['git', 'describe', '--always', '--dirty=-unreproducible'])
+        return version.strip()
 
 
 def init(dirname):
