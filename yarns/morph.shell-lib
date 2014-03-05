@@ -19,6 +19,15 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+# Add $SRCDIR to PYTHONPATH.
+
+case "$PYTHONPATH" in
+    '') PYTHONPATH="$SRCDIR)" ;;
+    *) PYTHONPATH="$SRCDIR:$PYTHONPATH" ;;
+esac
+export PYTHONPATH
+
+
 # Run Morph from the source tree, ignoring any configuration files.
 # This way the test suite is not affected by any configuration the user
 # or system may have. Instead, we'll use the `$DATADIR/morph.conf` file,
@@ -28,7 +37,7 @@ run_morph()
 {
     {
         set +e
-        PYTHONPATH="$SRCDIR" "$SRCDIR"/morph \
+        "$SRCDIR"/morph \
             --cachedir-min-space=0 --tempdir-min-space=0 \
             --no-default-config --config "$DATADIR/morph.conf" "$@" \
             2> "$DATADIR/result-$1"
