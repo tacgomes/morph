@@ -148,15 +148,6 @@ assert_morphologies_are_petrified()
 }
 
 
-# Currently, yarn isn't setting $SRCDIR to point at the project source
-# directory. We simulate this here.
-
-if ! env | grep '^SRCDIR=' > /dev/null
-then
-    export SRCDIR="$(pwd)"
-fi
-
-
 # Added until it's fixed in upstream.
 # It's a solution to create an empty home directory each execution
 export HOME="$DATADIR/home"
