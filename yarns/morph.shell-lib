@@ -174,3 +174,12 @@ then
      email = tomjon@codethink.co.uk
 EOF
 fi
+
+
+# Change colons to slashes. This is used when converting an aliases
+# repository URL (e.g., test:morphs) into a directory path.
+
+slashify_colons()
+{
+    echo "$1" | sed s,:,/,g
+}
