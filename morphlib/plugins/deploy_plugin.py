@@ -338,16 +338,17 @@ class DeployPlugin(cliapp.Plugin):
             try:
                 for system in cluster_morphology['systems']:
                     self.deploy_system(build_command, deploy_tempdir,
-                                       root_repo_dir,
-                                       bb.root_repo_url, bb.root_ref,
-                                       system, env_vars)
+                                       root_repo_dir, bb.root_repo_url,
+                                       bb.root_ref, system, env_vars,
+                                       parent_location='')
             finally:
                 shutil.rmtree(deploy_tempdir)
 
         self.app.status(msg='Finished deployment')
 
     def deploy_system(self, build_command, deploy_tempdir,
-                      root_repo_dir, build_repo, ref, system, env_vars):
+                      root_repo_dir, build_repo, ref, system, env_vars,
+                      parent_location):
         # Find the artifact to build
         morph = system['morph']
         srcpool = build_command.create_source_pool(build_repo, ref,
@@ -355,7 +356,7 @@ class DeployPlugin(cliapp.Plugin):
 
         artifact = build_command.resolve_artifacts(srcpool)
 
-        deploy_defaults = system['deploy-defaults']
+        deploy_defaults = system.get('deploy-defaults', {})
         deployments = system['deploy']
         for system_id, deploy_params in deployments.iteritems():
             user_env = morphlib.util.parse_environment_pairs(
@@ -388,9 +389,19 @@ class DeployPlugin(cliapp.Plugin):
                                             root_repo_dir, ref, artifact,
                                             deployment_type, location,
                                             final_env)
+            for subsystem in system.get('subsystems', []):
+                self.deploy_system(build_command, deploy_tempdir,
+                                   root_repo_dir, build_repo,
+                                   ref, subsystem, env_vars,
+                                   parent_location=system_tree)
+            if parent_location:
+                deploy_location = os.path.join(parent_location,
+                                               location.lstrip('/'))
+            else:
+                deploy_location = location
             self.run_deploy_commands(deploy_tempdir, final_env, artifact,
                                      root_repo_dir, ref, deployment_type,
-                                     system_tree, location)
+                                     system_tree, deploy_location)
 
     def check_deploy(self, root_repo_dir, ref, deployment_type, location, env):
         # Run optional write check extension. These are separate from the write
@@ -405,6 +416,7 @@ class DeployPlugin(cliapp.Plugin):
 
     def setup_deploy(self, build_command, deploy_tempdir, root_repo_dir, ref,
                      artifact, deployment_type, location, env):
+        # deployment_type, location and env are only used for saving metadata
 
         # Create a tempdir to extract the rootfs in
         system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
