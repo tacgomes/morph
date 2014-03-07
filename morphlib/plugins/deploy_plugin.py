@@ -332,13 +332,20 @@ class DeployPlugin(cliapp.Plugin):
                                 ref=build_ref, dirname=gd.dirname,
                                 remote=remote.get_push_url(), chatty=True)
 
-            for system in cluster_morphology['systems']:
-                self.deploy_system(build_command, root_repo_dir,
-                                   bb.root_repo_url, bb.root_ref,
-                                   system, env_vars)
+            # Create a tempdir for this deployment to work in
+            deploy_tempdir = tempfile.mkdtemp(
+                dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
+            try:
+                for system in cluster_morphology['systems']:
+                    self.deploy_system(build_command, deploy_tempdir,
+                                       root_repo_dir,
+                                       bb.root_repo_url, bb.root_ref,
+                                       system, env_vars)
+            finally:
+                shutil.rmtree(deploy_tempdir)
 
-    def deploy_system(self, build_command, root_repo_dir, build_repo, ref,
-                      system, env_vars):
+    def deploy_system(self, build_command, deploy_tempdir,
+                      root_repo_dir, build_repo, ref, system, env_vars):
         # Find the artifact to build
         morph = system['morph']
         srcpool = build_command.create_source_pool(build_repo, ref,
@@ -373,11 +380,12 @@ class DeployPlugin(cliapp.Plugin):
                                      'for system "%s"' % system_id)
 
             morphlib.util.sanitize_environment(final_env)
-            self.do_deploy(build_command, root_repo_dir, ref, artifact,
+            self.do_deploy(build_command, deploy_tempdir,
+                           root_repo_dir, ref, artifact,
                            deployment_type, location, final_env)
 
-    def do_deploy(self, build_command, root_repo_dir, ref, artifact,
-                  deployment_type, location, env):
+    def do_deploy(self, build_command, deploy_tempdir, root_repo_dir,
+                  ref, artifact, deployment_type, location, env):
         # Run optional write check extension. These are separate from the write
         # extension because it may be several minutes before the write
         # extension itself has the chance to raise an error.
@@ -388,18 +396,15 @@ class DeployPlugin(cliapp.Plugin):
         except ExtensionNotFoundError:
             pass
 
-        # Create a tempdir for this deployment to work in
-        deploy_tempdir = tempfile.mkdtemp(
-            dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
+        # Create a tempdir to extract the rootfs in
+        system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
+
+        # Extensions get a private tempdir so we can more easily clean
+        # up any files an extension left behind
+        deploy_private_tempdir = tempfile.mkdtemp(dir=deploy_tempdir)
+        env['TMPDIR'] = deploy_private_tempdir
+
         try:
-            # Create a tempdir to extract the rootfs in
-            system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
-
-            # Extensions get a private tempdir so we can more easily clean
-            # up any files an extension left behind
-            deploy_private_tempdir = tempfile.mkdtemp(dir=deploy_tempdir)
-            env['TMPDIR'] = deploy_private_tempdir
-
             # Unpack the artifact (tarball) to a temporary directory.
             self.app.status(msg='Unpacking system for configuration')
 
@@ -453,7 +458,8 @@ class DeployPlugin(cliapp.Plugin):
         finally:
             # Cleanup.
             self.app.status(msg='Cleaning up')
-            shutil.rmtree(deploy_tempdir)
+            shutil.rmtree(deploy_private_tempdir)
+            shutil.rmtree(system_tree)
 
         self.app.status(msg='Finished deployment')
 
