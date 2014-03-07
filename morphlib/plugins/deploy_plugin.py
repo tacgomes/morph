@@ -26,13 +26,6 @@ import uuid
 
 import morphlib
 
-# UGLY HACK: We need to re-use some code from the branch and merge
-# plugin, so we import and instantiate that plugin. This needs to
-# be fixed by refactoring the codebase so the shared code is in
-# morphlib, not in a plugin. However, this hack lets us re-use
-# code without copying it.
-import morphlib.plugins.branch_and_merge_plugin
-
 
 class ExtensionNotFoundError(morphlib.Error):
     pass
@@ -51,9 +44,6 @@ class DeployPlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'deploy', self.deploy,
             arg_synopsis='CLUSTER [SYSTEM.KEY=VALUE]')
-        self.other = \
-            morphlib.plugins.branch_and_merge_plugin.BranchAndMergePlugin()
-        self.other.app = self.app
 
     def disable(self):
         pass
