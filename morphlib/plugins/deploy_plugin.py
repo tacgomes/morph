@@ -261,6 +261,11 @@ class DeployPlugin(cliapp.Plugin):
 
         '''
 
+        # Nasty hack to allow deploying things of a different architecture
+        def validate(self, root_artifact):
+            pass
+        morphlib.buildcommand.BuildCommand._validate_architecture = validate
+
         if not args:
             raise cliapp.AppException(
                 'Too few arguments to deploy command (see help)')
@@ -338,9 +343,6 @@ class DeployPlugin(cliapp.Plugin):
         morph = system['morph']
         srcpool = build_command.create_source_pool(build_repo, ref,
                                                    morph + '.morph')
-        def validate(self, root_artifact):
-            pass
-        morphlib.buildcommand.BuildCommand._validate_architecture = validate
 
         artifact = build_command.resolve_artifacts(srcpool)
 
