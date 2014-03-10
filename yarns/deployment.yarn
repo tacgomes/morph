@@ -15,7 +15,7 @@ Morph Deployment Tests
     WHEN the user checks out the system branch called master
     GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
     WHEN the user builds the system test-system in branch master
-    AND the user attempts to deploy the cluster test-cluster in branch master with options system.location=test.tar
+    AND the user attempts to deploy the cluster test-cluster in branch master with options test-system.location=test.tar
     THEN morph succeeded
 
 Some deployment types support upgrades, but some do not and Morph needs to make
@@ -27,7 +27,7 @@ this clear.
     WHEN the user checks out the system branch called master
     GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
     WHEN the user builds the system test-system in branch master
-    AND the user attempts to upgrade the cluster test-cluster in branch master with options system.location=test.tar
+    AND the user attempts to upgrade the cluster test-cluster in branch master with options test-system.location=test.tar
     THEN morph failed
 
 The rawdisk write extension supports both initial deployment and subsequent
@@ -42,6 +42,7 @@ the same code paths as a real upgrade.
     WHEN the user checks out the system branch called master
     GIVEN a cluster called test-cluster for deploying only the test-system system as type rawdisk in system branch master
     WHEN the user builds the system test-system in branch master
-    AND the user attempts to deploy the cluster test-cluster in branch master with options system.location=test.img system.DISK_SIZE=10M system.VERSION_LABEL=test1
-    AND the user attempts to upgrade the cluster test-cluster in branch master with options system.location=test.img system.VERSION_LABEL=test2
+    AND the user attempts to deploy the cluster test-cluster in branch master with options test-system.location=test.img test-system.DISK_SIZE=10M test-system.VERSION_LABEL=test1
+    THEN morph succeeded
+    WHEN the user attempts to upgrade the cluster test-cluster in branch master with options test-system.location=test.img test-system.VERSION_LABEL=test2
     THEN morph succeeded

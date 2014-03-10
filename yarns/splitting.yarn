@@ -49,7 +49,7 @@ its contents.
 
     GIVEN a cluster called test-cluster for deploying only the test-system system as type tar in system branch master
     WHEN the user builds the system test-system in branch master
-    AND the user attempts to deploy the cluster test-cluster in branch master with options system.location="$DATADIR/test.tar"
+    AND the user attempts to deploy the cluster test-cluster in branch master with options test-system.location="$DATADIR/test.tar"
 
 The -runtime artifacts include executables and shared libraries.
 

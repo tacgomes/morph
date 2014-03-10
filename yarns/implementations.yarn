@@ -692,7 +692,7 @@ with only the minimal information.
       repo: test:morphs
       ref: $branch
       deploy:
-        system:
+        $system:
           type: $type
     EOF
 
