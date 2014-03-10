@@ -675,27 +675,6 @@ them, so they can be added to the end of the implements section.
     if [ $MATCH_1 == "upgrades" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
-To successfully deploy systems, we need a cluster morphology. Since the
-common case is to just have one system, we generate a stub morphology
-with only the minimal information.
-
-    IMPLEMENTS GIVEN a cluster called (\S+) for deploying only the (\S+) system as type (\S+) in system branch (\S+)
-    name="$MATCH_1"
-    system="$MATCH_2"
-    type="$MATCH_3"
-    branch="$MATCH_4"
-    cat << EOF > "$DATADIR/workspace/$branch/test/morphs/$name.morph"
-    name: $name
-    kind: cluster
-    systems:
-    - morph: $system
-      repo: test:morphs
-      ref: $branch
-      deploy:
-        $system:
-          type: $type
-    EOF
-
 Implementations sections for reading error messages
 ===================================================
 
@@ -817,7 +796,61 @@ Altering morphologies in their source repositories
 Altering morphologies in the workspace
 --------------------------------------
 
+### Altering strata ###
+
     IMPLEMENTS GIVEN stratum (\S+) in system branch (\S+) has match rules: (.*)
     cd "$DATADIR/workspace/$MATCH_2/test/morphs"
     "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
       "$MATCH_1.morph" "$MATCH_3"
+
+### Altering clusters ###
+
+    IMPLEMENTS GIVEN a cluster called (\S+) in system branch (\S+)
+    name="$MATCH_1"
+    branch="$MATCH_2"
+    "$SRCDIR/scripts/edit-morph" cluster-init \
+        "$DATADIR/workspace/$branch/test/morphs/$name.morph"
+
+    IMPLEMENTS GIVEN a (sub)?system in cluster (\S+) in branch (\S+) called (\S+)
+    cluster="$MATCH_2"
+    branch="$MATCH_3"
+    name="$MATCH_4"
+    "$SRCDIR/scripts/edit-morph" cluster-system-init \
+        "$DATADIR/workspace/$branch/test/morphs/$cluster.morph" "$name"
+
+    IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) builds (\S+)
+    name="$MATCH_2"
+    cluster="$MATCH_3"
+    branch="$MATCH_4"
+    morphology="$MATCH_5"
+    "$SRCDIR/scripts/edit-morph" cluster-system-set-morphology \
+        "$DATADIR/workspace/$branch/test/morphs/$cluster.morph" "$name" \
+        "$morphology"
+
+    IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment type: (\S+)
+    name="$MATCH_2"
+    cluster="$MATCH_3"
+    branch="$MATCH_4"
+    type="$MATCH_5"
+    "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-type \
+        "$DATADIR/workspace/$branch/test/morphs/$cluster.morph" "$name" \
+        "$type"
+
+    IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment location: (\S+)
+    name="$MATCH_2"
+    cluster="$MATCH_3"
+    branch="$MATCH_4"
+    location="$MATCH_5"
+    "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-location \
+        "$DATADIR/workspace/$branch/test/morphs/$cluster.morph" "$name" \
+        "$location"
+
+    IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment variable: ([^=]+)=(.*)
+    name="$MATCH_2"
+    cluster="$MATCH_3"
+    branch="$MATCH_4"
+    key="$MATCH_5"
+    val="$MATCH_6"
+    "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-variable \
+        "$DATADIR/workspace/$branch/test/morphs/$cluster.morph" "$name" \
+        "$key" "$val"
