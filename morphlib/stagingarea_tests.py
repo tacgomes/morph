@@ -57,7 +57,7 @@ class FakeApplication(object):
     def runcmd_unchecked(self, *args, **kwargs):
         return cliapp.runcmd_unchecked(*args, **kwargs)
 
-    def status(self, msg):
+    def status(self, **kwargs):
         pass
 
 
