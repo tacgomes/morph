@@ -20,12 +20,6 @@
 
 set -eu
 
-# DISABLED TEST: This does not seem to have been tested at merge time,
-# in a clean repository. The tests produces output (see below for
-# definitions-version), but the expected output is empty.
-# FIXME: This should be fixed.
-exit
-
 . "$SRCDIR/tests.deploy/setup-build"
 
 cd "$DATADIR/workspace/branch1"
@@ -34,7 +28,7 @@ cd "$DATADIR/workspace/branch1"
 
 "$SRCDIR/scripts/test-morph" build linux-system
 
-GIT_DIR=test:morphs/.git git tag -a my-test-tag -m "Example tag" HEAD
+GIT_DIR=test/morphs/.git git tag -a my-test-tag -m "Example tag" HEAD
 
 "$SRCDIR/scripts/test-morph" --log "$DATADIR/deploy.log" \
     deploy test_cluster \
@@ -42,7 +36,7 @@ GIT_DIR=test:morphs/.git git tag -a my-test-tag -m "Example tag" HEAD
     linux-system-2.HOSTNAME="baserock-rocks-even-more" \
     > /dev/null
 
-outputdir=test:morphs
+outputdir=test/morphs
 test -e $outputdir/hello-system.img
 test -e $outputdir/linux-system-1.tar
 test -e $outputdir/linux-system-2.tar
