@@ -9,7 +9,7 @@ Date:   Tue Jul 31 16:51:54 2012 +0000
 
 Second
 
-commit ed4fa3a98076e92d61983202ed44455b3689bc16
+commit 589936e1097412e612ca3843be5f0a9f77a08077
 Author: developer <developer@example.com>
 Date:   Tue Jul 31 16:51:54 2012 +0000
 
@@ -30,7 +30,7 @@ index e012b5f..50da61b 100644
    build-mode: test
 
 test:morphs
-commit ed4fa3a98076e92d61983202ed44455b3689bc16
+commit 589936e1097412e612ca3843be5f0a9f77a08077
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>
@@ -38,7 +38,7 @@ CommitDate: Tue Jul 31 16:51:54 2012 +0000
 
     Second
 
-commit dc323150575be26e3df0d2dab678560c04281b9f
+commit 2a240d0170183a94869bd30a9112d11715627e4c
 Author:     developer <developer@example.com>
 AuthorDate: Tue Jul 31 16:51:54 2012 +0000
 Commit:     developer <developer@example.com>

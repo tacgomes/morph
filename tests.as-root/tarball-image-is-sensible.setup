@@ -46,7 +46,7 @@ cat <<EOF > hello-tarball.morph
 {
     "name": "hello-tarball",
     "kind": "system",
-    "arch": "$(uname -m)",
+    "arch": "$("$SRCDIR/scripts/test-morph" print-architecture)",
     "strata": [
         {
             "morph": "link-stratum",

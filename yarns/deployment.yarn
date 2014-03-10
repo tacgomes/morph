@@ -54,7 +54,7 @@ the same code paths as a real upgrade.
     AND system test-system in cluster test-cluster in branch master has deployment type: rawdisk
     AND system test-system in cluster test-cluster in branch master has deployment location: test.tar
     WHEN the user builds the system test-system in branch master
-    AND the user attempts to deploy the cluster test-cluster in branch master with options test-system.DISK_SIZE=10M test-system.VERSION_LABEL=test1
+    AND the user attempts to deploy the cluster test-cluster in branch master with options test-system.DISK_SIZE=100M test-system.VERSION_LABEL=test1
     THEN morph succeeded
     WHEN the user attempts to upgrade the cluster test-cluster in branch master with options test-system.VERSION_LABEL=test2
     THEN morph succeeded

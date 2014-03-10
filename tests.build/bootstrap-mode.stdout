@@ -1,8 +1,8 @@
 build-essential strata:
-./2271bef9cb222b1fd49bd2bcf3da435e02b4e0ce9fdddbcdf9358f608f51b547.stratum.build-essential-devel
-["xxxx.chunk.cc-devel", "xxxx.chunk.cc-doc"]
-./2a908a170acf10b4e9e131a007c8f3f0fa4961a7227c60793b3550c107f4c312.stratum.build-essential-runtime
+./b75013d0859b014c0315da32d8b678efe7f781af458ea40e6d16854f2dbcd23e.stratum.build-essential-runtime
 ["xxxx.chunk.cc-bins", "xxxx.chunk.cc-libs", "xxxx.chunk.cc-locale", "xxxx.chunk.cc-misc"]
+./c63086da61edde5bb6141a7100862e24bbcb47be7692bc1176883fa5e18d5503.stratum.build-essential-devel
+["xxxx.chunk.cc-devel", "xxxx.chunk.cc-doc"]
 
 hello-system:
 ./
