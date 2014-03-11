@@ -82,9 +82,13 @@ class GitDirectoryContentsTests(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     def test_lists_files_in_work_tree(self):
+        expected = ['bar.morph', 'baz.morph', 'foo.morph', 'quux']
+
         gd = morphlib.gitdir.GitDirectory(self.dirname)
-        self.assertEqual(sorted(gd.list_files()),
-                         ['bar.morph', 'baz.morph', 'foo.morph', 'quux'])
+        self.assertEqual(sorted(gd.list_files()), expected)
+
+        gd = morphlib.gitdir.GitDirectory(self.dirname + '/')
+        self.assertEqual(sorted(gd.list_files()), expected)
 
     def test_read_file_in_work_tree(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)

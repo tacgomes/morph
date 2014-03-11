@@ -478,7 +478,8 @@ class GitDirectory(object):
             if dirpath == self.dirname and '.git' in subdirs:
                 subdirs.remove('.git')
             for filename in filenames:
-                yield os.path.join(dirpath, filename)[len(self.dirname)+1:]
+                filepath = os.path.join(dirpath, filename)
+                yield os.path.relpath(filepath, start=self.dirname)
 
     def _list_files_in_ref(self, ref):
         tree = self.resolve_ref_to_tree(ref)

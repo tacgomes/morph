@@ -191,7 +191,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             ws, root_url, system_branch, cached_repo, base_ref) as (sb, gd):
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(base_ref)
+                raise BranchRootHasNoSystemsError(root_url, base_ref)
 
 
     def branch(self, args):
@@ -252,7 +252,7 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             gd.checkout(system_branch)
 
             if not self._checkout_has_systems(gd):
-                raise BranchRootHasNoSystemsError(base_ref)
+                raise BranchRootHasNoSystemsError(root_url, base_ref)
 
     def _save_dirty_morphologies(self, loader, sb, morphs):
         logging.debug('Saving dirty morphologies: start')
