@@ -349,59 +349,75 @@ class DeployPlugin(cliapp.Plugin):
     def deploy_system(self, build_command, deploy_tempdir,
                       root_repo_dir, build_repo, ref, system, env_vars,
                       parent_location):
-        # Find the artifact to build
-        morph = system['morph']
-        srcpool = build_command.create_source_pool(build_repo, ref,
-                                                   morph + '.morph')
+        old_status_prefix = self.app.status_prefix
+        system_status_prefix = '%s[%s]' % (old_status_prefix, system['morph'])
+        self.app.status_prefix = system_status_prefix
+        try:
+            # Find the artifact to build
+            morph = system['morph']
+            srcpool = build_command.create_source_pool(build_repo, ref,
+                                                       morph + '.morph')
 
-        artifact = build_command.resolve_artifacts(srcpool)
+            artifact = build_command.resolve_artifacts(srcpool)
 
-        deploy_defaults = system.get('deploy-defaults', {})
-        deployments = system['deploy']
-        for system_id, deploy_params in deployments.iteritems():
-            user_env = morphlib.util.parse_environment_pairs(
-                    os.environ,
-                    [pair[len(system_id)+1:]
-                    for pair in env_vars
-                    if pair.startswith(system_id)])
+            deploy_defaults = system.get('deploy-defaults', {})
+            deployments = system['deploy']
+            for system_id, deploy_params in deployments.iteritems():
+                deployment_status_prefix = '%s[%s]' % (
+                    system_status_prefix, system_id)
+                self.app.status_prefix = deployment_status_prefix
+                try:
+                    user_env = morphlib.util.parse_environment_pairs(
+                            os.environ,
+                            [pair[len(system_id)+1:]
+                            for pair in env_vars
+                            if pair.startswith(system_id)])
 
-            final_env = dict(deploy_defaults.items() +
-                             deploy_params.items() +
-                             user_env.items())
+                    final_env = dict(deploy_defaults.items() +
+                                     deploy_params.items() +
+                                     user_env.items())
 
-            is_upgrade = 'yes' if self.app.settings['upgrade'] else 'no'
-            final_env['UPGRADE'] = is_upgrade
+                    is_upgrade = ('yes' if self.app.settings['upgrade']
+                                        else 'no')
+                    final_env['UPGRADE'] = is_upgrade
 
-            deployment_type = final_env.pop('type', None)
-            if not deployment_type:
-                raise morphlib.Error('"type" is undefined '
-                                     'for system "%s"' % system_id)
+                    deployment_type = final_env.pop('type', None)
+                    if not deployment_type:
+                        raise morphlib.Error('"type" is undefined '
+                                             'for system "%s"' % system_id)
 
-            location = final_env.pop('location', None)
-            if not location:
-                raise morphlib.Error('"location" is undefined '
-                                     'for system "%s"' % system_id)
+                    location = final_env.pop('location', None)
+                    if not location:
+                        raise morphlib.Error('"location" is undefined '
+                                             'for system "%s"' % system_id)
 
-            morphlib.util.sanitize_environment(final_env)
-            self.check_deploy(root_repo_dir, ref, deployment_type, location,
-                              final_env)
-            system_tree = self.setup_deploy(build_command, deploy_tempdir,
-                                            root_repo_dir, ref, artifact,
-                                            deployment_type, location,
-                                            final_env)
-            for subsystem in system.get('subsystems', []):
-                self.deploy_system(build_command, deploy_tempdir,
-                                   root_repo_dir, build_repo,
-                                   ref, subsystem, env_vars,
-                                   parent_location=system_tree)
-            if parent_location:
-                deploy_location = os.path.join(parent_location,
-                                               location.lstrip('/'))
-            else:
-                deploy_location = location
-            self.run_deploy_commands(deploy_tempdir, final_env, artifact,
-                                     root_repo_dir, ref, deployment_type,
-                                     system_tree, deploy_location)
+                    morphlib.util.sanitize_environment(final_env)
+                    self.check_deploy(root_repo_dir, ref, deployment_type,
+                                      location, final_env)
+                    system_tree = self.setup_deploy(build_command,
+                                                    deploy_tempdir,
+                                                    root_repo_dir,
+                                                    ref, artifact,
+                                                    deployment_type,
+                                                    location, final_env)
+                    for subsystem in system.get('subsystems', []):
+                        self.deploy_system(build_command, deploy_tempdir,
+                                           root_repo_dir, build_repo,
+                                           ref, subsystem, env_vars,
+                                           parent_location=system_tree)
+                    if parent_location:
+                        deploy_location = os.path.join(parent_location,
+                                                       location.lstrip('/'))
+                    else:
+                        deploy_location = location
+                    self.run_deploy_commands(deploy_tempdir, final_env,
+                                             artifact, root_repo_dir,
+                                             ref, deployment_type,
+                                             system_tree, deploy_location)
+                finally:
+                    self.app.status_prefix = system_status_prefix
+        finally:
+            self.app.status_prefix = old_status_prefix
 
     def check_deploy(self, root_repo_dir, ref, deployment_type, location, env):
         # Run optional write check extension. These are separate from the write
