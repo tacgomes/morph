@@ -526,7 +526,8 @@ class DeployPlugin(cliapp.Plugin):
                         name=name, kind=kind)
         self.app.runcmd(
             [ext_filename] + args,
-            ['sh', '-c', 'while read l; do echo `date "+%F %T"` $l; done'],
+            ['sh', '-c', 'while read l; do echo `date "+%F %T"` "$1$l"; done',
+             '-', '%s[%s]' % (self.app.status_prefix, name + kind)],
             cwd=gd.dirname, env=env, stdout=None, stderr=None)
         
         if delete_ext:
