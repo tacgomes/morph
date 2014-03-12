@@ -359,7 +359,10 @@ class Morph(cliapp.Application):
             morphology = resolved_morphologies[reference]
 
             visit(reponame, ref, filename, absref, tree, morphology)
-            if morphology['kind'] == 'system':
+            if morphology['kind'] == 'cluster':
+                raise cliapp.AppException(
+                    "Cannot build a morphology of type 'cluster'.")
+            elif morphology['kind'] == 'system':
                 queue.extend((s.get('repo') or reponame,
                               s.get('ref') or ref,
                               '%s.morph' % s['morph'])
