@@ -23,7 +23,7 @@ set -eu
 
 cache="$DATADIR/cache/artifacts"
 
-arch=$("$SRCDIR/scripts/test-morph" print-architecture)
+arch=$(uname -m)
 
 cd "$DATADIR/kernel-repo"
 cat <<EOF >linux.morph

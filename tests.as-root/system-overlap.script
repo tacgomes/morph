@@ -31,7 +31,7 @@ cat <<EOF >overlap-system.morph
 {
   "name": "overlap-system",
   "kind": "system",
-  "arch": "$("$SRCDIR/scripts/test-morph" print-architecture)",
+  "arch": "$(uname -m)",
   "strata": [
     {
       "morph": "foo-baz-stratum",
