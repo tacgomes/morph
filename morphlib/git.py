@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013  Codethink Limited
+# Copyright (C) 2011-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -279,6 +279,10 @@ def copy_repository(runcmd, repo, destdir, is_mirror=True):
 def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
     runcmd(['git', 'checkout', ref], cwd=gitdir)
+    gd = morphlib.gitdir.GitDirectory(gitdir)
+    if gd.has_fat():
+        gd.fat_init()
+        gd.fat_pull()
 
 
 def index_has_changes(runcmd, gitdir):
@@ -308,6 +312,10 @@ def clone_into(runcmd, srcpath, targetpath, ref=None):
         runcmd(['git', 'checkout', ref], cwd=targetpath)
     else:
         runcmd(['git', 'clone', '-b', ref, srcpath, targetpath])
+    gd = morphlib.gitdir.GitDirectory(targetpath)
+    if gd.has_fat():
+        gd.fat_init()
+        gd.fat_pull()
 
 def is_valid_sha1(ref):
     '''Checks whether a string is a valid SHA1.'''
