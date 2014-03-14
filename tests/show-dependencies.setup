@@ -347,7 +347,7 @@ cat <<EOF > xfce-system.morph
 {
   "name": "xfce-system",
   "kind": "system",
-  "arch": "$(uname -m)",
+  "arch": "$("$SRCDIR/scripts/test-morph" print-architecture)",
   "strata": [
     {
       "build-mode": "test",

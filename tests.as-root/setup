@@ -132,7 +132,7 @@ git add tools-stratum.morph
 cat <<EOF > hello-system.morph
 name: hello-system
 kind: system
-arch: `uname -m`
+arch: `"$SRCDIR/scripts/test-morph" print-architecture`
 strata:
     - morph: hello-stratum
 EOF
@@ -155,7 +155,7 @@ git add linux-stratum.morph
 cat <<EOF > linux-system.morph
 name: linux-system
 kind: system
-arch: `uname -m`
+arch: `"$SRCDIR/scripts/test-morph" print-architecture`
 strata:
     - morph: hello-stratum
     - morph: linux-stratum
