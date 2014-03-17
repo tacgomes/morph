@@ -36,6 +36,8 @@ import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
 import morphlib.gitversion
 
+SYSTEM_INTEGRATION_PATH = os.path.join('baserock', 'system-integration')
+
 def extract_sources(app, repo_cache, repo, sha1, srcdir): #pragma: no cover
     '''Get sources from git to a source directory, including submodules'''
 
@@ -419,11 +421,44 @@ class ChunkBuilder(BuilderBase):
                             shutil.copyfileobj(readlog, self.app.output)
                         raise e
 
+    def write_system_integration_commands(self, destdir,
+            integration_commands, artifact_name): # pragma: no cover
+
+        rel_path = SYSTEM_INTEGRATION_PATH
+        dest_path = os.path.join(destdir, SYSTEM_INTEGRATION_PATH)
+
+        scripts_created = []
+
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+
+        if artifact_name in integration_commands:
+            prefixes_per_artifact = integration_commands[artifact_name]
+            for prefix, commands in prefixes_per_artifact.iteritems():
+                for index, script in enumerate(commands):
+                    script_name = "%s-%s-%04d" % (prefix,
+                                                  artifact_name,
+                                                  index)
+                    script_path = os.path.join(dest_path, script_name)
+
+                    with morphlib.savefile.SaveFile(script_path, 'w') as f:
+                        f.write("#!/bin/sh\nset -xeu\n")
+                        f.write(script)
+                    os.chmod(script_path, 0555)
+
+                    rel_script_path = os.path.join(SYSTEM_INTEGRATION_PATH,
+                                                   script_name)
+                    scripts_created += [rel_script_path]
+
+        return scripts_created
+
     def assemble_chunk_artifacts(self, destdir):  # pragma: no cover
         built_artifacts = []
         filenames = []
         source = self.artifact.source
         split_rules = source.split_rules
+        morphology = source.morphology
+        sys_tag = 'system-integration'
 
         def filepaths(destdir):
             for dirname, subdirs, basenames in os.walk(destdir):
@@ -437,6 +472,8 @@ class ChunkBuilder(BuilderBase):
         with self.build_watch('determine-splits'):
             matches, overlaps, unmatched = \
                 split_rules.partition(filepaths(destdir))
+
+        system_integration = morphology.get(sys_tag) or {}
 
         with self.build_watch('create-chunks'):
             for chunk_artifact_name, chunk_artifact \
@@ -455,9 +492,11 @@ class ChunkBuilder(BuilderBase):
                         names.update(all_parents(name))
                     return sorted(names)
 
-                parented_paths = \
-                    parentify(file_paths +
-                              ['baserock/%s.meta' % chunk_artifact_name])
+                extra_files = self.write_system_integration_commands(
+                                  destdir, system_integration,
+                                  chunk_artifact_name)
+                extra_files += ['baserock/%s.meta' % chunk_artifact_name]
+                parented_paths = parentify(file_paths + extra_files)
 
                 with self.local_artifact_cache.put(chunk_artifact) as f:
                     self.write_metadata(destdir, chunk_artifact_name,
