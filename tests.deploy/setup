@@ -112,7 +112,7 @@ cat <<EOF > hello-system.morph
 {
     "name": "hello-system",
     "kind": "system",
-    "arch": "$(uname -m)",
+    "arch": "$("$SRCDIR/scripts/test-morph" print-architecture)",
     "strata": [
         {
             "morph": "hello-stratum",
@@ -148,7 +148,7 @@ cat <<EOF > linux-system.morph
 {
     "name": "linux-system",
     "kind": "system",
-    "arch": "$(uname -m)",
+    "arch": "$("$SRCDIR/scripts/test-morph" print-architecture)",
     "strata": [
         {
             "morph": "hello-stratum",

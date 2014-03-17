@@ -44,4 +44,4 @@ echo
 # Run 'run-in-artifact' with the statum artifact.
 echo "Stratum:"
 "$SRCDIR/scripts/test-morph" run-in-artifact "$stratum" -- ls baserock/ \
-    || echo "Failed"
+    2>/dev/null || echo "Failed"

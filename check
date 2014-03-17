@@ -23,13 +23,61 @@ set -e
 
 # Parse the command line.
 
-full=false
+run_style=false
+run_unit_tests=false
+run_cmdtests=false
+run_slow_cmdtests=false
+run_yarns=false
+if [ "$#" -eq 0 ]; then
+    run_style=true
+    run_unit_tests=true
+    run_cmdtests=true
+    run_slow_cmdtests=false
+    run_yarns=true
+fi
 while [ "$#" -gt 0 ]
 do
     case "$1" in
-        --full) full=true; shift ;;
-        *) echo "ERROR: Unknown argument $1." 1>&2; exit 1 ;;
+    --full)
+        run_style=true
+        run_unit_tests=true
+        run_cmdtests=true
+        run_slow_cmdtests=true
+        run_yarns=true
+        ;;
+    --style)
+        run_style=true
+        ;;
+    --no-style)
+        run_style=false
+        ;;
+    --unit-tests)
+        run_unit_tests=true
+        ;;
+    --no-unit-tests)
+        run_unit_tests=false
+        ;;
+    --cmdtests)
+        run_cmdtests=true
+        ;;
+    --no-cmdtests)
+        run_cmdtests=false
+        ;;
+    --slow-cmdtests)
+        run_slow_cmdtests=true
+        ;;
+    --no-slow-cmdtests)
+        run_slow_cmdtests=false
+        ;;
+    --yarns)
+        run_yarns=true
+        ;;
+    --no-yarns)
+        run_yarns=false
+        ;;
+    *) echo "ERROR: Unknown argument $1." 1>&2; exit 1 ;;
     esac
+    shift
 done
 
 
@@ -45,7 +93,7 @@ export PYTHONPATH
 # Run the style checks
 
 errors=0
-if [ -d .git ];
+if "$run_style" && [ -d .git ];
 then
     echo "Checking copyright statements"
     if ! (git ls-files -z | xargs -0r scripts/check-copyright-year); then
@@ -68,7 +116,9 @@ fi
 # Clean up artifacts from previous (possibly failed) runs, build,
 # and run the tests.
 
-python setup.py clean check
+if "$run_unit_tests"; then
+    python setup.py clean check
+fi
 
 # Run scenario tests with yarn, if yarn is available.
 #
@@ -83,7 +133,7 @@ python setup.py clean check
 # explicitly which environment variables to set in addition to the set
 # it sets anyway.
 
-if command -v yarn > /dev/null
+if "$run_yarns" && command -v yarn > /dev/null
 then
     yarn --env "PYTHONPATH=$PYTHONPATH" -s yarns/morph.shell-lib yarns/*.yarn
 fi
@@ -92,41 +142,56 @@ fi
 
 HOME="$(pwd)/scripts"
 
-cmdtest tests
+if "$run_cmdtests"
+then
+    cmdtest tests
+else
+    echo "NOT RUNNING test"
+fi
 
-if $full
+if "$run_slow_cmdtests"
 then
     cmdtest tests.branching
 else
     echo "NOT RUNNING test.branching"
 fi
 
-if $full && false
+if false && "$run_cmdtests"
 then
     cmdtest tests.merging
 else
     echo "NOT RUNNING test.merging"
 fi
 
-cmdtest tests.deploy
+if "$run_cmdtests"
+then
+    cmdtest tests.deploy
+else
+    echo "NOT RUNNING test.deploy"
+fi
 
 # Building systems requires the 'filter' parameter of tarfile.TarFile.add():
 # this was introduced in Python 2.7
-if python --version 2>&1 | grep '^Python 2\.[78]' > /dev/null; then
-    cmdtest tests.build
-else
+if ! "$run_cmdtests"; then
+    echo "NOT RUNNING tests.build"
+elif ! (python --version 2>&1 | grep -q '^Python 2\.[78]'); then
     echo "NOT RUNNING tests.build (requires Python 2.7)"
+else
+    cmdtest tests.build
 fi
 
 # The as-root tests use YAML morphologies, so they require the PyYAML module.
-if $full && [ $(whoami) = root ] && command -v mkfs.btrfs > /dev/null &&
-    python -c "
+if ! "$run_slow_cmdtests"; then
+    echo "NOT RUNNING tests.as-root"
+elif [ $(whoami) != root ] || ! command -v mkfs.btrfs > /dev/null; then
+    echo "NOT RUNNING tests.as-root (no btrfs)"
+elif ! python -c "
 import morphlib, sys
 if not morphlib.got_yaml:
     sys.exit(1)
 " > /dev/null 2>&1
 then
-    cmdtest tests.as-root
-else
     echo "NOT RUNNING tests.as-root (requires PyYAML)"
+else
+    cmdtest tests.as-root
 fi
