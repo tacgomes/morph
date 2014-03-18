@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,10 +47,14 @@ def create_fs(runcmd, partition): # pragma: no cover
     runcmd(['mkfs.btrfs', '-L', 'baserock', partition])
 
 
-def mount(runcmd, partition, mount_point): # pragma: no cover
+def mount(runcmd, partition, mount_point, fstype=None): # pragma: no cover
     if not os.path.exists(mount_point):
         os.mkdir(mount_point)
-    runcmd(['mount', partition, mount_point])
+    if not fstype:
+        fstype = []
+    else:
+        fstype = ['-t', fstype]
+    runcmd(['mount', partition, mount_point] + fstype)
 
 
 def unmount(runcmd, mount_point): # pragma: no cover
