@@ -236,7 +236,7 @@ class StagingArea(object):
             path = os.path.join(self.dirname, mount_point)
             if not os.path.exists(path):
                 os.makedirs(path)
-            self._app.runcmd(['mount', '-t', mount_type, source, path])
+            morphlib.fsutils.mount(self._app.runcmd, source, path, mount_type)
             self.mounted.append(path)
         return
 
