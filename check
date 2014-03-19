@@ -96,12 +96,13 @@ errors=0
 if "$run_style" && [ -d .git ];
 then
     echo "Checking copyright statements"
-    if ! (git ls-files -z | xargs -0r scripts/check-copyright-year); then
+    if ! (git ls-files --cached -z |
+          xargs -0r scripts/check-copyright-year); then
         errors=1
     fi
 
     echo 'Checking source code for silliness'
-    if ! (git ls-files |
+    if ! (git ls-files --cached |
           grep -v '\.gz$' |
           grep -Ev 'tests[^/]*/.*\.std(out|err)' |
           grep -vF 'tests.build/build-system-autotools.script' |
