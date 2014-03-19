@@ -2,7 +2,7 @@
 #
 # Does the copyright statement include the year of the latest git commit?
 #
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012, 2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import datetime
 import re
 
 import cliapp
@@ -33,23 +34,39 @@ class CheckCopyrightYear(cliapp.Application):
 
     def setup(self):
         self.all_ok = True
+        self.uncommitted = self.get_uncommitted_files()
+        self.this_year = datetime.datetime.now().year
 
     def cleanup(self):
         if not self.all_ok:
             raise cliapp.AppException('Some copyright years need fixing')
+
+    def get_uncommitted_files(self):
+        filenames = set()
+        status = self.runcmd(['git', 'status', '--porcelain', '-z'])
+        tokens = status.rstrip('\0').split('\0')
+        while tokens:
+            tok = tokens.pop(0)
+            filenames.add(tok[3:])
+            if 'R' in tok[0:2]:
+                filenames.add(tokens.pop(0))
+        return filenames
 
     def process_input_line(self, filename, line):
         m = self.pat.match(line)
         if not m:
             return
 
-        year = self.get_git_commit_year(filename)
+        year = None
+        if filename not in self.uncommitted:
+            year = self.get_git_commit_year(filename)
+
         if year is None:
             # git does not have a commit date for the file, which might
             # happen if the file isn't committed yet. This happens during
             # development, and it's OK. It's not quite a lumberjack, but
             # let's not get into gender stereotypes here.
-            return
+            year = self.this_year
 
         ok = False
         for start, end in self.get_copyright_years(m):
