@@ -588,6 +588,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 fs_root = self.staging_area.destdir(self.artifact.source)
                 self.unpack_strata(fs_root)
                 self.write_metadata(fs_root, rootfs_name)
+                self.run_system_integration_commands(fs_root)
                 self.copy_kernel_into_artifact_cache(fs_root)
                 unslashy_root = fs_root[1:]
                 def uproot_info(info):
@@ -686,6 +687,51 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             f.write('BUG_REPORT_URL="http://wiki.baserock.org/mailinglist"\n')
 
         os.chmod(os_release_file, 0644)
+
+    def run_system_integration_commands(self, rootdir):  # pragma: no cover
+        ''' Run the system integration commands '''
+
+        sys_integration_dir = os.path.join(rootdir, SYSTEM_INTEGRATION_PATH)
+        if not os.path.isdir(sys_integration_dir):
+            return
+
+        env = {
+            'PATH': '/bin:/usr/bin:/sbin:/usr/sbin'
+        }
+
+        self.app.status(msg='Running the system integration commands',
+                        error=True)
+
+        mounted = []
+        to_mount = (
+            ('proc',    'proc',  'none'),
+            ('dev/shm', 'tmpfs', 'none'),
+        )
+
+        try:
+            for mount_point, mount_type, source in to_mount:
+                logging.debug('Mounting %s in system root filesystem'
+                                  % mount_point)
+                path = os.path.join(rootdir, mount_point)
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                morphlib.fsutils.mount(self.app.runcmd, source, path,
+                                       mount_type)
+                mounted.append(path)
+
+            self.app.runcmd(['chroot', rootdir, 'sh', '-c',
+                'cd / && run-parts "$1"', '-', SYSTEM_INTEGRATION_PATH],
+                env=env)
+        except BaseException, e:
+            self.app.status(
+                    msg='Error while running system integration commands',
+                    error=True)
+            raise
+        finally:
+            for mount_path in reversed(mounted):
+                logging.debug('Unmounting %s in system root filesystem'
+                                  % mount_path)
+                morphlib.fsutils.unmount(self.app.runcmd, mount_path)
 
     def copy_kernel_into_artifact_cache(self, path):
         '''Copy the installed kernel image into the local artifact cache.
