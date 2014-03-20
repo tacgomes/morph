@@ -317,6 +317,14 @@ class Remote(object):
                                    self._parse_push_output(out), err)
         return self._parse_push_output(out)
 
+    def pull(self, branch=None): # pragma: no cover
+        if branch:
+            repo = self.get_fetch_url()
+            ret = self.gd._runcmd(['git', 'pull', repo, branch])
+        else:
+            ret = self.gd._runcmd(['git', 'pull'])
+        return ret
+
 
 class GitDirectory(object):
 
@@ -330,7 +338,11 @@ class GitDirectory(object):
     '''
 
     def __init__(self, dirname):
-        self.dirname = dirname
+        self.dirname = morphlib.util.find_root(dirname, '.git')
+        # if we are in a bare repo, self.dirname will now be None
+        # so we just use the provided dirname
+        if not self.dirname:
+            self.dirname = dirname
 
     def _runcmd(self, argv, **kwargs):
         '''Run a command at the root of the git directory.
@@ -350,6 +362,9 @@ class GitDirectory(object):
     def checkout(self, branch_name): # pragma: no cover
         '''Check out a git branch.'''
         self._runcmd(['git', 'checkout', branch_name])
+        if self.has_fat():
+            self.fat_init()
+            self.fat_pull()
 
     def branch(self, new_branch_name, base_ref): # pragma: no cover
         '''Create a git branch based on an existing ref.
@@ -616,12 +631,30 @@ class GitDirectory(object):
             ['git', 'describe', '--always', '--dirty=-unreproducible'])
         return version.strip()
 
+    def fat_init(self): # pragma: no cover
+        return self._runcmd(['git', 'fat', 'init'])
+
+    def fat_push(self): # pragma: no cover
+        return self._runcmd(['git', 'fat', 'push'])
+
+    def fat_pull(self): # pragma: no cover
+        return self._runcmd(['git', 'fat', 'pull'])
+
+    def has_fat(self): # pragma: no cover
+        return '.gitfat' in self.list_files()
+
+    def join_path(self, path): # pragma: no cover
+        return os.path.join(self.dirname, path)
+
+    def get_relpath(self, path): # pragma: no cover
+        return os.path.relpath(path, self.dirname)
+
 
 def init(dirname):
     '''Initialise a new git repository.'''
 
+    cliapp.runcmd(['git', 'init'], cwd=dirname)
     gd = GitDirectory(dirname)
-    gd._runcmd(['git', 'init'])
     return gd
 
 
