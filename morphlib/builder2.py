@@ -36,6 +36,8 @@ import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
 import morphlib.gitversion
 
+SYSTEM_INTEGRATION_PATH = os.path.join('baserock', 'system-integration')
+
 def extract_sources(app, repo_cache, repo, sha1, srcdir): #pragma: no cover
     '''Get sources from git to a source directory, including submodules'''
 
@@ -419,11 +421,44 @@ class ChunkBuilder(BuilderBase):
                             shutil.copyfileobj(readlog, self.app.output)
                         raise e
 
+    def write_system_integration_commands(self, destdir,
+            integration_commands, artifact_name): # pragma: no cover
+
+        rel_path = SYSTEM_INTEGRATION_PATH
+        dest_path = os.path.join(destdir, SYSTEM_INTEGRATION_PATH)
+
+        scripts_created = []
+
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+
+        if artifact_name in integration_commands:
+            prefixes_per_artifact = integration_commands[artifact_name]
+            for prefix, commands in prefixes_per_artifact.iteritems():
+                for index, script in enumerate(commands):
+                    script_name = "%s-%s-%04d" % (prefix,
+                                                  artifact_name,
+                                                  index)
+                    script_path = os.path.join(dest_path, script_name)
+
+                    with morphlib.savefile.SaveFile(script_path, 'w') as f:
+                        f.write("#!/bin/sh\nset -xeu\n")
+                        f.write(script)
+                    os.chmod(script_path, 0555)
+
+                    rel_script_path = os.path.join(SYSTEM_INTEGRATION_PATH,
+                                                   script_name)
+                    scripts_created += [rel_script_path]
+
+        return scripts_created
+
     def assemble_chunk_artifacts(self, destdir):  # pragma: no cover
         built_artifacts = []
         filenames = []
         source = self.artifact.source
         split_rules = source.split_rules
+        morphology = source.morphology
+        sys_tag = 'system-integration'
 
         def filepaths(destdir):
             for dirname, subdirs, basenames in os.walk(destdir):
@@ -437,6 +472,8 @@ class ChunkBuilder(BuilderBase):
         with self.build_watch('determine-splits'):
             matches, overlaps, unmatched = \
                 split_rules.partition(filepaths(destdir))
+
+        system_integration = morphology.get(sys_tag) or {}
 
         with self.build_watch('create-chunks'):
             for chunk_artifact_name, chunk_artifact \
@@ -455,9 +492,11 @@ class ChunkBuilder(BuilderBase):
                         names.update(all_parents(name))
                     return sorted(names)
 
-                parented_paths = \
-                    parentify(file_paths +
-                              ['baserock/%s.meta' % chunk_artifact_name])
+                extra_files = self.write_system_integration_commands(
+                                  destdir, system_integration,
+                                  chunk_artifact_name)
+                extra_files += ['baserock/%s.meta' % chunk_artifact_name]
+                parented_paths = parentify(file_paths + extra_files)
 
                 with self.local_artifact_cache.put(chunk_artifact) as f:
                     self.write_metadata(destdir, chunk_artifact_name,
@@ -549,6 +588,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 fs_root = self.staging_area.destdir(self.artifact.source)
                 self.unpack_strata(fs_root)
                 self.write_metadata(fs_root, rootfs_name)
+                self.run_system_integration_commands(fs_root)
                 self.copy_kernel_into_artifact_cache(fs_root)
                 unslashy_root = fs_root[1:]
                 def uproot_info(info):
@@ -647,6 +687,51 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             f.write('BUG_REPORT_URL="http://wiki.baserock.org/mailinglist"\n')
 
         os.chmod(os_release_file, 0644)
+
+    def run_system_integration_commands(self, rootdir):  # pragma: no cover
+        ''' Run the system integration commands '''
+
+        sys_integration_dir = os.path.join(rootdir, SYSTEM_INTEGRATION_PATH)
+        if not os.path.isdir(sys_integration_dir):
+            return
+
+        env = {
+            'PATH': '/bin:/usr/bin:/sbin:/usr/sbin'
+        }
+
+        self.app.status(msg='Running the system integration commands',
+                        error=True)
+
+        mounted = []
+        to_mount = (
+            ('proc',    'proc',  'none'),
+            ('dev/shm', 'tmpfs', 'none'),
+        )
+
+        try:
+            for mount_point, mount_type, source in to_mount:
+                logging.debug('Mounting %s in system root filesystem'
+                                  % mount_point)
+                path = os.path.join(rootdir, mount_point)
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                morphlib.fsutils.mount(self.app.runcmd, source, path,
+                                       mount_type)
+                mounted.append(path)
+
+            self.app.runcmd(['chroot', rootdir, 'sh', '-c',
+                'cd / && run-parts "$1"', '-', SYSTEM_INTEGRATION_PATH],
+                env=env)
+        except BaseException, e:
+            self.app.status(
+                    msg='Error while running system integration commands',
+                    error=True)
+            raise
+        finally:
+            for mount_path in reversed(mounted):
+                logging.debug('Unmounting %s in system root filesystem'
+                                  % mount_path)
+                morphlib.fsutils.unmount(self.app.runcmd, mount_path)
 
     def copy_kernel_into_artifact_cache(self, path):
         '''Copy the installed kernel image into the local artifact cache.
