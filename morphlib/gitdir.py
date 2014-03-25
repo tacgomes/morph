@@ -641,7 +641,7 @@ class GitDirectory(object):
         return self._runcmd(['git', 'fat', 'pull'])
 
     def has_fat(self): # pragma: no cover
-        return '.gitfat' in self.list_files()
+        return os.path.isfile(self.join_path('.gitfat'))
 
     def join_path(self, path): # pragma: no cover
         return os.path.join(self.dirname, path)
