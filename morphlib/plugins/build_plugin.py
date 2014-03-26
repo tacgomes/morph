@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012,2013,2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,9 +28,37 @@ class BuildPlugin(cliapp.Plugin):
                                 arg_synopsis='(REPO REF FILENAME)...')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM')
+        self.app.add_subcommand('distbuild', self.distbuild,
+                                arg_synopsis='SYSTEM')
+        self.use_distbuild = False
 
     def disable(self):
-        pass
+        self.use_distbuild = False
+
+    def distbuild(self, args):
+        '''Distbuild a system image in the current system branch
+
+        Command line arguments:
+
+        * `SYSTEM` is the name of the system to build.
+
+        This command launches a distributed build, to use this command
+        you must first set up a distbuild cluster.
+
+        Artifacts produced during the build will be stored on your trove.
+
+        Once the build completes you can use morph deploy to the deploy
+        your system, the system artifact will be copied from your trove
+        and cached locally.
+
+        Example:
+
+            morph distbuild devel-system-x86_64-generic
+
+        '''
+
+        self.use_distbuild = True
+        self.build(args)
 
     def build_morphology(self, args):
         '''Build a system, outside of a system branch.
@@ -65,8 +93,6 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir-min-space'])
 
         build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command = self.app.hookmgr.call('new-build-command',
-                                              build_command)
         build_command.build(args)
 
     def build(self, args):
@@ -114,9 +140,15 @@ class BuildPlugin(cliapp.Plugin):
 
         build_uuid = uuid.uuid4().hex
 
-        build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command = self.app.hookmgr.call('new-build-command',
-                                              build_command)
+        if self.use_distbuild:
+            addr = self.app.settings['controller-initiator-address']
+            port = self.app.settings['controller-initiator-port']
+
+            build_command = morphlib.buildcommand.InitiatorBuildCommand(
+                self.app, addr, port)
+        else:
+            build_command = morphlib.buildcommand.BuildCommand(self.app)
+
         loader = morphlib.morphloader.MorphologyLoader()
         push = self.app.settings['push-build-branches']
         name = morphlib.git.get_user_name(self.app.runcmd)
