@@ -242,55 +242,6 @@ class ControllerDaemon(cliapp.Plugin):
 
         loop.run()
 
-
-class InitiatorBuildCommand(morphlib.buildcommand.BuildCommand):
-
-    def __init__(self, app, addr, port):
-        self.app = app
-        self.addr = addr
-        self.port = port
-        self.app.settings['push-build-branches'] = True
-        super(InitiatorBuildCommand, self).__init__(app)
-
-    def build(self, args):
-        '''Initiate a distributed build on a controller'''
-        
-        distbuild.add_crash_conditions(self.app.settings['crash-condition'])
-
-        if len(args) != 3:
-            raise cliapp.AppException(
-                'Need repo, ref, morphology triplet to build')
-
-        self.app.status(msg='Starting distributed build')
-        loop = distbuild.MainLoop()
-        cm = distbuild.ConnectionMachine(
-            self.addr, self.port, distbuild.Initiator, [self.app] + args)
-        loop.add_state_machine(cm)
-        loop.run()
-
-
-class Initiator(cliapp.Plugin):
-
-    def enable(self):
-        self.app.settings.boolean(
-            ['disable-distbuild'], 'disable distributed building',
-            group=group_distbuild)
-        self.app.hookmgr.add_callback(
-            'new-build-command', self.create_build_command)
-
-    def disable(self):
-        pass
-
-    def create_build_command(self, old_build_command):
-        addr = self.app.settings['controller-initiator-address']
-        port = self.app.settings['controller-initiator-port']
-
-        if addr != '' and not self.app.settings['disable-distbuild']:
-            return InitiatorBuildCommand(self.app, addr, port)
-        else:
-            return old_build_command
-
-
 class GraphStateMachines(cliapp.Plugin):
 
     def enable(self):
