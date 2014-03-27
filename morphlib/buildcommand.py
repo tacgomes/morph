@@ -20,6 +20,7 @@ import logging
 import tempfile
 
 import morphlib
+import distbuild
 
 
 class MultipleRootArtifactsError(morphlib.Error):
@@ -475,3 +476,32 @@ class BuildCommand(object):
             self.app, staging_area, self.lac, self.rac, self.lrc,
             self.app.settings['max-jobs'], setup_mounts)
         return builder.build_and_cache(artifact)
+
+class InitiatorBuildCommand(BuildCommand):
+
+    def __init__(self, app, addr, port):
+        self.app = app
+        self.addr = addr
+        self.port = port
+        self.app.settings['push-build-branches'] = True
+        super(InitiatorBuildCommand, self).__init__(app)
+
+    def build(self, args):
+        '''Initiate a distributed build on a controller'''
+
+        distbuild.add_crash_conditions(self.app.settings['crash-condition'])
+
+        if len(args) != 3:
+            raise morphlib.Error(
+                'Need repo, ref, morphology triplet to build')
+
+        if self.addr == '':
+            raise morphlib.Error(
+                'Need address of controller to run a distbuild')
+
+        self.app.status(msg='Starting distributed build')
+        loop = distbuild.MainLoop()
+        cm = distbuild.ConnectionMachine(
+            self.addr, self.port, distbuild.Initiator, [self.app] + args)
+        loop.add_state_machine(cm)
+        loop.run()
