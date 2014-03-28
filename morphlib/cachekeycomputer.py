@@ -25,6 +25,7 @@ class CacheKeyComputer(object):
     def __init__(self, build_env):
         self._build_env = build_env
         self._calculated = {}
+        self._hashed = {}
 
     def _filterenv(self, env):
         keys = ["LOGNAME", "MORPH_ARCH", "TARGET", "TARGET_STAGE1",
@@ -32,11 +33,18 @@ class CacheKeyComputer(object):
         return dict([(k, env[k]) for k in keys])
 
     def compute_key(self, artifact):
-        logging.debug('computing cache key for artifact %s from source '
-                      'repo %s, sha1 %s, filename %s' %
-                      (artifact.name, artifact.source.repo_name,
-                       artifact.source.sha1, artifact.source.filename))
-        return self._hash_id(self.get_cache_id(artifact))
+        try:
+            ret = self._hashed[artifact]
+            logging.debug('returning cached key for artifact %s from source ',
+                          (artifact.name, artifact.source.repo_name,
+                           artifact.source.sha1, artifact.source.filename))
+            return ret
+        except KeyError:
+            logging.debug('computing cache key for artifact %s from source ',
+                          (artifact.name, artifact.source.repo_name,
+                           artifact.source.sha1, artifact.source.filename))
+            self._hashed[artifact] = self._hash_id(self.get_cache_id(artifact))
+            return self._hashed[artifact]
 
     def _hash_id(self, cache_id):
         sha = hashlib.sha256()
@@ -66,13 +74,18 @@ class CacheKeyComputer(object):
             self._hash_thing(sha, item)
 
     def get_cache_id(self, artifact):
-        logging.debug('computing cache id for artifact %s from source '
-                      'repo %s, sha1 %s, filename %s' %
-                      (artifact.name, artifact.source.repo_name,
-                       artifact.source.sha1, artifact.source.filename))
         try:
-            return self._calculated[artifact]
+            ret = self._calculated[artifact]
+            logging.debug('returning cached id for artifact %s from source '
+                          'repo %s, sha1 %s, filename %s' %
+                          (artifact.name, artifact.source.repo_name,
+                           artifact.source.sha1, artifact.source.filename))
+            return ret
         except KeyError:
+            logging.debug('computing cache id for artifact %s from source '
+                          'repo %s, sha1 %s, filename %s' %
+                          (artifact.name, artifact.source.repo_name,
+                           artifact.source.sha1, artifact.source.filename))
             cacheid = self._calculate(artifact)
             self._calculated[artifact] = cacheid
             return cacheid
