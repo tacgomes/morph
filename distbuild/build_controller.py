@@ -213,7 +213,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(self, _Start())
 
     def _maybe_abort(self, event_source, event):
-        if disconnect.id == self._request['id']:
+        if event.id == self._request['id']:
             self.mainloop.queue_event(self, _Abort())
 
     def _start_graphing(self, event_source, event):
