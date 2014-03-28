@@ -148,6 +148,19 @@ class CacheKeyComputerTests(unittest.TestCase):
         validchars = '0123456789abcdef'
         return len(s) == 64 and all([c in validchars for c in s])
 
+    def test_compute_twice_same_key(self):
+        artifact = self._find_artifact('system-rootfs')
+        self.assertEqual(self.ckc.compute_key(artifact),
+                         self.ckc.compute_key(artifact))
+
+    def test_compute_twice_same_id(self):
+        artifact = self._find_artifact('system-rootfs')
+        id1 = self.ckc.get_cache_id(artifact)
+        id2 = self.ckc.get_cache_id(artifact)
+        hash1 = self.ckc._hash_id(id1)
+        hash2 = self.ckc._hash_id(id2)
+        self.assertEqual(hash1, hash2)
+
     def test_compute_key_returns_sha256(self):
         artifact = self._find_artifact('system-rootfs')
         self.assertTrue(self._valid_sha256(
