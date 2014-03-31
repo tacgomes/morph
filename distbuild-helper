@@ -212,7 +212,7 @@ class HelperMachine(distbuild.StateMachine):
     def _relay_exec_output(self, event_source, event):
         distbuild.crash_point()
 
-        buf_size = 64
+        buf_size = 16 * 1024
         fd = event.file.fileno()
         data = os.read(fd, buf_size)
         if data:
