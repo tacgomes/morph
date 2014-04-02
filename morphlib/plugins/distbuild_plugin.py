@@ -18,6 +18,7 @@
 
 import cliapp
 import logging
+import re
 import sys
 
 import morphlib
@@ -89,16 +90,23 @@ class WorkerBuild(cliapp.Plugin):
         artifact = distbuild.deserialise_artifact(serialized)
         
         bc = morphlib.buildcommand.BuildCommand(self.app)
-        
-        # We always, unconditionally clear the local artifact cache
-        # to avoid it growing boundlessly on a worker. Especially system
-        # artifacts are big (up to gigabytes), and having a new one for
-        # every build eats up a lot of disk space.
-        bc.lac.clear()
+
+        # Now, before we start the build, we garbage collect the caches
+        # to ensure we have room.  First we remove all system artifacts
+        # since we never need to recover those from workers post-hoc
+        for cachekey, artifacts, last_used in bc.lac.list_contents():
+            if any(self.is_system_artifact(f) for f in artifacts):
+                logging.debug("Removing all artifacts for system %s" %
+                        cachekey)
+                bc.lac.remove(cachekey)
+
+        self.app.subcommands['gc']([])
 
         arch = artifact.arch
         bc.build_artifact(artifact, bc.new_build_env(arch))
 
+    def is_system_artifact(self, filename):
+        return re.match(r'^[0-9a-fA-F]{64}\.system\.', filename)
 
 class WorkerDaemon(cliapp.Plugin):
 
