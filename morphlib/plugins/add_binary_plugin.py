@@ -17,6 +17,7 @@
 import cliapp
 import logging
 import os
+import re
 import urlparse
 
 import morphlib
@@ -68,6 +69,13 @@ class AddBinaryPlugin(cliapp.Plugin):
         files = [gd.get_relpath(os.path.realpath(binary))
                  for binary in binaries]
 
+        # escape special characters and whitespace
+        escaped = []
+        for path in files:
+            path = self.escape_glob(path)
+            path = self.escape_whitespace(path)
+            escaped.append(path)
+
         # now add any files that aren't already mentioned in .gitattributes to
         # the file so that git fat knows what to do
         attr_path = gd.join_path('.gitattributes')
@@ -76,7 +84,7 @@ class AddBinaryPlugin(cliapp.Plugin):
                 current = set(f.split()[0] for f in attributes)
         else:
             current = set()
-        to_add = set(files) - current
+        to_add = set(escaped) - current
 
         # if we don't need to change .gitattributes then we can just do
         # `git add <binaries>`
@@ -108,3 +116,15 @@ class AddBinaryPlugin(cliapp.Plugin):
             gitfat.write('[rsync]\n')
             gitfat.write('remote = %s' % fat_store)
         gd.get_index().add_files_from_working_tree([fat_path])
+
+    def escape_glob(self, path):
+        '''Escape glob metacharacters in a path and return the result.'''
+        metachars = re.compile('([*?[])')
+        path = metachars.sub(r'[\1]', path)
+        return path
+
+    def escape_whitespace(self, path):
+        '''Substitute whitespace with [[:space:]] and return the result.'''
+        whitespace = re.compile('([ \n\r\t])')
+        path = whitespace.sub(r'[[:space:]]', path)
+        return path
