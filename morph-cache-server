@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013, 2014 Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -303,12 +303,40 @@ class MorphCacheServer(cliapp.Application):
             else:
                 response.status = 404
                 logging.debug('artifact %s does not exist' % basename)
-        
+
+        @app.post('/artifacts')
+        def post_artifacts():
+            if request.content_type != 'application/json':
+                logging.warning('Content-type is not json: '
+                    'expecting a json post request')
+
+            artifacts = json.load(request.body)
+            results = {}
+
+            logging.debug('Received a POST request for /artifacts')
+
+            for artifact in artifacts:
+                if artifact.startswith('/'):
+                    response.status = 500
+                    logging.error("%s: artifact name cannot start with a '/'"
+                        % artifact)
+                    return
+
+                filename = os.path.join(self.settings['artifact-dir'], artifact)
+                results[artifact] = os.path.exists(filename)
+
+                if results[artifact]:
+                    logging.debug('%s is in the cache', artifact)
+                else:
+                    logging.debug('%s is NOT in the cache', artifact)
+
+            return results
+
         root = Bottle()
         root.mount(app, '/1.0')
 
 
-	if self.settings['fcgi-server']:
+        if self.settings['fcgi-server']:
             WSGIServer(root).run()
         else:
             run(root, host='0.0.0.0', port=self.settings['port'], reloader=True)
