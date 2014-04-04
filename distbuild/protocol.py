@@ -73,6 +73,8 @@ _types = {
         'id',
         'url',
         'method',
+        'headers',
+        'body',
     ],
 }
 
