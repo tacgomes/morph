@@ -108,23 +108,22 @@ class PushError(cliapp.AppException):
 class NoRefspecsError(PushError):
 
     def __init__(self, remote):
-        self.remote = remote.name
-        PushError.__init__(self,
-                           'Push to remote %r was given no refspecs.' % remote)
+        self.remote = remote
+        PushError.__init__(
+            self, 'Push to remote "%s" was given no refspecs.' % remote)
 
 
 class PushFailureError(PushError):
 
     def __init__(self, remote, refspecs, exit, results, stderr):
-        self.remote = remote.name
+        self.remote = remote
         self.push_url = push_url = remote.get_push_url()
         self.refspecs = refspecs
         self.exit = exit
         self.results = results
         self.stderr = stderr
-        PushError.__init__(self, 'Push to remote %(remote)r, '\
+        PushError.__init__(self, 'Push to remote "%(remote)s", '\
                                  'push url %(push_url)s '\
-                                 'with refspecs %(refspecs)r '\
                                  'failed with exit code %(exit)s' % locals())
 
 
@@ -234,6 +233,9 @@ class Remote(object):
         self.name = name
         self.push_url = None
         self.fetch_url = None
+
+    def __str__(self):
+        return self.name or '(nascent remote)'
 
     def set_fetch_url(self, url):
         self.fetch_url = url
