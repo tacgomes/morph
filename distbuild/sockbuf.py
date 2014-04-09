@@ -89,6 +89,7 @@ class SocketBuffer(StateMachine):
         self._wbuf = StringBuffer()
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('reading', src, SocketReadable, 'reading', self._fill),
             ('reading', self, _WriteBufferNotEmpty, 'rw', 
                 self._start_writing),

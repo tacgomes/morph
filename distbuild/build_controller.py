@@ -168,6 +168,7 @@ class BuildController(distbuild.StateMachine):
         distbuild.crash_point()
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('init', self, _Start, 'graphing', self._start_graphing),
             ('init', distbuild.InitiatorConnection,
                 distbuild.InitiatorDisconnect, 'init', self._maybe_abort),

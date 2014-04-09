@@ -64,6 +64,7 @@ class InitiatorConnection(distbuild.StateMachine):
         self.our_ids = set()
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', self.jm, distbuild.JsonNewMessage, 'idle', 
                 self._handle_msg),
             ('idle', self.jm, distbuild.JsonEof, 'closing', self._disconnect),

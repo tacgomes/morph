@@ -81,6 +81,7 @@ class ConnectionMachine(distbuild.StateMachine):
         self.mainloop.add_event_source(self._timer)
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('connecting', self._sock_proxy, distbuild.SocketWriteable, 
                 'connected', self._connect),
             ('connecting', self, StopConnecting, None, self._stop),

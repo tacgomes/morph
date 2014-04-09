@@ -82,6 +82,7 @@ class HelperRouter(distbuild.StateMachine):
         self.mainloop.add_state_machine(jm)
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', HelperRouter, HelperRequest, 'idle', 
                 self._handle_request),
             ('idle', jm, distbuild.JsonNewMessage, 'idle', self._helper_msg),

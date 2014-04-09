@@ -216,6 +216,7 @@ class ControllerDaemon(cliapp.Plugin):
         morph_instance = self.app.settings['morph-instance']
 
         listener_specs = [
+            # address, port, class to initiate on connection, class init args
             ('controller-helper-address', 'controller-helper-port', 
              distbuild.HelperRouter, []),
             ('controller-initiator-address', 'controller-initiator-port',

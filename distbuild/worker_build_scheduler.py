@@ -127,6 +127,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
         self._available_workers = []
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', WorkerBuildQueuer, WorkerBuildRequest, 'idle',
                 self._handle_request),
             ('idle', WorkerBuildQueuer, WorkerCancelPending, 'idle',
@@ -210,6 +211,7 @@ class WorkerConnection(distbuild.StateMachine):
         self.mainloop.add_state_machine(self._jm)
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', self._jm, distbuild.JsonEof, None,  self._reconnect),
             ('idle', self, _HaveAJob, 'building', self._start_build),
             
