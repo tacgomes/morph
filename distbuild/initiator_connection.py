@@ -35,9 +35,12 @@ class _Close(object):
 
 class InitiatorConnection(distbuild.StateMachine):
 
-    '''Communicate with the initiator.
-    
-    This state machine communicates with the initiator, relaying and
+    '''Communicate with a single initiator.
+
+    When a developer runs 'morph distbuild' and connects to the controller,
+    the ListenServer object on the controller creates an InitiatorConnection.
+
+    This state machine communicates with the build initiator, relaying and
     translating messages from the initiator to the rest of the controller's
     state machines, and vice versa.
 
