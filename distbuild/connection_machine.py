@@ -97,7 +97,7 @@ class ConnectionMachine(distbuild.StateMachine):
         logging.debug(
             'ConnectionMachine: connecting to %s:%s' % 
                 (self._addr, self._port))
-        self._socket = socket.socket()
+        self._socket = distbuild.create_socket()
         distbuild.set_nonblocking(self._socket)
         try:
             self._socket.connect((self._addr, self._port))

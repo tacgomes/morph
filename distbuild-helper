@@ -309,7 +309,7 @@ class DistributedBuildHelper(cliapp.Application):
 
         addr = self.settings['parent-address']
         port = self.settings['parent-port']
-        conn = socket.socket()
+        conn = distbuild.create_socket()
         conn.connect((addr, port))
         helper = HelperMachine(conn)
         helper.debug_messages = self.settings['debug-messages']

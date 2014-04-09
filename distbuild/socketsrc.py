@@ -9,6 +9,8 @@ import logging
 import os
 import socket
 
+import distbuild
+
 from eventsrc import EventSource
 
 
@@ -48,13 +50,13 @@ class ListeningSocketEventSource(EventSource):
     '''An event source for a socket that listens for connections.'''
 
     def __init__(self, addr, port):
-        self.sock = socket.socket()
+        self.sock = distbuild.create_socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((addr, port))
         self.sock.listen(5)
         self._accepting = True
-        logging.info('Listening at %s' % repr(self.sock.getsockname()))
-        
+        logging.info('Listening at %s' % self.sock.remotename())
+
     def get_select_params(self):
         r = [self.sock.fileno()] if self._accepting else []
         return r, [], [], None
@@ -117,7 +119,10 @@ class SocketEventSource(EventSource):
         self._writing = True
 
         set_nonblocking(sock)
-        
+
+    def __repr__(self):
+        return '<SocketEventSource at %x: socket %s>' % (id(self), self.sock)
+
     def get_select_params(self):
         r = [self.sock.fileno()] if self._reading else []
         w = [self.sock.fileno()] if self._writing else []

@@ -34,7 +34,7 @@ class ListenServer(StateMachine):
     def new_conn(self, event_source, event):
         logging.debug(
             'ListenServer: Creating new %s using %s and %s' %
-                (repr(self._machine),
+                (self._machine,
                  repr(event.connection),
                  repr(self._extra_args)))
         m = self._machine(event.connection, *self._extra_args)

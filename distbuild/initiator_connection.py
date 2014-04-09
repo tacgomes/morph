@@ -52,6 +52,10 @@ class InitiatorConnection(distbuild.StateMachine):
         self.artifact_cache_server = artifact_cache_server
         self.morph_instance = morph_instance
 
+    def __repr__(self):
+        remote = self.conn.remotename()
+        return '<InitiatorConnection at 0x%x: remote %s>' % (id(self), remote)
+
     def setup(self):
         self.jm = distbuild.JsonMachine(self.conn)
         self.mainloop.add_state_machine(self.jm)

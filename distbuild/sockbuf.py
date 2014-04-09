@@ -77,6 +77,10 @@ class SocketBuffer(StateMachine):
         self._sock = sock
         self._max_buffer = max_buffer
 
+    def __repr__(self):
+        return '<SocketBuffer at 0x%x: socket %s max_buffer %i>' % (
+                id(self), self._sock, self._max_buffer)
+
     def setup(self):        
         src = self._src = SocketEventSource(self._sock)
         src.stop_writing() # We'll start writing when we need to.

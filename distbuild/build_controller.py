@@ -160,6 +160,10 @@ class BuildController(distbuild.StateMachine):
         self._helper_id = None
         self.debug_transitions = False
 
+    def __repr__(self):
+        return '<BuildController at 0x%x, request-id %s>' % (id(self),
+                self._request['id'])
+
     def setup(self):
         distbuild.crash_point()
 

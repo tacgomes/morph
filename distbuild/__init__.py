@@ -58,4 +58,6 @@ from protocol import message
 from crashpoint import (crash_point, add_crash_condition, add_crash_conditions,
                         clear_crash_conditions)
 
+from distbuild_socket import create_socket
+
 __all__ = locals()
