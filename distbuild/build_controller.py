@@ -192,7 +192,14 @@ class BuildController(distbuild.StateMachine):
             ('annotating', distbuild.InitiatorConnection,
                 distbuild.InitiatorDisconnect, None,
                 self._maybe_abort),
-                
+
+            # The exact WorkerConnection that is doing our building changes
+            # from build to build. We must listen to all messages from all
+            # workers, and choose whether to change state inside the callback.
+            # (An alternative would be to manage a set of temporary transitions
+            # specific to WorkerConnection instances that our currently
+            # building for us, but the state machines are not intended to
+            # behave that way).
             ('building', distbuild.WorkerConnection, 
                 distbuild.WorkerBuildStepStarted, 'building', 
                 self._relay_build_step_started),
@@ -205,9 +212,10 @@ class BuildController(distbuild.StateMachine):
             ('building', distbuild.WorkerConnection, 
                 distbuild.WorkerBuildFinished, 'building', 
                 self._check_result_and_queue_more_builds),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildFailed, None, 
-                self._notify_build_failed),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildFailed, 'building',
+                self._maybe_notify_build_failed),
+            ('building', self, _Abort, None, None),
             ('building', self, _Built, None, self._notify_build_done),
             ('building', distbuild.InitiatorConnection,
                 distbuild.InitiatorDisconnect, 'building', 
@@ -514,15 +522,22 @@ class BuildController(distbuild.StateMachine):
 
         self._queue_worker_builds(None, event)
 
-    def _notify_build_failed(self, event_source, event):
+    def _maybe_notify_build_failed(self, event_source, event):
         distbuild.crash_point()
+
         if event.msg['id'] != self._request['id']:
-            return # not for us
+            return
 
         artifact = self._find_artifact(event.artifact_cache_key)
+
         if artifact is None:
-            # This is not the event you are looking for.
-            return
+            logging.error(
+                'BuildController %r: artifact %s is not in our build graph!',
+                self, artifact)
+            # We abort the build in this case on the grounds that something is
+            # very wrong internally, and it's best for the initiator to receive
+            # an error than to be left hanging.
+            self.mainloop.queue_event(self, _Abort())
 
         logging.info(
             'Build step failed for %s: %s', artifact.name, repr(event.msg))
@@ -548,6 +563,8 @@ class BuildController(distbuild.StateMachine):
         # be of use to any other build
         cancel = BuildCancel(self._request['id'])
         self.mainloop.queue_event(BuildController, cancel)
+
+        self.mainloop.queue_event(self, _Abort())
 
     def _notify_build_done(self, event_source, event):
         distbuild.crash_point()
