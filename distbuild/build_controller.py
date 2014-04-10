@@ -182,7 +182,7 @@ class BuildController(distbuild.StateMachine):
                 'annotating', self._start_annotating),
             ('graphing', self, _GraphFailed, None, None),
             ('graphing', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, None,
+                distbuild.InitiatorDisconnect, 'graphing',
                 self._maybe_abort),
                 
             ('annotating', distbuild.HelperRouter, distbuild.HelperResult,
@@ -190,7 +190,7 @@ class BuildController(distbuild.StateMachine):
             ('annotating', self, _Annotated, 'building', 
                 self._queue_worker_builds),
             ('annotating', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, None,
+                distbuild.InitiatorDisconnect, 'annotating',
                 self._maybe_abort),
 
             # The exact WorkerConnection that is doing our building changes
