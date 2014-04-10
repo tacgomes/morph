@@ -175,9 +175,9 @@ class BuildController(distbuild.StateMachine):
                 distbuild.InitiatorDisconnect, None, None),
 
             ('graphing', distbuild.HelperRouter, distbuild.HelperOutput,
-                'graphing', self._collect_graph),
+                'graphing', self._maybe_collect_graph),
             ('graphing', distbuild.HelperRouter, distbuild.HelperResult,
-                'graphing', self._finish_graph),
+                'graphing', self._maybe_finish_graph),
             ('graphing', self, _GotGraph,
                 'annotating', self._start_annotating),
             ('graphing', self, _GraphFailed, None, None),
@@ -185,8 +185,8 @@ class BuildController(distbuild.StateMachine):
                 distbuild.InitiatorDisconnect, None, None),
 
             ('annotating', distbuild.HelperRouter, distbuild.HelperResult,
-                'annotating', self._handle_cache_response),
-            ('annotating', self, _Annotated, 'building', 
+                'annotating', self._maybe_handle_cache_response),
+            ('annotating', self, _Annotated, 'building',
                 self._queue_worker_builds),
             ('annotating', self._initiator_connection,
                 distbuild.InitiatorDisconnect, None, None),
@@ -198,18 +198,18 @@ class BuildController(distbuild.StateMachine):
             # specific to WorkerConnection instances that our currently
             # building for us, but the state machines are not intended to
             # behave that way).
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildStepStarted, 'building', 
-                self._relay_build_step_started),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildOutput, 'building', 
-                self._relay_build_output),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildCaching, 'building', 
-                self._relay_build_caching),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildFinished, 'building', 
-                self._check_result_and_queue_more_builds),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildStepStarted, 'building',
+                self._maybe_relay_build_step_started),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildOutput, 'building',
+                self._maybe_relay_build_output),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildCaching, 'building',
+                self._maybe_relay_build_caching),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildFinished, 'building',
+                self._maybe_check_result_and_queue_more_builds),
             ('building', distbuild.WorkerConnection,
                 distbuild.WorkerBuildFailed, 'building',
                 self._maybe_notify_build_failed),
@@ -248,14 +248,14 @@ class BuildController(distbuild.StateMachine):
         progress = BuildProgress(self._request['id'], 'Computing build graph')
         self.mainloop.queue_event(BuildController, progress)
 
-    def _collect_graph(self, event_source, event):
+    def _maybe_collect_graph(self, event_source, event):
         distbuild.crash_point()
 
         if event.msg['id'] == self._helper_id:
             self._artifact_data.add(event.msg['stdout'])
             self._artifact_error.add(event.msg['stderr'])
 
-    def _finish_graph(self, event_source, event):
+    def _maybe_finish_graph(self, event_source, event):
         distbuild.crash_point()
 
         def notify_failure(msg_text):
@@ -328,7 +328,7 @@ class BuildController(distbuild.StateMachine):
                 'Queued as %s query whether %s is in cache' %
                     (msg['id'], filename))
 
-    def _handle_cache_response(self, event_source, event):
+    def _maybe_handle_cache_response(self, event_source, event):
         distbuild.crash_point()
 
         logging.debug('Got cache query response: %s' % repr(event.msg))
@@ -426,7 +426,7 @@ class BuildController(distbuild.StateMachine):
         cancel = BuildCancel(disconnect.id)
         self.mainloop.queue_event(BuildController, cancel)
 
-    def _relay_build_step_started(self, event_source, event):
+    def _maybe_relay_build_step_started(self, event_source, event):
         distbuild.crash_point()
         if event.initiator_id != self._request['id']:
             return # not for us
@@ -444,7 +444,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(BuildController, started)
         logging.debug('BC: emitted %s' % repr(started))
 
-    def _relay_build_output(self, event_source, event):
+    def _maybe_relay_build_output(self, event_source, event):
         distbuild.crash_point()
         if event.msg['id'] != self._request['id']:
             return # not for us
@@ -462,7 +462,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(BuildController, output)
         logging.debug('BC: queued %s' % repr(output))
 
-    def _relay_build_caching(self, event_source, event):
+    def _maybe_relay_build_caching(self, event_source, event):
         distbuild.crash_point()
         if event.initiator_id != self._request['id']:
             return # not for us
@@ -485,7 +485,7 @@ class BuildController(distbuild.StateMachine):
         else:
             return None
             
-    def _check_result_and_queue_more_builds(self, event_source, event):
+    def _maybe_check_result_and_queue_more_builds(self, event_source, event):
         distbuild.crash_point()
         if event.msg['id'] != self._request['id']:
             return # not for us
