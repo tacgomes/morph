@@ -523,7 +523,7 @@ class BuildController(distbuild.StateMachine):
             # This is not the event you are looking for.
             return
 
-        logging.error(
+        logging.info(
             'Build step failed for %s: %s', artifact.name, repr(event.msg))
 
         step_failed = BuildStepFailed(
