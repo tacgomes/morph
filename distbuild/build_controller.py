@@ -158,7 +158,7 @@ class BuildController(distbuild.StateMachine):
         self._artifact_cache_server = artifact_cache_server
         self._morph_instance = morph_instance
         self._helper_id = None
-        self.debug_transitions = True
+        self.debug_transitions = False
 
     def setup(self):
         distbuild.crash_point()

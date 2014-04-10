@@ -48,7 +48,7 @@ class Initiator(distbuild.StateMachine):
         self._morphology = morphology
         self._steps = None
         self._step_outputs = {}
-        self.debug_transitions = True
+        self.debug_transitions = False
 
     def setup(self):
         distbuild.crash_point()
