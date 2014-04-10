@@ -150,10 +150,11 @@ class BuildController(distbuild.StateMachine):
     
     _idgen = distbuild.IdentifierGenerator('BuildController')
     
-    def __init__(self, build_request_message, artifact_cache_server,
-                 morph_instance):
+    def __init__(self, initiator_connection, build_request_message,
+                 artifact_cache_server, morph_instance):
         distbuild.crash_point()
         distbuild.StateMachine.__init__(self, 'init')
+        self._initiator_connection = initiator_connection
         self._request = build_request_message
         self._artifact_cache_server = artifact_cache_server
         self._morph_instance = morph_instance
@@ -170,10 +171,9 @@ class BuildController(distbuild.StateMachine):
         spec = [
             # state, source, event_class, new_state, callback
             ('init', self, _Start, 'graphing', self._start_graphing),
-            ('init', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'init', self._maybe_abort),
-            ('init', self, _Abort, None, None),
-            
+            ('init', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
+
             ('graphing', distbuild.HelperRouter, distbuild.HelperOutput,
                 'graphing', self._collect_graph),
             ('graphing', distbuild.HelperRouter, distbuild.HelperResult,
@@ -181,17 +181,15 @@ class BuildController(distbuild.StateMachine):
             ('graphing', self, _GotGraph,
                 'annotating', self._start_annotating),
             ('graphing', self, _GraphFailed, None, None),
-            ('graphing', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'graphing',
-                self._maybe_abort),
-                
+            ('graphing', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
+
             ('annotating', distbuild.HelperRouter, distbuild.HelperResult,
                 'annotating', self._handle_cache_response),
             ('annotating', self, _Annotated, 'building', 
                 self._queue_worker_builds),
-            ('annotating', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'annotating',
-                self._maybe_abort),
+            ('annotating', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
 
             # The exact WorkerConnection that is doing our building changes
             # from build to build. We must listen to all messages from all
@@ -217,17 +215,13 @@ class BuildController(distbuild.StateMachine):
                 self._maybe_notify_build_failed),
             ('building', self, _Abort, None, None),
             ('building', self, _Built, None, self._notify_build_done),
-            ('building', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'building', 
+            ('building', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None,
                 self._notify_initiator_disconnected),
         ]
         self.add_transitions(spec)
     
         self.mainloop.queue_event(self, _Start())
-
-    def _maybe_abort(self, event_source, event):
-        if event.id == self._request['id']:
-            self.mainloop.queue_event(self, _Abort())
 
     def _start_graphing(self, event_source, event):
         distbuild.crash_point()
@@ -427,9 +421,10 @@ class BuildController(distbuild.StateMachine):
 
 
     def _notify_initiator_disconnected(self, event_source, disconnect):
-        if disconnect.id == self._request['id']:
-            cancel = BuildCancel(disconnect.id)
-            self.mainloop.queue_event(BuildController, cancel)
+        logging.debug("BuildController %r: initiator id %s disconnected", self,
+                      disconnect.id)
+        cancel = BuildCancel(disconnect.id)
+        self.mainloop.queue_event(BuildController, cancel)
 
     def _relay_build_step_started(self, event_source, event):
         distbuild.crash_point()

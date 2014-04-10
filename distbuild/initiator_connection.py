@@ -103,7 +103,7 @@ class InitiatorConnection(distbuild.StateMachine):
             self._route_map.add(event.msg['id'], new_id)
             event.msg['id'] = new_id
             build_controller = distbuild.BuildController(
-                event.msg, self.artifact_cache_server, self.morph_instance)
+                self, event.msg, self.artifact_cache_server, self.morph_instance)
             self.mainloop.add_state_machine(build_controller)
 
     def _disconnect(self, event_source, event):
