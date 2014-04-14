@@ -75,9 +75,6 @@ def serialise_artifact(artifact):
         else:
             arch = artifact.arch
 
-        logging.debug('encode_single_artifact dependencies: %s'
-            % str([('id: %s' % str(id(d)), d.name) for d in a.dependencies]))
-
         return {
             'source_id': source_id,
             'name': a.name,
@@ -104,13 +101,10 @@ def serialise_artifact(artifact):
     encoded_sources = {}
 
     for a in traverse(artifact):
-        logging.debug('traversing artifacts at %s' % a.name)
-
         if id(a.source) not in encoded_sources:
             if a.source.morphology['kind'] == 'chunk':
                 for (_, sa) in a.source.artifacts.iteritems():
                     if id(sa) not in artifacts:
-                        logging.debug('encoding source artifact %s' % sa.name)
                         artifacts[id(sa)] = sa
                         encoded_artifacts[id(sa)] = encode_single_artifact(sa,
                             artifacts, id(a.source))
@@ -130,7 +124,6 @@ def serialise_artifact(artifact):
 
         if id(a) not in artifacts:
             artifacts[id(a)] = a
-            logging.debug('encoding artifact %s' % a.name)
             encoded_artifacts[id(a)] = encode_single_artifact(a, artifacts,
                 id(a.source))
 

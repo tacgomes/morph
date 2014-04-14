@@ -193,11 +193,13 @@ class WorkerConnection(distbuild.StateMachine):
         self._worker_cache_server_port = worker_cache_server_port
         self._morph_instance = morph_instance
         self._helper_id = None
-        
-    def name(self):
+
         addr, port = self._conn.getpeername()
         name = socket.getfqdn(addr)
-        return '%s:%s' % (name, port)
+        self._worker_name = '%s:%s' % (name, port)
+
+    def name(self):
+        return self._worker_name
 
     def setup(self):
         distbuild.crash_point()
@@ -231,7 +233,7 @@ class WorkerConnection(distbuild.StateMachine):
         self._request_job(None, None)
 
     def _maybe_cancel(self, event_source, build_cancel):
-        logging.debug('WC: BuildController requested a cancel')
+        logging.debug('WC: BuildController %r requested a cancel' % event_source)
         if build_cancel.id == self._initiator_id:
             distbuild.crash_point()
 
@@ -265,7 +267,7 @@ class WorkerConnection(distbuild.StateMachine):
             stdin_contents=distbuild.serialise_artifact(self._artifact),
         )
         self._jm.send(msg)
-        logging.debug('WC: sent to worker: %s' % repr(msg))
+        logging.debug('WC: sent to worker %s: %r' % (self._worker_name, msg))
         self._route_map.add(self._initiator_id, msg['id'])
         self._initiator_request_map[self._initiator_id].add(msg['id'])
         logging.debug(
@@ -281,7 +283,7 @@ class WorkerConnection(distbuild.StateMachine):
 
         distbuild.crash_point()
 
-        logging.debug('WC: from worker: %s' % repr(event.msg))
+        logging.debug('WC: from worker %s: %r' % (self._worker_name, event.msg))
 
         handlers = {
             'exec-output': self._handle_exec_output,

@@ -51,6 +51,11 @@ class InitiatorConnection(distbuild.StateMachine):
         self.conn = conn
         self.artifact_cache_server = artifact_cache_server
         self.morph_instance = morph_instance
+        self.initiator_name = conn.remotename()
+
+    def __repr__(self):
+        return '<InitiatorConnection at 0x%x: remote %s>' % (id(self),
+                self.initiator_name)
 
     def setup(self):
         self.jm = distbuild.JsonMachine(self.conn)
@@ -84,10 +89,10 @@ class InitiatorConnection(distbuild.StateMachine):
         
     def _handle_msg(self, event_source, event):
         '''Handle message from initiator.'''
-        
-        logging.debug(
-            'InitiatorConnection: from initiator: %s', repr(event.msg))
-            
+
+        logging.debug('InitiatorConnection: from %s: %r', self.initiator_name,
+                event.msg)
+
         if event.msg['type'] == 'build-request':
             new_id = self._idgen.next()
             self.our_ids.add(new_id)
@@ -99,16 +104,16 @@ class InitiatorConnection(distbuild.StateMachine):
 
     def _disconnect(self, event_source, event):
         for id in self.our_ids:
-            logging.debug('InitiatorConnection: InitiatorDisconnect(%s)'
-                          % str(id))
+            logging.debug('InitiatorConnection: %s: InitiatorDisconnect(%s)',
+                    self.initiator_name, str(id))
             self.mainloop.queue_event(InitiatorConnection,
                                       InitiatorDisconnect(id))
         # TODO should this clear our_ids?
         self.mainloop.queue_event(self, _Close(event_source))
 
     def _close(self, event_source, event):
-        logging.debug('InitiatorConnection: closing: %s',
-                      repr(event.event_source))
+        logging.debug('InitiatorConnection: %s: closing: %s',
+                      self.initiator_name, repr(event.event_source))
 
         event.event_source.close()
 
@@ -120,6 +125,10 @@ class InitiatorConnection(distbuild.StateMachine):
                 'InitiatorConnection: received result: %s', repr(event.msg))
             self.jm.send(event.msg)
 
+    def _log_send(self, msg):
+        logging.debug(
+            'InitiatorConnection: sent to %s: %r', self.initiator_name, msg)
+
     def _send_build_finished_message(self, event_source, event):
         if event.id in self.our_ids:
             msg = distbuild.message('build-finished',
@@ -128,8 +137,7 @@ class InitiatorConnection(distbuild.StateMachine):
             self._route_map.remove(event.id)
             self.our_ids.remove(event.id)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_failed_message(self, event_source, event):
         if event.id in self.our_ids:
@@ -139,8 +147,7 @@ class InitiatorConnection(distbuild.StateMachine):
             self._route_map.remove(event.id)
             self.our_ids.remove(event.id)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_progress_message(self, event_source, event):
         if event.id in self.our_ids:
@@ -148,8 +155,7 @@ class InitiatorConnection(distbuild.StateMachine):
                 id=self._route_map.get_incoming_id(event.id),
                 message=event.message_text)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_steps_message(self, event_source, event):
     
@@ -169,8 +175,7 @@ class InitiatorConnection(distbuild.StateMachine):
                 id=self._route_map.get_incoming_id(event.id),
                 steps=step_names)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_step_started_message(self, event_source, event):
         if event.id in self.our_ids:
@@ -179,8 +184,7 @@ class InitiatorConnection(distbuild.StateMachine):
                 step_name=event.step_name,
                 worker_name=event.worker_name)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_output_message(self, event_source, event):
         logging.debug('InitiatorConnection: build_output: '
@@ -193,8 +197,7 @@ class InitiatorConnection(distbuild.StateMachine):
                 stdout=event.stdout,
                 stderr=event.stderr)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_step_finished_message(self, event_source, event):
         if event.id in self.our_ids:
@@ -202,8 +205,7 @@ class InitiatorConnection(distbuild.StateMachine):
                 id=self._route_map.get_incoming_id(event.id),
                 step_name=event.step_name)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
     def _send_build_step_failed_message(self, event_source, event):
         if event.id in self.our_ids:
@@ -211,6 +213,5 @@ class InitiatorConnection(distbuild.StateMachine):
                 id=self._route_map.get_incoming_id(event.id),
                 step_name=event.step_name)
             self.jm.send(msg)
-            logging.debug(
-                'InitiatorConnection: sent to initiator: %s', repr(msg))
+            self._log_send(msg)
 
