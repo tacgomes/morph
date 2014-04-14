@@ -26,6 +26,7 @@ class ListenServer(StateMachine):
         self.mainloop.add_event_source(src)
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('listening', src, NewConnection, 'listening', self.new_conn),
             ('listening', src, SocketError, None, self.report_error),
         ]

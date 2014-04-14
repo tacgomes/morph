@@ -127,6 +127,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
         self._available_workers = []
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', WorkerBuildQueuer, WorkerBuildRequest, 'idle',
                 self._handle_request),
             ('idle', WorkerBuildQueuer, WorkerCancelPending, 'idle',
@@ -210,6 +211,7 @@ class WorkerConnection(distbuild.StateMachine):
         self.mainloop.add_state_machine(self._jm)
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', self._jm, distbuild.JsonEof, None,  self._reconnect),
             ('idle', self, _HaveAJob, 'building', self._start_build),
             
@@ -224,7 +226,7 @@ class WorkerConnection(distbuild.StateMachine):
                 self._request_caching),
 
             ('caching', distbuild.HelperRouter, distbuild.HelperResult,
-                'caching', self._handle_helper_result),
+                'caching', self._maybe_handle_helper_result),
             ('caching', self, _Cached, 'idle', self._request_job),
             ('caching', self, _JobFailed, 'idle', self._request_job),
         ]
@@ -372,7 +374,7 @@ class WorkerConnection(distbuild.StateMachine):
         self._initiator_id = None
         self._finished_msg = event.msg
 
-    def _handle_helper_result(self, event_source, event):
+    def _maybe_handle_helper_result(self, event_source, event):
         if event.msg['id'] == self._helper_id:
             distbuild.crash_point()
 

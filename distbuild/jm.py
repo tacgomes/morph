@@ -56,6 +56,7 @@ class JsonMachine(StateMachine):
         self.receive_buf = StringBuffer()
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('rw', sockbuf, SocketBufferNewData, 'rw', self._parse),
             ('rw', sockbuf, SocketBufferEof, 'w', self._send_eof),
             ('rw', self, _Close2, None, self._really_close),

@@ -150,10 +150,11 @@ class BuildController(distbuild.StateMachine):
     
     _idgen = distbuild.IdentifierGenerator('BuildController')
     
-    def __init__(self, build_request_message, artifact_cache_server,
-                 morph_instance):
+    def __init__(self, initiator_connection, build_request_message,
+                 artifact_cache_server, morph_instance):
         distbuild.crash_point()
         distbuild.StateMachine.__init__(self, 'init')
+        self._initiator_connection = initiator_connection
         self._request = build_request_message
         self._artifact_cache_server = artifact_cache_server
         self._morph_instance = morph_instance
@@ -168,57 +169,59 @@ class BuildController(distbuild.StateMachine):
         distbuild.crash_point()
 
         spec = [
+            # state, source, event_class, new_state, callback
             ('init', self, _Start, 'graphing', self._start_graphing),
-            ('init', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'init', self._maybe_abort),
-            ('init', self, _Abort, None, None),
-            
+            ('init', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
+
             ('graphing', distbuild.HelperRouter, distbuild.HelperOutput,
-                'graphing', self._collect_graph),
+                'graphing', self._maybe_collect_graph),
             ('graphing', distbuild.HelperRouter, distbuild.HelperResult,
-                'graphing', self._finish_graph),
+                'graphing', self._maybe_finish_graph),
             ('graphing', self, _GotGraph,
                 'annotating', self._start_annotating),
             ('graphing', self, _GraphFailed, None, None),
-            ('graphing', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, None,
-                self._maybe_abort),
-                
+            ('graphing', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
+
             ('annotating', distbuild.HelperRouter, distbuild.HelperResult,
-                'annotating', self._handle_cache_response),
-            ('annotating', self, _Annotated, 'building', 
+                'annotating', self._maybe_handle_cache_response),
+            ('annotating', self, _Annotated, 'building',
                 self._queue_worker_builds),
-            ('annotating', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, None,
-                self._maybe_abort),
-                
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildStepStarted, 'building', 
-                self._relay_build_step_started),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildOutput, 'building', 
-                self._relay_build_output),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildCaching, 'building', 
-                self._relay_build_caching),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildFinished, 'building', 
-                self._check_result_and_queue_more_builds),
-            ('building', distbuild.WorkerConnection, 
-                distbuild.WorkerBuildFailed, None, 
-                self._notify_build_failed),
+            ('annotating', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None, None),
+
+            # The exact WorkerConnection that is doing our building changes
+            # from build to build. We must listen to all messages from all
+            # workers, and choose whether to change state inside the callback.
+            # (An alternative would be to manage a set of temporary transitions
+            # specific to WorkerConnection instances that our currently
+            # building for us, but the state machines are not intended to
+            # behave that way).
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildStepStarted, 'building',
+                self._maybe_relay_build_step_started),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildOutput, 'building',
+                self._maybe_relay_build_output),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildCaching, 'building',
+                self._maybe_relay_build_caching),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildFinished, 'building',
+                self._maybe_check_result_and_queue_more_builds),
+            ('building', distbuild.WorkerConnection,
+                distbuild.WorkerBuildFailed, 'building',
+                self._maybe_notify_build_failed),
+            ('building', self, _Abort, None, None),
             ('building', self, _Built, None, self._notify_build_done),
-            ('building', distbuild.InitiatorConnection,
-                distbuild.InitiatorDisconnect, 'building', 
+            ('building', self._initiator_connection,
+                distbuild.InitiatorDisconnect, None,
                 self._notify_initiator_disconnected),
         ]
         self.add_transitions(spec)
     
         self.mainloop.queue_event(self, _Start())
-
-    def _maybe_abort(self, event_source, event):
-        if event.id == self._request['id']:
-            self.mainloop.queue_event(self, _Abort())
 
     def _start_graphing(self, event_source, event):
         distbuild.crash_point()
@@ -245,14 +248,14 @@ class BuildController(distbuild.StateMachine):
         progress = BuildProgress(self._request['id'], 'Computing build graph')
         self.mainloop.queue_event(BuildController, progress)
 
-    def _collect_graph(self, event_source, event):
+    def _maybe_collect_graph(self, event_source, event):
         distbuild.crash_point()
 
         if event.msg['id'] == self._helper_id:
             self._artifact_data.add(event.msg['stdout'])
             self._artifact_error.add(event.msg['stderr'])
 
-    def _finish_graph(self, event_source, event):
+    def _maybe_finish_graph(self, event_source, event):
         distbuild.crash_point()
 
         def notify_failure(msg_text):
@@ -325,7 +328,7 @@ class BuildController(distbuild.StateMachine):
                 'Queued as %s query whether %s is in cache' %
                     (msg['id'], filename))
 
-    def _handle_cache_response(self, event_source, event):
+    def _maybe_handle_cache_response(self, event_source, event):
         distbuild.crash_point()
 
         logging.debug('Got cache query response: %s' % repr(event.msg))
@@ -418,11 +421,12 @@ class BuildController(distbuild.StateMachine):
 
 
     def _notify_initiator_disconnected(self, event_source, disconnect):
-        if disconnect.id == self._request['id']:
-            cancel = BuildCancel(disconnect.id)
-            self.mainloop.queue_event(BuildController, cancel)
+        logging.debug("BuildController %r: initiator id %s disconnected", self,
+                      disconnect.id)
+        cancel = BuildCancel(disconnect.id)
+        self.mainloop.queue_event(BuildController, cancel)
 
-    def _relay_build_step_started(self, event_source, event):
+    def _maybe_relay_build_step_started(self, event_source, event):
         distbuild.crash_point()
         if event.initiator_id != self._request['id']:
             return # not for us
@@ -440,7 +444,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(BuildController, started)
         logging.debug('BC: emitted %s' % repr(started))
 
-    def _relay_build_output(self, event_source, event):
+    def _maybe_relay_build_output(self, event_source, event):
         distbuild.crash_point()
         if event.msg['id'] != self._request['id']:
             return # not for us
@@ -458,7 +462,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(BuildController, output)
         logging.debug('BC: queued %s' % repr(output))
 
-    def _relay_build_caching(self, event_source, event):
+    def _maybe_relay_build_caching(self, event_source, event):
         distbuild.crash_point()
         if event.initiator_id != self._request['id']:
             return # not for us
@@ -481,7 +485,7 @@ class BuildController(distbuild.StateMachine):
         else:
             return None
             
-    def _check_result_and_queue_more_builds(self, event_source, event):
+    def _maybe_check_result_and_queue_more_builds(self, event_source, event):
         distbuild.crash_point()
         if event.msg['id'] != self._request['id']:
             return # not for us
@@ -513,17 +517,24 @@ class BuildController(distbuild.StateMachine):
 
         self._queue_worker_builds(None, event)
 
-    def _notify_build_failed(self, event_source, event):
+    def _maybe_notify_build_failed(self, event_source, event):
         distbuild.crash_point()
-        if event.msg['id'] != self._request['id']:
-            return # not for us
 
-        artifact = self._find_artifact(event.artifact_cache_key)
-        if artifact is None:
-            # This is not the event you are looking for.
+        if event.msg['id'] != self._request['id']:
             return
 
-        logging.error(
+        artifact = self._find_artifact(event.artifact_cache_key)
+
+        if artifact is None:
+            logging.error(
+                'BuildController %r: artifact %s is not in our build graph!',
+                self, artifact)
+            # We abort the build in this case on the grounds that something is
+            # very wrong internally, and it's best for the initiator to receive
+            # an error than to be left hanging.
+            self.mainloop.queue_event(self, _Abort())
+
+        logging.info(
             'Build step failed for %s: %s', artifact.name, repr(event.msg))
 
         step_failed = BuildStepFailed(
@@ -547,6 +558,8 @@ class BuildController(distbuild.StateMachine):
         # be of use to any other build
         cancel = BuildCancel(self._request['id'])
         self.mainloop.queue_event(BuildController, cancel)
+
+        self.mainloop.queue_event(self, _Abort())
 
     def _notify_build_done(self, event_source, event):
         distbuild.crash_point()

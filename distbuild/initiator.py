@@ -58,6 +58,7 @@ class Initiator(distbuild.StateMachine):
         logging.debug('initiator: _jm=%s' % repr(self._jm))
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('waiting', self._jm, distbuild.JsonEof, None, self._terminate),
             ('waiting', self._jm, distbuild.JsonNewMessage, 'waiting',
                 self._handle_json_message),

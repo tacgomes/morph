@@ -52,6 +52,7 @@ class JsonRouter(distbuild.StateMachine):
         self.mainloop.add_state_machine(jm)
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', jm, distbuild.JsonNewMessage, 'idle', self.bloop),
             ('idle', jm, distbuild.JsonEof, None, self.close),
         ]

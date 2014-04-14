@@ -35,9 +35,12 @@ class _Close(object):
 
 class InitiatorConnection(distbuild.StateMachine):
 
-    '''Communicate with the initiator.
-    
-    This state machine communicates with the initiator, relaying and
+    '''Communicate with a single initiator.
+
+    When a developer runs 'morph distbuild' and connects to the controller,
+    the ListenServer object on the controller creates an InitiatorConnection.
+
+    This state machine communicates with the build initiator, relaying and
     translating messages from the initiator to the rest of the controller's
     state machines, and vice versa.
 
@@ -64,6 +67,7 @@ class InitiatorConnection(distbuild.StateMachine):
         self.our_ids = set()
         
         spec = [
+            # state, source, event_class, new_state, callback
             ('idle', self.jm, distbuild.JsonNewMessage, 'idle', 
                 self._handle_msg),
             ('idle', self.jm, distbuild.JsonEof, 'closing', self._disconnect),
@@ -99,7 +103,7 @@ class InitiatorConnection(distbuild.StateMachine):
             self._route_map.add(event.msg['id'], new_id)
             event.msg['id'] = new_id
             build_controller = distbuild.BuildController(
-                event.msg, self.artifact_cache_server, self.morph_instance)
+                self, event.msg, self.artifact_cache_server, self.morph_instance)
             self.mainloop.add_state_machine(build_controller)
 
     def _disconnect(self, event_source, event):
