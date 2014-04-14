@@ -45,8 +45,8 @@ class JsonMachine(StateMachine):
         self.debug_json = False
 
     def __repr__(self):
-	    return '<JsonMachine at 0x%x: socket %s, max_buffer %s>' % (id(self),
-		    self.conn, self.max_buffer)
+        return '<JsonMachine at 0x%x: socket %s, max_buffer %s>' % \
+            (id(self), self.conn, self.max_buffer)
 
     def setup(self):
         sockbuf = self.sockbuf = SocketBuffer(self.conn, self.max_buffer)
