@@ -341,7 +341,6 @@ class BuildController(distbuild.StateMachine):
             '(helper id: %s)' % self._helper_id)
 
     def _maybe_handle_cache_response(self, event_source, event):
-        logging.debug('Got cache response: %s' % repr(event.msg))
 
         def set_status(artifact):
             is_in_cache = cache_state[self._artifact_filename(artifact)]
@@ -349,6 +348,8 @@ class BuildController(distbuild.StateMachine):
 
         if self._helper_id != event.msg['id']:
             return    # this event is not for us
+
+        logging.debug('Got cache response: %s' % repr(event.msg))
 
         http_status_code = event.msg['status']
 
