@@ -309,12 +309,6 @@ class BuildController(distbuild.StateMachine):
 
             notify_success(artifact)
 
-    def _artifact_filename(self, artifact):
-        return ('%s.%s.%s' %
-                (artifact.cache_key,
-                 artifact.source.morphology['kind'],
-                 artifact.name))
-
     def _start_annotating(self, event_source, event):
         distbuild.crash_point()
 
@@ -324,7 +318,7 @@ class BuildController(distbuild.StateMachine):
 
         def set_state_and_append(artifact):
             artifact.state = UNKNOWN
-            artifact_names.append(self._artifact_filename(artifact))
+            artifact_names.append(artifact.basename())
 
         map_build_graph(self._artifact, set_state_and_append)
 
@@ -344,7 +338,7 @@ class BuildController(distbuild.StateMachine):
     def _maybe_handle_cache_response(self, event_source, event):
 
         def set_status(artifact):
-            is_in_cache = cache_state[self._artifact_filename(artifact)]
+            is_in_cache = cache_state[artifact.basename()]
             artifact.state = BUILT if is_in_cache else UNBUILT
 
         if self._helper_id != event.msg['id']:
