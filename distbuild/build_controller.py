@@ -165,6 +165,7 @@ class BuildController(distbuild.StateMachine):
         self._morph_instance = morph_instance
         self._helper_id = None
         self.debug_transitions = False
+        self.debug_graph_state = False
 
     def __repr__(self):
         return '<BuildController at 0x%x, request-id %s>' % (id(self),
@@ -394,14 +395,15 @@ class BuildController(distbuild.StateMachine):
             return
 
         logging.debug('Queuing more worker-builds to run')
-        logging.debug('Current state of build graph nodes:')
-        for a in map_build_graph(self._artifact, lambda a: a):
-            logging.debug('  %s state is %s' % (a.name, a.state))
-            if a.state != BUILT:
-                for dep in a.dependencies:
-                    logging.debug(
-                        '    depends on %s which is %s' % 
-                            (dep.name, dep.state))
+        if self.debug_graph_state:
+            logging.debug('Current state of build graph nodes:')
+            for a in map_build_graph(self._artifact, lambda a: a):
+                logging.debug('  %s state is %s' % (a.name, a.state))
+                if a.state != BUILT:
+                    for dep in a.dependencies:
+                        logging.debug(
+                            '    depends on %s which is %s' %
+                                (dep.name, dep.state))
 
         while True:
             ready = self._find_artifacts_that_are_ready_to_build()
