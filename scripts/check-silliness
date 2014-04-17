@@ -32,10 +32,10 @@ for x; do
         # IMPLEMENTS lines of them
         *.yarn) ;;
         *)
-            if awk 'length > 79' "$x" | grep . > /dev/null
+            if awk 'length($0) > 79' "$x" | grep . > /dev/null
             then
                 echo "ERROR: $x has lines longer than 79 chars" 1>&2
-                awk 'length > 79 { print NR, $0 }' "$x" 1>&2
+                awk 'length($0) > 79 { print NR, $0 }' "$x" 1>&2
                 errors=1
             fi
             ;;
