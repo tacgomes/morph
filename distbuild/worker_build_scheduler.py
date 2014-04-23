@@ -343,31 +343,34 @@ class WorkerConnection(distbuild.StateMachine):
     def _start_build(self, event_source, event):
         distbuild.crash_point()
 
-        self._artifact = event.artifact
-        self._initiator_id = event.initiator_id
+        self._job = event.job
+        self._helper_id = None
+        self._exec_response_msg = None
+
         logging.debug('WC: starting build: %s for %s' %
-                      (self._artifact.name, self._initiator_id))
+                      (self._job.artifact.name, self._job.initiators))
 
         argv = [
             self._morph_instance,
             'worker-build',
-            self._artifact.name,
+            self._job.artifact.name,
         ]
         msg = distbuild.message('exec-request',
-            id=self._request_ids.next(),
+            id=self._job.id,
             argv=argv,
-            stdin_contents=distbuild.serialise_artifact(self._artifact),
+            stdin_contents=distbuild.serialise_artifact(self._job.artifact),
         )
         self._jm.send(msg)
-        logging.debug('WC: sent to worker %s: %r' % (self._worker_name, msg))
-        self._route_map.add(self._initiator_id, msg['id'])
-        self._initiator_request_map[self._initiator_id].add(msg['id'])
-        logging.debug(
-            'WC: route map from %s to %s',
-            self._artifact.cache_key, msg['id'])
 
-        started = WorkerBuildStepStarted(
-            self._initiator_id, self._artifact.cache_key, self.name())
+        if self._debug_json:
+            logging.debug('WC: sent to worker %s: %r'
+                % (self._worker_name, msg))
+
+        started = WorkerBuildStepStarted(self._job.initiators,
+            self._job.artifact.cache_key, self.name())
+
+        self._job.is_building = True
+
         self.mainloop.queue_event(WorkerConnection, started)
 
     def _handle_json_message(self, event_source, event):
