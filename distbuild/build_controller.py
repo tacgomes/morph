@@ -467,11 +467,12 @@ class BuildController(distbuild.StateMachine):
 
     def _maybe_relay_build_step_started(self, event_source, event):
         distbuild.crash_point()
-        if event.initiator_id != self._request['id']:
+        if self._request['id'] not in event.initiators:
             return # not for us
 
         logging.debug(
             'BC: _relay_build_step_started: %s' % event.artifact_cache_key)
+
         artifact = self._find_artifact(event.artifact_cache_key)
         if artifact is None:
             # This is not the event you are looking for.
@@ -497,7 +498,7 @@ class BuildController(distbuild.StateMachine):
 
     def _maybe_relay_build_output(self, event_source, event):
         distbuild.crash_point()
-        if event.msg['id'] != self._request['id']:
+        if self._request['id'] not in event.msg['ids']:
             return # not for us
 
         logging.debug('BC: got output: %s' % repr(event.msg))
@@ -515,7 +516,8 @@ class BuildController(distbuild.StateMachine):
 
     def _maybe_relay_build_caching(self, event_source, event):
         distbuild.crash_point()
-        if event.initiator_id != self._request['id']:
+
+        if self._request['id'] not in event.initiators:
             return # not for us
 
         artifact = self._find_artifact(event.artifact_cache_key)
@@ -538,7 +540,7 @@ class BuildController(distbuild.StateMachine):
             
     def _maybe_check_result_and_queue_more_builds(self, event_source, event):
         distbuild.crash_point()
-        if event.msg['id'] != self._request['id']:
+        if self._request['id'] not in event.msg['ids']:
             return # not for us
 
         artifact = self._find_artifact(event.artifact_cache_key)
@@ -579,8 +581,8 @@ class BuildController(distbuild.StateMachine):
     def _maybe_notify_build_failed(self, event_source, event):
         distbuild.crash_point()
 
-        if event.msg['id'] != self._request['id']:
-            return
+        if self._request['id'] not in event.msg['ids']:
+            return  # not for us
 
         artifact = self._find_artifact(event.artifact_cache_key)
 
