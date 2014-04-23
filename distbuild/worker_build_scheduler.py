@@ -315,14 +315,14 @@ class WorkerConnection(distbuild.StateMachine):
             ('building', self._jm, distbuild.JsonEof, None, self._reconnect),
             ('building', self._jm, distbuild.JsonNewMessage, 'building',
                 self._handle_json_message),
-            ('building', self, _JobFailed, 'idle', self._request_job),
-            ('building', self, _JobIsFinished, 'caching',
+            ('building', self, _BuildFailed, 'idle', self._request_job),
+            ('building', self, _BuildFinished, 'caching',
                 self._request_caching),
 
             ('caching', distbuild.HelperRouter, distbuild.HelperResult,
                 'caching', self._maybe_handle_helper_result),
             ('caching', self, _Cached, 'idle', self._request_job),
-            ('caching', self, _JobFailed, 'idle', self._request_job),
+            ('caching', self, _BuildFailed, 'idle', self._request_job),
         ]
         self.add_transitions(spec)
         
