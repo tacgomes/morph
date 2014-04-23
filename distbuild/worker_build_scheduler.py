@@ -282,6 +282,9 @@ class WorkerConnection(distbuild.StateMachine):
         self._worker_cache_server_port = worker_cache_server_port
         self._morph_instance = morph_instance
         self._helper_id = None
+        self._job = None
+        self._exec_response_msg = None
+        self._debug_json = False
 
         addr, port = self._conn.getpeername()
         name = socket.getfqdn(addr)
@@ -289,6 +292,9 @@ class WorkerConnection(distbuild.StateMachine):
 
     def name(self):
         return self._worker_name
+
+    def job(self):
+        return self._job
 
     def setup(self):
         distbuild.crash_point()
