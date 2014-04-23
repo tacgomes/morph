@@ -33,20 +33,30 @@ class WorkerBuildRequest(object):
         self.artifact = artifact
         self.initiator_id = initiator_id
 
-
 class WorkerCancelPending(object):
     
     def __init__(self, initiator_id):
         self.initiator_id = initiator_id    
 
-
 class WorkerBuildStepStarted(object):
+
+    def __init__(self, initiators, cache_key, worker_name):
+        self.initiators = initiators
+        self.artifact_cache_key = cache_key
+        self.worker_name = worker_name
+
+class WorkerBuildStepAlreadyStarted(object):
 
     def __init__(self, initiator_id, cache_key, worker_name):
         self.initiator_id = initiator_id
         self.artifact_cache_key = cache_key
         self.worker_name = worker_name
 
+class WorkerBuildWaiting(object):
+
+    def __init__(self, initiator_id, cache_key):
+        self.initiator_id = initiator_id
+        self.artifact_cache_key = cache_key
 
 class WorkerBuildOutput(object):
 
