@@ -398,23 +398,22 @@ class WorkerConnection(distbuild.StateMachine):
             WorkerBuildOutput(new, self._job.artifact.cache_key))
 
     def _handle_exec_response(self, msg):
-        logging.debug('WC: finished building: %s' % self._artifact.name)
+        logging.debug('WC: finished building: %s' % self._job.artifact.name)
+        logging.debug('initiators that need to know: %s'
+            % self._job.initiators)
 
         new = dict(msg)
-        new['id'] = self._route_map.get_incoming_id(msg['id'])
-        self._route_map.remove(msg['id'])
-        self._initiator_request_map[self._initiator_id].remove(msg['id'])
+        new['ids'] = self._job.initiators
 
         if new['exit'] != 0:
             # Build failed.
-            new_event = WorkerBuildFailed(new, self._artifact.cache_key)
+            new_event = WorkerBuildFailed(new, self._job.artifact.cache_key)
             self.mainloop.queue_event(WorkerConnection, new_event)
-            self.mainloop.queue_event(self, _JobFailed())
-            self._artifact = None
-            self._initiator_id = None
+            self.mainloop.queue_event(self, _BuildFailed())
         else:
             # Build succeeded. We have more work to do: caching the result.
-            self.mainloop.queue_event(self, _JobIsFinished(new))
+            self.mainloop.queue_event(self, _BuildFinished())
+            self._exec_response_msg = new
 
     def _request_job(self, event_source, event):
         distbuild.crash_point()
