@@ -424,14 +424,14 @@ class WorkerConnection(distbuild.StateMachine):
 
         logging.debug('Requesting shared artifact cache to get artifacts')
 
-        kind = self._artifact.source.morphology['kind']
+        kind = self._job.artifact.source.morphology['kind']
 
         if kind == 'chunk':
-            source_artifacts = self._artifact.source.artifacts
+            source_artifacts = self._job.artifact.source.artifacts
 
             suffixes = ['%s.%s' % (kind, name) for name in source_artifacts]
         else:
-            filename = '%s.%s' % (kind, self._artifact.name)
+            filename = '%s.%s' % (kind, self._job.artifact.name)
             suffixes = [filename]
 
             if kind == 'stratum':
@@ -451,7 +451,7 @@ class WorkerConnection(distbuild.StateMachine):
             '/1.0/fetch?host=%s:%d&cacheid=%s&artifacts=%s' %
                 (urllib.quote(worker_host),
                  self._worker_cache_server_port,
-                 urllib.quote(self._artifact.cache_key),
+                 urllib.quote(self._job.artifact.cache_key),
                  suffixes))
 
         msg = distbuild.message(
@@ -461,12 +461,9 @@ class WorkerConnection(distbuild.StateMachine):
         req = distbuild.HelperRequest(msg)
         self.mainloop.queue_event(distbuild.HelperRouter, req)
         
-        progress = WorkerBuildCaching(
-            self._initiator_id, self._artifact.cache_key)
+        progress = WorkerBuildCaching(self._job.initiators,
+            self._job.artifact.cache_key)
         self.mainloop.queue_event(WorkerConnection, progress)
-        
-        self._initiator_id = None
-        self._finished_msg = event.msg
 
     def _maybe_handle_helper_result(self, event_source, event):
         if event.msg['id'] == self._helper_id:
