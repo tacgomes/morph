@@ -91,21 +91,60 @@ class _NeedJob(object):
 
 class _HaveAJob(object):
 
-    def __init__(self, artifact, initiator_id):
-        self.artifact = artifact
-        self.initiator_id = initiator_id
-        
-        
-class _JobIsFinished(object):
+    def __init__(self, job):
+        self.job = job
 
-    def __init__(self, msg):
-        self.msg = msg
+class Job(object):
+
+    def __init__(self, job_id, artifact, initiator_id):
+        self.id = job_id
+        self.artifact = artifact
+        self.initiators = [initiator_id]
+        self.who = None  # we don't know who's going to do this yet
+        self.is_building = False
+
+    def add_initiator(self, initiator_id):
+        self.initiators.append(initiator_id)
+
+class Jobs(object):
+
+    def __init__(self, idgen):
+        self._idgen = idgen
+        self._jobs = {}
+
+    def get(self, artifact_basename):
+        return (self._jobs[artifact_basename]
+            if artifact_basename in self._jobs else None)
+
+    def create(self, artifact, initiator_id):
+        job = Job(self._idgen.next(), artifact, initiator_id)
+        self._jobs[job.artifact.basename()] = job
+        return job
+
+    def remove(self, job):
+        del self._jobs[job.artifact.basename()]
+
+    def exists(self, artifact_basename):
+        return artifact_basename in self._jobs
+
+    def get_next_job(self):
+        # for now just return the first thing we find that's not being built
+        waiting = [job for (_, job) in
+            self._jobs.iteritems() if job.who == None]
+
+        return waiting.pop() if len(waiting) > 0 else None
+
+    def __repr__(self):
+        return str([job.artifact.basename()
+            for (_, job) in self._jobs.iteritems()])
         
-        
-class _JobFailed(object):
+class _BuildFinished(object):
 
     pass
-        
+
+class _BuildFailed(object):
+
+    pass
         
 class _Cached(object):
 
