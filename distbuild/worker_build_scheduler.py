@@ -391,11 +391,11 @@ class WorkerConnection(distbuild.StateMachine):
 
     def _handle_exec_output(self, msg):
         new = dict(msg)
-        new['id'] = self._route_map.get_incoming_id(msg['id'])
+        new['ids'] = self._job.initiators
         logging.debug('WC: emitting: %s', repr(new))
         self.mainloop.queue_event(
             WorkerConnection,
-            WorkerBuildOutput(new, self._artifact.cache_key))
+            WorkerBuildOutput(new, self._job.artifact.cache_key))
 
     def _handle_exec_response(self, msg):
         logging.debug('WC: finished building: %s' % self._artifact.name)
