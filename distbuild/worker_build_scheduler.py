@@ -64,20 +64,17 @@ class WorkerBuildOutput(object):
         self.msg = msg
         self.artifact_cache_key = cache_key
 
-
 class WorkerBuildCaching(object):
 
-    def __init__(self, initiator_id, cache_key):
-        self.initiator_id = initiator_id
+    def __init__(self, initiators, cache_key):
+        self.initiators = initiators
         self.artifact_cache_key = cache_key
-
 
 class WorkerBuildFinished(object):
 
     def __init__(self, msg, cache_key):
         self.msg = msg
         self.artifact_cache_key = cache_key
-        
         
 class WorkerBuildFailed(object):
 
