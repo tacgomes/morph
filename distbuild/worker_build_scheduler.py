@@ -472,21 +472,16 @@ class WorkerConnection(distbuild.StateMachine):
             logging.debug('caching: event.msg: %s' % repr(event.msg))
             if event.msg['status'] == httplib.OK:
                 logging.debug('Shared artifact cache population done')
+
                 new_event = WorkerBuildFinished(
-                    self._finished_msg, self._artifact.cache_key)
+                    self._exec_response_msg, self._job.artifact.cache_key)
                 self.mainloop.queue_event(WorkerConnection, new_event)
-                self._finished_msg = None
-                self._helper_id = None
                 self.mainloop.queue_event(self, _Cached())
             else:
                 logging.error(
                     'Failed to populate artifact cache: %s %s' %
                         (event.msg['status'], event.msg['body']))
                 new_event = WorkerBuildFailed(
-                    self._finished_msg, self._artifact.cache_key)
+                    self._exec_response_msg, self._job.artifact.cache_key)
                 self.mainloop.queue_event(WorkerConnection, new_event)
-                self._finished_msg = None
-                self._helper_id = None
-                self.mainloop.queue_event(self, _JobFailed())
-
-            self._artifact = None
+                self.mainloop.queue_event(self, _BuildFailed())
