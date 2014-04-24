@@ -270,7 +270,6 @@ class WorkerConnection(distbuild.StateMachine):
     '''Communicate with a single worker.'''
     
     _request_ids = distbuild.IdentifierGenerator('WorkerConnection')
-    _route_map = distbuild.RouteMap()
     _initiator_request_map = collections.defaultdict(set)
 
     def __init__(self, cm, conn, writeable_cache_server, 
