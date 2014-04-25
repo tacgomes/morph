@@ -92,13 +92,12 @@ export PYTHONPATH
 
 # Run the style checks
 
-errors=0
 if "$run_style" && [ -d .git ];
 then
     echo "Checking copyright statements"
     if ! (git ls-files --cached -z |
           xargs -0r scripts/check-copyright-year); then
-        errors=1
+        exit 1
     fi
 
     echo 'Checking source code for silliness'
@@ -107,11 +106,8 @@ then
           grep -Ev 'tests[^/]*/.*\.std(out|err)' |
           grep -vF 'tests.build/build-system-autotools.script' |
           xargs -r scripts/check-silliness); then
-        errors=1
+        exit 1
     fi
-fi
-if [ "$errors" != 0 ]; then
-    exit "$errors"
 fi
 
 # Clean up artifacts from previous (possibly failed) runs, build,
