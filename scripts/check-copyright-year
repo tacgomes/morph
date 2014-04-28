@@ -17,12 +17,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from __future__ import print_function
 
 import datetime
 import re
+import sys
 
 import cliapp
-
 
 class CheckCopyrightYear(cliapp.Application):
 
@@ -39,7 +40,8 @@ class CheckCopyrightYear(cliapp.Application):
 
     def cleanup(self):
         if not self.all_ok:
-            raise cliapp.AppException('Some copyright years need fixing')
+            print('ERROR: Some copyright years need fixing', file=sys.stderr)
+            sys.exit(1)
 
     def get_uncommitted_files(self):
         filenames = set()
@@ -73,14 +75,12 @@ class CheckCopyrightYear(cliapp.Application):
             if start <= year <= end:
                 ok = True
 
-        if self.settings['verbose']:
-            if ok:
+        if ok:
+            if self.settings['verbose']:
                 self.output.write('OK %s\n' % filename)
-            else:
-                self.output.write('BAD %s:%s:%s\n' %
-                                  (filename, self.lineno, line.strip()))
-        elif not ok:
-            self.output.write('%s\n' % filename)
+        else:
+            self.output.write('BAD %s:%s:%s\n' %
+                              (filename, self.lineno, line.strip()))
 
         self.all_ok = self.all_ok and ok
 
