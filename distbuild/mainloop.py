@@ -112,6 +112,6 @@ class MainLoop(object):
 
     def _dequeue_events(self):
         while self._events:
-            event_queue, event = self._events.pop(0)
-            yield event_queue, event
+            event_source, event = self._events.pop(0)
 
+            yield event_source, event
