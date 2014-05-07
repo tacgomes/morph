@@ -41,8 +41,8 @@ class MorphologyObsoleteFieldWarning(UserWarning):
 
 class MorphologySyntaxError(morphlib.Error):
 
-    def __init__(self, morphology):
-        self.msg = 'Syntax error in morphology %s' % morphology
+    def __init__(self, morphology, errmsg):
+        self.msg = 'Syntax error in morphology %s:\n%s' % (morphology, errmsg)
 
 
 class NotADictionaryError(morphlib.Error):
@@ -344,8 +344,7 @@ class MorphologyLoader(object):
         try:
             obj = yaml.safe_load(text)
         except yaml.error.YAMLError as e:
-            logging.error('Could not load morphology as YAML:\n%s' % str(e))
-            raise MorphologySyntaxError(whence)
+            raise MorphologySyntaxError(whence, e)
 
         if not isinstance(obj, dict):
             raise NotADictionaryError(whence)
