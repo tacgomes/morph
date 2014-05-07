@@ -434,7 +434,7 @@ class MorphologyLoader(object):
         for spec in strata:
             name = spec.get('alias', spec['morph'])
             if name in names:
-               raise DuplicateStratumError(morph['name'], name)
+                raise DuplicateStratumError(morph['name'], name)
             names.add(name)
 
         # Validate stratum spec fields
@@ -459,7 +459,7 @@ class MorphologyLoader(object):
         for spec in morph['chunks']:
             name = spec.get('alias', spec['name'])
             if name in names:
-               raise DuplicateChunkError(morph['name'], name)
+                raise DuplicateChunkError(morph['name'], name)
             names.add(name)
 
         # All chunk refs must be strings.
