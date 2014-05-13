@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013  Codethink Limited
+# Copyright (C) 2012, 2013, 2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,6 +87,9 @@ class LocalArtifactCache(object):
         filename = self._artifact_metadata_filename(artifact, name)
         os.utime(filename, None)
         return open(filename)
+
+    def get_source_metadata_filename(self, source, cachekey, name):
+        return self._source_metadata_filename(source, cachekey, name)
 
     def get_source_metadata(self, source, cachekey, name):
         filename = self._source_metadata_filename(source, cachekey, name)
