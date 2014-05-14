@@ -547,6 +547,7 @@ class WorkerConnection(distbuild.StateMachine):
             source_artifacts = self._job.artifact.source.artifacts
 
             suffixes = ['%s.%s' % (kind, name) for name in source_artifacts]
+            suffixes.append('build-log')
         else:
             filename = '%s.%s' % (kind, self._job.artifact.name)
             suffixes = [filename]
