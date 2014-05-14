@@ -60,6 +60,17 @@ class LocalArtifactCacheTests(unittest.TestCase):
         expected_name = self.tempfs.getsyspath(self.devel_artifact.basename())
         self.assertEqual(filename, expected_name)
 
+    def test_get_source_metadata_filename(self):
+        cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
+        artifact = self.devel_artifact
+        name = 'foobar'
+
+        filename = cache.get_source_metadata_filename(artifact.source,
+                                                      artifact.cache_key, name)
+        expected_name = self.tempfs.getsyspath('%s.%s' %
+                                               (artifact.cache_key, name))
+        self.assertEqual(filename, expected_name)
+
     def test_put_artifacts_and_check_whether_the_cache_has_them(self):
         cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
 
