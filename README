@@ -27,8 +27,8 @@ really required. Meanwhile a short usage to build a disk image:
 
     morph init workspace
     cd workspace
-    morph checkout baserock:baserock/morphs master
-    cd master/baserock:baserock/morphs
+    morph checkout baserock:baserock/definitions master
+    cd master/baserock/baserock/definitions
     morph build base-system-x86_64-generic
 
 For deploying you need to create a cluster morphology. Here is an
@@ -38,7 +38,7 @@ example to deploy to a raw disk image.
     kind: cluster
     systems:
     - morph: base-system-x86_64-generic
-      repo: baserock:baserock/morphs
+      repo: baserock:baserock/definitions
       ref: master
       deploy:
           my-raw-disk-image:
@@ -180,11 +180,11 @@ For strata, use the following fields:
 
 For systems, use the following fields:
 
-* `strata`: a list of triples specifying strata to be included in the system
-  image. Similar to chunks, you should give `repo`, `ref` and `morph`
-  (filename without the .morph extension) for each stratum. The value of
-  the `morph` field will be taken as the artifact name; if this causes
-  ambiguity then an `alias` may be specified as well. **required**
+* `strata`: a list of names of strata to be included in the system. Unlike
+  chunks, the stratum morphs must all be in the same Git repository as the
+  system morphology. The value of the `morph` field will be taken as the
+  artifact name; if this causes ambiguity then an `alias` may be specified as
+  well. **required**
 
 Example chunk (simplified commands):
 
@@ -230,11 +230,7 @@ Example system:
     kind: system
     strata:
     - morph: foundation
-      repo: baserock:baserock/morphs
-      ref: master
     - morph: linux-stratum
-      repo: baserock:baserock/morphs
-      ref: master
 
 Note that currently, unknown keys in morphologies are silently ignored.
 
