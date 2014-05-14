@@ -4,6 +4,28 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
+Version 14.20, released 2014-05-14
+----------------------------------
+
+New features include:
+
+* New CPU architecture: armv7lhf (ARM hard float).
+
+* Artifact splitting for chunk and stratum artifacts.
+
+* Components that can be used to set up a distributed build network of Morph
+  build workers.
+
+* Built-in documentation for some extensions, see `morph help-extensions` and
+  `morph help <extension>`.
+
+* Nested deployment by `morph deploy`.
+
+* Support for adding binaries to Git repos when used with Trove. See the `morph
+  add-binary` and `morph push` commands.
+
+Many additional changes are described in the Git log.
+
 Version 13, released 2014-01-10
 -------------------------------
 
