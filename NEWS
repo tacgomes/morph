@@ -4,6 +4,18 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
+Version 14.22, released 2014-05-29
+----------------------------------
+
+New features:
+
+* VirtualBox deployment now supports Vagrant. See:
+  <http://wiki.baserock.org/guides/vagrant-basebox/>
+
+* Additional checks when deploying upgrades with the 'ssh-rsync' extension.
+
+Additional bug fixes described in the git log.
+
 Version 14.20, released 2014-05-14
 ----------------------------------
 
