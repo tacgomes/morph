@@ -600,7 +600,12 @@ class WorkerConnection(distbuild.StateMachine):
                 logging.error(
                     'Failed to populate artifact cache: %s %s' %
                         (event.msg['status'], event.msg['body']))
+
+                self.mainloop.queue_event(WorkerConnection,
+                                          _ExecFailed(self._job))
+
                 new_event = WorkerBuildFailed(
                     self._exec_response_msg, self._job.artifact.cache_key)
                 self.mainloop.queue_event(WorkerConnection, new_event)
+
                 self.mainloop.queue_event(self, _BuildFailed())
