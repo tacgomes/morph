@@ -100,7 +100,7 @@ class Job(object):
         self.artifact = artifact
         self.initiators = [initiator_id]
         self.who = None  # we don't know who's going to do this yet
-        self.is_building = False
+        self.running = False
         self.failed = False
 
 
@@ -168,19 +168,19 @@ class _Cached(object):
     pass
 
 
-class _ExecStarted(object):
+class _JobStarted(object):
 
     def __init__(self, job):
         self.job = job
 
 
-class _ExecEnded(object):
+class _JobFinished(object):
 
     def __init__(self, job):
         self.job = job
 
 
-class _ExecFailed(object):
+class _JobFailed(object):
 
     def __init__(self, job):
         self.job = job
@@ -215,30 +215,30 @@ class WorkerBuildQueuer(distbuild.StateMachine):
                 self._handle_cancel),
 
             ('idle', WorkerConnection, _NeedJob, 'idle', self._handle_worker),
-            ('idle', WorkerConnection, _ExecStarted, 'idle',
-                self._set_exec_started),
-            ('idle', WorkerConnection, _ExecEnded, 'idle',
-                self._set_exec_ended),
-            ('idle', WorkerConnection, _ExecFailed, 'idle',
-                self._set_exec_failed)
+            ('idle', WorkerConnection, _JobStarted, 'idle',
+                self._set_job_started),
+            ('idle', WorkerConnection, _JobFinished, 'idle',
+                self._set_job_finished),
+            ('idle', WorkerConnection, _JobFailed, 'idle',
+                self._set_job_failed)
         ]
         self.add_transitions(spec)
 
-    def _set_exec_started(self, event_source, event):
+    def _set_job_started(self, event_source, event):
         logging.debug('Setting job state for job %s with id %s: '
-                      'Job is building',
+                      'Job is running',
                       event.job.artifact.basename(), event.job.id)
 
-        event.job.is_building = True
+        event.job.running = True
 
-    def _set_exec_ended(self, event_source, event):
+    def _set_job_finished(self, event_source, event):
         logging.debug('Setting job state for job %s with id %s: '
-                      'Job is NOT building',
+                      'Job is NOT running',
                       event.job.artifact.basename(), event.job.id)
 
-        event.job.is_building = False
+        event.job.running = False
 
-    def _set_exec_failed(self, event_source, event):
+    def _set_job_failed(self, event_source, event):
         logging.debug('Job %s with id %s failed',
                       event.job.artifact.basename(), event.job.id)
         event.job.failed = True
@@ -258,7 +258,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
             job = self._jobs.get(event.artifact.basename())
             job.initiators.append(event.initiator_id)
 
-            if job.is_building:
+            if job.running:
                 logging.debug('Worker build step already started: %s' %
                     event.artifact.basename())
                 progress = WorkerBuildStepAlreadyStarted(event.initiator_id,
@@ -295,7 +295,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
                           name, job_id)
 
             if len(job.initiators) == 1:
-                if job.is_building or job.failed:
+                if job.running or job.failed:
                     logging.debug('NOT removing running job %s with job id %s '
                                   '(WorkerConnection will cancel job)',
                                   name, job_id)
@@ -485,7 +485,7 @@ class WorkerConnection(distbuild.StateMachine):
         started = WorkerBuildStepStarted(self._job.initiators,
             self._job.artifact.cache_key, self.name())
 
-        self.mainloop.queue_event(WorkerConnection, _ExecStarted(self._job))
+        self.mainloop.queue_event(WorkerConnection, _JobStarted(self._job))
         self.mainloop.queue_event(WorkerConnection, started)
 
     def _handle_json_message(self, event_source, event):
@@ -524,14 +524,12 @@ class WorkerConnection(distbuild.StateMachine):
             # Build failed.
             new_event = WorkerBuildFailed(new, self._job.artifact.cache_key)
             self.mainloop.queue_event(WorkerConnection, new_event)
-            self.mainloop.queue_event(WorkerConnection, _ExecFailed(self._job))
+            self.mainloop.queue_event(WorkerConnection, _JobFailed(self._job))
             self.mainloop.queue_event(self, _BuildFailed())
         else:
             # Build succeeded. We have more work to do: caching the result.
             self.mainloop.queue_event(self, _BuildFinished())
             self._exec_response_msg = new
-
-        self.mainloop.queue_event(WorkerConnection, _ExecEnded(self._job))
 
     def _request_job(self, event_source, event):
         distbuild.crash_point()
@@ -602,10 +600,12 @@ class WorkerConnection(distbuild.StateMachine):
                         (event.msg['status'], event.msg['body']))
 
                 self.mainloop.queue_event(WorkerConnection,
-                                          _ExecFailed(self._job))
+                                          _JobFailed(self._job))
 
                 new_event = WorkerBuildFailed(
                     self._exec_response_msg, self._job.artifact.cache_key)
                 self.mainloop.queue_event(WorkerConnection, new_event)
 
                 self.mainloop.queue_event(self, _BuildFailed())
+
+        self.mainloop.queue_event(WorkerConnection, _JobFinished(self._job))
