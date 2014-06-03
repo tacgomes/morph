@@ -387,27 +387,41 @@ class BuildCommand(object):
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
 
-        def copy(remote, local):
-            shutil.copyfileobj(remote, local)
-            remote.close()
-            local.close()
+        def fetch_files(to_fetch):
+            '''Fetch a set of files atomically.
+
+            If an error occurs during the transfer of any files, all downloaded
+            data is deleted, to ensure integrity of the local cache.
+
+            '''
+            try:
+                for remote, local in to_fetch:
+                    shutil.copyfileobj(remote, local)
+                for remote, local in to_fetch:
+                    remote.close()
+                    local.close()
+            except BaseException:
+                for remote, local in to_fetch:
+                    local.abort()
+                raise
 
         for artifact in artifacts:
+            to_fetch = []
             if not self.lac.has(artifact):
-                self.app.status(msg='Fetching to local cache: '
-                                    'artifact %(name)s',
-                                name=artifact.name)
-                rac_file = self.rac.get(artifact)
-                lac_file = self.lac.put(artifact)
-                copy(rac_file, lac_file)
+                to_fetch.append((self.rac.get(artifact),
+                                 self.lac.put(artifact)))
 
             if artifact.source.morphology.needs_artifact_metadata_cached:
                 if not self.lac.has_artifact_metadata(artifact, 'meta'):
-                    self.app.status(msg='Fetching to local cache: '
-                                        'artifact metadata %(name)s',
-                                    name=artifact.name)
-                    copy(self.rac.get_artifact_metadata(artifact, 'meta'),
-                         self.lac.put_artifact_metadata(artifact, 'meta'))
+                    to_fetch.append((
+                        self.rac.get_artifact_metadata(artifact, 'meta'),
+                        self.lac.put_artifact_metadata(artifact, 'meta')))
+
+            if len(to_fetch) > 0:
+                self.app.status(
+                    msg='Fetching to local cache: artifact %(name)s',
+                    name=artifact.name)
+                fetch_files(to_fetch)
 
     def create_staging_area(self, build_env, use_chroot=True, extra_env={},
                             extra_path=[]):
