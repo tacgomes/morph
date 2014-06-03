@@ -274,31 +274,25 @@ class BuildCommand(object):
                     'name': a.name,
                 })
 
-            self.app.status(msg='Checking if %(kind)s needs '
-                                'building %(sha1)s',
-                            kind=a.source.morphology['kind'],
-                            sha1=a.source.sha1[:7])
-
-            if self.is_built(a):
-                self.cache_artifacts_locally([a])
-                self.app.status(
-                    msg='The %(kind)s is cached at %(cache)s',
-                    kind=a.source.morphology['kind'],
-                    cache=os.path.basename(self.lac.artifact_filename(a))[:7])
-            else:
-                self.app.status(msg='Building %(kind)s %(name)s',
-                                name=a.name, kind=a.source.morphology['kind'])
-                self.build_artifact(a, build_env)
+            self.cache_or_build_artifact(a, build_env)
 
             self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
                             kind=a.source.morphology['kind'], name=a.name,
                             cachepath=self.lac.artifact_filename(a),
                             chatty=(a.source.morphology['kind'] != "system"))
+
         self.app.status_prefix = old_prefix
 
-    def is_built(self, artifact):
-        '''Does either cache already have the artifact?'''
-        return self.lac.has(artifact) or (self.rac and self.rac.has(artifact))
+    def cache_or_build_artifact(self, artifact, build_env):
+        if self.rac is not None:
+            try:
+                self.cache_artifacts_locally([artifact])
+            except morphlib.remoteartifactcache.GetError:
+                # Error is logged by the RemoteArtifactCache object.
+                pass
+
+        if not self.lac.has(artifact):
+            self.build_artifact(artifact, build_env)
 
     def build_artifact(self, artifact, build_env):
         '''Build one artifact.
@@ -307,6 +301,10 @@ class BuildCommand(object):
         in either the local or remote cache already.
 
         '''
+        self.app.status(msg='Building %(kind)s %(name)s',
+                        name=artifact.name,
+                        kind=artifact.source.morphology['kind'])
+
         self.get_sources(artifact)
         deps = self.get_recursive_deps(artifact)
         self.cache_artifacts_locally(deps)

@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -299,18 +299,8 @@ class CrossBootstrapPlugin(cliapp.Plugin):
                 'Nothing to cross-compile. Only chunks built in \'bootstrap\' '
                 'mode can be cross-compiled.')
 
-        # FIXME: merge with build-command's code
         for i, a in enumerate(cross_chunks):
-            if build_command.is_built(a):
-                self.app.status(msg='The %(kind)s %(name)s is already built',
-                                kind=a.source.morphology['kind'],
-                                name=a.name)
-                build_command.cache_artifacts_locally([a])
-            else:
-                self.app.status(msg='Cross-building %(kind)s %(name)s',
-                                kind=a.source.morphology['kind'],
-                                name=a.name)
-                build_command.build_artifact(a, build_env)
+            build_command.cache_or_build_artifact(a, build_env)
 
         for i, a in enumerate(native_chunks):
             build_command.get_sources(a)
