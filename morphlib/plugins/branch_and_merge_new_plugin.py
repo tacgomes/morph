@@ -22,7 +22,7 @@ import os
 import shutil
 
 import morphlib
-
+import pdb
 
 class BranchRootHasNoSystemsError(cliapp.AppException):
     def __init__(self, repo, ref):
@@ -363,139 +363,56 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
 
         Command line arguments:
 
-        * `SYSTEM` is the name of a system morphology in the root repository
-          of the current system branch.
-        * `STRATUM` is the name of a stratum inside the system.
-        * `CHUNK` is the name of a chunk inside the stratum.
+        * `CHUNK` is the name of a chunk
 
-        This marks the specified stratum or chunk (if given) as being
-        changed within the system branch, by creating the git branches in
-        the affected repositories, and changing the relevant morphologies
-        to point at those branches. It also creates a local clone of
-        the git repository of the stratum or chunk.
-
-        For example:
-
-            morph edit devel-system-x86-64-generic devel
-
-        The above command will mark the `devel` stratum as being
-        modified in the current system branch. In this case, the stratum's
-        morphology is in the same git repository as the system morphology,
-        so there is no need to create a new git branch. However, the
-        system morphology is modified to point at the stratum morphology
-        in the same git branch, rather than the original branch.
-
-        In other words, where the system morphology used to say this:
-
-            morph: devel
-            repo: baserock:baserock/morphs
-            ref: master
-
-        The updated system morphology will now say this instead:
-
-            morph: devel
-            repo: baserock:baserock/morphs
-            ref: jrandom/new-feature
-
-        (Assuming the system branch is called `jrandom/new-feature`.)
-
-        Another example:
-
-            morph edit devel-system-x86_64-generic devel gcc
-
-        The above command will mark the `gcc` chunk as being edited in
-        the current system branch. Morph will clone the `gcc` repository
-        locally, into the current workspace, and create a new (local)
-        branch named after the system branch. It will also change the
-        stratum morphology to refer to the new git branch, instead of
-        whatever branch it was referring to originally.
-
-        If the `gcc` repository already had a git branch named after
-        the system branch, that is reused. Similarly, if the stratum
-        morphology was already pointing that that branch, it doesn't
-        need to be changed again. In that case, the only action Morph
-        does is to clone the chunk repository locally, and if that was
-        also done already, Morph does nothing.
+        This makes a local checkout of CHUNK in the current system branch
+        and edits any stratum morphology file(s) containing the chunk
 
         '''
 
-        if len(args) not in (2, 3):
-            raise cliapp.AppException('morph edit needs the names of a system,'
-                                      ' a stratum and optionally a chunk'
-                                      ' as parameters')
+        if len(args) != 1:
+            raise cliapp.AppException('morph edit needs a chunk '
+                                      'as parameter')
 
-        system_name  = morphlib.util.strip_morph_extension(args[0])
-        stratum_name  = morphlib.util.strip_morph_extension(args[1])
-        chunk_name = None
-        if len(args) == 3:
-            chunk_name = morphlib.util.strip_morph_extension(args[2])
+        chunk_name  = morphlib.util.strip_morph_extension(args[0])
 
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
         loader = morphlib.morphloader.MorphologyLoader()
+        morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
-        # Load the system morphology, and all stratum morphologies, including
-        # all the strata that are being build-depended on.
+        for morph in morphs.morphologies:
+            if morph['kind'] == 'stratum':
+                for chunk in morph['chunks']:
+                    if chunk['name'] == chunk_name:
+                        self.app.status(
+                            msg='Editing %(chunk)s in %(stratum)s stratum',
+                            chunk=chunk_name, stratum=morph['name'])
 
-        logging.debug('Loading system morphology')
-        system_morph = loader.load_from_file(
-            sb.get_filename(sb.root_repository_url, system_name + '.morph'))
-        if system_morph['kind'] != 'system':
-            raise cliapp.AppException("%s is not a system" % system_name)
-        system_morph.repo_url = sb.root_repository_url
-        system_morph.ref = sb.system_branch_name
-        system_morph.filename = system_name + '.morph'
+                        chunk_url, chunk_ref, chunk_morph = (
+                            morphs.get_chunk_triplet(morph, chunk_name))
 
-        logging.debug('Loading stratum morphologies')
-        morphs = self._load_stratum_morphologies(loader, sb, system_morph)
-        morphs.add_morphology(system_morph)
-        logging.debug('morphs: %s' % repr(morphs.morphologies))
+                        chunk_dirname = sb.get_git_directory_name(chunk_url)
 
-        # Change refs to the stratum to be to the system branch.
-        # Note: this currently only supports strata in root repository.
+                        if not os.path.exists(chunk_dirname):
+                            lrc, rrc = morphlib.util.new_repo_caches(self.app)
+                            cached_repo = lrc.get_updated_repo(chunk_url)
 
-        logging.debug('Changing refs to stratum %s' % stratum_name)
-        stratum_morph = morphs.get_stratum_in_system(
-            system_morph, stratum_name)
-        morphs.change_ref(
-            stratum_morph.repo_url, stratum_morph.ref, stratum_morph.filename,
-            sb.system_branch_name)
-        logging.debug('morphs: %s' % repr(morphs.morphologies))
+                            gd = sb.clone_cached_repo(cached_repo, chunk_ref)
+                            if chunk_ref != sb.system_branch_name:
+                                gd.branch(sb.system_branch_name, chunk_ref)
+                                gd.checkout(sb.system_branch_name)
+                            gd.update_submodules(self.app)
+                            gd.update_remotes()
+                            if gd.has_fat():
+                                gd.fat_init()
+                                gd.fat_pull()
 
-        # If we're editing a chunk, make it available locally, with the
-        # relevant git branch checked out. This also invents the new branch
-        # name.
-
-        if chunk_name:
-            logging.debug('Editing chunk %s' % chunk_name)
-
-            chunk_url, chunk_ref, chunk_morph = morphs.get_chunk_triplet(
-                stratum_morph, chunk_name)
-
-            chunk_dirname = sb.get_git_directory_name(chunk_url)
-            if not os.path.exists(chunk_dirname):
-                lrc, rrc = morphlib.util.new_repo_caches(self.app)
-                cached_repo = lrc.get_updated_repo(chunk_url)
-
-                # FIXME: This makes the simplifying assumption that
-                # a chunk branch must have the same name as the system
-                # branch.
-
-                gd = sb.clone_cached_repo(cached_repo, chunk_ref)
-                if chunk_ref != sb.system_branch_name:
-                    gd.branch(sb.system_branch_name, chunk_ref)
-                    gd.checkout(sb.system_branch_name)
-                gd.update_submodules(self.app)
-                gd.update_remotes()
-                if gd.has_fat():
-                    gd.fat_init()
-                    gd.fat_pull()
-
-                # Change the refs to the chunk.
-                if chunk_ref != sb.system_branch_name:
-                    morphs.change_ref(
-                        chunk_url, chunk_ref, chunk_morph + '.morph',
-                        sb.system_branch_name)
+                        # Change the refs to the chunk.
+                        if chunk_ref != sb.system_branch_name:
+                            morphs.change_ref(
+                                chunk_url, chunk_ref, chunk_morph + '.morph',
+                                sb.system_branch_name)
 
         # Save any modified strata.
 
