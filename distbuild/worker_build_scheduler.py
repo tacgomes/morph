@@ -599,6 +599,12 @@ class WorkerConnection(distbuild.StateMachine):
                     'Failed to populate artifact cache: %s %s' %
                         (event.msg['status'], event.msg['body']))
 
+                # We will attempt to remove this job twice
+                # unless we mark it as failed before the BuildController
+                # processes the WorkerBuildFailed event.
+                #
+                # The BuildController will not try to cancel jobs that have
+                # been marked as failed.
                 self.mainloop.queue_event(WorkerConnection,
                                           _JobFailed(self._job))
 
