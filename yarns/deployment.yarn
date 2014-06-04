@@ -102,3 +102,86 @@ deployed system contains the other. Since the baserock directory is in
 every system, we can check for that.
 
     AND tarball test.tar contains var/lib/sysroots/test-system/baserock
+
+Initramfs deployments
+=====================
+
+There's a few ways of creating an initramfs. We could:
+1.  Build a sysroot and:
+    1.  Have a chunk turn that into a cpio archive, written into /boot.
+    2.  Embed it in the Linux kernel image, having the initramfs as part
+        of the BSP.
+2.  Deploy an existing system as a cpio archive
+    1.  As a stand-alone system, without a rootfs
+    2.  Nested inside another system
+
+1.1 and 1.2 require system engineering work, so won't be mentioned here.
+
+    SCENARIO deploying a system with an initramfs
+    ASSUMING there is space for 5 512M disk images
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    GIVEN a cluster called C in system branch master
+    AND a system in cluster C in branch master called S
+
+2.2 needs a nested system that is deployed with the initramfs write
+extension.
+
+    GIVEN a subsystem in cluster C in branch master called S.I
+    AND subsystem S.I in cluster C in branch master builds test-system
+    AND subsystem S.I in cluster C in branch master has deployment type: initramfs
+
+The nested system needs to be placed somewhere in the parent. The
+traditional place for an initramfs is `/boot`.
+
+    AND subsystem S.I in cluster C in branch master has deployment location: boot/initramfs.gz
+
+1.1 and 2.2 need the write extension to configure the boot-loader to
+use the produced initramfs. Only write extensions that involve creating a disk image care, so we'll use `rawdisk.write`.
+
+    GIVEN system S in cluster C in branch master builds test-system
+    AND system S in cluster C in branch master has deployment type: rawdisk
+    AND system S in cluster C in branch master has deployment location: test.img
+    AND system S in cluster C in branch master has deployment variable: DISK_SIZE=512M
+
+Initramfs support is triggered by the `INITRAMFS_PATH` variable. It could have been made automatic, triggering the behaviour if `/boot/initramfs.gz` exists, but:
+
+1.  There are a bunch of possible names, some of which imply different formats.
+2.  If we decide on one specific name, how do we pick.
+3.  If we allow multiple possible names, how do we handle multiple being possible.
+4.  We may need to pick a non-standard name: e.g. We have a deployment
+    where the system loads a kernel and initramfs from a disk, then boots
+    the target in KVM, so the bootloader we want to use for the guest is
+    `initramfs.gz`, while the host's initramfs is `hyp-initramfs.gz`.
+5.  We may have the initramfs come from a chunk the system built, but
+    for speed, we want this particular deployment not to use an initramfs,
+    even though we have a generic image that may support one.
+
+For all these reasons, despite there being redundancy in some cases,
+we're going to set `INITRAMFS_PATH` to the same as the nested deployment's
+location.
+
+    GIVEN system S in cluster C in branch master has deployment variable: INITRAMFS_PATH=boot/initramfs.gz
+
+Fully testing that the system is bootable requires a lot more time,
+infrastructure and dependencies, so we're just going to built it and
+inspect the result of the deployment.
+
+    WHEN the user builds the system test-system in branch master
+    AND the user attempts to deploy the cluster C in branch master
+    THEN morph succeeded
+    AND file workspace/master/test/morphs/test.img exists
+
+If the initramfs write extension works, the rootfs image should contain
+`boot/initramfs.gz`.
+
+    WHEN disk image workspace/master/test/morphs/test.img is mounted at mnt
+    THEN file mnt/systems/default/run/boot/initramfs.gz exists
+
+If the `rawdisk` write extension worked, then the bootloader config file
+will mention the initramfs, and the UUID of the disk.
+
+    AND file mnt/extlinux.conf matches initramfs
+    AND file mnt/extlinux.conf matches root=UUID=
+    FINALLY mnt is unmounted
