@@ -4,6 +4,16 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
+Version 14.23, released 2014-06-06
+----------------------------------
+
+New feature:
+
+* Initramfs support
+
+There have also been a number of fixes to distbuild, and the
+`morph copy-artifacts` command has been replaced by `morph list-artifacts`.
+
 Version 14.22, released 2014-05-29
 ----------------------------------
 
