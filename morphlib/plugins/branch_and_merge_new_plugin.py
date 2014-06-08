@@ -381,10 +381,13 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         loader = morphlib.morphloader.MorphologyLoader()
         morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
+        found = 0
+
         for morph in morphs.morphologies:
             if morph['kind'] == 'stratum':
                 for chunk in morph['chunks']:
                     if chunk['name'] == chunk_name:
+                        found = found + 1
                         self.app.status(
                             msg='Editing %(chunk)s in %(stratum)s stratum',
                             chunk=chunk_name, stratum=morph['name'])
@@ -417,6 +420,19 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
         # Save any modified strata.
 
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
+
+        if found == 0:
+            self.app.status(msg="No chunk %(chunk)s found. If you want "
+                "to create one, add an entry to a stratum morph file.",
+                chunk=chunk_name)
+
+        if found >= 1:
+            self.app.status(msg="Chunk %(chunk)s source is available at "
+                "%(dir)s", chunk=chunk_name, dir=chunk_dirname)
+
+        if found > 1:
+            self.app.status(msg="Notice that this chunk appears in "
+                "more than one stratum")
 
     def show_system_branch(self, args):
         '''Show the name of the current system branch.'''
