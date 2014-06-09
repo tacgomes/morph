@@ -23,7 +23,7 @@ source "$SRCDIR/scripts/fix-committer-info"
 cd "$DATADIR/workspace"
 "$SRCDIR/scripts/test-morph" init
 "$SRCDIR/scripts/test-morph" branch test:morphs branch1
-"$SRCDIR/scripts/test-morph" edit linux-system linux-stratum linux
+"$SRCDIR/scripts/test-morph" edit linux
 
 # Fix UUID's in the checked out repos to make build branch names deterministic
 git config -f "$DATADIR/workspace/branch1/.morph-system-branch/config" \
