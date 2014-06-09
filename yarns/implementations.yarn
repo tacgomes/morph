@@ -724,6 +724,49 @@ Check attributes of a file on the filesystem
     IMPLEMENTS THEN file (\S+) is empty
     stat -c %s "$DATADIR/$MATCH_1" | grep -Fx 0
 
+    IMPLEMENTS THEN file (\S+) matches (.*)
+    grep -q "$MATCH_2" "$DATADIR/$MATCH_1"
+
+Disk image manipulation
+-----------------------
+
+We need to test disk images we create. In the absence of tools for
+inspecting disks without mounting them, we need commands to handle this.
+
+    IMPLEMENTS WHEN disk image (\S+) is mounted at (.*)
+    mkdir -p "$DATADIR/$MATCH_2"
+    mount -o loop "$DATADIR/$MATCH_1" "$DATADIR/$MATCH_2"
+
+    IMPLEMENTS FINALLY (\S+) is unmounted
+    umount -d "$DATADIR/$MATCH_1"
+
+We may not have enough space to run some tests that have disk images.
+
+    IMPLEMENTS ASSUMING there is space for (\d+) (\d+)(\S*) disk images?
+    # Count is included as an argument, so that if we change the disk
+    # image sizes then it's more obvious when we need to change the
+    # assumption, since it's the same value.
+    count="$MATCH_1"
+    case "$MATCH_3" in
+    '')
+        size="$MATCH_2"
+        ;;
+    M)
+        size=$(expr "$MATCH_2" '*' 1024 '*' 1024 )
+        ;;
+    G)
+        size=$(expr "$MATCH_2" '*' 1024 '*' 1024 '*' 1024 )
+        ;;
+    *)
+        echo Unrecognized size suffix: "$MATCH_3" >&2
+        exit 1
+    esac
+    total_image_size="$(expr "$size" '*' "$count" )"
+    blocks="$(stat -f -c %a "$DATADIR")"
+    block_size="$(stat -f -c %S "$DATADIR")"
+    disk_free=$(expr "$blocks" '*' "$block_size" )
+    test "$disk_free" -gt "$total_image_size"
+
 Check contents of a file
 ------------------------
 
