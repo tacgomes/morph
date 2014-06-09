@@ -22,7 +22,7 @@ import os
 import shutil
 
 import morphlib
-import pdb
+
 
 class BranchRootHasNoSystemsError(cliapp.AppException):
     def __init__(self, repo, ref):
@@ -374,65 +374,72 @@ class SimpleBranchAndMergePlugin(cliapp.Plugin):
             raise cliapp.AppException('morph edit needs a chunk '
                                       'as parameter')
 
-        chunk_name  = morphlib.util.strip_morph_extension(args[0])
-
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
         loader = morphlib.morphloader.MorphologyLoader()
         morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
+        def edit_chunk(morph, chunk_name):
+            chunk_url, chunk_ref, chunk_morph = (
+                morphs.get_chunk_triplet(morph, chunk_name))
+
+            chunk_dirname = sb.get_git_directory_name(chunk_url)
+
+            if not os.path.exists(chunk_dirname):
+                lrc, rrc = morphlib.util.new_repo_caches(self.app)
+                cached_repo = lrc.get_updated_repo(chunk_url)
+
+                gd = sb.clone_cached_repo(cached_repo, chunk_ref)
+                if chunk_ref != sb.system_branch_name:
+                    gd.branch(sb.system_branch_name, chunk_ref)
+                    gd.checkout(sb.system_branch_name)
+                gd.update_submodules(self.app)
+                gd.update_remotes()
+                if gd.has_fat():
+                    gd.fat_init()
+                    gd.fat_pull()
+
+            # Change the refs to the chunk.
+            if chunk_ref != sb.system_branch_name:
+                morphs.change_ref(
+                    chunk_url, chunk_ref, chunk_morph + '.morph',
+                    sb.system_branch_name)
+
+            return chunk_dirname
+
+        chunk_name = morphlib.util.strip_morph_extension(args[0])
+        dirs = set()
         found = 0
 
         for morph in morphs.morphologies:
             if morph['kind'] == 'stratum':
                 for chunk in morph['chunks']:
                     if chunk['name'] == chunk_name:
-                        found = found + 1
                         self.app.status(
                             msg='Editing %(chunk)s in %(stratum)s stratum',
                             chunk=chunk_name, stratum=morph['name'])
-
-                        chunk_url, chunk_ref, chunk_morph = (
-                            morphs.get_chunk_triplet(morph, chunk_name))
-
-                        chunk_dirname = sb.get_git_directory_name(chunk_url)
-
-                        if not os.path.exists(chunk_dirname):
-                            lrc, rrc = morphlib.util.new_repo_caches(self.app)
-                            cached_repo = lrc.get_updated_repo(chunk_url)
-
-                            gd = sb.clone_cached_repo(cached_repo, chunk_ref)
-                            if chunk_ref != sb.system_branch_name:
-                                gd.branch(sb.system_branch_name, chunk_ref)
-                                gd.checkout(sb.system_branch_name)
-                            gd.update_submodules(self.app)
-                            gd.update_remotes()
-                            if gd.has_fat():
-                                gd.fat_init()
-                                gd.fat_pull()
-
-                        # Change the refs to the chunk.
-                        if chunk_ref != sb.system_branch_name:
-                            morphs.change_ref(
-                                chunk_url, chunk_ref, chunk_morph + '.morph',
-                                sb.system_branch_name)
+                        chunk_dirname = edit_chunk(morph, chunk_name)
+                        dirs.add(chunk_dirname)
+                        found = found + 1
 
         # Save any modified strata.
 
         self._save_dirty_morphologies(loader, sb, morphs.morphologies)
 
         if found == 0:
-            self.app.status(msg="No chunk %(chunk)s found. If you want "
-                "to create one, add an entry to a stratum morph file.",
-                chunk=chunk_name)
+            self.app.status(
+                msg="No chunk %(chunk)s found. If you want to create one, add "
+                "an entry to a stratum morph file.", chunk=chunk_name)
 
         if found >= 1:
-            self.app.status(msg="Chunk %(chunk)s source is available at "
-                "%(dir)s", chunk=chunk_name, dir=chunk_dirname)
+            dirs_list = ', '.join(sorted(dirs))
+            self.app.status(
+                msg="Chunk %(chunk)s source is available at %(dirs)s",
+                chunk=chunk_name, dirs=dirs_list)
 
         if found > 1:
-            self.app.status(msg="Notice that this chunk appears in "
-                "more than one stratum")
+            self.app.status(
+                msg="Notice that this chunk appears in more than one stratum")
 
     def show_system_branch(self, args):
         '''Show the name of the current system branch.'''
