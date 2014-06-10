@@ -284,6 +284,12 @@ class BuildCommand(object):
         self.app.status_prefix = old_prefix
 
     def cache_or_build_artifact(self, artifact, build_env):
+        '''Make the built artifact available in the local cache.
+
+        This can be done by retrieving from a remote artifact cache, or if
+        that doesn't work for some reason, by building the artifact locally.
+
+        '''
         if self.rac is not None:
             try:
                 self.cache_artifacts_locally([artifact])
@@ -397,13 +403,14 @@ class BuildCommand(object):
             try:
                 for remote, local in to_fetch:
                     shutil.copyfileobj(remote, local)
-                for remote, local in to_fetch:
-                    remote.close()
-                    local.close()
             except BaseException:
                 for remote, local in to_fetch:
                     local.abort()
                 raise
+            else:
+                for remote, local in to_fetch:
+                    remote.close()
+                    local.close()
 
         for artifact in artifacts:
             to_fetch = []
