@@ -413,6 +413,10 @@ class BuildCommand(object):
                     local.close()
 
         for artifact in artifacts:
+            # This block should fetch all artifact files in one go, using the
+            # 1.0/artifacts method of morph-cache-server. The code to do that
+            # needs bringing in from the distbuild.worker_build_connection
+            # module into morphlib.remoteartififactcache first.
             to_fetch = []
             if not self.lac.has(artifact):
                 to_fetch.append((self.rac.get(artifact),

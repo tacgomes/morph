@@ -536,6 +536,9 @@ class WorkerConnection(distbuild.StateMachine):
         self.mainloop.queue_event(WorkerConnection, _NeedJob(self))
 
     def _request_caching(self, event_source, event):
+        # This code should be moved into the morphlib.remoteartifactcache
+        # module. It would be good to share it with morphlib.buildcommand,
+        # which also wants to fetch artifacts from a remote cache.
         distbuild.crash_point()
 
         logging.debug('Requesting shared artifact cache to get artifacts')
