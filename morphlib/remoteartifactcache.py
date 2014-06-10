@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,18 +33,19 @@ class GetError(cliapp.AppException):
         cliapp.AppException.__init__(
             self, 'Failed to get the artifact %s with cache key %s '
                   'from the artifact cache %s' %
-                  (artifact, artifact.cache_key, cache))
+                  (artifact.basename(), artifact.cache_key, cache))
 
 
-class GetArtifactMetadataError(cliapp.AppException):
+class GetArtifactMetadataError(GetError):
 
     def __init__(self, cache, artifact, name):
         cliapp.AppException.__init__(
             self, 'Failed to get metadata %s for the artifact %s '
-                  'from the artifact cache %s' % (name, artifact, cache))
+                  'from the artifact cache %s' %
+                  (name, artifact.basename(), cache))
 
 
-class GetSourceMetadataError(cliapp.AppException):
+class GetSourceMetadataError(GetError):
 
     def __init__(self, cache, source, cache_key, name):
         cliapp.AppException.__init__(
