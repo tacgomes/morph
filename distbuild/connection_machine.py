@@ -30,12 +30,13 @@ class Reconnect(object):
     
 class StopConnecting(object):
 
-    pass
-
+    def __init__(self, exception=None):
+        self.exception = exception
 
 class ConnectError(object):
 
-    pass
+    def __init__(self, exception):
+        self.exception = exception
 
 
 class ProxyEventSource(object):
@@ -123,9 +124,9 @@ class ConnectionMachine(distbuild.StateMachine):
                     (self._addr, self._port, str(e)))
 
             if self._numof_retries < self._max_retries:
-                self.mainloop.queue_event(self, ConnectError())
+                self.mainloop.queue_event(self, ConnectError(e))
             else:
-                self.mainloop.queue_event(self, StopConnecting())
+                self.mainloop.queue_event(self, StopConnecting(e))
 
             return
         self._sock_proxy.event_source = None
@@ -156,3 +157,33 @@ class ConnectionMachine(distbuild.StateMachine):
 
         self._sock_proxy.event_source.close()
         self._sock_proxy.event_source = None
+
+class InitiatorConnectionMachine(ConnectionMachine):
+
+    def __init__(self, app, addr, port, machine, extra_args,
+                 reconnect_interval, max_retries):
+
+        self.cm = super(InitiatorConnectionMachine, self)
+        self.cm.__init__(addr, port, machine, extra_args,
+                         reconnect_interval, max_retries)
+
+        self.app = app
+
+    def _connect(self, event_source, event):
+        self.app.status(msg='Connecting to %s:%s' % (self._addr, self._port))
+        self.cm._connect(event_source, event)
+
+    def _stop(self, event_source, event):
+        if event.exception:
+            self.app.status(msg="Couldn't connect to %s:%s: %s" %
+                            (self._addr, self._port, event.exception.strerror))
+
+        self.cm._stop(event_source, event)
+
+    def _start_timer(self, event_source, event):
+        self.app.status(msg="Couldn't connect to %s:%s: %s" %
+                        (self._addr, self._port, event.exception.strerror))
+        self.app.status(msg="Retrying in %d seconds" %
+                        self._reconnect_interval)
+
+        self.cm._start_timer(event_source, event)
