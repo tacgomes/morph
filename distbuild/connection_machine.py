@@ -30,12 +30,13 @@ class Reconnect(object):
     
 class StopConnecting(object):
 
-    pass
-
+    def __init__(self, exception=None):
+        self.exception = exception
 
 class ConnectError(object):
 
-    pass
+    def __init__(self, exception):
+        self.exception = exception
 
 
 class ProxyEventSource(object):
@@ -63,26 +64,29 @@ class ProxyEventSource(object):
 
 class ConnectionMachine(distbuild.StateMachine):
 
-    def __init__(self, addr, port, machine, extra_args):
-        distbuild.StateMachine.__init__(self, 'connecting')
+    def __init__(self, addr, port, machine, extra_args,
+                 reconnect_interval=1, max_retries=float('inf')):
+        super(ConnectionMachine, self).__init__('connecting')
         self._addr = addr
         self._port = port
         self._machine = machine
         self._extra_args = extra_args
         self._socket = None
-        self.reconnect_interval = 1
+        self._reconnect_interval = reconnect_interval
+        self._numof_retries = 0
+        self._max_retries = max_retries
 
     def setup(self):
         self._sock_proxy = ProxyEventSource()
         self.mainloop.add_event_source(self._sock_proxy)
         self._start_connect()
         
-        self._timer = distbuild.TimerEventSource(self.reconnect_interval)
+        self._timer = distbuild.TimerEventSource(self._reconnect_interval)
         self.mainloop.add_event_source(self._timer)
 
         spec = [
             # state, source, event_class, new_state, callback
-            ('connecting', self._sock_proxy, distbuild.SocketWriteable, 
+            ('connecting', self._sock_proxy, distbuild.SocketWriteable,
                 'connected', self._connect),
             ('connecting', self, StopConnecting, None, self._stop),
             ('connected', self, Reconnect, 'connecting', self._reconnect),
@@ -119,7 +123,11 @@ class ConnectionMachine(distbuild.StateMachine):
                 'Failed to connect to %s:%s: %s' % 
                     (self._addr, self._port, str(e)))
 
-            self.mainloop.queue_event(self, ConnectError())
+            if self._numof_retries < self._max_retries:
+                self.mainloop.queue_event(self, ConnectError(e))
+            else:
+                self.mainloop.queue_event(self, StopConnecting(e))
+
             return
         self._sock_proxy.event_source = None
         logging.info('Connected to %s:%s' % (self._addr, self._port))
@@ -129,6 +137,8 @@ class ConnectionMachine(distbuild.StateMachine):
 
     def _reconnect(self, event_source, event):
         logging.info('Reconnecting to %s:%s' % (self._addr, self._port))
+        self._numof_retries += 1
+
         if self._socket is not None:
             self._socket.close()
         self._timer.stop()
@@ -147,3 +157,33 @@ class ConnectionMachine(distbuild.StateMachine):
 
         self._sock_proxy.event_source.close()
         self._sock_proxy.event_source = None
+
+class InitiatorConnectionMachine(ConnectionMachine):
+
+    def __init__(self, app, addr, port, machine, extra_args,
+                 reconnect_interval, max_retries):
+
+        self.cm = super(InitiatorConnectionMachine, self)
+        self.cm.__init__(addr, port, machine, extra_args,
+                         reconnect_interval, max_retries)
+
+        self.app = app
+
+    def _connect(self, event_source, event):
+        self.app.status(msg='Connecting to %s:%s' % (self._addr, self._port))
+        self.cm._connect(event_source, event)
+
+    def _stop(self, event_source, event):
+        if event.exception:
+            self.app.status(msg="Couldn't connect to %s:%s: %s" %
+                            (self._addr, self._port, event.exception.strerror))
+
+        self.cm._stop(event_source, event)
+
+    def _start_timer(self, event_source, event):
+        self.app.status(msg="Couldn't connect to %s:%s: %s" %
+                        (self._addr, self._port, event.exception.strerror))
+        self.app.status(msg="Retrying in %d seconds" %
+                        self._reconnect_interval)
+
+        self.cm._start_timer(event_source, event)

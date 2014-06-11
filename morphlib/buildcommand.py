@@ -502,6 +502,9 @@ class BuildCommand(object):
 
 class InitiatorBuildCommand(BuildCommand):
 
+    RECONNECT_INTERVAL = 30 # seconds
+    MAX_RETRIES = 1
+
     def __init__(self, app, addr, port):
         self.app = app
         self.addr = addr
@@ -524,7 +527,13 @@ class InitiatorBuildCommand(BuildCommand):
 
         self.app.status(msg='Starting distributed build')
         loop = distbuild.MainLoop()
-        cm = distbuild.ConnectionMachine(
-            self.addr, self.port, distbuild.Initiator, [self.app] + args)
+        cm = distbuild.InitiatorConnectionMachine(self.app,
+                                                  self.addr,
+                                                  self.port,
+                                                  distbuild.Initiator,
+                                                  [self.app] + args,
+                                                  self.RECONNECT_INTERVAL,
+                                                  self.MAX_RETRIES)
+
         loop.add_state_machine(cm)
         loop.run()
