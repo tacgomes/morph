@@ -4,6 +4,20 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
+Version 14.24, released 2014-06-13
+----------------------------------
+
+* rawdisk deployments check that they have the btrfs module loaded first
+* distbuild should busy-wait less
+* fetching of artifacts should be atomic, so a failure to fetch the
+  metadata of an artifact doesn't confuse the build system when we have
+  the chunk, but no metadata
+* `morph deploy` now defaults to `--no-git-update`
+* `morph gc` now cleans up failed deployments, so they aren't left around
+  if morph terminates uncleanly
+* `morph edit` now only takes the name of the chunk, rather than the
+  name of the system and stratum that chunk is in
+
 Version 14.23, released 2014-06-06
 ----------------------------------
 
