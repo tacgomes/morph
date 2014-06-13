@@ -79,6 +79,8 @@ class GCPlugin(cliapp.Plugin):
         self.cleanup_cachedir(cachedir, cachedir_min_space)
         
     def cleanup_tempdir(self, temp_path, min_space):
+        # The subdirectories in tempdir are created at Morph startup time. Code
+        # assumes that they exist in various places.
         self.app.status(msg='Cleaning up temp dir %(temp_path)s',
                         temp_path=temp_path, chatty=True)
         for subdir in ('deployments', 'failed', 'chunks'):
@@ -93,6 +95,7 @@ class GCPlugin(cliapp.Plugin):
             path = os.path.join(temp_path, subdir)
             if os.path.exists(path):
                 shutil.rmtree(path)
+            os.mkdir(path)
 
     def calculate_delete_range(self):
         now = time.time()
