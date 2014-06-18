@@ -84,8 +84,9 @@ class GenerateResources(build):
                     raise subprocess.CalledProcessError(p.returncode, command)
                 f.write(o[0].strip())
 
-        save_git_info('version', 'describe', '--always',
-                      '--dirty=-unreproducible')
+        save_git_info('version', 'describe', '--abbrev=40', '--always',
+                      '--dirty=-unreproducible',
+                      '--match=DO-NOT-MATCH-ANY-TAGS')
         save_git_info('commit', 'rev-parse', 'HEAD^{commit}')
         save_git_info('tree', 'rev-parse', 'HEAD^{tree}')
         save_git_info('ref', 'rev-parse', '--symbolic-full-name', 'HEAD')
