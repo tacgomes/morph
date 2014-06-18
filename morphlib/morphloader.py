@@ -205,6 +205,15 @@ class MultipleValidationErrors(morphlib.Error):
             self.msg += ('\t' + str(error))
 
 
+class DuplicateDeploymentNameError(morphlib.Error):
+
+    def __init__(self, duplicates):
+        self.duplicates = duplicates
+        morphlib.Error.__init__(
+            self, 'Cluster morphology contains the following non-unique '
+            'deployment names:\n%s' % '\n    '.join(duplicates))
+
+
 class OrderedDumper(yaml.SafeDumper):
     keyorder = (
         'name',
@@ -412,7 +421,23 @@ class MorphologyLoader(object):
         getattr(self, '_validate_%s' % kind)(morph)
 
     def _validate_cluster(self, morph):
-        pass
+        # Deployment names must be unique within a cluster
+        deployments = collections.Counter()
+        for system in morph['systems']:
+            deployments.update(system['deploy'].iterkeys())
+            if 'subsystems' in system:
+                deployments.update(self._get_subsystem_names(system))
+        duplicates = set(deployment for deployment, count
+                         in deployments.iteritems() if count > 1)
+        if duplicates:
+            raise DuplicateDeploymentNameError(duplicates)
+
+    def _get_subsystem_names(self, system): # pragma: no cover
+        for subsystem in system.get('subsystems', []):
+            for name in subsystem['deploy'].iterkeys():
+                yield name
+            for name in self._get_subsystem_names(subsystem):
+                yield name
 
     def _validate_system(self, morph):
         # A system must contain at least one stratum

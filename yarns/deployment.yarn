@@ -185,3 +185,94 @@ will mention the initramfs, and the UUID of the disk.
     AND file mnt/extlinux.conf matches initramfs
     AND file mnt/extlinux.conf matches root=UUID=
     FINALLY mnt is unmounted
+
+Partial deployments
+===================
+
+Deploy part of a cluster
+------------------------
+
+Starting from the well-defined position of having a cluster morphology
+with only one definition.
+
+    SCENARIO partially deploying a cluster morphology
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    AND the user builds the system test-system in branch master
+    GIVEN a cluster called test-cluster in system branch master
+    AND a system in cluster test-cluster in branch master called test-system
+    AND system test-system in cluster test-cluster in branch master builds test-system
+    AND system test-system in cluster test-cluster in branch master has deployment type: tar
+    AND system test-system in cluster test-cluster in branch master has deployment location: test-system.tar
+
+It is useful to group related deployments together, so we support adding
+another deployment to the same cluster morphology.
+
+    GIVEN a system in cluster test-cluster in branch master called second-system
+    AND system second-system in cluster test-cluster in branch master builds test-system
+    AND system second-system in cluster test-cluster in branch master has deployment type: tar
+    AND system second-system in cluster test-cluster in branch master has deployment location: second-system.tar
+
+When we don't tell `morph deploy` which system we want to deploy, all
+of the systems in the cluster are deployed. Here a successful deployment
+will have morph exit sucessfully and in the case of tarball deployments,
+the tarballs for both the systems will be created.
+
+    WHEN the user attempts to deploy the cluster test-cluster in branch master
+    THEN morph succeeded
+    AND file workspace/master/test/morphs/test-system.tar exists
+    AND file workspace/master/test/morphs/second-system.tar exists
+
+However, we don't need to deploy every system defined in a cluster at
+once. This is useful for cases such as having a cluster morphology for
+deploying a whole distbuild network, and re-deploying only nodes that
+have failed.
+
+    GIVEN the files workspace/master/test/morphs/test-system.tar and workspace/master/test/morphs/second-system.tar are removed
+    WHEN the user attempts to deploy test-system from cluster test-cluster in branch master
+
+A successful deployment will have morph exit successfully, and in the
+case of tarball deployments, only the tarball for the system we asked
+for will be created.
+
+    THEN morph succeeded
+    AND file workspace/master/test/morphs/test-system.tar exists
+    AND file workspace/master/test/morphs/second-system.tar does not exist
+
+Cluster morphs can contain "nested systems", i.e. systems which have
+subsystems to deploy as part of them.
+
+We need to add a subsystem to the cluster to test this.
+
+    GIVEN a subsystem in cluster test-cluster in branch master called test-system.sysroot
+    AND subsystem test-system.sysroot in cluster test-cluster in branch master builds test-system
+    AND subsystem test-system.sysroot in cluster test-cluster in branch master has deployment type: sysroot
+
+We specify the location as a file path, this is relative to the parent
+system's extracted rootfs, before it is configured.
+
+    AND subsystem test-system.sysroot in cluster test-cluster in branch master has deployment location: var/lib/sysroots/test-system
+
+The system which contains a nested system is deployed the same as
+before, we don't need to mention the nested deployment.
+
+    AND the file workspace/master/test/morphs/test-system.tar is removed
+    WHEN the user attempts to deploy test-system from cluster test-cluster in branch master
+    THEN morph succeeded
+    AND file workspace/master/test/morphs/test-system.tar exists
+    AND tarball workspace/master/test/morphs/test-system.tar contains var/lib/sysroots/test-system/baserock
+
+Morph will abort deployment if the system to deploy that is specified
+on the command line is not defined in the morphology.
+
+    WHEN the user attempts to deploy not-a-system from cluster test-cluster in branch master
+    THEN morph failed
+
+It is not valid to deploy a nested system on its own. If it becomes
+desirable to deploy a system that is identical to a system that already
+exists but is nested in another, it should be redefined as a top-level
+deployment.
+
+    WHEN the user attempts to deploy test-system.sysroot from cluster test-cluster in branch master
+    THEN morph failed
