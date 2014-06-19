@@ -133,6 +133,8 @@ class SocketBuffer(StateMachine):
         try:
             data = event.sock.read(self._max_buffer)
         except (IOError, OSError), e:
+            logging.debug(
+                '%s: _fill(): Exception %s from sock.read()', self, e)
             return [SocketError(event.sock, e)]
 
         if data:
@@ -151,6 +153,8 @@ class SocketBuffer(StateMachine):
         try:
             n = event.sock.write(data)
         except (IOError, OSError), e:
+            logging.debug(
+                '%s: _flush(): Exception %s from sock.write()', self, e)
             return [SocketError(event.sock, e)]
         self._wbuf.remove(n)
         if len(self._wbuf) == 0:
