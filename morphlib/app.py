@@ -305,12 +305,20 @@ class Morph(cliapp.Application):
         or cloning the repository into the local repo cache.
         '''
         absref = None
+
+        def cached_repo_requires_update_for_ref(repo, ref):
+            # Named refs that are valid SHA1s will confuse this code.
+            ref_can_change = not morphlib.git.is_valid_sha1(ref)
+            return (ref_can_change or not repo.ref_exists(ref))
+
         if lrc.has_repo(reponame):
             repo = lrc.get_repo(reponame)
-            if update:
-                self.status(msg='Updating cached git repository %(reponame)s',
-                            reponame=reponame)
+            if update and cached_repo_requires_update_for_ref(repo, ref):
+                self.status(msg='Updating cached git repository %(reponame)s '
+                            'for ref %(ref)s', reponame=reponame, ref=ref)
                 repo.update()
+            # If the user passed --no-git-update, and the ref is a SHA1 not
+            # available locally, this call will raise an exception.
             absref, tree = repo.resolve_ref(ref)
         elif rrc is not None:
             try:
