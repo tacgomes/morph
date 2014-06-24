@@ -47,15 +47,15 @@ class MorphologySyntaxError(morphlib.Error):
 
 class NotADictionaryError(morphlib.Error):
 
-    def __init__(self, morphology):
-        self.msg = 'Not a dictionary: morphology %s' % morphology
+    def __init__(self, morph_filename):
+        self.msg = 'Not a dictionary: morphology %s' % morph_filename
 
 
 class UnknownKindError(morphlib.Error):
 
-    def __init__(self, kind, morphology):
+    def __init__(self, kind, morph_filename):
         self.msg = (
-            'Unknown kind %s in morphology %s' % (kind, morphology))
+            'Unknown kind %s in morphology %s' % (kind, morph_filename))
 
 
 class MissingFieldError(morphlib.Error):
@@ -90,40 +90,41 @@ class InvalidTypeError(morphlib.Error):
 
 class ObsoleteFieldsError(morphlib.Error):
 
-    def __init__(self, fields, morphology):
+    def __init__(self, fields, morph_filename):
         self.msg = (
            'Morphology %s uses obsolete fields: %s' % 
-           (morphology, ' '.join(fields)))
+           (morph_filename, ' '.join(fields)))
+
 
 class UnknownArchitectureError(morphlib.Error):
 
-    def __init__(self, arch, morphology):
-        self.msg = (
-            'Unknown architecture %s in morphology %s' % (arch, morphology))
+    def __init__(self, arch, morph_filename):
+        self.msg = ('Unknown architecture %s in morphology %s'
+                    % (arch, morph_filename))
 
 
 class NoBuildDependenciesError(morphlib.Error):
 
-    def __init__(self, stratum_name, chunk_name, morphology):
+    def __init__(self, stratum_name, chunk_name, morph_filename):
         self.msg = (
             'Stratum %s has no build dependencies for chunk %s in %s' %
-                (stratum_name, chunk_name, morphology))
+                (stratum_name, chunk_name, morph_filename))
 
 
 class NoStratumBuildDependenciesError(morphlib.Error):
 
-    def __init__(self, stratum_name, morphology):
+    def __init__(self, stratum_name, morph_filename):
         self.msg = (
             'Stratum %s has no build dependencies in %s' %
-                (stratum_name, morphology))
+                (stratum_name, morph_filename))
 
 
 class EmptyStratumError(morphlib.Error):
 
-    def __init__(self, stratum_name, morphology):
+    def __init__(self, stratum_name, morph_filename):
         self.msg = (
             'Stratum %s has no chunks in %s' %
-                (stratum_name, morphology))
+                (stratum_name, morph_filename))
 
 
 class DuplicateChunkError(morphlib.Error):
@@ -138,12 +139,12 @@ class DuplicateChunkError(morphlib.Error):
 
 class EmptyRefError(morphlib.Error):
 
-    def __init__(self, ref_location, morphology):
+    def __init__(self, ref_location, morph_filename):
         self.ref_location = ref_location
-        self.morphology = morphology
+        self.morph_filename = morph_filename
         morphlib.Error.__init__(
             self, 'Empty ref found for %(ref_location)s '\
-                  'in %(morphology)s' % locals())
+                  'in %(morph_filename)s' % locals())
 
 
 class ChunkSpecRefNotStringError(morphlib.Error):
@@ -335,7 +336,7 @@ class MorphologyLoader(object):
         },
     }
 
-    def parse_morphology_text(self, text, whence):
+    def parse_morphology_text(self, text, morph_filename):
         '''Parse a textual morphology.
 
         The text may be a string, or an open file handle.
@@ -346,18 +347,15 @@ class MorphologyLoader(object):
         valid. It also does not set any default values for any of the
         fields. See validate and set_defaults.
 
-        whence is where the morphology text came from. It is used
-        in exception error messages.
-
         '''
 
         try:
             obj = yaml.safe_load(text)
         except yaml.error.YAMLError as e:
-            raise MorphologySyntaxError(whence, e)
+            raise MorphologySyntaxError(morph_filename, e)
 
         if not isinstance(obj, dict):
-            raise NotADictionaryError(whence)
+            raise NotADictionaryError(morph_filename)
 
         return morphlib.morph3.Morphology(obj)
 
