@@ -207,11 +207,12 @@ class MultipleValidationErrors(morphlib.Error):
 
 class DuplicateDeploymentNameError(morphlib.Error):
 
-    def __init__(self, duplicates):
+    def __init__(self, cluster_filename, duplicates):
         self.duplicates = duplicates
-        morphlib.Error.__init__(
-            self, 'Cluster morphology contains the following non-unique '
-            'deployment names:\n%s' % '\n    '.join(duplicates))
+        self.cluster_filename = cluster_filename
+        morphlib.Error.__init__(self,
+            'Cluster %s contains the following duplicate deployment names:%s'
+            % (cluster_filename, '\n    ' + '\n    '.join(duplicates)))
 
 
 class OrderedDumper(yaml.SafeDumper):
@@ -430,7 +431,7 @@ class MorphologyLoader(object):
         duplicates = set(deployment for deployment, count
                          in deployments.iteritems() if count > 1)
         if duplicates:
-            raise DuplicateDeploymentNameError(duplicates)
+            raise DuplicateDeploymentNameError(morph.filename, duplicates)
 
     def _get_subsystem_names(self, system): # pragma: no cover
         for subsystem in system.get('subsystems', []):
