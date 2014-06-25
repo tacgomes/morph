@@ -22,11 +22,10 @@ class MorphologyFactoryError(cliapp.AppException):
     pass
 
 
-class AutodetectError(MorphologyFactoryError):
-    def __init__(self, repo_name, ref, filename):
+class MorphologyNotFoundError(MorphologyFactoryError):
+    def __init__(self, filename):
         MorphologyFactoryError.__init__(
-            self, "Failed to determine the build system of repo %s at "
-                  "ref %s: was looking for %s" % (repo_name, ref, filename))
+            self, "Couldn't find morphology: %s" % filename)
 
 
 class NotcachedError(MorphologyFactoryError):
@@ -74,43 +73,44 @@ class MorphologyFactory(object):
         if self._app is not None:
             self._app.status(*args, **kwargs)
 
-    def get_morphology(self, reponame, sha1, filename):
-
-        text = None
+    def _get_morphology_text(self, reponame, sha1, filename):
         if self._lrc.has_repo(reponame):
             self.status(msg="Looking for %s in local repo cache" % filename,
                         chatty=True)
             repo = self._lrc.get_repo(reponame)
             file_list = repo.ls_tree(sha1)
+
             if filename in file_list:
-                text = repo.cat(sha1, filename)
+                return repo.cat(sha1, filename)
         elif self._rrc is not None:
             self.status(msg="Looking for %s in remote repo cache" % filename,
                         chatty=True)
             file_list = self._rrc.ls_tree(reponame, sha1)
+
             if filename in file_list:
                 self.status(msg='Retrieving %s %s %s'
                             'from the remote artifact cache.'
                             % (reponame, sha1, filename), chatty=True)
-                text = self._rrc.cat_file(reponame, sha1, filename)
+                return self._rrc.cat_file(reponame, sha1, filename)
         else:
             raise NotcachedError(reponame)
 
-        if text is None:
-            self.status(
-                msg="File %s doesn't exist: "
-                "attempting to infer chunk morph from repo's build system"
-                % filename, chatty=True)
-            bs = morphlib.buildsystem.detect_build_system(file_list)
-            if bs is None:
-                raise AutodetectError(reponame, sha1, filename)
-            # TODO consider changing how morphs are located to be by morph
-            #      name rather than filename, it would save creating a
-            #      filename only to strip it back to its morph name again
-            #      and would allow future changes like morphologies being
-            #      stored as git metadata instead of as a file in the repo
-            morph_name = filename[:-len('.morph')]
-            text = bs.get_morphology_text(morph_name)
+        self.status(msg="File %s doesn't exist: "
+                    "attempting to infer chunk morph from repo's build system"
+                    % filename, chatty=True)
+        bs = morphlib.buildsystem.detect_build_system(file_list)
+        if bs is None:
+            raise MorphologyNotFoundError(filename)
+        # TODO consider changing how morphs are located to be by morph
+        #      name rather than filename, it would save creating a
+        #      filename only to strip it back to its morph name again
+        #      and would allow future changes like morphologies being
+        #      stored as git metadata instead of as a file in the repo
+        morph_name = filename[:-len('.morph')]
+        return bs.get_morphology_text(morph_name)
+
+    def get_morphology(self, reponame, sha1, filename):
+        text = self._get_morphology_text(reponame, sha1, filename)
 
         try:
             morphology = morphlib.morph2.Morphology(text)
