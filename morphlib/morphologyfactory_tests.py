@@ -19,7 +19,7 @@ import unittest
 import morphlib
 from morphlib.morph2 import Morphology
 from morphlib.morphologyfactory import (MorphologyFactory,
-                                        AutodetectError,
+                                        MorphologyNotFoundError,
                                         NotcachedError)
 from morphlib.remoterepocache import CatFileError
 
@@ -234,16 +234,15 @@ class MorphologyFactoryTests(unittest.TestCase):
                                        'assumed-remote.morph')
         self.assertEqual('assumed-remote', morph['name'])
 
-    def test_raises_error_when_fails_detect_locally(self):
+    def test_raises_error_when_no_local_morph(self):
         self.lr.cat = self.nolocalfile
-        self.assertRaises(AutodetectError, self.mf.get_morphology,
+        self.assertRaises(MorphologyNotFoundError, self.mf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
-    def test_raises_error_when_fails_detect_remotely(self):
+    def test_raises_error_when_fails_no_remote_morph(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.rrc.cat_file = self.noremotefile
-#        self.mf.get_morphology('reponame', 'sha1', 'unreached.morph')
-        self.assertRaises(AutodetectError, self.mf.get_morphology,
+        self.assertRaises(MorphologyNotFoundError, self.mf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
     def test_raises_error_when_name_mismatches(self):
