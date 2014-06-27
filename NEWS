@@ -4,6 +4,15 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
+Version 14.26, released 2014-06-27
+----------------------------------
+
+* Smarter git caching behaviour, cached repos will only be updated when
+  necessary
+* Morph deploy now lets the user specify which systems they want to deploy
+  within a cluster
+* Various bug fixes
+
 Version 14.24, released 2014-06-13
 ----------------------------------
 
