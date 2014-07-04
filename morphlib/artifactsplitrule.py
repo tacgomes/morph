@@ -230,10 +230,11 @@ def unify_chunk_matches(morphology):
     name = morphology['name']
     for suffix, patterns in DEFAULT_CHUNK_RULES:
         ca_name = name + suffix
-        # Default rules are replaced by explicit ones
-        if ca_name in split_rules.artifacts:
-            break
-        split_rules.add(ca_name, FileMatch(patterns))
+        # Explicit rules override the default rules. This is an all-or-nothing
+        # override: there is no way to extend the default split rules right now
+        # without duplicating them in the chunk morphology.
+        if ca_name not in split_rules.artifacts:
+            split_rules.add(ca_name, FileMatch(patterns))
 
     return split_rules
 
@@ -267,9 +268,11 @@ def unify_stratum_matches(morphology):
 
     for suffix, patterns in DEFAULT_STRATUM_RULES:
         sta_name = morphology['name'] + suffix
-        if sta_name in match_split_rules.artifacts:
-            break
-        match_split_rules.add(sta_name, ArtifactMatch(patterns))
+        # Explicit rules override the default rules. This is an all-or-nothing
+        # override: there is no way to extend the default split rules right now
+        # without duplicating them in the chunk morphology.
+        if sta_name not in match_split_rules.artifacts:
+            match_split_rules.add(sta_name, ArtifactMatch(patterns))
 
     # Construct a new SplitRules with the assignments before matches
     return SplitRules(itertools.chain(assignment_split_rules,
