@@ -4,12 +4,6 @@ NEWS for Morph
 This file contains high-level summaries of user-visible changes in
 each Morph release.
 
-Version 14.28, released 2014-07-10
-----------------------------------
-
-* Fix failure to update some cached git repos
-* Fix and clarify chunk splitting
-
 Version 14.26, released 2014-06-27
 ----------------------------------
 
