@@ -52,6 +52,7 @@ class ListeningSocketEventSource(EventSource):
     def __init__(self, addr, port):
         self.sock = distbuild.create_socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        logging.info('Binding socket to %s', addr)
         self.sock.bind((addr, port))
         self.sock.listen(5)
         self._accepting = True
