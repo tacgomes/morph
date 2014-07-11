@@ -19,19 +19,6 @@
 import morphlib
 
 
-class StratumNotInSystemError(morphlib.Error):
-
-    def __init__(self, system_name, stratum_name):
-        self.msg = (
-            'System %s does not contain %s' % (system_name, stratum_name))
-
-
-class StratumNotInSetError(morphlib.Error):
-
-    def __init__(self, stratum_name):
-        self.msg = 'Stratum %s is not in MorphologySet' % stratum_name
-
-
 class ChunkNotInStratumError(morphlib.Error):
 
     def __init__(self, stratum_name, chunk_name):
@@ -79,30 +66,10 @@ class MorphologySet(object):
 
     def _find_spec(self, specs, wanted_name):
         for spec in specs:
-            name = spec.get('morph', spec.get('name'))
+            name = spec.get('name', spec.get('morph'))
             if name == wanted_name:
                 return spec.get('repo'), spec.get('ref'), name
         return None, None, None
-
-    def get_stratum_in_system(self, system_morph, stratum_name):
-        '''Return morphology for a stratum that is in a system.
-
-        If the stratum is not in the system, raise StratumNotInSystemError.
-        If the stratum morphology has not been added to the set,
-        raise StratumNotInSetError.
-
-        '''
-
-        repo_url, ref, morph = self._find_spec(
-            system_morph['strata'], stratum_name)
-        if (repo_url, ref, morph) == (None, None, None):
-            raise StratumNotInSystemError(system_morph['name'], stratum_name)
-        m = self._get_morphology(repo_url or system_morph.repo_url,
-                                 ref or system_morph.ref,
-                                 '%s.morph' % morph)
-        if m is None:
-            raise StratumNotInSetError(stratum_name)
-        return m
 
     def get_chunk_triplet(self, stratum_morph, chunk_name):
         '''Return the repo url, ref, morph name triplet for a chunk.
@@ -160,8 +127,8 @@ class MorphologySet(object):
             specs = m[kind]
             for spec in specs:
                 if cb_filter(m, kind, spec):
-                    orig_spec = (spec.get('repo'), spec.get('ref'),
-                                 spec['morph'])
+                    fn = morphlib.util.sanitise_morphology_path(spec['morph'])
+                    orig_spec = (spec.get('repo'), spec.get('ref'), fn)
                     dirtied = cb_process(m, kind, spec)
                     if dirtied:
                         m.dirty = True
@@ -175,17 +142,18 @@ class MorphologySet(object):
                 process_spec_list(m, 'chunks')
 
         for m in self.morphologies:
-            tup = (m.repo_url, m.ref, m.filename[:-len('.morph')])
+            tup = (m.repo_url, m.ref, m.filename)
             if tup in altered_references:
                 spec = altered_references[tup]
                 if m.ref != spec.get('ref'):
                     m.ref = spec.get('ref')
                     m.dirty = True
-                assert (m.filename == spec['morph'] + '.morph'
+                file = morphlib.util.sanitise_morphology_path(spec['morph'])
+                assert (m.filename == file
                         or m.repo_url == spec.get('repo')), \
                        'Moving morphologies is not supported.'
 
-    def change_ref(self, repo_url, orig_ref, morph_filename, new_ref):
+    def change_ref(self, repo_url, orig_ref, morph_name, new_ref):
         '''Change a triplet's ref to a new one in all morphologies in a ref.
 
         Change orig_ref to new_ref in any morphology that references the
@@ -194,9 +162,10 @@ class MorphologySet(object):
         '''
 
         def wanted_spec(m, kind, spec):
+            spec_name = spec.get('name', spec['morph'])
             return (spec.get('repo') == repo_url and
                     spec.get('ref') == orig_ref and
-                    spec['morph'] + '.morph' == morph_filename)
+                    spec_name == morph_name)
 
         def process_spec(m, kind, spec):
             spec['unpetrify-ref'] = spec.get('ref')
