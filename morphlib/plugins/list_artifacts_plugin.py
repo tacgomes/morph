@@ -93,7 +93,7 @@ class ListArtifactsPlugin(cliapp.Plugin):
 
         def find_artifact_by_name(artifacts_list, filename):
             for a in artifacts_list:
-                if a.source.filename == name:
+                if a.source.filename == filename:
                     return a
             raise ValueError
 
