@@ -66,11 +66,12 @@ class Morphology(object):
 
     @staticmethod
     def _load_json(text):
-        return json.loads(text, object_pairs_hook=OrderedDict)
+        return json.loads(text, object_pairs_hook=OrderedDict,
+                          encoding='unicode-escape')
 
     @staticmethod
     def _dump_json(obj, f):
-        text = json.dumps(obj, indent=4)
+        text = json.dumps(obj, indent=4, encoding='unicode-escape')
         text = re.sub(" \n", "\n", text)
         f.write(text)
         f.write('\n')

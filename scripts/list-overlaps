@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2011-2012  Codethink Limited
+# Copyright (C) 2011-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ class ListOverlaps(cliapp.Application):
 
     @staticmethod
     def _load_overlap(filename):
-        data = json.load(open(filename))
+        data = json.load(open(filename), encoding='unicode-escape')
         overlaps = dict((frozenset(pair[0]), set(pair[1])) for pair in data)
         return overlaps
 

@@ -340,7 +340,7 @@ class BuildController(distbuild.StateMachine):
             id=self._helper_id,
             url=url,
             headers={'Content-type': 'application/json'},
-            body=json.dumps(artifact_names),
+            body=json.dumps(artifact_names, encoding='unicode-escape'),
             method='POST')
 
         request = distbuild.HelperRequest(msg)
@@ -369,7 +369,7 @@ class BuildController(distbuild.StateMachine):
                 _AnnotationFailed(http_status_code, error_msg))
             return
 
-        cache_state = json.loads(event.msg['body'])
+        cache_state = json.loads(event.msg['body'], encoding='unicode-escape')
         map_build_graph(self._artifact, set_status)
         self.mainloop.queue_event(self, _Annotated())
 

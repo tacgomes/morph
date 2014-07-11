@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -66,14 +66,15 @@ class SystemMetadataDir(collections.MutableMapping):
         self._check_key(key)
         try:
             with open(self._join_path('%s.meta' % key), 'r') as f:
-                return json.load(f)
+                return json.load(f, encoding='unicode-escape')
         except IOError:
             raise KeyError(key)
 
     def __setitem__(self, key, value):
         self._check_key(key)
         with open(self._join_path('%s.meta' % key), 'w') as f:
-            json.dump(value, f, indent=4, sort_keys=True)
+            json.dump(value, f, indent=4, sort_keys=True,
+                      encoding='unicode-escape')
 
     def __delitem__(self, key):
         self._check_key(key)
