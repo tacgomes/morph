@@ -1,4 +1,4 @@
-# Copyright (C) 2012, 2013  Codethink Limited
+# Copyright (C) 2012, 2013, 2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,13 +56,13 @@ class Artifact(object):
 
     def basename(self):  # pragma: no cover
         return '%s.%s.%s' % (self.cache_key,
-                             self.source.morphology['kind'],
-                             self.name)
+                             str(self.source.morphology['kind']),
+                             str(self.name))
 
     def metadata_basename(self, metadata_name):  # pragma: no cover
         return '%s.%s.%s.%s' % (self.cache_key,
-                                self.source.morphology['kind'],
-                                self.name,
+                                str(self.source.morphology['kind']),
+                                str(self.name),
                                 metadata_name)
 
     def get_dependency_prefix_set(self):
