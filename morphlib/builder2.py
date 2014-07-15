@@ -154,7 +154,8 @@ def get_chunk_files(f):  # pragma: no cover
 
 
 def get_stratum_files(f, lac):  # pragma: no cover
-    for ca in (ArtifactCacheReference(a) for a in json.load(f)):
+    for ca in (ArtifactCacheReference(a)
+               for a in json.load(f, encoding='unicode-escape')):
         cf = lac.get(ca)
         for filename in get_chunk_files(cf):
             yield filename
@@ -197,7 +198,7 @@ def write_overlap_metadata(artifact, overlaps, lac):  # pragma: no cover
             [
                 [a.name for a in afs], list(files)
             ] for afs, files in overlaps.iteritems()
-        ], f, indent=4)
+        ], f, indent=4, encoding='unicode-escape')
     f.close()
 
 
@@ -234,7 +235,8 @@ class BuilderBase(object):
         with self.local_artifact_cache.put_source_metadata(
                 self.artifact.source, self.artifact.cache_key,
                 'meta') as f:
-            json.dump(meta, f, indent=4, sort_keys=True)
+            json.dump(meta, f, indent=4, sort_keys=True,
+                      encoding='unicode-escape')
             f.write('\n')
 
     def create_metadata(self, artifact_name, contents=[]):
@@ -294,7 +296,7 @@ class BuilderBase(object):
         # Unit tests use StringIO, which in Python 2.6 isn't usable with
         # the "with" statement. So we don't do it with "with".
         f = self._open(filename, 'w')
-        f.write(json.dumps(meta, indent=4, sort_keys=True))
+        json.dump(meta, f, indent=4, sort_keys=True, encoding='unicode-escape')
         f.close()
 
     def new_artifact(self, artifact_name):
@@ -580,9 +582,11 @@ class StratumBuilder(BuilderBase):
                 meta = self.create_metadata(self.artifact.name,
                                             [x.name for x in constituents])
                 with lac.put_artifact_metadata(self.artifact, 'meta')  as f:
-                    json.dump(meta, f, indent=4, sort_keys=True)
+                    json.dump(meta, f, indent=4, sort_keys=True,
+                              encoding='unicode-escape')
                 with self.local_artifact_cache.put(self.artifact) as f:
-                    json.dump([c.basename() for c in constituents], f)
+                    json.dump([c.basename() for c in constituents], f,
+                              encoding='unicode-escape')
         self.save_build_times()
         return [self.artifact]
 
@@ -643,7 +647,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
 
         cache = self.local_artifact_cache
         with cache.get(stratum_artifact) as stratum_file:
-            artifact_list = json.load(stratum_file)
+            artifact_list = json.load(stratum_file, encoding='unicode-escape')
             for chunk in (ArtifactCacheReference(a) for a in artifact_list):
                 self.app.status(msg='Unpacking chunk %(basename)s',
                                 basename=chunk.basename(), chatty=True)
@@ -671,7 +675,8 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             # download the chunk artifacts if necessary
             for stratum_artifact in self.artifact.dependencies:
                 f = self.local_artifact_cache.get(stratum_artifact)
-                chunks = [ArtifactCacheReference(a) for a in json.load(f)]
+                chunks = [ArtifactCacheReference(a)
+                          for a in json.load(f, encoding='unicode-escape')]
                 download_depends(chunks,
                                  self.local_artifact_cache,
                                  self.remote_artifact_cache)

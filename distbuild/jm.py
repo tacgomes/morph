@@ -67,7 +67,7 @@ class JsonMachine(StateMachine):
         
     def send(self, msg):
         '''Send a message to the other side.'''
-        self.sockbuf.write('%s\n' % json.dumps(msg))
+        self.sockbuf.write('%s\n' % json.dumps(msg, encoding='unicode-escape'))
     
     def close(self):
         '''Tell state machine it should shut down.
@@ -91,7 +91,7 @@ class JsonMachine(StateMachine):
             line = line.rstrip()
             if self.debug_json:
                 logging.debug('JsonMachine: line: %s' % repr(line))
-            msg = json.loads(line)
+            msg = json.loads(line, encoding='unicode-escape')
             self.mainloop.queue_event(self, JsonNewMessage(msg))
 
     def _send_eof(self, event_source, event):

@@ -96,14 +96,23 @@ class LocalArtifactCache(object):
         os.utime(filename, None)
         return open(filename)
 
+    def _join(self, basename):
+        '''Wrapper for pyfilesystem's getsyspath.
+
+        This is required because its API throws us a garbage unicode
+        string, when file paths are binary data.
+        '''
+        return str(self.cachefs.getsyspath(basename))
+
     def artifact_filename(self, artifact):
-        return self.cachefs.getsyspath(artifact.basename())
+        basename = artifact.basename()
+        return self._join(basename)
 
     def _artifact_metadata_filename(self, artifact, name):
-        return self.cachefs.getsyspath(artifact.metadata_basename(name))
+        return self._join(artifact.metadata_basename(name))
 
     def _source_metadata_filename(self, source, cachekey, name):
-        return self.cachefs.getsyspath('%s.%s' % (cachekey, name))
+        return self._join('%s.%s' % (cachekey, name))
 
     def clear(self):
         '''Clear everything from the artifact cache directory.

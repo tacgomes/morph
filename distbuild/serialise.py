@@ -130,7 +130,7 @@ def serialise_artifact(artifact):
     encoded_artifacts['_root'] = str(id(artifact))
 
     return json.dumps({'sources': encoded_sources,
-        'artifacts': encoded_artifacts})
+        'artifacts': encoded_artifacts}, encoding='unicode-escape')
 
 
 def deserialise_artifact(encoded):
@@ -210,7 +210,7 @@ def deserialise_artifact(encoded):
 
         return artifact
 
-    le_dicts = json.loads(encoded)
+    le_dicts = json.loads(encoded, encoding='unicode-escape')
     artifacts_dict = le_dicts['artifacts']
     sources_dict = le_dicts['sources']
 
