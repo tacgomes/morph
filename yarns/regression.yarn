@@ -90,10 +90,15 @@ Implementations
     - name: bootstrap-chunk
       repo: test:test-chunk
       ref: master
-      morph: test-chunk
       build-mode: bootstrap
       build-depends: []
     EOF
 
     run_in "$DATADIR/gits/morphs" git add .
     run_in "$DATADIR/gits/morphs" git commit -m "Add bootstrap-system"
+
+    sed -e 's/test-chunk/bootstrap-chunk/g' \
+        "$DATADIR/gits/test-chunk/test-chunk.morph" \
+        > "$DATADIR/gits/test-chunk/bootstrap-chunk.morph"
+    run_in "$DATADIR/gits/test-chunk" git add .
+    run_in "$DATADIR/gits/test-chunk" git commit -m "Add bootstrap-chunk"

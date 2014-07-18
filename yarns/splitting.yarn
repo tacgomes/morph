@@ -142,7 +142,6 @@ Implementations
     -   name: test-chunk
         repo: test:test-chunk
         ref: master
-        morph: test-chunk
         build-mode: test
         build-depends: []
         artifacts:
@@ -190,13 +189,11 @@ Implementations
     - name: test-chunk
       repo: test:test-chunk
       ref: master
-      morph: test-chunk
       build-mode: test
       build-depends: []
     - name: unbuildable-chunk
       repo: test:test-chunk
       ref: refs/heads/master
-      morph: unbuildable-chunk
       build-mode: test
       build-depends:
       - test-chunk

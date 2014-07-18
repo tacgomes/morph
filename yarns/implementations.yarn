@@ -88,7 +88,6 @@ another to hold a chunk.
     -   name: test-chunk
         repo: test:test-chunk
         ref: master
-        morph: test-chunk
         build-mode: test
         build-depends: []
     EOF
@@ -281,7 +280,6 @@ have a morphology using the test architecture.
     -   name: stage1-chunk
         repo: test:test-chunk
         ref: master
-        morph: stage1-chunk
         build-mode: bootstrap
         build-depends: []
     EOF
@@ -295,7 +293,6 @@ have a morphology using the test architecture.
     -   name: test-chunk
         repo: test:test-chunk
         ref: master
-        morph: test-chunk
         build-mode: test
         build-depends: []
     EOF
