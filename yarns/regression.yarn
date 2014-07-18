@@ -88,17 +88,15 @@ Implementations
     kind: stratum
     chunks:
     - name: bootstrap-chunk
+      morph: bootstrap-chunk.morph
       repo: test:test-chunk
       ref: master
       build-mode: bootstrap
       build-depends: []
     EOF
+    sed -e 's/name: test-chunk/name: bootstrap-chunk/g' \
+        "$DATADIR/gits/morphs/test-chunk.morph" \
+        > "$DATADIR/gits/morphs/bootstrap-chunk.morph"
 
     run_in "$DATADIR/gits/morphs" git add .
     run_in "$DATADIR/gits/morphs" git commit -m "Add bootstrap-system"
-
-    sed -e 's/test-chunk/bootstrap-chunk/g' \
-        "$DATADIR/gits/test-chunk/test-chunk.morph" \
-        > "$DATADIR/gits/test-chunk/bootstrap-chunk.morph"
-    run_in "$DATADIR/gits/test-chunk" git add .
-    run_in "$DATADIR/gits/test-chunk" git commit -m "Add bootstrap-chunk"
