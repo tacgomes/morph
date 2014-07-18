@@ -93,7 +93,6 @@ class CacheKeyComputer(object):
     def _calculate(self, artifact):
         keys = {
             'env': self._filterenv(self._build_env.env),
-            'filename': artifact.source.filename,
             'kids': [{'artifact': a.name, 'cache-key': self.compute_key(a)}
                      for a in artifact.dependencies],
             'metadata-version': artifact.metadata_version
@@ -106,9 +105,24 @@ class CacheKeyComputer(object):
             keys['tree'] = artifact.source.tree
             keys['split-rules'] = [(a, [rgx.pattern for rgx in r._regexes])
                                    for (a, r) in artifact.source.split_rules]
+
+            # Include morphology contents, since it doesn't always come
+            # from the source tree
+            morphology = artifact.source.morphology
+            # include {pre-,,post-}{configure,build,test,install}-commands
+            # in morphology key
+            for prefix in ('pre-', '', 'post-'):
+                for cmdtype in ('configure', 'build', 'test', 'install'):
+                    cmd_field = prefix + cmdtype + '-commands'
+                    keys[cmd_field] = morphology.get_commands(cmd_field)
+            keys['devices'] = morphology.get('devices')
+            keys['max-jobs'] = morphology.get('max-jobs')
+            keys['system-integration'] = morphology.get('system-integration',
+                                                        {})
+            # products is omitted as they are part of the split-rules
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
-            le_dict = dict((k, morphology[k]) for k in morphology.keys())
+            morph_dict = dict((k, morphology[k]) for k in morphology.keys())
 
             # Disregard all fields of a morphology that aren't important
             ignored_fields = (
@@ -117,13 +131,9 @@ class CacheKeyComputer(object):
                 # so are already handled by the 'kids' field.
                 'strata', 'build-depends', 'chunks',
                 'products')
-            for ignored_field in ignored_fields:
-                if ignored_field in le_dict:
-                    del le_dict[ignored_field]
-
-            checksum = hashlib.sha1()
-            self._hash_thing(checksum, le_dict)
-            keys['morphology-sha1'] = checksum.hexdigest()
+            for key in morph_dict:
+                if key not in ignored_fields:
+                    keys[key] = morph_dict[key]
         if kind == 'stratum':
             keys['stratum-format-version'] = 1
         elif kind == 'system':
