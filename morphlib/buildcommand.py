@@ -90,7 +90,7 @@ class BuildCommand(object):
         '''
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
-            self.lrc, self.rrc, (repo_name, ref, filename))
+            self.lrc, self.rrc, repo_name, ref, filename)
 
         return srcpool
 

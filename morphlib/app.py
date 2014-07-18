@@ -286,7 +286,7 @@ class Morph(cliapp.Application):
                    morphlib.util.sanitise_morphology_path(args[2]))
             args = args[3:]
 
-    def create_source_pool(self, lrc, rrc, triplet):
+    def create_source_pool(self, lrc, rrc, repo, ref, filename):
         pool = morphlib.sourcepool.SourcePool()
 
         def add_to_pool(reponame, ref, filename, absref, tree, morphology):
@@ -294,7 +294,7 @@ class Morph(cliapp.Application):
                                             morphology, filename)
             pool.add(source)
 
-        self.traverse_morphs([triplet], lrc, rrc,
+        self.traverse_morphs(repo, ref, [filename], lrc, rrc,
                              update=not self.settings['no-git-update'],
                              visit=add_to_pool)
         return pool
@@ -338,53 +338,74 @@ class Morph(cliapp.Application):
             absref, tree = repo.resolve_ref(ref)
         return absref, tree
 
-    def traverse_morphs(self, triplets, lrc, rrc, update=True,
+    def traverse_morphs(self, definitions_repo, definitions_ref,
+                        system_filenames, lrc, rrc, update=True,
                         visit=lambda rn, rf, fn, arf, m: None):
         morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
                                                                      self)
-        queue = collections.deque(triplets)
+        definitions_queue = collections.deque(system_filenames)
+        chunk_in_definitions_repo_queue = []
+        chunk_in_source_repo_queue = []
         resolved_refs = {}
         resolved_morphologies = {}
 
-        while queue:
-            reponame, ref, filename = queue.popleft()
+        # Resolve the (repo, ref) pair for the definitions repo, cache result.
+        definitions_absref, definitions_tree = self.resolve_ref(
+            lrc, rrc, definitions_repo, definitions_ref, update)
 
-            # Resolve the (repo, ref) reference, cache result.
-            reference = (reponame, ref)
-            if not reference in resolved_refs:
-                resolved_refs[reference] = self.resolve_ref(
-                    lrc, rrc, reponame, ref, update)
-            absref, tree = resolved_refs[reference]
+        while definitions_queue:
+            filename = definitions_queue.popleft()
 
-            # Fetch the (repo, ref, filename) morphology, cache result.
-            reference = (reponame, absref, filename)
-            if not reference in resolved_morphologies:
-                resolved_morphologies[reference] = \
-                    morph_factory.get_morphology(reponame, absref, filename)
-            morphology = resolved_morphologies[reference]
+            key = (definitions_repo, definitions_absref, filename)
+            if not key in resolved_morphologies:
+                resolved_morphologies[key] = morph_factory.get_morphology(*key)
+            morphology = resolved_morphologies[key]
 
-            visit(reponame, ref, filename, absref, tree, morphology)
+            visit(definitions_repo, definitions_ref, filename,
+                  definitions_absref, definitions_tree, morphology)
             if morphology['kind'] == 'cluster':
                 raise cliapp.AppException(
                     "Cannot build a morphology of type 'cluster'.")
             elif morphology['kind'] == 'system':
-                queue.extend(
-                    (s.get('repo') or reponame,
-                     s.get('ref') or ref,
-                     morphlib.util.sanitise_morphology_path(s['morph']))
+                definitions_queue.extend(
+                    morphlib.util.sanitise_morphology_path(s['morph'])
                     for s in morphology['strata'])
             elif morphology['kind'] == 'stratum':
                 if morphology['build-depends']:
-                    queue.extend(
-                        (s.get('repo') or reponame,
-                         s.get('ref') or ref,
-                         morphlib.util.sanitise_morphology_path(s['morph']))
+                    definitions_queue.extend(
+                        morphlib.util.sanitise_morphology_path(s['morph'])
                         for s in morphology['build-depends'])
-                queue.extend(
-                    (c['repo'],
-                     c['ref'],
-                     morphlib.util.sanitise_morphology_path(c['morph']))
-                    for c in morphology['chunks'])
+                for c in morphology['chunks']:
+                    if 'morph' not in c:
+                        path = morphlib.util.sanitise_morphology_path(
+                            c.get('morph', c['name']))
+                        chunk_in_source_repo_queue.append(
+                            (c['repo'], c['ref'], path))
+                        continue
+                    chunk_in_definitions_repo_queue.append(
+                        (c['repo'], c['ref'], c['morph']))
+
+        for repo, ref, filename in chunk_in_definitions_repo_queue:
+            if (repo, ref) not in resolved_refs:
+                resolved_refs[repo, ref] = self.resolve_ref(
+                    lrc, rrc, repo, ref, update)
+            absref, tree = resolved_refs[repo, ref]
+            key = (definitions_repo, definitions_absref, filename)
+            if not key in resolved_morphologies:
+                resolved_morphologies[key] = morph_factory.get_morphology(*key)
+            morphology = resolved_morphologies[key]
+            visit(repo, ref, filename, absref, tree, morphology)
+
+        for repo, ref, filename in chunk_in_source_repo_queue:
+            if (repo, ref) not in resolved_refs:
+                resolved_refs[repo, ref] = self.resolve_ref(
+                    lrc, rrc, repo, ref, update)
+            absref, tree = resolved_refs[repo, ref]
+            key = (repo, absref, filename)
+            if key not in resolved_morphologies:
+                resolved_morphologies[key] = morph_factory.get_morphology(*key)
+            morphology = resolved_morphologies[key]
+            visit(repo, ref, filename, absref, tree, morphology)
 
     def cache_repo_and_submodules(self, cache, url, ref, done):
         subs_to_process = set()
