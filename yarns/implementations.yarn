@@ -156,7 +156,7 @@ another to hold a chunk.
     # autotools configuration, they go into /libexec.
 
     - |
-      install -D /dev/null "$DESTDIR/$PREFIX/libexec/test-bin"
+      install -D test-bin "$DESTDIR/$PREFIX/libexec/test-bin"
 
     # As well as run-time libraries, there's development files. For C
     # this is headers, which describe the API of the libraries, which
@@ -169,7 +169,7 @@ another to hold a chunk.
     # `-m` option.
 
     - |
-      install -D -m 644 /dev/null "$DESTDIR/$PREFIX/include/test.h"
+      install -D -m 644 test.h "$DESTDIR/$PREFIX/include/test.h"
 
     # `pkg-config` is a standard way to locate libraries and get the
     # compiler flags needed to build with the library. It's also used
@@ -179,7 +179,7 @@ another to hold a chunk.
 
     - |
       for pkgdir in lib lib32 lib64 share; do
-          install -D -m 644 /dev/null \
+          install -D -m 644 test.pc \
               "$DESTDIR/$PREFIX/$pkgdir/pkgconfig/test.pc"
       done
 
@@ -241,6 +241,19 @@ another to hold a chunk.
     run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
 
     run_in "$DATADIR/gits/test-chunk" git init .
+    cat > "$DATADIR/gits/test-chunk/test-bin" <<'EOF'
+    #!/bin/sh
+    echo Hello World
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.h" <<'EOF'
+    int foo(void);
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.pc" <<'EOF'
+    prefix=/usr
+    includedir=${prefix}/include
+    Name: test
+    Cflags: -I{includedir}
+    EOF
     run_in "$DATADIR/gits/test-chunk" git add .
     run_in "$DATADIR/gits/test-chunk" git commit --allow-empty -m Initial.
 
