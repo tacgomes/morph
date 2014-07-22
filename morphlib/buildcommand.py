@@ -90,7 +90,7 @@ class BuildCommand(object):
         '''
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
-            self.lrc, self.rrc, (repo_name, ref, filename))
+            self.lrc, self.rrc, repo_name, ref, filename)
 
         return srcpool
 
@@ -231,7 +231,8 @@ class BuildCommand(object):
         for spec in specs:
             repo_name = spec.get('repo') or src.repo_name
             ref = spec.get('ref') or src.original_ref
-            filename = morphlib.util.sanitise_morphology_path(spec['morph'])
+            filename = morphlib.util.sanitise_morphology_path(
+                spec.get('morph', spec.get('name')))
             logging.debug(
                 'Validating cross ref to %s:%s:%s' %
                     (repo_name, ref, filename))

@@ -308,7 +308,7 @@ class DeployPlugin(cliapp.Plugin):
         all_deployments = set()
         deployments = set()
         for system in cluster_morphology['systems']:
-            all_deployments.update([sys_id for sys_id in system['deploy']])
+            all_deployments.update(system['deploy'].iterkeys())
             if 'subsystems' in system:
                 all_subsystems.update(loader._get_subsystem_names(system))
         for item in args[1:]:
@@ -367,9 +367,9 @@ class DeployPlugin(cliapp.Plugin):
                         'Cannot directly deploy subsystems. Create a top '
                         'level deployment for the subsystem %s instead.' %
                         subsystem)
-                if not any(deployment in var
-                        for deployment in all_deployments) \
-                        and not subsystem in var:
+                if (not any(deployment in var
+                            for deployment in all_deployments)
+                    and not subsystem in var):
                     raise cliapp.AppException(
                         'Variable referenced a non-existent deployment '
                         'name: %s' % var)
@@ -377,7 +377,7 @@ class DeployPlugin(cliapp.Plugin):
     def deploy_system(self, build_command, deploy_tempdir,
                       root_repo_dir, build_repo, ref, system, env_vars,
                       deployment_filter, parent_location):
-        sys_ids = set(sys_id for sys_id, _ in system['deploy'].iteritems())
+        sys_ids = set(system['deploy'].iterkeys())
         if deployment_filter and not \
                 any(sys_id in deployment_filter for sys_id in sys_ids):
             return

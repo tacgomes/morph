@@ -87,16 +87,11 @@ another to hold a chunk.
     chunks:
     -   name: test-chunk
         repo: test:test-chunk
+        morph: test-chunk.morph
         ref: master
-        morph: test-chunk
         build-mode: test
         build-depends: []
     EOF
-
-    run_in "$DATADIR/gits/morphs" git init .
-    run_in "$DATADIR/gits/morphs" git add .
-    run_in "$DATADIR/gits/morphs" git commit -m Initial.
-    run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
 
     # Create the chunk repository.
 
@@ -106,7 +101,7 @@ another to hold a chunk.
     # dummy files in all the places that different kinds of files are
     # usually installed. e.g. executables in `/bin` and `/usr/bin`
 
-    install -m644 -D /dev/stdin << 'EOF' "$DATADIR/gits/test-chunk/test-chunk.morph"
+    install -m644 -D /dev/stdin << 'EOF' "$DATADIR/gits/morphs/test-chunk.morph"
     name: test-chunk
     kind: chunk
     build-system: manual
@@ -161,7 +156,7 @@ another to hold a chunk.
     # autotools configuration, they go into /libexec.
 
     - |
-      install -D /dev/null "$DESTDIR/$PREFIX/libexec/test-bin"
+      install -D test-bin "$DESTDIR/$PREFIX/libexec/test-bin"
 
     # As well as run-time libraries, there's development files. For C
     # this is headers, which describe the API of the libraries, which
@@ -174,7 +169,7 @@ another to hold a chunk.
     # `-m` option.
 
     - |
-      install -D -m 644 /dev/null "$DESTDIR/$PREFIX/include/test.h"
+      install -D -m 644 test.h "$DESTDIR/$PREFIX/include/test.h"
 
     # `pkg-config` is a standard way to locate libraries and get the
     # compiler flags needed to build with the library. It's also used
@@ -184,7 +179,7 @@ another to hold a chunk.
 
     - |
       for pkgdir in lib lib32 lib64 share; do
-          install -D -m 644 /dev/null \
+          install -D -m 644 test.pc \
               "$DESTDIR/$PREFIX/$pkgdir/pkgconfig/test.pc"
       done
 
@@ -240,9 +235,27 @@ another to hold a chunk.
       done
     EOF
 
+    run_in "$DATADIR/gits/morphs" git init .
+    run_in "$DATADIR/gits/morphs" git add .
+    run_in "$DATADIR/gits/morphs" git commit -m Initial.
+    run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
+
     run_in "$DATADIR/gits/test-chunk" git init .
+    cat > "$DATADIR/gits/test-chunk/test-bin" <<'EOF'
+    #!/bin/sh
+    echo Hello World
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.h" <<'EOF'
+    int foo(void);
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.pc" <<'EOF'
+    prefix=/usr
+    includedir=${prefix}/include
+    Name: test
+    Cflags: -I{includedir}
+    EOF
     run_in "$DATADIR/gits/test-chunk" git add .
-    run_in "$DATADIR/gits/test-chunk" git commit -m Initial.
+    run_in "$DATADIR/gits/test-chunk" git commit --allow-empty -m Initial.
 
     # Create the Morph configuration file so we can access the repos
     # using test:foo URL aliases.
@@ -263,15 +276,14 @@ have a morphology using the test architecture.
 
     IMPLEMENTS GIVEN a system called (\S+) for the test architecture in the git server
 
-    cat << EOF > "$DATADIR/gits/test-chunk/stage1-chunk.morph"
+    cat << EOF > "$DATADIR/gits/morphs/stage1-chunk.morph"
     name: stage1-chunk
     kind: chunk
     build-system: dummy
     EOF
 
-    run_in "$DATADIR/gits/test-chunk" git init .
-    run_in "$DATADIR/gits/test-chunk" git add .
-    run_in "$DATADIR/gits/test-chunk" git commit -m Initial.
+    run_in "$DATADIR/gits/morphs" git add .
+    run_in "$DATADIR/gits/morphs" git commit -m "Add chunk for $MATCH_1"
 
 
     install -m644 -D /dev/stdin << EOF "$DATADIR/gits/morphs/strata/build-essential.morph"
@@ -279,9 +291,9 @@ have a morphology using the test architecture.
     kind: stratum
     chunks:
     -   name: stage1-chunk
+        morph: stage1-chunk.morph
         repo: test:test-chunk
         ref: master
-        morph: stage1-chunk
         build-mode: bootstrap
         build-depends: []
     EOF
@@ -293,9 +305,9 @@ have a morphology using the test architecture.
     - morph: strata/build-essential.morph
     chunks:
     -   name: test-chunk
+        morph: test-chunk.morph
         repo: test:test-chunk
         ref: master
-        morph: test-chunk
         build-mode: test
         build-depends: []
     EOF
@@ -441,7 +453,7 @@ architecture as the machine doing the testing. This uses `morph
 print-architecture` to get a value appropriate for morph.
 
     IMPLEMENTS WHEN the user creates an uncommitted system morphology called (\S+) for our architecture in system branch (\S+)
-    arch=$(morph print-architecture)
+    arch=$(run_morph print-architecture)
     name="$(basename "${MATCH_1%.*}")"
     install -m644 -D /dev/stdin << EOF "$DATADIR/workspace/$MATCH_2/test/morphs/$MATCH_1"
     arch: $arch
