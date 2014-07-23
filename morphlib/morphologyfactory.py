@@ -88,7 +88,7 @@ class MorphologyFactory(object):
                 file_list = repo.ls_tree(sha1)
         elif self._rrc is not None:
             self.status(msg="Retrieving %(reponame)s %(sha1)s %(filename)s"
-                        " from the remote artifact cache.",
+                        " from the remote git cache.",
                         reponame=reponame, sha1=sha1, filename=filename,
                         chatty=True)
             try:
