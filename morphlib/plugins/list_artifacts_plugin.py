@@ -85,7 +85,7 @@ class ListArtifactsPlugin(cliapp.Plugin):
         self.app.status(
             msg='Creating source pool for %s' % system_filename, chatty=True)
         source_pool = self.app.create_source_pool(
-            self.lrc, self.rrc, (repo, ref, system_filename))
+            self.lrc, self.rrc, repo, ref, system_filename)
 
         self.app.status(
             msg='Resolving artifacts for %s' % system_filename, chatty=True)
