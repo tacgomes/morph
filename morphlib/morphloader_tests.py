@@ -912,3 +912,33 @@ build-system: dummy
         # deployment keys field order
         self.assertLess(s.find('type'), s.find('location'))
         self.assertLess(s.find('location'), s.find('HOSTNAME'))
+
+    def test_multi_line_round_trip(self):
+        s = ('name: foo\n'
+             'kind: bar\n'
+             'description: |\n'
+             '  1 2 3\n'
+             '  4 5 6\n'
+             '  7 8 9\n')
+        m = self.loader.parse_morphology_text(s, 'string')
+        self.assertEqual(s, self.loader.save_to_string(m))
+
+    def test_smoketest_multi_line_unicode(self):
+        m = morphlib.morph3.Morphology(
+            name=u'foo',
+            description=u'1 2 3\n4 5 6\n7 8 9\n',
+        )
+        s = self.loader.save_to_string(m)
+
+    def test_smoketest_multi_line_unicode_encoded(self):
+        m = morphlib.morph3.Morphology(
+            name=u'foo \u263A'.encode('utf-8'),
+            description=u'1 \u263A\n2 \u263A\n3 \u263A\n'.encode('utf-8'),
+        )
+        s = self.loader.save_to_string(m)
+
+    def test_smoketest_binary_garbage(self):
+        m = morphlib.morph3.Morphology(
+            description='\x92',
+        )
+        s = self.loader.save_to_string(m)

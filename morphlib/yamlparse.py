@@ -29,7 +29,7 @@ if morphlib.got_yaml: # pragma: no cover
     def dump(*args, **kwargs):
         if 'default_flow_style' not in kwargs:
             kwargs['default_flow_style'] = False
-        return yaml.dump(Dumper=morphlib.morphloader.OrderedDumper,
+        return yaml.dump(Dumper=morphlib.morphloader.MorphologyDumper,
                          *args, **kwargs)
 
 else: # pragma: no cover
