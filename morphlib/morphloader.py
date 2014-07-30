@@ -224,7 +224,7 @@ class DuplicateDeploymentNameError(MorphologyValidationError):
             % (cluster_filename, '\n    ' + '\n    '.join(duplicates)))
 
 
-class OrderedDumper(yaml.SafeDumper):
+class MorphologyDumper(yaml.SafeDumper):
     keyorder = (
         'name',
         'kind',
@@ -274,9 +274,36 @@ class OrderedDumper(yaml.SafeDumper):
         return dumper.represent_mapping('tag:yaml.org,2002:map',
                                         cls._iter_in_global_order(mapping))
 
+    @classmethod
+    def _represent_str(cls, dumper, orig_data):
+        fallback_representer = yaml.representer.SafeRepresenter.represent_str
+        try:
+            data = unicode(orig_data, 'ascii')
+            if data.count('\n') == 0:
+                return fallback_representer(dumper, orig_data)
+        except UnicodeDecodeError:
+            try:
+                data = unicode(orig_data, 'utf-8')
+                if data.count('\n') == 0:
+                    return fallback_representer(dumper, orig_data)
+            except UnicodeDecodeError:
+                return fallback_representer(dumper, orig_data)
+        return dumper.represent_scalar(u'tag:yaml.org,2002:str',
+                                       data, style='|')
+
+    @classmethod
+    def _represent_unicode(cls, dumper, data):
+        if data.count('\n') == 0:
+            return yaml.representer.SafeRepresenter.represent_unicode(dumper,
+                                                                      data)
+        return dumper.represent_scalar(u'tag:yaml.org,2002:str',
+                                       data, style='|')
+
     def __init__(self, *args, **kwargs):
         yaml.SafeDumper.__init__(self, *args, **kwargs)
         self.add_representer(dict, self._represent_dict)
+        self.add_representer(str, self._represent_str)
+        self.add_representer(unicode, self._represent_unicode)
 
 
 class MorphologyLoader(object):
@@ -394,7 +421,7 @@ class MorphologyLoader(object):
     def save_to_string(self, morphology):
         '''Return normalised textual form of morphology.'''
 
-        return yaml.dump(morphology.data, Dumper=OrderedDumper,
+        return yaml.dump(morphology.data, Dumper=MorphologyDumper,
                          default_flow_style=False)
 
     def save_to_file(self, filename, morphology):
