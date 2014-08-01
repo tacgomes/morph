@@ -122,7 +122,8 @@ class CacheKeyComputer(object):
             # products is omitted as they are part of the split-rules
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
-            morph_dict = dict((k, morphology[k]) for k in morphology.keys())
+            morph_dict = dict((k, morphology[k]) for k in morphology.keys()
+                              if not k.startswith('_orig_'))
 
             # Disregard all fields of a morphology that aren't important
             ignored_fields = (
