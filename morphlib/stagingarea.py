@@ -65,8 +65,8 @@ class StagingArea(object):
         os.makedirs(dirname)
 
     def _dir_for_source(self, source, suffix):
-        dirname = os.path.join(self.dirname,
-                               '%s.%s' % (source.morphology['name'], suffix))
+        basename = '%s.%s' % (str(source.morphology['name']), suffix)
+        dirname = os.path.join(self.dirname, basename)
         self._mkdir(dirname)
         return dirname
 
