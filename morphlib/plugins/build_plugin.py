@@ -187,27 +187,31 @@ class BuildPlugin(cliapp.Plugin):
         bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix,
                                               push_temporary=push)
         with contextlib.closing(bb) as bb:
-
-            for gd, build_ref in bb.add_uncommitted_changes():
+            def report_add(gd, build_ref, changed):
                 self.app.status(msg='Adding uncommitted changes '\
                                     'in %(dirname)s to %(ref)s',
                                 dirname=gd.dirname, ref=build_ref, chatty=True)
+            bb.add_uncommitted_changes(add_cb=report_add)
 
-            for gd in bb.inject_build_refs(loader):
+            def report_inject(gd):
                 self.app.status(msg='Injecting temporary build refs '\
                                     'into morphologies in %(dirname)s',
                                 dirname=gd.dirname, chatty=True)
+            bb.inject_build_refs(loader, inject_cb=report_inject)
 
-            for gd, build_ref in bb.update_build_refs(name, email, build_uuid):
+            def report_commit(gd, build_ref):
                 self.app.status(msg='Committing changes in %(dirname)s '\
                                     'to %(ref)s',
                                 dirname=gd.dirname, ref=build_ref, chatty=True)
+            bb.update_build_refs(name, email, build_uuid,
+                                 commit_cb=report_commit)
 
-            for gd, build_ref, remote in bb.push_build_branches():
+            def report_push(gd, build_ref, remote, refspec):
                 self.app.status(msg='Pushing %(ref)s in %(dirname)s '\
                                     'to %(remote)s',
                                 ref=build_ref, dirname=gd.dirname,
                                 remote=remote.get_push_url(), chatty=True)
+            bb.push_build_branches(push_cb=report_push)
 
             build_command.build([bb.root_repo_url,
                                  bb.root_ref,

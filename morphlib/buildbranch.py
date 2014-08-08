@@ -84,14 +84,14 @@ class BuildBranch(object):
     def _register_cleanup(self, func, *args, **kwargs):
         self._cleanup.append((func, args, kwargs))
 
-    def add_uncommitted_changes(self):
+    def add_uncommitted_changes(self, add_cb=lambda **kwargs: None):
         '''Add any uncommitted changes to temporary build GitIndexes'''
         for gd, (build_ref, index) in self._to_push.iteritems():
             changed = [to_path for code, to_path, from_path
                        in index.get_uncommitted_changes()]
             if not changed:
                 continue
-            yield gd, build_ref
+            add_cb(gd=gd, build_ref=gd, changed=changed)
             index.add_files_from_working_tree(changed)
 
     @staticmethod
@@ -102,7 +102,7 @@ class BuildBranch(object):
             sha1 = gd.store_blob(loader.save_to_string(morphology))
             yield 0100644, sha1, morphology.filename
 
-    def inject_build_refs(self, loader):
+    def inject_build_refs(self, loader, inject_cb=lambda **kwargs: None):
         '''Update system and stratum morphologies to point to our branch.
 
         For all edited repositories, this alter the temporary GitIndex
@@ -141,12 +141,13 @@ class BuildBranch(object):
         morphs.traverse_specs(process, filter)
 
         if any(m.dirty for m in morphs.morphologies):
-            yield self._root
+            inject_cb(gd=self._root)
 
         self._root_index.add_files_from_index_info(
             self._hash_morphologies(self._root, morphs.morphologies, loader))
 
-    def update_build_refs(self, name, email, uuid):
+    def update_build_refs(self, name, email, uuid,
+                          commit_cb=lambda **kwargs: None):
         '''Commit changes in temporary GitIndexes to temporary branches.
 
         `name` and `email` are required to construct the commit author info.
@@ -176,7 +177,7 @@ class BuildBranch(object):
 
         with morphlib.branchmanager.LocalRefManager() as lrm:
             for gd, (build_ref, index) in self._to_push.iteritems():
-                yield gd, build_ref
+                commit_cb(gd=gd, build_ref=build_ref)
                 tree = index.write_tree()
                 try:
                     parent = gd.resolve_ref_to_commit(build_ref)
@@ -201,7 +202,7 @@ class BuildBranch(object):
                     #       a problem.
                     lrm.update(gd, build_ref, commit, old_commit)
 
-    def push_build_branches(self):
+    def push_build_branches(self, push_cb=lambda **kwargs: None):
         '''Push all temporary build branches to the remote repositories.
 
         This is a no-op if the BuildBranch was constructed with
@@ -219,8 +220,9 @@ class BuildBranch(object):
             with morphlib.branchmanager.RemoteRefManager(False) as rrm:
                 for gd, (build_ref, index) in self._to_push.iteritems():
                     remote = gd.get_remote('origin')
-                    yield gd, build_ref, remote
                     refspec = morphlib.gitdir.RefSpec(build_ref)
+                    push_cb(gd=gd, build_ref=build_ref,
+                            remote=remote, refspec=refspec)
                     rrm.push(remote, refspec)
             self._register_cleanup(rrm.close)
 
