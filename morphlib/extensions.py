@@ -30,26 +30,20 @@ class ExtensionNotFoundError(ExtensionError):
 class ExtensionNotExecutableError(ExtensionError):
     pass
 
-def _get_root_repo(build_ref_prefix):
+def _get_root_repo():
     system_branch = morphlib.sysbranchdir.open_from_within('.')
     root_repo_dir = morphlib.gitdir.GitDirectory(
             system_branch.get_git_directory_name(
                 system_branch.root_repository_url))
-    build_branch = morphlib.buildbranch.BuildBranch(system_branch,
-                                                    build_ref_prefix,
-                                                    push_temporary=False)
-    ref = build_branch.root_ref
-
-    return (build_branch.root_ref, root_repo_dir)
+    return root_repo_dir
 
 def _get_morph_extension_directory():
     code_dir = os.path.dirname(morphlib.__file__)
     return os.path.join(code_dir, 'exts')
 
-def _list_repo_extension_filenames(build_ref_prefix,
-                                   kind): #pragma: no cover
-    (ref, repo_dir) = _get_root_repo(build_ref_prefix)
-    files = repo_dir.list_files(ref)
+def _list_repo_extension_filenames(kind): #pragma: no cover
+    repo_dir = _get_root_repo()
+    files = repo_dir.list_files()
     return (f for f in files if os.path.splitext(f)[1] == kind)
 
 def _list_morph_extension_filenames(kind):
@@ -59,9 +53,9 @@ def _list_morph_extension_filenames(kind):
 def _get_extension_name(filename):
     return os.path.basename(filename)
 
-def _get_repo_extension_contents(build_ref_prefix, name, kind):
-    (ref, repo_dir) = _get_root_repo(build_ref_prefix)
-    return repo_dir.get_file_from_ref(ref, name + kind)
+def _get_repo_extension_contents(name, kind):
+    repo_dir = _get_root_repo()
+    return repo_dir.read_file(name + kind)
 
 def _get_morph_extension_filename(name, kind):
     return os.path.join(_get_morph_extension_directory(), name + kind)
@@ -71,11 +65,11 @@ def _is_executable(filename):
     mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
     return (stat.S_IMODE(st.st_mode) & mask) != 0
 
-def _list_extensions(build_ref_prefix, kind):
+def _list_extensions(kind):
     repo_extension_filenames = []
     try:
         repo_extension_filenames = \
-                _list_repo_extension_filenames(build_ref_prefix, kind)
+                _list_repo_extension_filenames(kind)
     except (sysbranchdir.NotInSystemBranch):
         # Squash this and just return no system branch extensions
         pass
@@ -90,7 +84,7 @@ def _list_extensions(build_ref_prefix, kind):
     extension_names.update(set(morph_extension_names))
     return list(extension_names)
 
-def list_extensions(build_ref_prefix, kind=None):
+def list_extensions(kind=None):
     """
     List all available extensions by 'kind'.
 
@@ -102,10 +96,10 @@ def list_extensions(build_ref_prefix, kind=None):
     be associated with a '.write' extension of the same name.
     """
     if kind:
-        return _list_extensions(build_ref_prefix, kind)
+        return _list_extensions(kind)
     else:
-        configure_extensions = _list_extensions(build_ref_prefix, '.configure')
-        write_extensions = _list_extensions(build_ref_prefix, '.write')
+        configure_extensions = _list_extensions('.configure')
+        write_extensions = _list_extensions('.write')
 
         return configure_extensions + write_extensions
 
@@ -121,8 +115,7 @@ class get_extension_filename():
     If the extension is in the build repository then a temporary
     file will be created, which will be deleted on exting the with block.
     """
-    def __init__(self, build_ref_prefix, name, kind, executable=True):
-        self.build_ref_prefix = build_ref_prefix
+    def __init__(self, name, kind, executable=True):
         self.name = name
         self.kind = kind
         self.executable = executable
@@ -131,10 +124,9 @@ class get_extension_filename():
     def __enter__(self):
         ext_filename = None
         try:
-            ext_contents = _get_repo_extension_contents(self.build_ref_prefix,
-                                                        self.name,
+            ext_contents = _get_repo_extension_contents(self.name,
                                                         self.kind)
-        except cliapp.AppException, sysbranchdir.NotInSystemBranch:
+        except (IOError, cliapp.AppException, sysbranchdir.NotInSystemBranch):
             # Not found: look for it in the Morph code.
             ext_filename = _get_morph_extension_filename(self.name, self.kind)
             if not os.path.exists(ext_filename):

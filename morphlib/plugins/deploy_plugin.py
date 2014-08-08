@@ -551,9 +551,8 @@ class DeployPlugin(cliapp.Plugin):
         system morphology (repo, ref), or with the Morph code.
         
         '''
-        build_ref_prefix = self.app.settings['build-ref-prefix']
         with morphlib.extensions.get_extension_filename(
-                build_ref_prefix, name, kind) as ext_filename:
+                name, kind) as ext_filename:
             self.app.status(msg='Running extension %(name)s%(kind)s',
                             name=name, kind=kind)
             self.app.runcmd(
