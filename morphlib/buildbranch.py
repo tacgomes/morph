@@ -15,6 +15,7 @@
 
 
 import collections
+import contextlib
 import os
 import urlparse
 
@@ -48,10 +49,9 @@ class BuildBranch(object):
     # would be better to not use local repositories and temporary refs,
     # so building from a workspace appears to be identical to using
     # `morph build-morphology`
-    def __init__(self, sb, build_ref_prefix, push_temporary):
+    def __init__(self, sb, build_ref_prefix):
 
         self._sb = sb
-        self._push_temporary = push_temporary
 
         self._cleanup = collections.deque()
         self._to_push = {}
@@ -86,13 +86,16 @@ class BuildBranch(object):
 
     def add_uncommitted_changes(self, add_cb=lambda **kwargs: None):
         '''Add any uncommitted changes to temporary build GitIndexes'''
+        changes_made = False
         for gd, (build_ref, index) in self._to_push.iteritems():
             changed = [to_path for code, to_path, from_path
                        in index.get_uncommitted_changes()]
             if not changed:
                 continue
             add_cb(gd=gd, build_ref=gd, changed=changed)
+            changes_made = True
             index.add_files_from_working_tree(changed)
+        return changes_made
 
     @staticmethod
     def _hash_morphologies(gd, morphologies, loader):
@@ -102,7 +105,8 @@ class BuildBranch(object):
             sha1 = gd.store_blob(loader.save_to_string(morphology))
             yield 0100644, sha1, morphology.filename
 
-    def inject_build_refs(self, loader, inject_cb=lambda **kwargs: None):
+    def inject_build_refs(self, loader, use_local_repos,
+                          inject_cb=lambda **kwargs: None):
         '''Update system and stratum morphologies to point to our branch.
 
         For all edited repositories, this alter the temporary GitIndex
@@ -133,7 +137,7 @@ class BuildBranch(object):
                 spec['repo'] = None
                 spec['ref'] = None
                 return True
-            if not self._push_temporary:
+            if use_local_repos:
                 spec['repo'] = urlparse.urljoin('file://', gd.dirname)
             spec['ref'] = build_ref
             return True
@@ -143,6 +147,8 @@ class BuildBranch(object):
         if any(m.dirty for m in morphs.morphologies):
             inject_cb(gd=self._root)
 
+        # TODO: Prevent it hashing unchanged morphologies, while still
+        # hashing uncommitted ones.
         self._root_index.add_files_from_index_info(
             self._hash_morphologies(self._root, morphs.morphologies, loader))
 
@@ -177,12 +183,18 @@ class BuildBranch(object):
 
         with morphlib.branchmanager.LocalRefManager() as lrm:
             for gd, (build_ref, index) in self._to_push.iteritems():
-                commit_cb(gd=gd, build_ref=build_ref)
                 tree = index.write_tree()
                 try:
                     parent = gd.resolve_ref_to_commit(build_ref)
                 except morphlib.gitdir.InvalidRefError:
                     parent = gd.resolve_ref_to_commit(gd.HEAD)
+                else:
+                    # Skip updating ref if we already have a temporary
+                    # build branch and have this tree on the branch
+                    if tree == gd.resolve_ref_to_tree(build_ref):
+                        continue
+
+                commit_cb(gd=gd, build_ref=build_ref)
 
                 commit = gd.commit_tree(tree, parent=parent,
                                         committer_name=committer_name,
@@ -202,47 +214,55 @@ class BuildBranch(object):
                     #       a problem.
                     lrm.update(gd, build_ref, commit, old_commit)
 
-    def push_build_branches(self, push_cb=lambda **kwargs: None):
-        '''Push all temporary build branches to the remote repositories.
+    def get_unpushed_branches(self):
+        '''Work out which, if any, local branches need to be pushed to build
 
-        This is a no-op if the BuildBranch was constructed with
-        `push_temporary` as False, so that the code flow for the user of
-        the BuildBranch can be the same when it can be pushed as when
-        it can't.
+        NOTE: This assumes that the refs in the morphologies and the
+        refs in the local checkouts match.
 
         '''
-        # TODO: When BuildBranches become more context aware, if there
-        # are no uncommitted changes and the local versions are pushed
-        # we can skip pushing even if push_temporary is set.
-        # No uncommitted changes isn't sufficient reason to push the
-        # current HEAD
-        if self._push_temporary:
-            with morphlib.branchmanager.RemoteRefManager(False) as rrm:
-                for gd, (build_ref, index) in self._to_push.iteritems():
-                    remote = gd.get_remote('origin')
-                    refspec = morphlib.gitdir.RefSpec(build_ref)
-                    push_cb(gd=gd, build_ref=build_ref,
-                            remote=remote, refspec=refspec)
-                    rrm.push(remote, refspec)
-            self._register_cleanup(rrm.close)
+        for gd, (build_ref, index) in self._to_push.iteritems():
+            remote = gd.get_remote('origin')
+            head_ref = gd.disambiguate_ref(gd.HEAD)
+            head_sha1 = gd.resolve_ref_to_commit(head_ref)
+            pushed_refs = sorted(
+                    (remote_ref
+                     for remote_sha1, remote_ref in remote.ls()
+                     # substring match of refs, since ref may be a tag,
+                     # in which case it would end with ^{}
+                     if remote_sha1 == head_sha1 and head_ref in remote_ref),
+                    key=len)
+            if not pushed_refs:
+                yield gd
+
+    def push_build_branches(self, push_cb=lambda **kwargs: None):
+        '''Push all temporary build branches to the remote repositories.
+        '''
+        with morphlib.branchmanager.RemoteRefManager(False) as rrm:
+            for gd, (build_ref, index) in self._to_push.iteritems():
+                remote = gd.get_remote('origin')
+                refspec = morphlib.gitdir.RefSpec(build_ref)
+                push_cb(gd=gd, build_ref=build_ref,
+                        remote=remote, refspec=refspec)
+                rrm.push(remote, refspec)
+        self._register_cleanup(rrm.close)
 
     @property
     def root_repo_url(self):
         '''URI of the repository that systems may be found in.'''
-        # TODO: When BuildBranches become more context aware, we only
-        # have to use the file:// URI when there's uncommitted changes
-        # and we can't push; or HEAD is not pushed and we can't push.
-        # All other times we can use the pushed branch
-        return (self._sb.get_config('branch.root') if self._push_temporary
-                else urlparse.urljoin('file://', self._root.dirname))
+        return self._sb.get_config('branch.root')
 
     @property
     def root_ref(self):
+        return self._sb.get_config('branch.name')
+
+    @property
+    def root_local_repo_url(self):
+        return urlparse.urljoin('file://', self._root.dirname)
+
+    @property
+    def root_build_ref(self):
         '''Name of the ref of the repository that systems may be found in.'''
-        # TODO: When BuildBranches become more context aware, this can be
-        # HEAD when there's no uncommitted changes and we're not pushing;
-        # or we are pushing and there's no uncommitted changes and HEAD
-        # has been pushed.
         build_ref, index = self._to_push[self._root]
         return build_ref
 
@@ -260,3 +280,47 @@ class BuildBranch(object):
                 exceptions.append(e)
         if exceptions:
             raise BuildBranchCleanupError(self, exceptions)
+
+
+@contextlib.contextmanager
+def pushed_build_branch(bb, loader, changes_need_pushing, name, email,
+                        build_uuid, status):
+    with contextlib.closing(bb) as bb:
+        def report_add(gd, build_ref, changed):
+            status(msg='Adding uncommitted changes '\
+                           'in %(dirname)s to %(ref)s',
+                       dirname=gd.dirname, ref=build_ref, chatty=True)
+        changes_made = bb.add_uncommitted_changes(add_cb=report_add)
+        unpushed = any(bb.get_unpushed_branches())
+
+        if not changes_made and not unpushed:
+            yield bb.root_repo_url, bb.root_ref
+            return
+
+        def report_inject(gd):
+            status(msg='Injecting temporary build refs '\
+                           'into morphologies in %(dirname)s',
+                       dirname=gd.dirname, chatty=True)
+        bb.inject_build_refs(loader=loader,
+                             use_local_repos=not changes_need_pushing,
+                             inject_cb=report_inject)
+
+        def report_commit(gd, build_ref):
+            status(msg='Committing changes in %(dirname)s '\
+                           'to %(ref)s',
+                       dirname=gd.dirname, ref=build_ref,
+                       chatty=True)
+        bb.update_build_refs(name, email, build_uuid,
+                             commit_cb=report_commit)
+
+        if changes_need_pushing:
+            def report_push(gd, build_ref, remote, refspec):
+                status(msg='Pushing %(ref)s in %(dirname)s '\
+                               'to %(remote)s',
+                           ref=build_ref, dirname=gd.dirname,
+                           remote=remote.get_push_url(), chatty=True)
+            bb.push_build_branches(push_cb=report_push)
+
+            yield bb.root_repo_url, bb.root_build_ref
+        else:
+            yield bb.root_local_repo_url, bb.root_build_ref

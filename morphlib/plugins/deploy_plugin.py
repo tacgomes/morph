@@ -319,44 +319,21 @@ class DeployPlugin(cliapp.Plugin):
         self.validate_deployment_options(
             env_vars, all_deployments, all_subsystems)
 
-        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix,
-                                              push_temporary=False)
-        with contextlib.closing(bb) as bb:
-            def report_add(gd, build_ref, changed):
-                self.app.status(msg='Adding uncommitted changes '\
-                                    'in %(dirname)s to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-            bb.add_uncommitted_changes(add_cb=report_add)
-
-            def report_inject(gd):
-                self.app.status(msg='Injecting temporary build refs '\
-                                    'into morphologies in %(dirname)s',
-                                dirname=gd.dirname, chatty=True)
-            bb.inject_build_refs(loader, inject_cb=report_inject)
-
-            def report_commit(gd, build_ref):
-                self.app.status(msg='Committing changes in %(dirname)s '\
-                                    'to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-            bb.update_build_refs(name, email, build_uuid,
-                                 commit_cb=report_commit)
-
-            def report_push(gd, build_ref, remote, refspec):
-                self.app.status(msg='Pushing %(ref)s in %(dirname)s '\
-                                    'to %(remote)s',
-                                ref=build_ref, dirname=gd.dirname,
-                                remote=remote.get_push_url(), chatty=True)
-            bb.push_build_branches(push_cb=report_push)
-
+        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
+        pbb = morphlib.buildbranch.pushed_build_branch(
+                bb, loader=loader, changes_need_pushing=False,
+                name=name, email=email, build_uuid=build_uuid,
+                status=self.app.status)
+        with pbb as (repo, ref):
             # Create a tempdir for this deployment to work in
             deploy_tempdir = tempfile.mkdtemp(
                 dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
             try:
                 for system in cluster_morphology['systems']:
                     self.deploy_system(build_command, deploy_tempdir,
-                                       root_repo_dir, bb.root_repo_url,
-                                       bb.root_ref, system, env_vars,
-                                       deployments, parent_location='')
+                                       root_repo_dir, repo, ref, system,
+                                       env_vars, deployments,
+                                       parent_location='')
             finally:
                 shutil.rmtree(deploy_tempdir)
 
