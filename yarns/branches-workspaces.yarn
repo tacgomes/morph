@@ -178,7 +178,6 @@ all the refs are unchanged.
     GIVEN       a workspace
     AND         a git server
     WHEN        the user creates a system branch called foo
-    THEN        in branch foo, stratum strata/test-stratum.morph refs test-chunk in master
 
 Edit the chunk. We make use of special knowledge here: `test:test-chunk`
 is a chunk repository created in the mocked git server, for testing
