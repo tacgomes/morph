@@ -373,16 +373,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
 
         This would, for example, write out something like:
 
-            /src/ws/master/baserock:baserock/morphs
+            /src/ws/master/baserock/baserock/morphs
 
-        when the master branch of the `baserock:baserock/morphs`
+        when the master branch of the `baserock/baserock/morphs`
         repository is checked out.
 
         '''
 
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
-        self.app.output.write('%s\n' % sb.get_config('branch.root'))
+        repo_url = sb.get_config('branch.root')
+        self.app.output.write('%s\n' % sb.get_git_directory_name(repo_url))
 
     def _remove_branch_dir_safe(self, workspace_root, system_branch_root):
         # This function avoids throwing any exceptions, so it is safe to call

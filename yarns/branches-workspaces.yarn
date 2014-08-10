@@ -142,19 +142,19 @@ current directory, things should fail.
     AND         the user attempts to report the system branch from the directory .
     THEN        morph failed
 
-`morph show-branch-root` reports the URL (possibly aliases) of the
-system branch root repository. It can be run inside a checkout, or
-somewhere outside a checkout, where exactly one checkout exists below.
+`morph show-branch-root` reports the path of the system branch root
+repository. It can be run inside a checkout, or somewhere outside a
+checkout, where exactly one checkout exists below.
 
     SCENARIO    morph reports system branch root repository
     GIVEN       a workspace
     AND         a git server
     WHEN        the user checks out the system branch called master
     AND         the user reports the system branch root repository from the directory master
-    THEN        the system branch root repository is reported as test:morphs
+    THEN        the system branch root repository is reported as workspace/master/test/morphs
 
     WHEN        the user reports the system branch root repository from the directory .
-    THEN        the system branch root repository is reported as test:morphs
+    THEN        the system branch root repository is reported as workspace/master/test/morphs
 
 However, it fails if run outside a checkout and there's no system
 branches checked out.

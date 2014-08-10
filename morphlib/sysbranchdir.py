@@ -68,19 +68,13 @@ class SystemBranchDirectory(object):
         value = cliapp.runcmd(['git', 'config', '-f', self._config_path, key])
         return value.strip()
 
-    def get_git_directory_name(self, repo_url):
-        '''Return directory pathname for a given git repository.
+    def _find_git_directory(self, repo_url):
+        for gd in self.list_git_directories():
+            if gd.get_config('morph.repository') == repo_url:
+                return gd.dirname
+        return None
 
-        If the URL is a real one (not aliased), the schema and leading //
-        are removed from it, as is a .git suffix.
-
-        Any colons in the URL path or network location are replaced
-        with slashes, so that directory paths do not contain colons.
-        This avoids problems with PYTHONPATH, PATH, and other things
-        that use colon as a separator.
-
-        '''
-
+    def _fabricate_git_directory_name(self, repo_url):
         # Parse the URL. If the path component is absolute, we assume
         # it's a real URL; otherwise, an aliased URL.
         parts = urlparse.urlparse(repo_url)
@@ -106,6 +100,26 @@ class SystemBranchDirectory(object):
         relative = relative.lstrip('/')
 
         return os.path.join(self.root_directory, relative)
+
+    def get_git_directory_name(self, repo_url):
+        '''Return directory pathname for a given git repository.
+
+        If the repository has already been cloned, then it returns the
+        path to that, if not it will fabricate a path based on the url.
+
+        If the URL is a real one (not aliased), the schema and leading //
+        are removed from it, as is a .git suffix.
+
+        Any colons in the URL path or network location are replaced
+        with slashes, so that directory paths do not contain colons.
+        This avoids problems with PYTHONPATH, PATH, and other things
+        that use colon as a separator.
+
+        '''
+        found_repo = self._find_git_directory(repo_url)
+        if not found_repo:
+            return self._fabricate_git_directory_name(repo_url)
+        return found_repo
 
     def get_filename(self, repo_url, relative):
         '''Return full pathname to a file in a checked out repository.

@@ -419,7 +419,7 @@ Report system branch root repository.
     else attempt_morph show-branch-root > "$@"; fi
 
     IMPLEMENTS THEN the system branch root repository is reported as (.*)
-    echo "$MATCH_1" > "$DATADIR/branch-root.actual"
+    echo "$DATADIR/$MATCH_1" > "$DATADIR/branch-root.actual"
     diff -u "$DATADIR/branch-root.actual" "$DATADIR/branch-root.reported"
 
 Editing morphologies with `morph edit`.
