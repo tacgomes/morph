@@ -309,9 +309,17 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 cached_repo = lrc.get_updated_repo(chunk_url)
 
                 gd = sb.clone_cached_repo(cached_repo, chunk_ref)
-                if chunk_ref != sb.system_branch_name:
-                    gd.branch(sb.system_branch_name, chunk_ref)
-                    gd.checkout(sb.system_branch_name)
+                system_branch_ref = gd.disambiguate_ref(sb.system_branch_name)
+                sha1 = gd.resolve_ref_to_commit(chunk_ref)
+
+                try:
+                    old_sha1 = gd.resolve_ref_to_commit(system_branch_ref)
+                except morphlib.gitdir.InvalidRefError as e:
+                    pass
+                else:
+                    gd.delete_ref(system_branch_ref, old_sha1)
+                gd.branch(sb.system_branch_name, sha1)
+                gd.checkout(sb.system_branch_name)
                 gd.update_submodules(self.app)
                 gd.update_remotes()
                 if gd.has_fat():

@@ -39,7 +39,7 @@ existing workspace, initialising it should fail.
     WHEN        the user attempts to initialise a workspace
     THEN        morph failed
 
-Checking out or branching system branches
+Checking out system branches
 -----------------------------------------
 
 Once we have a workspace, we can check out a system branch.
@@ -50,6 +50,12 @@ Once we have a workspace, we can check out a system branch.
     WHEN        the user checks out the system branch called master
     THEN        the system branch master is checked out
 
+Edit is probably not the best name for is, but  we can use `morph edit`
+to investigate chunks in existing branches.
+
+    WHEN the user edits the chunk test-chunk in branch master
+    THEN the edited chunk test:test-chunk has git branch master
+
 Checking out a system branch should fail, if the branch doesn't exist.
 
     SCENARIO    checking out a system branch that doesn't exist
@@ -57,6 +63,9 @@ Checking out a system branch should fail, if the branch doesn't exist.
     AND         a git server
     WHEN        the user attempts to check out the system branch called foo
     THEN        morph failed
+
+Branching system branches
+-----------------------------------------
 
 We can, instead, create a new system branch, off master.
 
