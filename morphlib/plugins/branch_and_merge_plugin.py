@@ -38,10 +38,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'edit', self.edit, arg_synopsis='SYSTEM STRATUM [CHUNK]')
         self.app.add_subcommand(
-            'petrify', self.petrify, arg_synopsis='')
-        self.app.add_subcommand(
-            'unpetrify', self.unpetrify, arg_synopsis='')
-        self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
@@ -485,100 +481,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         for morph in sb.load_all_morphologies(loader):
             morphs.add_morphology(morph)
         return morphs
-
-    def petrify(self, args):
-        '''Convert all chunk refs in a system branch to be fixed SHA1s.
-
-        This modifies all git commit references in system and stratum
-        morphologies, in the current system branch, to be fixed SHA
-        commit identifiers, rather than symbolic branch or tag names.
-        This is useful for making sure none of the components in a system
-        branch change accidentally.
-
-        Consider the following scenario:
-
-        * The `master` system branch refers to `gcc` using the
-          `baserock/morph` ref. This is appropriate, since the main line
-          of development should use the latest curated code.
-
-        * You create a system branch to prepare for a release, called
-          `TROVE_ID/release/2.0`. The reference to `gcc` is still
-          `baserock/morph`.
-
-        * You test everything, and make a release. You deploy the release
-          images onto devices, which get shipped to your customers.
-
-        * A new version GCC is committed to the `baserock/morph` branch.
-
-        * Your release branch suddenly uses a new compiler, which may
-          or may not work for your particular system at that release.
-
-        To avoid this, you need to _petrify_ all git references
-        so that they do not change accidentally. If you've tested
-        your release with the GCC release that is stored in commit
-        `94c50665324a7aeb32f3096393ec54b2e63bfb28`, then you should
-        continue to use that version of GCC, regardless of what might
-        happen in the master system branch. If, and only if, you decide
-        that a new compiler would be good for your release should you
-        include it in your release branch. This way, only the things
-        that you change intentionally change in your release branch.
-
-        '''
-
-        if args:
-            raise cliapp.AppException('morph petrify takes no arguments')
-
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
-        loader = morphlib.morphloader.MorphologyLoader()
-        lrc, rrc = morphlib.util.new_repo_caches(self.app)
-        update_repos = not self.app.settings['no-git-update']
-
-        morphs = self._load_all_sysbranch_morphologies(sb, loader)
-
-        #TODO: Stop using app.resolve_ref
-        def resolve_refs(morphs):
-            for repo, ref in morphs.list_refs():
-                # You can't resolve null refs, so don't attempt to.
-                if repo is None or ref is None:
-                    continue
-                # TODO: Handle refs that are only in workspace in general
-                if (repo == sb.root_repository_url
-                    and ref == sb.system_branch_name):
-                    continue
-                commit_sha1, tree_sha1 = self.app.resolve_ref(
-                    lrc, rrc, repo, ref, update=update_repos)
-                yield ((repo, ref), commit_sha1)
-
-        morphs.repoint_refs(sb.root_repository_url,
-                            sb.system_branch_name)
-
-        morphs.petrify_chunks(dict(resolve_refs(morphs)))
-
-        # Write morphologies back out again.
-        self._save_dirty_morphologies(loader, sb, morphs.morphologies)
-
-    def unpetrify(self, args):
-        '''Reverse the process of petrification.
-
-        This undoes the changes `morph petrify` did.
-
-        '''
-
-        if args:
-            raise cliapp.AppException('morph petrify takes no arguments')
-
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
-        loader = morphlib.morphloader.MorphologyLoader()
-
-        morphs = self._load_all_sysbranch_morphologies(sb, loader)
-
-        # Restore the ref for each stratum and chunk
-        morphs.unpetrify_all()
-
-        # Write morphologies back out again.
-        self._save_dirty_morphologies(loader, sb, morphs.morphologies)
 
     def status(self, args):
         '''Show information about the current system branch or workspace

@@ -200,18 +200,3 @@ class MorphologySetTests(unittest.TestCase):
                     'unpetrify-ref': 'master',
                 }
             ])
-
-    def test_unpetrify_all(self):
-        self.morphs.add_morphology(self.system)
-        self.morphs.add_morphology(self.stratum)
-        self.morphs.petrify_chunks({('test:foo-chunk', 'master'): '0'*40})
-        self.morphs.unpetrify_all()
-        self.assertEqual(
-            self.stratum['chunks'],
-            [
-                {
-                    'repo': 'test:foo-chunk',
-                    'ref': 'master',
-                    'morph': 'foo-chunk',
-                }
-            ])

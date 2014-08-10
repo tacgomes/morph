@@ -518,54 +518,6 @@ Running shell command in each checked out repository:
     grep -Fx "$MATCH_1" "$DATADIR/morph.stdout"
     grep -Fx "$DATADIR/workspace/$MATCH_2/$MATCH_1" "$DATADIR/morph.stdout"
 
-Petrification and unpetrification:
-
-    IMPLEMENTS WHEN remembering all refs in (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    list_refs $(find . -type f) > "$DATADIR/refs.remembered"
-
-    IMPLEMENTS THEN (\S+) refs are as remembered
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-
-    # FIXME: petrify/unpetrify doesn't work quite right at this time:
-    # petrify can change a ref to a stratum to point at the system
-    # branch, but does it without adding an unpetrify-ref, and so
-    # unpetrify doesn't undo the change. We ignore this bug for the
-    # time being, in order to make the test suite pass. When the
-    # petrification code has been cleaned up to not be so hairy,
-    # we'll fix the test and the code.
-    #
-    # We would like to verify the result like this:
-    #
-    #   list_refs $(find . -type f) > "$DATADIR/refs.now"
-    #   diff -u "$DATADIR/refs.remembered" "$DATADIR/refs.now"
-    #
-    # However, due to the bug, we have to do it in a more complicated
-    # manner.
-
-    list_refs $(find . -type f) |
-    while read filename ref
-    do
-        orig=$(awk -v "f=$filename" '$1 == f { print $2 }' \
-            "$DATADIR/refs.remembered")
-        if [ "$orig" != "$ref" ] && [ "$ref" != "$MATCH_1" ]
-        then
-            die "Un-petrified ref: $filename $ref (should be $orig)"
-        fi
-    done
-
-    IMPLEMENTS WHEN petrifying (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    run_morph petrify
-
-    IMPLEMENTS WHEN unpetrifying (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    run_morph unpetrify
-
-    IMPLEMENTS THEN (\S+) is petrified
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    assert_morphologies_are_petrified "$MATCH_1" $(find . -type f)
-
 Generating a manifest.
 
     IMPLEMENTS GIVEN a system artifact
