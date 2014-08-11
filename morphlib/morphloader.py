@@ -357,6 +357,7 @@ class MorphologyLoader(object):
             'build-system': 'manual',
             'build-mode': 'staging',
             'prefix': '/usr',
+            'system-integration': [],
         },
         'stratum': {
             'chunks': [],
