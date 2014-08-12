@@ -495,8 +495,17 @@ class GitDirectory(object):
             raise InvalidRefError(self, ref)
 
     def disambiguate_ref(self, ref): # pragma: no cover
-        out = self._runcmd(['git', 'rev-parse', '--symbolic-full-name', ref])
-        return out.strip()
+        try:
+            out = self._runcmd(['git', 'rev-parse', '--symbolic-full-name',
+                                ref])
+            return out.strip()
+        except cliapp.AppException: # ref not found
+            if ref.startswith('refs/heads/'):
+                return ref
+            elif ref.startswith('heads/'):
+                return 'refs/' + ref
+            else:
+                return 'refs/heads/' + ref
 
     def resolve_ref_to_commit(self, ref):
         return self._rev_parse('%s^{commit}' % ref)

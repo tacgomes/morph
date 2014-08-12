@@ -90,7 +90,8 @@ Implementations
     - name: bootstrap-chunk
       morph: bootstrap-chunk.morph
       repo: test:test-chunk
-      ref: master
+      unpetrify-ref: master
+      ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
       build-mode: bootstrap
       build-depends: []
     EOF

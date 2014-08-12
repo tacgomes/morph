@@ -129,7 +129,7 @@ Also, clone the `morphs` git repository inside the system branch
 directory.
 
     cd ~/baserock/liw/foo/morphs
-    morph petrify base-system.morph devel-system.morph
+    edit base-system.morph devel-system.morph
     git commit -a
     
 Modify the specified morphologies (or the stratum morphologies they
@@ -223,36 +223,6 @@ it to exist instead.
 * Create `./BRANCH` directory.
 * Clone the `morphs` repository to `BRANCH/morphs`.
 * Run `git checkout BRANCH` in the `morphs` repository.
-
-
-Implementation: `morph petrify`
---------------
-
-Usage:
-
-    morph petrify [MORPH]...
-    morph petrify --petrify-from-system FILE
-    
-This needs to be run in the `morphs` git repository in a system branch.
-
-In the first form:
-
-* read each of the given morphologies; if the morphology is a system one, 
-  follow references to stratum morphologies and process those instead
-* in each stratum morphology, replace a reference to a chunk with the
-  absolute SHA-1: if the original reference was, say, `baserock/morph`,
-  get the SHA-1 of the current tip commit in that branch and replace
-  the reference in the morphology
-  
-In the second form:
-
-* extract the system and stratum morphologies used in the system image file;
-  these are in a petrified form already
-* copy the morphologies to the current working directory, overwriting the
-  files from git
-
-In either case, the results need to be committed (with normal git commands)
-by the user.
 
 
 Implementation: `morph edit`

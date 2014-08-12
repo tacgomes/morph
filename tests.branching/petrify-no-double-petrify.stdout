@@ -1,9 +1,0 @@
-name: hello-stratum
-kind: stratum
-chunks:
-- name: hello
-  repo: test:hello
-  ref: 293fa0b08f0382c63181c36b6efa602876aa8c87
-  unpetrify-ref: master
-  build-depends: []
-  build-mode: test

@@ -39,7 +39,7 @@ existing workspace, initialising it should fail.
     WHEN        the user attempts to initialise a workspace
     THEN        morph failed
 
-Checking out or branching system branches
+Checking out system branches
 -----------------------------------------
 
 Once we have a workspace, we can check out a system branch.
@@ -50,6 +50,12 @@ Once we have a workspace, we can check out a system branch.
     WHEN        the user checks out the system branch called master
     THEN        the system branch master is checked out
 
+Edit is probably not the best name for is, but  we can use `morph edit`
+to investigate chunks in existing branches.
+
+    WHEN the user edits the chunk test-chunk in branch master
+    THEN the edited chunk test:test-chunk has git branch master
+
 Checking out a system branch should fail, if the branch doesn't exist.
 
     SCENARIO    checking out a system branch that doesn't exist
@@ -57,6 +63,9 @@ Checking out a system branch should fail, if the branch doesn't exist.
     AND         a git server
     WHEN        the user attempts to check out the system branch called foo
     THEN        morph failed
+
+Branching system branches
+-----------------------------------------
 
 We can, instead, create a new system branch, off master.
 
@@ -142,19 +151,19 @@ current directory, things should fail.
     AND         the user attempts to report the system branch from the directory .
     THEN        morph failed
 
-`morph show-branch-root` reports the URL (possibly aliases) of the
-system branch root repository. It can be run inside a checkout, or
-somewhere outside a checkout, where exactly one checkout exists below.
+`morph show-branch-root` reports the path of the system branch root
+repository. It can be run inside a checkout, or somewhere outside a
+checkout, where exactly one checkout exists below.
 
     SCENARIO    morph reports system branch root repository
     GIVEN       a workspace
     AND         a git server
     WHEN        the user checks out the system branch called master
     AND         the user reports the system branch root repository from the directory master
-    THEN        the system branch root repository is reported as test:morphs
+    THEN        the system branch root repository is reported as workspace/master/test/morphs
 
     WHEN        the user reports the system branch root repository from the directory .
-    THEN        the system branch root repository is reported as test:morphs
+    THEN        the system branch root repository is reported as workspace/master/test/morphs
 
 However, it fails if run outside a checkout and there's no system
 branches checked out.
@@ -178,7 +187,6 @@ all the refs are unchanged.
     GIVEN       a workspace
     AND         a git server
     WHEN        the user creates a system branch called foo
-    THEN        in branch foo, stratum strata/test-stratum.morph refs test-chunk in master
 
 Edit the chunk. We make use of special knowledge here: `test:test-chunk`
 is a chunk repository created in the mocked git server, for testing
@@ -405,41 +413,6 @@ branch checkout.
     AND   running shell command in each repo in foo
     THEN  morph ran command in test/morphs in foo
     AND   morph ran command in test/test-chunk in foo
-
-Explicit petrification
-----------------------
-
-We petrify branches explicitly (though this may later change so that
-`morph branch` does it automatically). To test this, we create a branch,
-petrify it, and verify that every ref looks like a SHA1. We then
-unpetrify and verify that we have all the same refs as before.
-
-    SCENARIO    morph petrifies and unpetrifies
-    GIVEN       a workspace
-    AND         a git server
-    WHEN        the user creates a system branch called foo
-    AND         the user pushes the system branch called foo to the git server
-    AND         remembering all refs in foo
-    AND         petrifying foo
-    THEN        foo is petrified
-
-Petrifying a morphology should not cause it to start having repo or ref
-fields when referring to strata, when it didn't before.
-
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without repo
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without ref
-
-Unpetrify must put the morphologies back in the same logical state they
-were in before.
-
-    WHEN        unpetrifying foo
-    THEN        foo refs are as remembered
-
-Unpetrifying a morphology should not cause it to start having repo or
-ref fields when referring to strata, when it didn't before.
-
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without repo
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without ref
 
 Generating a manifest works
 

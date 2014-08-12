@@ -67,7 +67,28 @@ another to hold a chunk.
     # Create a directory for all the git repositories.
     mkdir "$DATADIR/gits"
 
-    # Create a repo for the system and stratum morphologies.
+    # Create the chunk repository.
+
+    mkdir "$DATADIR/gits/test-chunk"
+
+    run_in "$DATADIR/gits/test-chunk" git init .
+    cat > "$DATADIR/gits/test-chunk/test-bin" <<'EOF'
+    #!/bin/sh
+    echo Hello World
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.h" <<'EOF'
+    int foo(void);
+    EOF
+    cat > "$DATADIR/gits/test-chunk/test.pc" <<'EOF'
+    prefix=/usr
+    includedir=${prefix}/include
+    Name: test
+    Cflags: -I{includedir}
+    EOF
+    run_in "$DATADIR/gits/test-chunk" git add .
+    run_in "$DATADIR/gits/test-chunk" git commit --allow-empty -m Initial.
+
+    # Create a repo for the morphologies.
 
     mkdir "$DATADIR/gits/morphs"
 
@@ -88,14 +109,11 @@ another to hold a chunk.
     -   name: test-chunk
         repo: test:test-chunk
         morph: test-chunk.morph
-        ref: master
+        unpetrify-ref: master
+        ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
         build-mode: test
         build-depends: []
     EOF
-
-    # Create the chunk repository.
-
-    mkdir "$DATADIR/gits/test-chunk"
 
     # To verify that chunk splitting works, we have a chunk that installs
     # dummy files in all the places that different kinds of files are
@@ -240,23 +258,6 @@ another to hold a chunk.
     run_in "$DATADIR/gits/morphs" git commit -m Initial.
     run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
 
-    run_in "$DATADIR/gits/test-chunk" git init .
-    cat > "$DATADIR/gits/test-chunk/test-bin" <<'EOF'
-    #!/bin/sh
-    echo Hello World
-    EOF
-    cat > "$DATADIR/gits/test-chunk/test.h" <<'EOF'
-    int foo(void);
-    EOF
-    cat > "$DATADIR/gits/test-chunk/test.pc" <<'EOF'
-    prefix=/usr
-    includedir=${prefix}/include
-    Name: test
-    Cflags: -I{includedir}
-    EOF
-    run_in "$DATADIR/gits/test-chunk" git add .
-    run_in "$DATADIR/gits/test-chunk" git commit --allow-empty -m Initial.
-
     # Create the Morph configuration file so we can access the repos
     # using test:foo URL aliases.
 
@@ -293,7 +294,8 @@ have a morphology using the test architecture.
     -   name: stage1-chunk
         morph: stage1-chunk.morph
         repo: test:test-chunk
-        ref: master
+        ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
+        unpetrify-ref: master
         build-mode: bootstrap
         build-depends: []
     EOF
@@ -307,7 +309,8 @@ have a morphology using the test architecture.
     -   name: test-chunk
         morph: test-chunk.morph
         repo: test:test-chunk
-        ref: master
+        unpetrify-ref: master
+        ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
         build-mode: test
         build-depends: []
     EOF
@@ -416,7 +419,7 @@ Report system branch root repository.
     else attempt_morph show-branch-root > "$@"; fi
 
     IMPLEMENTS THEN the system branch root repository is reported as (.*)
-    echo "$MATCH_1" > "$DATADIR/branch-root.actual"
+    echo "$DATADIR/$MATCH_1" > "$DATADIR/branch-root.actual"
     diff -u "$DATADIR/branch-root.actual" "$DATADIR/branch-root.reported"
 
 Editing morphologies with `morph edit`.
@@ -517,54 +520,6 @@ Running shell command in each checked out repository:
     IMPLEMENTS THEN morph ran command in (\S+) in (\S+)
     grep -Fx "$MATCH_1" "$DATADIR/morph.stdout"
     grep -Fx "$DATADIR/workspace/$MATCH_2/$MATCH_1" "$DATADIR/morph.stdout"
-
-Petrification and unpetrification:
-
-    IMPLEMENTS WHEN remembering all refs in (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    list_refs $(find . -type f) > "$DATADIR/refs.remembered"
-
-    IMPLEMENTS THEN (\S+) refs are as remembered
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-
-    # FIXME: petrify/unpetrify doesn't work quite right at this time:
-    # petrify can change a ref to a stratum to point at the system
-    # branch, but does it without adding an unpetrify-ref, and so
-    # unpetrify doesn't undo the change. We ignore this bug for the
-    # time being, in order to make the test suite pass. When the
-    # petrification code has been cleaned up to not be so hairy,
-    # we'll fix the test and the code.
-    #
-    # We would like to verify the result like this:
-    #
-    #   list_refs $(find . -type f) > "$DATADIR/refs.now"
-    #   diff -u "$DATADIR/refs.remembered" "$DATADIR/refs.now"
-    #
-    # However, due to the bug, we have to do it in a more complicated
-    # manner.
-
-    list_refs $(find . -type f) |
-    while read filename ref
-    do
-        orig=$(awk -v "f=$filename" '$1 == f { print $2 }' \
-            "$DATADIR/refs.remembered")
-        if [ "$orig" != "$ref" ] && [ "$ref" != "$MATCH_1" ]
-        then
-            die "Un-petrified ref: $filename $ref (should be $orig)"
-        fi
-    done
-
-    IMPLEMENTS WHEN petrifying (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    run_morph petrify
-
-    IMPLEMENTS WHEN unpetrifying (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    run_morph unpetrify
-
-    IMPLEMENTS THEN (\S+) is petrified
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
-    assert_morphologies_are_petrified "$MATCH_1" $(find . -type f)
 
 Generating a manifest.
 

@@ -141,7 +141,8 @@ Implementations
     chunks:
     -   name: test-chunk
         repo: test:test-chunk
-        ref: master
+        unpetrify-ref: master
+        ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
         morph: test-chunk.morph
         build-mode: test
         build-depends: []
@@ -189,13 +190,15 @@ Implementations
     chunks:
     - name: test-chunk
       repo: test:test-chunk
-      ref: master
       morph: test-chunk.morph
+      unpetrify-ref: master
+      ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
       build-mode: test
       build-depends: []
     - name: unbuildable-chunk
       repo: test:test-chunk
-      ref: refs/heads/master
+      unpetrify-ref: refs/heads/master
+      ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
       morph: unbuildable-chunk.morph
       build-mode: test
       build-depends:
