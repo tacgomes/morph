@@ -168,8 +168,8 @@ branches checked out.
 Editing components
 ------------------
 
-`morph edit` can edit refs for a stratum only, or it can do that for
-a chunk, and check out the chunk's repository.
+`morph edit` can edit refs for a chunk, and check out the chunk's
+repository.
 
 First of all, we verify that that when we create a system branch,
 all the refs are unchanged.

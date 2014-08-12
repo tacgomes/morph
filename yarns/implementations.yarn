@@ -444,7 +444,7 @@ Editing morphologies with `morph edit`.
     ls -l "$DATADIR/workspace/$MATCH_2"
     chunkdir="$(slashify_colons "$MATCH_1")"
     cd "$DATADIR/workspace/$MATCH_2/$chunkdir"
-    git branch | awk '$1 == "*" { print $2 }' > "$DATADIR/git-branch.actual"
+    git rev-parse --abbrev-ref HEAD > "$DATADIR/git-branch.actual"
     echo "$MATCH_2" > "$DATADIR/git-branch.wanted"
     diff -u "$DATADIR/git-branch.wanted" "$DATADIR/git-branch.actual"
 
