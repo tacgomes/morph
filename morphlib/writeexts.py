@@ -257,15 +257,17 @@ class WriteExtension(cliapp.Application):
         os.symlink(
                 version_label, os.path.join(mountpoint, 'systems', 'default'))
 
-        if self.bootloader_is_wanted():
+        if self.bootloader_config_is_wanted():
             self.install_kernel(version_root, temp_root)
+            if self.get_dtb_path() != '':
+                self.install_dtb(version_root, temp_root)
             self.install_syslinux_menu(mountpoint, version_root)
             if initramfs is not None:
                 self.install_initramfs(initramfs, version_root)
-                self.install_extlinux(mountpoint, disk_uuid)
+                self.generate_bootloader_config(mountpoint, disk_uuid)
             else:
-                self.install_extlinux(mountpoint)
-
+                self.generate_bootloader_config(mountpoint)
+            self.install_bootloader(mountpoint)
 
     def create_orig(self, version_root, temp_root):
         '''Create the default "factory" system.'''
@@ -334,7 +336,7 @@ class WriteExtension(cliapp.Application):
         if '/' in existing_mounts:
             root_device = existing_mounts['/']
         else:
-            root_device = ('/dev/sda' if rootfs_uuid is None else
+            root_device = (self.get_root_device() if rootfs_uuid is None else
                            'UUID=%s' % rootfs_uuid)
             fstab.add_line('%s  / btrfs defaults,rw,noatime 0 1' % root_device)
 
@@ -385,10 +387,53 @@ class WriteExtension(cliapp.Application):
                 cliapp.runcmd(['cp', '-a', try_path, kernel_dest])
                 break
 
+    def install_dtb(self, version_root, temp_root):
+        '''Install the device tree outside of 'orig' or 'run' subvolumes'''
+
+        self.status(msg='Installing devicetree')
+        device_tree_path = self.get_dtb_path()
+        dtb_dest = os.path.join(version_root, 'dtb')
+        try_path = os.path.join(temp_root, device_tree_path)
+        if os.path.exists(try_path):
+            cliapp.runcmd(['cp', '-a', try_path, dtb_dest])
+        else:
+            logging.error("Failed to find device tree %s", device_tree_path)
+            raise cliapp.AppException(
+                'Failed to find device tree %s' % device_tree_path)
+
+    def get_dtb_path(self):
+        return os.environ.get('DTB_PATH', '')
+
+    def get_bootloader_install(self):
+        # Do we actually want to install the bootloader?
+        # Set this to "none" to prevent the install
+        return os.environ.get('BOOTLOADER_INSTALL', 'extlinux')
+
+    def get_bootloader_config_format(self):
+        # The config format for the bootloader,
+        # if not set we default to extlinux for x86
+        return os.environ.get('BOOTLOADER_CONFIG_FORMAT', 'extlinux')
+
     def get_extra_kernel_args(self):
         return os.environ.get('KERNEL_ARGS', '')
 
-    def install_extlinux(self, real_root, disk_uuid=None):
+    def get_root_device(self):
+        return os.environ.get('ROOT_DEVICE', '/dev/sda')
+
+    def generate_bootloader_config(self, real_root, disk_uuid=None):
+        '''Install extlinux on the newly created disk image.'''
+        config_function_dict = {
+            'extlinux': self.generate_extlinux_config,
+        }
+
+        config_type = self.get_bootloader_config_format()
+        if config_type in config_function_dict:
+            config_function_dict[config_type](real_root, disk_uuid)
+        else:
+            raise cliapp.AppException(
+                'Invalid BOOTLOADER_CONFIG_FORMAT %s' % config_type)
+
+    def generate_extlinux_config(self, real_root, disk_uuid=None):
         '''Install extlinux on the newly created disk image.'''
 
         self.status(msg='Creating extlinux.conf')
@@ -399,7 +444,8 @@ class WriteExtension(cliapp.Application):
             'rootfstype=btrfs ' # required when using initramfs, also boots
                                 # faster when specified without initramfs
             'rootflags=subvol=systems/default/run ') # boot runtime subvol
-        kernel_args += 'root=%s ' % ('/dev/sda' if disk_uuid is None
+        kernel_args += 'root=%s ' % (self.get_root_device()
+                                     if disk_uuid is None
                                      else 'UUID=%s' % disk_uuid)
         kernel_args += self.get_extra_kernel_args()
         with open(config, 'w') as f:
@@ -409,8 +455,23 @@ class WriteExtension(cliapp.Application):
             f.write('kernel /systems/default/kernel\n')
             if disk_uuid is not None:
                 f.write('initrd /systems/default/initramfs\n')
+            if self.get_dtb_path() != '':
+                f.write('devicetree /systems/default/dtb\n')
             f.write('append %s\n' % kernel_args)
 
+    def install_bootloader(self, real_root):
+        install_function_dict = {
+            'extlinux': self.install_bootloader_extlinux,
+        }
+
+        install_type = self.get_bootloader_install()
+        if install_type in install_function_dict:
+            install_function_dict[install_type](real_root)
+        elif install_type != 'none':
+            raise cliapp.AppException(
+                'Invalid BOOTLOADER_INSTALL %s' % install_type)
+
+    def install_bootloader_extlinux(self, real_root):
         self.status(msg='Installing extlinux')
         cliapp.runcmd(['extlinux', '--install', real_root])
 
@@ -444,12 +505,13 @@ class WriteExtension(cliapp.Application):
         else:
             return []
 
-    def bootloader_is_wanted(self):
-        '''Does the user request a bootloader?
+    def bootloader_config_is_wanted(self):
+        '''Does the user want to generate a bootloader config?
 
-        The user may set $BOOTLOADER to yes, no, or auto. If not
-        set, auto is the default and means that the bootloader will
-        be installed on x86-32 and x86-64, but not otherwise.
+        The user may set $BOOTLOADER_CONFIG_FORMAT to the desired
+        format (u-boot or extlinux). If not set, extlinux is the
+        default but will be generated on x86-32 and x86-64, but not
+        otherwise.
 
         '''
 
@@ -457,14 +519,12 @@ class WriteExtension(cliapp.Application):
             return (arch == 'x86_64' or
                     (arch.startswith('i') and arch.endswith('86')))
 
-        value = os.environ.get('BOOTLOADER', 'auto')
-        if value == 'auto':
-            if is_x86(os.uname()[-1]):
-                value = 'yes'
-            else:
-                value = 'no'
+        value = os.environ.get('BOOTLOADER_CONFIG_FORMAT', '')
+        if value == '':
+            if not is_x86(os.uname()[-1]):
+                return False
 
-        return value == 'yes'
+        return True
 
     def get_environment_boolean(self, variable):
         '''Parse a yes/no boolean passed through the environment.'''
