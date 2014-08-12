@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -97,7 +97,8 @@ class GitIndex(object):
 
     def get_uncommitted_changes(self):
         for code, to_path, from_path in self._get_status():
-            if code not in (STATUS_UNTRACKED, STATUS_IGNORED):
+            if (code not in (STATUS_UNTRACKED, STATUS_IGNORED)
+            or  code == (STATUS_UNTRACKED) and to_path.endswith('.morph')):
                 yield code, to_path, from_path
 
     def set_to_tree(self, treeish):

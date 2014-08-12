@@ -282,6 +282,16 @@ class Remote(object):
         return self._get_remote_url(self.name, 'push')
 
     @staticmethod
+    def _parse_ls_remote_output(output): # pragma: no cover
+        for line in output.splitlines():
+            sha1, refname = line.split(None, 1)
+            yield sha1, refname
+
+    def ls(self): # pragma: no cover
+        out = self.gd._runcmd(['git', 'ls-remote', self.get_fetch_url()])
+        return self._parse_ls_remote_output(out)
+
+    @staticmethod
     def _parse_push_output(output):
         for line in output.splitlines():
             m = PUSH_FORMAT.match(line)
@@ -483,6 +493,10 @@ class GitDirectory(object):
             return self._runcmd(['git', 'rev-parse', '--verify', ref]).strip()
         except cliapp.AppException as e:
             raise InvalidRefError(self, ref)
+
+    def disambiguate_ref(self, ref): # pragma: no cover
+        out = self._runcmd(['git', 'rev-parse', '--symbolic-full-name', ref])
+        return out.strip()
 
     def resolve_ref_to_commit(self, ref):
         return self._rev_parse('%s^{commit}' % ref)

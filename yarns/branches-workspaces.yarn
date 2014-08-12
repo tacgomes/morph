@@ -168,8 +168,8 @@ branches checked out.
 Editing components
 ------------------
 
-`morph edit` can edit refs for a stratum only, or it can do that for
-a chunk, and check out the chunk's repository.
+`morph edit` can edit refs for a chunk, and check out the chunk's
+repository.
 
 First of all, we verify that that when we create a system branch,
 all the refs are unchanged.
@@ -193,6 +193,175 @@ fields when referring to strata, when it didn't before.
 
     AND  in branch foo, system systems/test-system.morph refers to test-stratum without repo
     AND  in branch foo, system systems/test-system.morph refers to test-stratum without ref
+
+Temporary Build Branch behaviour
+--------------------------------
+
+Morph always builds from committed changes, but it's not always convenient
+to commit and push changes, so `morph build` can create temporary build
+branches when necessary.
+
+    SCENARIO morph makes temporary build branches for uncommitted changes when necessary
+    GIVEN    a workspace
+    AND      a git server
+    WHEN     the user checks out the system branch called master
+
+The user hasn't made any changes yet, so attempts to build require no
+temporary build branches.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   we can build with local branches
+    WHEN  the user builds systems/test-system.morph of the master branch
+    THEN  the morphs repository in the workspace for master has no temporary build branches
+
+Similarly, if we need to build from pushed branches, such as when we're
+distbuilding, we don't need temporary build branches yet, since we have
+no local changes.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we must build from pushed branches
+    WHEN  the user builds systems/test-system.morph of the master branch
+    THEN  the morphs repository in the workspace for master has no temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+
+If we actually want to be able to push our changes for review, we need to
+use a different branch from master, since we require code to be reviewed
+then merged, rather than pushing directly to master.
+
+    WHEN the user creates a system branch called baserock/test
+
+When we start making changes we do need temporary build branches, since
+the chunk specifiers in the strata now need to refer to the local changes
+to the repository.
+
+    WHEN the user edits the chunk test-chunk in branch baserock/test
+
+If we don't need to build from pushed branches then we have temporary
+build branches only in the local clones of the repositories.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we can build with local branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+
+If we do need to build from pushed changes, then the temporary build
+branch needs to be pushed.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we must build from pushed branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   temporary build branches were pushed to the morphs repository
+
+NOTE: We're not checking whether the test-chunk repo has changes since
+it's currently an implementation detail that it does, but it would
+be possible to build without a temporary build branch for the chunk
+repository.
+
+Now that we have the chunk repository available, we can make our changes.
+
+    WHEN the user makes changes to test-chunk in branch baserock/test
+
+When we have uncommitted changes to chunk repositories, we need
+temporary build branches locally for local builds.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we can build with local branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+    AND   no temporary build branches were pushed to the test-chunk repository
+
+As before, we also need temporary build branches to have been pushed
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we must build from pushed branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has temporary build branches
+    AND   temporary build branches were pushed to the morphs repository
+    AND   temporary build branches were pushed to the test-chunk repository
+
+Now that we've made our changes, we can commit them.
+
+    WHEN the user commits changes to morphs in branch baserock/test
+    AND  the user commits changes to test-chunk in branch baserock/test
+
+For local builds we should be able to use these committed changes,
+provided the ref in the morphology matches the committed ref in the
+chunk repository.
+
+However, since we do not currently do this integrity check, as it requires
+extra tracking between edited morphologies and the local repositories,
+it's easier to just require a temporary build branch.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we can build with local branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+    AND   no temporary build branches were pushed to the test-chunk repository
+
+For distributed building, it being committed locally is not sufficient,
+as remote workers need to be able to access the changes, and dist-build
+workers tunneling into the developer's machine and using those
+repositories would be madness, so we require temporary build branches
+to be pushed.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we must build from pushed branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has temporary build branches
+    AND   temporary build branches were pushed to the morphs repository
+    AND   temporary build branches were pushed to the test-chunk repository
+
+We can now push our committed changes.
+
+    WHEN the user pushes the system branch called baserock/test to the git server
+
+We now don't need temporary build branches for local builds.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we can build with local branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has no temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has no temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+    AND   no temporary build branches were pushed to the test-chunk repository
+
+Nor do we need temporary build branches for distributed builds.
+
+    GIVEN the workspace contains no temporary build branches
+    AND   the git server contains no temporary build branches
+    AND   we must build from pushed branches
+    WHEN  the user builds systems/test-system.morph of the baserock/test branch
+    THEN  the morphs repository in the workspace for baserock/test has no temporary build branches
+    AND   the test-chunk repository in the workspace for baserock/test has no temporary build branches
+    AND   no temporary build branches were pushed to the morphs repository
+    AND   no temporary build branches were pushed to the test-chunk repository
+
+    IMPLEMENTS WHEN the user makes changes to test-chunk in branch (\S+)
+    chunkdir="$(slashify_colons "test:test-chunk")"
+    cd "$DATADIR/workspace/$MATCH_1/$chunkdir"
+    sed -i -e 's/Hello/Goodbye/g' test-bin
+
+    IMPLEMENTS WHEN the user commits changes to (\S+) in branch (\S+)
+    chunkdir="$(slashify_colons "test:$MATCH_1")"
+    cd "$DATADIR/workspace/$MATCH_2/$chunkdir"
+    git commit -a -m 'Commit local changes'
+    
 
 Status of system branch checkout
 --------------------------------

@@ -518,16 +518,15 @@ class Morph(cliapp.Application):
         self.output.write(text)
 
     def _help_topic(self, topic):
-        build_ref_prefix = self.settings['build-ref-prefix']
         if topic in self.subcommands:
             usage = self._format_usage_for(topic)
             description = self._format_subcommand_help(topic)
             text = '%s\n\n%s' % (usage, description)
             self.output.write(text)
-        elif topic in extensions.list_extensions(build_ref_prefix):
+        elif topic in extensions.list_extensions():
             name, kind = os.path.splitext(topic)
             try:
-                with extensions.get_extension_filename(build_ref_prefix,
+                with extensions.get_extension_filename(
                         name,
                         kind + '.help', executable=False) as fname:
                     with open(fname, 'r') as f:

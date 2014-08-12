@@ -184,31 +184,10 @@ class BuildPlugin(cliapp.Plugin):
                             system=system_filename,
                             branch=sb.system_branch_name)
 
-        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix,
-                                              push_temporary=push)
-        with contextlib.closing(bb) as bb:
-
-            for gd, build_ref in bb.add_uncommitted_changes():
-                self.app.status(msg='Adding uncommitted changes '\
-                                    'in %(dirname)s to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-
-            for gd in bb.inject_build_refs(loader):
-                self.app.status(msg='Injecting temporary build refs '\
-                                    'into morphologies in %(dirname)s',
-                                dirname=gd.dirname, chatty=True)
-
-            for gd, build_ref in bb.update_build_refs(name, email, build_uuid):
-                self.app.status(msg='Committing changes in %(dirname)s '\
-                                    'to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-
-            for gd, build_ref, remote in bb.push_build_branches():
-                self.app.status(msg='Pushing %(ref)s in %(dirname)s '\
-                                    'to %(remote)s',
-                                ref=build_ref, dirname=gd.dirname,
-                                remote=remote.get_push_url(), chatty=True)
-
-            build_command.build([bb.root_repo_url,
-                                 bb.root_ref,
-                                 system_filename])
+        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
+        pbb = morphlib.buildbranch.pushed_build_branch(
+                bb, loader=loader, changes_need_pushing=push,
+                name=name, email=email, build_uuid=build_uuid,
+                status=self.app.status)
+        with pbb as (repo, ref):
+            build_command.build([repo, ref, system_filename])

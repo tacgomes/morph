@@ -319,40 +319,21 @@ class DeployPlugin(cliapp.Plugin):
         self.validate_deployment_options(
             env_vars, all_deployments, all_subsystems)
 
-        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix,
-                                              push_temporary=False)
-        with contextlib.closing(bb) as bb:
-
-            for gd, build_ref in bb.add_uncommitted_changes():
-                self.app.status(msg='Adding uncommitted changes '\
-                                    'in %(dirname)s to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-
-            for gd in bb.inject_build_refs(loader):
-                self.app.status(msg='Injecting temporary build refs '\
-                                    'into morphologies in %(dirname)s',
-                                dirname=gd.dirname, chatty=True)
-
-            for gd, build_ref in bb.update_build_refs(name, email, build_uuid):
-                self.app.status(msg='Committing changes in %(dirname)s '\
-                                    'to %(ref)s',
-                                dirname=gd.dirname, ref=build_ref, chatty=True)
-
-            for gd, build_ref, remote in bb.push_build_branches():
-                self.app.status(msg='Pushing %(ref)s in %(dirname)s '\
-                                    'to %(remote)s',
-                                ref=build_ref, dirname=gd.dirname,
-                                remote=remote.get_push_url(), chatty=True)
-
+        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
+        pbb = morphlib.buildbranch.pushed_build_branch(
+                bb, loader=loader, changes_need_pushing=False,
+                name=name, email=email, build_uuid=build_uuid,
+                status=self.app.status)
+        with pbb as (repo, ref):
             # Create a tempdir for this deployment to work in
             deploy_tempdir = tempfile.mkdtemp(
                 dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
             try:
                 for system in cluster_morphology['systems']:
                     self.deploy_system(build_command, deploy_tempdir,
-                                       root_repo_dir, bb.root_repo_url,
-                                       bb.root_ref, system, env_vars,
-                                       deployments, parent_location='')
+                                       root_repo_dir, repo, ref, system,
+                                       env_vars, deployments,
+                                       parent_location='')
             finally:
                 shutil.rmtree(deploy_tempdir)
 
@@ -547,9 +528,8 @@ class DeployPlugin(cliapp.Plugin):
         system morphology (repo, ref), or with the Morph code.
         
         '''
-        build_ref_prefix = self.app.settings['build-ref-prefix']
         with morphlib.extensions.get_extension_filename(
-                build_ref_prefix, name, kind) as ext_filename:
+                name, kind) as ext_filename:
             self.app.status(msg='Running extension %(name)s%(kind)s',
                             name=name, kind=kind)
             self.app.runcmd(
