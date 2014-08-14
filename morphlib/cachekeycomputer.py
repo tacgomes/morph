@@ -114,7 +114,7 @@ class CacheKeyComputer(object):
             for prefix in ('pre-', '', 'post-'):
                 for cmdtype in ('configure', 'build', 'test', 'install'):
                     cmd_field = prefix + cmdtype + '-commands'
-                    keys[cmd_field] = morphology.get_commands(cmd_field)
+                    keys[cmd_field] = morphology[cmd_field]
             keys['devices'] = morphology.get('devices')
             keys['max-jobs'] = morphology.get('max-jobs')
             keys['system-integration'] = morphology.get('system-integration',
@@ -122,10 +122,7 @@ class CacheKeyComputer(object):
             # products is omitted as they are part of the split-rules
         elif kind in ('system', 'stratum'):
             morphology = artifact.source.morphology
-            # Exclude fields starting with _orig_. This filtering can be
-            # removed once the morph2 code is gone.
-            morph_dict = dict((k, morphology[k]) for k in morphology.keys()
-                              if not k.startswith('_orig_'))
+            morph_dict = dict((k, morphology[k]) for k in morphology.keys())
 
             # Disregard all fields of a morphology that aren't important
             ignored_fields = (

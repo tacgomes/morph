@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2011-2013  Codethink Limited
+# Copyright (C) 2011-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,17 +23,10 @@ set -eu
 cd "$DATADIR/morphs"
 git checkout --quiet -b archless master
 cat <<EOF >archless-system.morph
-{
-  "name": "archless-system",
-  "kind": "system",
-  "strata": [
-    {
-      "morph": "hello-stratum",
-      "repo": "tests:morphs",
-      "ref": "archless"
-    }
-  ]
-}
+name: archless-system
+kind: system
+strata:
+  - morph: hello-stratum
 EOF
 git add archless-system.morph
 git commit --quiet -m "add archless system"
