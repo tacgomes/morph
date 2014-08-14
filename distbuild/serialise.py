@@ -37,16 +37,6 @@ def serialise_artifact(artifact):
         for x in morphology_attributes:
             result['__%s' % x] = getattr(morphology, x)
         return result
-
-    def encode_artifact(artifact):
-        return {
-            'name': artifact.name,
-            'cache_id': artifact.cache_id,
-            'cache_key': artifact.cache_key,
-            'dependencies': artifact.dependencies,
-            'dependents': artifact.dependents,
-            'metadata_version': artifact.metadata_version,
-        }
     
     def encode_source(source):
         source_dic = {
@@ -168,16 +158,6 @@ def deserialise_artifact(encoded):
             setattr(morphology, x, le_dict['__%s' % x])
             del morphology['__%s' % x]
         return morphology
-
-    def unserialise_source_artifacts(source, artifacts_dict):
-        '''Convert this dict into a list of artifacts'''
-        return {a['name']: Artifact(source,
-            a['name'],
-            a['cache_id'],
-            a['cache_key'],
-            a['dependencies'],
-            a['dependents'],
-            a['metadata_version']) for a in artifacts_dict}
 
     def unserialise_source(le_dict):
         '''Convert a dict into a Source object.'''
