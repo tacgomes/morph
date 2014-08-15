@@ -255,6 +255,7 @@ class MorphologyDumper(yaml.SafeDumper):
         'artifact',
         'include',
         'systems',
+        'deploy-defaults',
         'deploy',
         'type',
         'location',
@@ -338,24 +339,25 @@ class MorphologyLoader(object):
     _static_defaults = {
         'chunk': {
             'description': '',
-            'pre-configure-commands': [],
-            'configure-commands': [],
-            'post-configure-commands': [],
-            'pre-build-commands': [],
-            'build-commands': [],
-            'post-build-commands': [],
-            'pre-test-commands': [],
-            'test-commands': [],
-            'post-test-commands': [],
-            'pre-install-commands': [],
-            'install-commands': [],
-            'post-install-commands': [],
+            'pre-configure-commands': None,
+            'configure-commands': None,
+            'post-configure-commands': None,
+            'pre-build-commands': None,
+            'build-commands': None,
+            'post-build-commands': None,
+            'pre-test-commands': None,
+            'test-commands': None,
+            'post-test-commands': None,
+            'pre-install-commands': None,
+            'install-commands': None,
+            'post-install-commands': None,
             'devices': [],
             'products': [],
             'max-jobs': None,
             'build-system': 'manual',
             'build-mode': 'staging',
             'prefix': '/usr',
+            'system-integration': [],
         },
         'stratum': {
             'chunks': [],
@@ -690,8 +692,7 @@ class MorphologyLoader(object):
             if key in morphology and morphology[key] == defaults[key]:
                 del morphology[key]
 
-        if kind in ('system', 'stratum', 'cluster'):
-            getattr(self, '_unset_%s_defaults' % kind)(morphology)
+        getattr(self, '_unset_%s_defaults' % kind)(morphology)
 
     @classmethod
     def _set_stratum_specs_defaults(cls, morphology, specs_field):
@@ -754,6 +755,18 @@ class MorphologyLoader(object):
     def _set_chunk_defaults(self, morph):
         if morph['max-jobs'] is not None:
             morph['max-jobs'] = int(morph['max-jobs'])
+
+    def _unset_chunk_defaults(self, morph): # pragma: no cover
+        for key in self._static_defaults['chunk']:
+            if key not in morph: continue
+            if 'commands' not in key: continue
+            attr = key.replace('-', '_')
+            default_bs = self._static_defaults['chunk']['build-system']
+            bs = morphlib.buildsystem.lookup_build_system(
+                morph.get('build-system', default_bs))
+            default_value = getattr(bs, attr)
+            if morph[key] == default_value:
+                del morph[key]
 
     def set_commands(self, morph):
         if morph['kind'] == 'chunk':
