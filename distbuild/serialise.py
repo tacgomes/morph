@@ -37,16 +37,6 @@ def serialise_artifact(artifact):
         for x in morphology_attributes:
             result['__%s' % x] = getattr(morphology, x)
         return result
-
-    def encode_artifact(artifact):
-        return {
-            'name': artifact.name,
-            'cache_id': artifact.cache_id,
-            'cache_key': artifact.cache_key,
-            'dependencies': artifact.dependencies,
-            'dependents': artifact.dependents,
-            'metadata_version': artifact.metadata_version,
-        }
     
     def encode_source(source):
         source_dic = {
@@ -69,7 +59,7 @@ def serialise_artifact(artifact):
             source_dic['prefix'] = source.prefix
         return source_dic
 
-    def encode_single_artifact(a, artifacts, source_id):
+    def encode_artifact(a, artifacts, source_id):
         if artifact.source.morphology['kind'] == 'system':
             arch = artifact.source.morphology['arch']
         else:
@@ -106,7 +96,7 @@ def serialise_artifact(artifact):
                 for (_, sa) in a.source.artifacts.iteritems():
                     if id(sa) not in artifacts:
                         artifacts[id(sa)] = sa
-                        encoded_artifacts[id(sa)] = encode_single_artifact(sa,
+                        encoded_artifacts[id(sa)] = encode_artifact(sa,
                             artifacts, id(a.source))
             else:
                 # We create separate sources for strata and systems,
@@ -124,7 +114,7 @@ def serialise_artifact(artifact):
 
         if id(a) not in artifacts:
             artifacts[id(a)] = a
-            encoded_artifacts[id(a)] = encode_single_artifact(a, artifacts,
+            encoded_artifacts[id(a)] = encode_artifact(a, artifacts,
                 id(a.source))
 
     encoded_artifacts['_root'] = str(id(artifact))
@@ -143,7 +133,7 @@ def deserialise_artifact(encoded):
     
     '''
 
-    def unserialise_morphology(le_dict):
+    def decode_morphology(le_dict):
         '''Convert a dict into something that kinda acts like a Morphology.
         
         As it happens, we don't need the full Morphology so we cheat.
@@ -169,20 +159,10 @@ def deserialise_artifact(encoded):
             del morphology['__%s' % x]
         return morphology
 
-    def unserialise_source_artifacts(source, artifacts_dict):
-        '''Convert this dict into a list of artifacts'''
-        return {a['name']: Artifact(source,
-            a['name'],
-            a['cache_id'],
-            a['cache_key'],
-            a['dependencies'],
-            a['dependents'],
-            a['metadata_version']) for a in artifacts_dict}
-
-    def unserialise_source(le_dict):
+    def decode_source(le_dict):
         '''Convert a dict into a Source object.'''
 
-        morphology = unserialise_morphology(le_dict['morphology'])
+        morphology = decode_morphology(le_dict['morphology'])
         source = morphlib.source.Source(le_dict['repo_name'],
                                         le_dict['original_ref'],
                                         le_dict['sha1'],
@@ -195,7 +175,7 @@ def deserialise_artifact(encoded):
             source.prefix = le_dict['prefix']
         return source
         
-    def unserialise_single_artifact(artifact_dict, source):
+    def decode_artifact(artifact_dict, source):
         '''Convert dict into an Artifact object.
         
         Do not set dependencies, that will be dealt with later.
@@ -224,7 +204,7 @@ def deserialise_artifact(encoded):
 
     for source_id in source_ids:
         source_dict = sources_dict[source_id]
-        sources[source_id] = unserialise_source(source_dict)
+        sources[source_id] = decode_source(source_dict)
 
         # clear the source artifacts that get automatically generated
         # we want to add the ones that were sent to us
@@ -234,8 +214,7 @@ def deserialise_artifact(encoded):
         for artifact_id in source_artifacts:
             if artifact_id not in artifacts:
                 artifact_dict = artifacts_dict[artifact_id]
-                artifact = unserialise_single_artifact(artifact_dict,
-                    sources[source_id])
+                artifact = decode_artifact(artifact_dict, sources[source_id])
 
                 artifacts[artifact_id] = artifact
 
