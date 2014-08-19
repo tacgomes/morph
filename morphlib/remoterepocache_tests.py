@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 
 import json
 import unittest
+import urllib2
 
 import morphlib
 
@@ -26,7 +27,11 @@ class RemoteRepoCacheTests(unittest.TestCase):
         return self.sha1s[repo_url][ref]
 
     def _cat_file_for_repo_url(self, repo_url, sha1, filename):
-        return self.files[repo_url][sha1][filename]
+        try:
+            return self.files[repo_url][sha1][filename]
+        except KeyError:
+            raise urllib2.HTTPError(url='', code=404, msg='Not found',
+                                    hdrs={}, fp=None)
 
     def _ls_tree_for_repo_url(self, repo_url, sha1):
         return json.dumps({
