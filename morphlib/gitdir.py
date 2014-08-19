@@ -355,6 +355,7 @@ class GitDirectory(object):
         # so we just use the provided dirname
         if not self.dirname:
             self.dirname = dirname
+        self._config = {}
 
     def _runcmd(self, argv, **kwargs):
         '''Run a command at the root of the git directory.
@@ -447,12 +448,15 @@ class GitDirectory(object):
         '''
 
         self._runcmd(['git', 'config', key, value])
+        self._config[key] = value
 
     def get_config(self, key):
         '''Return value for a git repository configuration variable.'''
 
-        value = self._runcmd(['git', 'config', '-z', key])
-        return value.rstrip('\0')
+        if key not in self._config:
+                value = self._runcmd(['git', 'config', '-z', key])
+                self._config[key] = value.rstrip('\0')
+        return self._config[key]
 
     def get_remote(self, *args, **kwargs):
         '''Get a remote for this Repository.
