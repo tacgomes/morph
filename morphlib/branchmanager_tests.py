@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,13 +35,13 @@ class LocalRefManagerTests(unittest.TestCase):
             gd = morphlib.gitdir.init(dirname)
             with open(os.path.join(dirname, 'foo'), 'w') as f:
                 f.write('dummy text\n')
-            gd._runcmd(['git', 'add', '.'])
-            gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
-            gd._runcmd(['git', 'checkout', '-b', 'dev-branch'])
+            morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+            morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
+            morphlib.git.gitcmd(gd._runcmd, 'checkout', '-b', 'dev-branch')
             with open(os.path.join(dirname, 'foo'), 'w') as f:
                 f.write('updated text\n')
-            gd._runcmd(['git', 'add', '.'])
-            gd._runcmd(['git', 'commit', '-m', 'Second commit'])
+            morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+            morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Second commit')
             self.repos.append(gd)
 
     def tearDown(self):
@@ -245,18 +245,19 @@ class RemoteRefManagerTests(unittest.TestCase):
         self.sgd = morphlib.gitdir.init(self.source)
         with open(os.path.join(self.source, 'foo'), 'w') as f:
             f.write('dummy text\n')
-        self.sgd._runcmd(['git', 'add', '.'])
-        self.sgd._runcmd(['git', 'commit', '-m', 'Initial commit'])
-        self.sgd._runcmd(['git', 'checkout', '-b', 'dev-branch'])
+        morphlib.git.gitcmd(self.sgd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(self.sgd._runcmd, 'commit', '-m', 'Initial commit')
+        morphlib.git.gitcmd(self.sgd._runcmd, 'checkout', '-b', 'dev-branch')
         with open(os.path.join(self.source, 'foo'), 'w') as f:
             f.write('updated text\n')
-        self.sgd._runcmd(['git', 'add', '.'])
-        self.sgd._runcmd(['git', 'commit', '-m', 'Second commit'])
-        self.sgd._runcmd(['git', 'checkout', '--orphan', 'no-ff'])
+        morphlib.git.gitcmd(self.sgd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(self.sgd._runcmd, 'commit', '-m', 'Second commit')
+        morphlib.git.gitcmd(self.sgd._runcmd, 'checkout', '--orphan', 'no-ff')
         with open(os.path.join(self.source, 'foo'), 'w') as f:
             f.write('parallel dimension text\n')
-        self.sgd._runcmd(['git', 'add', '.'])
-        self.sgd._runcmd(['git', 'commit', '-m', 'Non-fast-forward commit'])
+        morphlib.git.gitcmd(self.sgd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(self.sgd._runcmd, 'commit', '-m',
+                            'Non-fast-forward commit')
 
         self.remotes = []
         for i in xrange(self.TARGET_COUNT):
@@ -264,11 +265,12 @@ class RemoteRefManagerTests(unittest.TestCase):
             dirname = os.path.join(self.tempdir, name)
 
             # Allow deleting HEAD
-            cliapp.runcmd(['git', 'init', '--bare', dirname])
+            morphlib.git.gitcmd(cliapp.runcmd, 'init', '--bare', dirname)
             gd = morphlib.gitdir.GitDirectory(dirname)
             gd.set_config('receive.denyDeleteCurrent', 'warn')
 
-            self.sgd._runcmd(['git', 'remote', 'add', name, dirname])
+            morphlib.git.gitcmd(self.sgd._runcmd, 'remote', 'add',
+                                name, dirname)
             self.remotes.append((name, dirname, gd))
 
     def tearDown(self):
@@ -276,8 +278,8 @@ class RemoteRefManagerTests(unittest.TestCase):
 
     @staticmethod
     def list_refs(gd):
-        out = gd._runcmd(['git', 'for-each-ref',
-                          '--format=%(refname)%00%(objectname)%00'])
+        out = morphlib.git.gitcmd(gd._runcmd, 'for-each-ref',
+                                  '--format=%(refname)%00%(objectname)%00')
         return dict(line.split('\0') for line in
                     out.strip('\0\n').split('\0\n') if line)
 

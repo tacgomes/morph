@@ -17,6 +17,7 @@
 
 
 import collections
+import os
 
 import morphlib
 
@@ -47,9 +48,9 @@ class GitIndex(object):
 
     def _run_git(self, *args, **kwargs):
         if self._index_file is not None:
-            kwargs['env'] = kwargs.get('env', {})
+            kwargs['env'] = kwargs.get('env', dict(os.environ))
             kwargs['env']['GIT_INDEX_FILE'] = self._index_file
-        return self._gd._runcmd(['git'] + list(args), **kwargs)
+        return morphlib.git.gitcmd(self._gd._runcmd, *args, **kwargs)
 
     def _get_status(self):
         '''Return git status output in a Python useful format

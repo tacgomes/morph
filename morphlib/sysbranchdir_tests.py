@@ -50,16 +50,17 @@ class SystemBranchDirectoryTests(unittest.TestCase):
                 self.path = path
 
                 os.mkdir(self.path)
-                cliapp.runcmd(['git', 'init', self.path])
+                morphlib.git.gitcmd(cliapp.runcmd, 'init', self.path)
                 with open(os.path.join(self.path, 'filename'), 'w') as f:
                     f.write('this is a file\n')
-                cliapp.runcmd(['git', 'add', 'filename'], cwd=self.path)
-                cliapp.runcmd(
-                    ['git', 'commit', '-m', 'initial'], cwd=self.path)
+                morphlib.git.gitcmd(cliapp.runcmd, 'add', 'filename',
+                                    cwd=self.path)
+                morphlib.git.gitcmd(cliapp.runcmd, 'commit', '-m', 'initial',
+                                    cwd=self.path)
 
             def clone_checkout(self, ref, target_dir):
-                cliapp.runcmd(
-                    ['git', 'clone', '-b', ref, self.path, target_dir])
+                morphlib.git.gitcmd(cliapp.runcmd, 'clone', '-b', ref,
+                                    self.path, target_dir)
 
         subdir = tempfile.mkdtemp(dir=self.tempdir)
         path = os.path.join(subdir, 'foo')

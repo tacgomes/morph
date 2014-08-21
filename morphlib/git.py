@@ -81,9 +81,9 @@ class Submodules(object):
     def _read_gitmodules_file(self):
         try:
             # try to read the .gitmodules file from the repo/ref
-            content = self.app.runcmd(
-                ['git', 'cat-file', 'blob', '%s:.gitmodules' % self.ref],
-                cwd=self.repo, ignore_fail=True)
+            content = gitcmd(self.app.runcmd, 'cat-file', 'blob',
+                             '%s:.gitmodules' % self.ref, cwd=self.repo,
+                             ignore_fail=True)
 
             # drop indentation in sections, as RawConfigParser cannot handle it
             return '\n'.join([line.strip() for line in content.splitlines()])
@@ -105,8 +105,8 @@ class Submodules(object):
                 try:
                     # list objects in the parent repo tree to find the commit
                     # object that corresponds to the submodule
-                    commit = self.app.runcmd(['git', 'ls-tree', self.ref,
-                                              submodule.name], cwd=self.repo)
+                    commit = gitcmd(self.app.runcmd, 'ls-tree', self.ref,
+                                    submodule.name, cwd=self.repo)
 
                     # read the commit hash from the output
                     fields = commit.split()
@@ -149,15 +149,13 @@ def update_submodules(app, repo_dir):  # pragma: no cover
     if os.path.exists(os.path.join(repo_dir, '.gitmodules')):
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(
             app.settings['repo-alias'])
-        app.runcmd(['git', 'submodule', 'init'], cwd=repo_dir)
+        gitcmd(app.runcmd, 'submodule', 'init', cwd=repo_dir)
         submodules = Submodules(app, repo_dir, 'HEAD')
         submodules.load()
         for submodule in submodules:
-            app.runcmd(['git', 'config',
-                        'submodule.%s.url' % submodule.name,
-                        resolver.pull_url(submodule.url)],
-                       cwd=repo_dir)
-        app.runcmd(['git', 'submodule', 'update'], cwd=repo_dir)
+            gitcmd(app.runcmd, 'config', 'submodule.%s.url' % submodule.name,
+                   resolver.pull_url(submodule.url), cwd=repo_dir)
+        gitcmd(app.runcmd, 'submodule', 'update', cwd=repo_dir)
 
 
 class ConfigNotSetException(cliapp.AppException):
@@ -217,7 +215,7 @@ def check_config_set(runcmd, keys, cwd='.'):
     found = {}
     for key in keys:
         try:
-            value = runcmd(['git', 'config', key], cwd=cwd, 
+            value = gitcmd(runcmd, 'config', key, cwd=cwd, 
                            print_command=False).strip()
             found[key] = value
         except cliapp.AppException:
@@ -229,7 +227,7 @@ def check_config_set(runcmd, keys, cwd='.'):
 
 def set_remote(runcmd, gitdir, name, url):
     '''Set remote with name 'name' use a given url at gitdir'''
-    return runcmd(['git', 'remote', 'set-url', name, url], cwd=gitdir)
+    return gitcmd(runcmd, 'remote', 'set-url', name, url, cwd=gitdir)
 
 
 def copy_repository(runcmd, repo, destdir, is_mirror=True):
@@ -246,16 +244,16 @@ def copy_repository(runcmd, repo, destdir, is_mirror=True):
 
     runcmd(['cp', '-a', repo, os.path.join(destdir, '.git')])
     # core.bare should be false so that git believes work trees are possible
-    runcmd(['git', 'config', 'core.bare', 'false'], cwd=destdir)
+    gitcmd(runcmd, 'config', 'core.bare', 'false', cwd=destdir)
     # we do not want the origin remote to behave as a mirror for pulls
-    runcmd(['git', 'config', '--unset', 'remote.origin.mirror'], cwd=destdir)
+    gitcmd(runcmd, 'config', '--unset', 'remote.origin.mirror', cwd=destdir)
     # we want a traditional refs/heads -> refs/remotes/origin ref mapping
-    runcmd(['git', 'config', 'remote.origin.fetch',
-            '+refs/heads/*:refs/remotes/origin/*'], cwd=destdir)
+    gitcmd(runcmd, 'config', 'remote.origin.fetch',
+           '+refs/heads/*:refs/remotes/origin/*', cwd=destdir)
     # set the origin url to the cached repo so that we can quickly clean up
-    runcmd(['git', 'config', 'remote.origin.url', repo], cwd=destdir)
+    gitcmd(runcmd, 'config', 'remote.origin.url', repo, cwd=destdir)
     # by packing the refs, we can then edit then en-masse easily
-    runcmd(['git', 'pack-refs', '--all', '--prune'], cwd=destdir)
+    gitcmd(runcmd, 'pack-refs', '--all', '--prune', cwd=destdir)
     # turn refs/heads/* into refs/remotes/origin/* in the packed refs
     # so that the new copy behaves more like a traditional clone.
     logging.debug("Adjusting packed refs for %s" % destdir)
@@ -273,12 +271,12 @@ def copy_repository(runcmd, repo, destdir, is_mirror=True):
                 refline = "%s %s" % (sha, ref)
             ref_fh.write("%s\n" % (refline))
     # Finally run a remote update to clear up the refs ready for use.
-    runcmd(['git', 'remote', 'update', 'origin', '--prune'], cwd=destdir)
+    gitcmd(runcmd, 'remote', 'update', 'origin', '--prune', cwd=destdir)
 
 
 def checkout_ref(runcmd, gitdir, ref):
     '''Checks out a specific ref/SHA1 in a git working tree.'''
-    runcmd(['git', 'checkout', ref], cwd=gitdir)
+    gitcmd(runcmd, 'checkout', ref, cwd=gitdir)
     gd = morphlib.gitdir.GitDirectory(gitdir)
     if gd.has_fat():
         gd.fat_init()
@@ -288,8 +286,8 @@ def checkout_ref(runcmd, gitdir, ref):
 def index_has_changes(runcmd, gitdir):
     '''Returns True if there are no staged changes to commit'''
     try:
-        runcmd(['git', 'diff-index', '--cached', '--quiet',
-                '--ignore-submodules', 'HEAD'], cwd=gitdir)
+        gitcmd(runcmd, 'diff-index', '--cached', '--quiet',
+               '--ignore-submodules', 'HEAD', cwd=gitdir)
     except cliapp.AppException:
         return True
     return False
@@ -298,20 +296,20 @@ def index_has_changes(runcmd, gitdir):
 def reset_workdir(runcmd, gitdir):
     '''Removes any differences between the current commit '''
     '''and the status of the working directory'''
-    runcmd(['git', 'clean', '-fxd'], cwd=gitdir)
-    runcmd(['git', 'reset', '--hard', 'HEAD'], cwd=gitdir)
+    gitcmd(runcmd, 'clean', '-fxd', cwd=gitdir)
+    gitcmd(runcmd, 'reset', '--hard', 'HEAD', cwd=gitdir)
 
 
 def clone_into(runcmd, srcpath, targetpath, ref=None):
     '''Clones a repo in srcpath into targetpath, optionally directly at ref.'''
     
     if ref is None:
-        runcmd(['git', 'clone', srcpath, targetpath])
+        gitcmd(runcmd, 'clone', srcpath, targetpath)
     elif is_valid_sha1(ref):
-        runcmd(['git', 'clone', srcpath, targetpath])
-        runcmd(['git', 'checkout', ref], cwd=targetpath)
+        gitcmd(runcmd, 'clone', srcpath, targetpath)
+        gitcmd(runcmd, 'checkout', ref)
     else:
-        runcmd(['git', 'clone', '-b', ref, srcpath, targetpath])
+        gitcmd(runcmd, 'clone', '-b', ref, srcpath, targetpath)
     gd = morphlib.gitdir.GitDirectory(targetpath)
     if gd.has_fat():
         gd.fat_init()
@@ -324,4 +322,17 @@ def is_valid_sha1(ref):
 
 def rev_parse(runcmd, gitdir, ref):
     '''Find the sha1 for the given ref'''
-    return runcmd(['git', 'rev-parse', '--verify', ref], cwd=gitdir)[0:40]
+    return gitcmd(runcmd, 'rev-parse', '--verify', ref, cwd=gitdir)[0:40]
+
+
+def gitcmd(runcmd, *args, **kwargs):
+    '''Run git commands safely'''
+    if 'env' not in kwargs:
+        kwargs['env'] = dict(os.environ)
+    # git replace means we can't trust that just the sha1 of the branch
+    # is enough to say what it contains, so we turn it off by setting
+    # the right flag in an environment variable.
+    kwargs['env']['GIT_NO_REPLACE_OBJECTS'] = '1'
+    cmdline = ['git']
+    cmdline.extend(args)
+    return runcmd(cmdline, **kwargs)

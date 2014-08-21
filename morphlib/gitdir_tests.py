@@ -71,12 +71,13 @@ class GitDirectoryContentsTests(unittest.TestCase):
         for fn in ('foo', 'bar.morph', 'baz.morph', 'quux'):
             with open(os.path.join(self.dirname, fn), "w") as f:
                 f.write('dummy morphology text')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
         os.rename(os.path.join(self.dirname, 'foo'),
                   os.path.join(self.dirname, 'foo.morph'))
         self.mirror = os.path.join(self.tempdir, 'mirror')
-        gd._runcmd(['git', 'clone', '--mirror', self.dirname, self.mirror])
+        morphlib.git.gitcmd(gd._runcmd, 'clone', '--mirror', self.dirname,
+                            self.mirror)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -209,10 +210,11 @@ class GitDirectoryContentsTests(unittest.TestCase):
     def test_describe(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
 
-        gd._runcmd(['git', 'tag', '-a', '-m', 'Example', 'example', 'HEAD'])
+        morphlib.git.gitcmd(gd._runcmd, 'tag', '-a', '-m', 'Example',
+                            'example', 'HEAD')
         self.assertEqual(gd.describe(), 'example-unreproducible')
 
-        gd._runcmd(['git', 'reset', '--hard'])
+        morphlib.git.gitcmd(gd._runcmd, 'reset', '--hard')
         self.assertEqual(gd.describe(), 'example')
 
 
@@ -227,10 +229,11 @@ class GitDirectoryFileTypeTests(unittest.TestCase):
             f.write('dummy morphology text')
         os.symlink('file', os.path.join(self.dirname, 'link'))
         os.symlink('no file', os.path.join(self.dirname, 'broken'))
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
         self.mirror = os.path.join(self.tempdir, 'mirror')
-        gd._runcmd(['git', 'clone', '--mirror', self.dirname, self.mirror])
+        morphlib.git.gitcmd(gd._runcmd, 'clone', '--mirror', self.dirname,
+                            self.mirror)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -262,14 +265,14 @@ class GitDirectoryRefTwiddlingTests(unittest.TestCase):
         gd = morphlib.gitdir.init(self.dirname)
         with open(os.path.join(self.dirname, 'foo'), 'w') as f:
             f.write('dummy text\n')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
         # Add a second commit for update_ref test, so it has another
         # commit to roll back from
         with open(os.path.join(self.dirname, 'bar'), 'w') as f:
             f.write('dummy text\n')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Second commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Second commit')
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -347,7 +350,8 @@ class GitDirectoryRemoteConfigTests(unittest.TestCase):
         self.assertEqual(remote.get_fetch_url(), None)
         self.assertEqual(remote.get_push_url(), None)
 
-        gitdir._runcmd(['git', 'remote', 'add', 'origin', 'foobar'])
+        morphlib.git.gitcmd(gitdir._runcmd, 'remote', 'add', 'origin',
+                            'foobar')
         fetch_url = 'git://git.example.com/foo.git'
         push_url = 'ssh://git@git.example.com/foo.git'
         remote.set_fetch_url(fetch_url)
@@ -424,15 +428,15 @@ class GitDirectoryRemotePushTests(unittest.TestCase):
         gd = morphlib.gitdir.init(self.dirname)
         with open(os.path.join(self.dirname, 'foo'), 'w') as f:
             f.write('dummy text\n')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
-        gd._runcmd(['git', 'checkout', '-b', 'foo'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
+        morphlib.git.gitcmd(gd._runcmd, 'checkout', '-b', 'foo')
         with open(os.path.join(self.dirname, 'foo'), 'w') as f:
             f.write('updated text\n')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Second commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Second commit')
         self.mirror = os.path.join(self.tempdir, 'mirror')
-        gd._runcmd(['git', 'init', '--bare', self.mirror])
+        morphlib.git.gitcmd(gd._runcmd, 'init', '--bare', self.mirror)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)

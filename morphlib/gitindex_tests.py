@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,10 +33,11 @@ class GitIndexTests(unittest.TestCase):
         gd = morphlib.gitdir.init(self.dirname)
         with open(os.path.join(self.dirname, 'foo'), 'w') as f:
             f.write('dummy text\n')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
         self.mirror = os.path.join(self.tempdir, 'mirror')
-        gd._runcmd(['git', 'clone', '--mirror', self.dirname, self.mirror])
+        morphlib.git.gitcmd(gd._runcmd, 'clone', '--mirror', self.dirname,
+                            self.mirror)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)

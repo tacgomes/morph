@@ -240,13 +240,14 @@ class Remote(object):
     def set_fetch_url(self, url):
         self.fetch_url = url
         if self.name is not None:
-            self.gd._runcmd(['git', 'remote', 'set-url', self.name, url])
+            morphlib.git.gitcmd(self.gd._runcmd, 'remote', 'set-url',
+                                self.name, url)
 
     def set_push_url(self, url):
         self.push_url = url
         if self.name is not None:
-            self.gd._runcmd(['git', 'remote', 'set-url', '--push',
-                             self.name, url])
+            morphlib.git.gitcmd(self.gd._runcmd, 'remote', 'set-url',
+                                '--push', self.name, url)
 
     def _get_remote_url(self, remote_name, kind):
         # As distasteful as it is to parse the output of porcelain
@@ -261,7 +262,7 @@ class Remote(object):
         # It is only possible to use git to get the push url by parsing
         # `git remote -v` or `git remote show -n <remote>`, and `git
         # remote -v` is easier to parse.
-        output = self.gd._runcmd(['git', 'remote', '-v'])
+        output = morphlib.git.gitcmd(self.gd._runcmd, 'remote', '-v')
         for line in output.splitlines():
             words = line.split()
             if (len(words) == 3 and
@@ -288,7 +289,8 @@ class Remote(object):
             yield sha1, refname
 
     def ls(self): # pragma: no cover
-        out = self.gd._runcmd(['git', 'ls-remote', self.get_fetch_url()])
+        out = morphlib.git.gitcmd(self.gd._runcmd, 'ls-remote',
+                                  self.get_fetch_url())
         return self._parse_ls_remote_output(out)
 
     @staticmethod
@@ -320,10 +322,11 @@ class Remote(object):
         if not refspecs:
             raise NoRefspecsError(self)
         push_name = self.name or self.get_push_url()
-        cmdline = ['git', 'push', '--porcelain', push_name]
+        cmdline = ['push', '--porcelain', push_name]
         cmdline.extend(itertools.chain.from_iterable(
             rs.push_args for rs in refspecs))
-        exit, out, err = self.gd._runcmd_unchecked(cmdline)
+        exit, out, err = morphlib.git.gitcmd(self.gd._runcmd_unchecked,
+                                             *cmdline)
         if exit != 0:
             raise PushFailureError(self, refspecs, exit,
                                    self._parse_push_output(out), err)
@@ -332,9 +335,9 @@ class Remote(object):
     def pull(self, branch=None): # pragma: no cover
         if branch:
             repo = self.get_fetch_url()
-            ret = self.gd._runcmd(['git', 'pull', repo, branch])
+            ret = morphlib.git.gitcmd(self.gd._runcmd, 'pull', repo, branch)
         else:
-            ret = self.gd._runcmd(['git', 'pull'])
+            ret = morphlib.git.gitcmd(self.gd._runcmd, 'pull')
         return ret
 
 
@@ -374,7 +377,7 @@ class GitDirectory(object):
 
     def checkout(self, branch_name): # pragma: no cover
         '''Check out a git branch.'''
-        self._runcmd(['git', 'checkout', branch_name])
+        morphlib.git.gitcmd(self._runcmd, 'checkout', branch_name)
         if self.has_fat():
             self.fat_init()
             self.fat_pull()
@@ -388,10 +391,10 @@ class GitDirectory(object):
 
         '''
 
-        argv = ['git', 'branch', new_branch_name]
+        argv = ['branch', new_branch_name]
         if base_ref is not None:
             argv.append(base_ref)
-        self._runcmd(argv)
+        morphlib.git.gitcmd(self._runcmd, *argv)
 
     def is_currently_checked_out(self, ref): # pragma: no cover
         '''Is ref currently checked out?'''
@@ -399,12 +402,12 @@ class GitDirectory(object):
         # Try the ref name directly first. If that fails, prepend origin/
         # to it. (FIXME: That's a kludge, and should be fixed.)
         try:
-            parsed_ref = self._runcmd(['git', 'rev-parse', ref]).strip()
+            parsed_ref = morphlib.git.gitcmd(self._runcmd, 'rev-parse', ref)
         except cliapp.AppException:
-            parsed_ref = self._runcmd(
-                ['git', 'rev-parse', 'origin/%s' % ref]).strip()
-        parsed_head = self._runcmd(['git', 'rev-parse', 'HEAD']).strip()
-        return parsed_ref == parsed_head
+            parsed_ref = morphlib.git.gitcmd(self._runcmd, 'rev-parse',
+                                             'origin/%s' % ref)
+        parsed_head = morphlib.git.gitcmd(self._runcmd, 'rev-parse', 'HEAD')
+        return parsed_ref.strip() == parsed_head.strip()
 
     def get_file_from_ref(self, ref, filename): # pragma: no cover
         '''Get file contents from git by ref and filename.
@@ -426,13 +429,13 @@ class GitDirectory(object):
 
     def get_blob_contents(self, blob_id): # pragma: no cover
         '''Get file contents from git by ID'''
-        return self._runcmd(
-            ['git', 'cat-file', 'blob', blob_id])
+        return morphlib.git.gitcmd(self._runcmd, 'cat-file', 'blob',
+                                   blob_id)
 
     def get_commit_contents(self, commit_id): # pragma: no cover
         '''Get commit contents from git by ID'''
-        return self._runcmd(
-            ['git', 'cat-file', 'commit', commit_id])
+        return morphlib.git.gitcmd(self._runcmd, 'cat-file', 'commit',
+                                   commit_id)
 
     def update_submodules(self, app): # pragma: no cover
         '''Change .gitmodules URLs, and checkout submodules.'''
@@ -447,14 +450,14 @@ class GitDirectory(object):
 
         '''
 
-        self._runcmd(['git', 'config', key, value])
+        morphlib.git.gitcmd(self._runcmd, 'config', key, value)
         self._config[key] = value
 
     def get_config(self, key):
         '''Return value for a git repository configuration variable.'''
 
         if key not in self._config:
-                value = self._runcmd(['git', 'config', '-z', key])
+                value = morphlib.git.gitcmd(self._runcmd, 'config', '-z', key)
                 self._config[key] = value.rstrip('\0')
         return self._config[key]
 
@@ -469,7 +472,7 @@ class GitDirectory(object):
 
     def update_remotes(self): # pragma: no cover
         '''Run "git remote update --prune".'''
-        self._runcmd(['git', 'remote', 'update', '--prune'])
+        morphlib.git.gitcmd(self._runcmd, 'remote', 'update', '--prune')
 
     def is_bare(self):
         '''Determine whether the repository has no work tree (is bare)'''
@@ -494,14 +497,15 @@ class GitDirectory(object):
 
     def _rev_parse(self, ref):
         try:
-            return self._runcmd(['git', 'rev-parse', '--verify', ref]).strip()
+            return morphlib.git.gitcmd(self._runcmd, 'rev-parse',
+                                       '--verify', ref).strip()
         except cliapp.AppException as e:
             raise InvalidRefError(self, ref)
 
     def disambiguate_ref(self, ref): # pragma: no cover
         try:
-            out = self._runcmd(['git', 'rev-parse', '--symbolic-full-name',
-                                ref])
+            out = morphlib.git.gitcmd(self._runcmd, 'rev-parse',
+                                      '--symbolic-full-name', ref)
             return out.strip()
         except cliapp.AppException: # ref not found
             if ref.startswith('refs/heads/'):
@@ -527,7 +531,8 @@ class GitDirectory(object):
 
     def _list_files_in_ref(self, ref):
         tree = self.resolve_ref_to_tree(ref)
-        output = self._runcmd(['git', 'ls-tree', '--name-only', '-rz', tree])
+        output = morphlib.git.gitcmd(self._runcmd, 'ls-tree',
+                                     '--name-only', '-rz', tree)
         # ls-tree appends \0 instead of interspersing, so we need to
         # strip the trailing \0 before splitting
         paths = output.strip('\0').split('\0')
@@ -548,13 +553,15 @@ class GitDirectory(object):
         if ref is None:
             filepath = os.path.join(self.dirname, filename.lstrip('/'))
             return os.path.islink(filepath)
-        tree_entry = self._runcmd(['git', 'ls-tree', ref, filename])
+        tree_entry = morphlib.git.gitcmd(self._runcmd, 'ls-tree', ref,
+                                         filename)
         file_mode = tree_entry.split(' ', 1)[0]
         return file_mode == '120000'
 
     @property
     def HEAD(self):
-        output = self._runcmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+        output = morphlib.git.gitcmd(self._runcmd, 'rev-parse',
+                                     '--abbrev-ref', 'HEAD')
         return output.strip()
 
     def get_index(self, index_file=None):
@@ -572,8 +579,8 @@ class GitDirectory(object):
             kwargs = {'feed_stdin': blob_contents}
         else:
             kwargs = {'stdin': blob_contents}
-        return self._runcmd(['git', 'hash-object', '-t', 'blob',
-                             '-w', '--stdin'], **kwargs).strip()
+        return morphlib.git.gitcmd(self._runcmd, 'hash-object', '-t', 'blob',
+                                   '-w', '--stdin', **kwargs).strip()
 
     def commit_tree(self, tree, parent, message, **kwargs):
         '''Create a commit'''
@@ -590,9 +597,9 @@ class GitDirectory(object):
             envname = 'GIT_%s_DATE' % who.upper()
             if argname in kwargs:
                 env[envname] = kwargs[argname].isoformat()
-        return self._runcmd(['git', 'commit-tree', tree,
-                             '-p', parent, '-m', message],
-                            env=env).strip()
+        return morphlib.git.gitcmd(self._runcmd, 'commit-tree', tree,
+                                   '-p', parent, '-m', message,
+                                   env=env).strip()
 
     @staticmethod
     def _check_is_sha1(string):
@@ -600,14 +607,14 @@ class GitDirectory(object):
             raise ExpectedSha1Error(string)
 
     def _update_ref(self, ref_args, message):
-        args = ['git', 'update-ref']
+        args = ['update-ref']
         # No test coverage, since while this functionality is useful,
         # morph does not need an API for inspecting the reflog, so
         # it existing purely to test ref updates is a tad overkill.
         if message is not None: # pragma: no cover
             args.extend(('-m', message))
         args.extend(ref_args)
-        self._runcmd(args)
+        morphlib.git.gitcmd(self._runcmd, *args)
 
     def add_ref(self, ref, sha1, message=None):
         '''Create a ref called `ref` in the repository pointing to `sha1`.
@@ -666,18 +673,18 @@ class GitDirectory(object):
             raise RefDeleteError(self, ref, old_sha1, e)
 
     def describe(self):
-        version = self._runcmd(
-            ['git', 'describe', '--always', '--dirty=-unreproducible'])
+        version = morphlib.git.gitcmd(self._runcmd, 'describe',
+                                      '--always', '--dirty=-unreproducible')
         return version.strip()
 
     def fat_init(self): # pragma: no cover
-        return self._runcmd(['git', 'fat', 'init'])
+        return morphlib.git.gitcmd(self._runcmd, 'fat', 'init')
 
     def fat_push(self): # pragma: no cover
-        return self._runcmd(['git', 'fat', 'push'])
+        return morphlib.git.gitcmd(self._runcmd, 'fat', 'push')
 
     def fat_pull(self): # pragma: no cover
-        return self._runcmd(['git', 'fat', 'pull'])
+        return morphlib.git.gitcmd(self._runcmd, 'fat', 'pull')
 
     def has_fat(self): # pragma: no cover
         return os.path.isfile(self.join_path('.gitfat'))
@@ -692,7 +699,7 @@ class GitDirectory(object):
 def init(dirname):
     '''Initialise a new git repository.'''
 
-    cliapp.runcmd(['git', 'init'], cwd=dirname)
+    morphlib.git.gitcmd(cliapp.runcmd, 'init', cwd=dirname)
     gd = GitDirectory(dirname)
     return gd
 

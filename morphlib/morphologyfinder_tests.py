@@ -34,8 +34,8 @@ class MorphologyFinderTests(unittest.TestCase):
         for fn in ('foo', 'bar.morph', 'baz.morph', 'quux'):
             with open(os.path.join(self.dirname, fn), "w") as f:
                 f.write('dummy morphology text')
-        gd._runcmd(['git', 'add', '.'])
-        gd._runcmd(['git', 'commit', '-m', 'Initial commit'])
+        morphlib.git.gitcmd(gd._runcmd, 'add', '.')
+        morphlib.git.gitcmd(gd._runcmd, 'commit', '-m', 'Initial commit')
 
         # Changes for difference between commited and work tree
         newmorphpath = os.path.join(self.dirname, 'foo.morph')
@@ -45,7 +45,8 @@ class MorphologyFinderTests(unittest.TestCase):
 
         # Changes for bare repository
         self.mirror = os.path.join(self.tempdir, 'mirror')
-        gd._runcmd(['git', 'clone', '--mirror', self.dirname, self.mirror])
+        morphlib.git.gitcmd(gd._runcmd, 'clone', '--mirror', self.dirname,
+                            self.mirror)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)

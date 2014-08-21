@@ -260,20 +260,21 @@ class CachedRepo(object):
         return self.app.runcmd(*args, **kwargs)
 
     def _rev_parse(self, ref):  # pragma: no cover
-        return self._runcmd(
-            ['git', 'rev-parse', '--verify', '%s^{commit}' % ref])[0:40]
+        return morphlib.git.gitcmd(self._runcmd, 'rev-parse', '--verify',
+                                   '%s^{commit}' % ref)[0:40]
 
     def _show_tree_hash(self, absref):  # pragma: no cover
-        return self._runcmd(
-            ['git', 'rev-parse', '--verify', '%s^{tree}' % absref]).strip()
+        return morphlib.git.gitcmd(self._runcmd, 'rev-parse', '--verify',
+                                   '%s^{tree}' % absref).strip()
 
     def _ls_tree(self, ref):  # pragma: no cover
-        result = self._runcmd(['git', 'ls-tree', '--name-only', ref])
+        result = morphlib.git.gitcmd(self._runcmd, 'ls-tree',
+                                     '--name-only', ref)
         return result.split('\n')
 
     def _cat_file(self, ref, filename):  # pragma: no cover
-        return self._runcmd(['git', 'cat-file', 'blob',
-                             '%s:%s' % (ref, filename)])
+        return morphlib.git.gitcmd(self._runcmd, 'cat-file', 'blob',
+                                   '%s:%s' % (ref, filename))
 
     def _clone_into(self, target_dir, ref):  #pragma: no cover
         '''Actually perform the clone'''
@@ -297,10 +298,11 @@ class CachedRepo(object):
 
     def _update(self):  # pragma: no cover
         try:
-            self._runcmd(['git', 'remote', 'update', 'origin', '--prune'])
+            morphlib.git.gitcmd(self._runcmd, 'remote', 'update',
+                                'origin', '--prune')
         except cliapp.AppException, ae:
-            self._runcmd(['git', 'remote', 'prune', 'origin'])
-            self._runcmd(['git', 'remote', 'update', 'origin'])
+            morphlib.git.gitcmd(self._runcmd, 'remote', 'prune', 'origin')
+            morphlib.git.gitcmd(self._runcmd, 'remote', 'update', 'origin')
 
     def __str__(self):  # pragma: no cover
         return self.url

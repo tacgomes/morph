@@ -61,11 +61,13 @@ class SystemBranchDirectory(object):
 
     def set_config(self, key, value):
         '''Set a configuration key/value pair.'''
-        cliapp.runcmd(['git', 'config', '-f', self._config_path, key, value])
+        morphlib.git.gitcmd(cliapp.runcmd, 'config', '-f',
+                            self._config_path, key, value)
 
     def get_config(self, key):
         '''Get a configuration value for a given key.'''
-        value = cliapp.runcmd(['git', 'config', '-f', self._config_path, key])
+        value = morphlib.git.gitcmd(cliapp.runcmd, 'config', '-f',
+                                    self._config_path, key)
         return value.strip()
 
     def _find_git_directory(self, repo_url):

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -110,7 +110,7 @@ class LocalRepoCache(object):
 
         '''
 
-        self._app.runcmd(['git'] + args, cwd=cwd)
+        morphlib.git.gitcmd(self._app.runcmd, *args, cwd=cwd)
 
     def _fetch(self, url, path):  # pragma: no cover
         '''Fetch contents of url into a file.
