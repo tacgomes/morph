@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,9 +63,11 @@ class RemoteRepoCache(object):
         repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._cat_file_for_repo_url(repo_url, ref, filename)
-        except BaseException, e:
+        except urllib2.HTTPError as e:
             logging.error('Caught exception: %s' % str(e))
-            raise CatFileError(repo_name, ref, filename)
+            if e.code == 404:
+                raise CatFileError(repo_name, ref, filename)
+            raise # pragma: no cover
 
     def ls_tree(self, repo_name, ref):
         repo_url = self._resolver.pull_url(repo_name)
