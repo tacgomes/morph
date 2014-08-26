@@ -307,7 +307,7 @@ def clone_into(runcmd, srcpath, targetpath, ref=None):
         gitcmd(runcmd, 'clone', srcpath, targetpath)
     elif is_valid_sha1(ref):
         gitcmd(runcmd, 'clone', srcpath, targetpath)
-        gitcmd(runcmd, 'checkout', ref)
+        gitcmd(runcmd, 'checkout', ref, cwd=targetpath)
     else:
         gitcmd(runcmd, 'clone', '-b', ref, srcpath, targetpath)
     gd = morphlib.gitdir.GitDirectory(targetpath)
