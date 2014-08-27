@@ -1,0 +1,46 @@
+#!/usr/bin/python
+
+'Launch a Git Daemon on an ephemeral port, and report which port was used.'
+
+import argparse
+import contextlib
+import pipes
+import socket
+import subprocess
+import sys
+
+# Parse arguments with bare argparse, since cliapp hates unknown options
+class UnsupportedArgument(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        sys.stderr.write('%s not supported\n' % option_string)
+        sys.exit(1)
+
+parser = argparse.ArgumentParser(description=__doc__)
+for arg in ('user', 'group', 'detach', 'port', 'syslog', 'pid-file'):
+    parser.add_argument('--' + arg, action=UnsupportedArgument)
+parser.add_argument('--listen', default='127.0.0.1')
+parser.add_argument('--port-file', required=True,
+                    help='Report which port the git daemon was bound to.')
+options, args = parser.parse_known_args()
+
+with contextlib.closing(socket.socket()) as sock:
+    sock.bind((options.listen, 0))
+    host, port = sock.getsockname()
+    with open(options.port_file, 'w') as f:
+        f.write('%s\n' % port)
+    sock.listen(1)
+    while True:
+        conn, addr = sock.accept()
+        with contextlib.closing(conn):
+            gitcmd = ['git', 'daemon', '--inetd']
+            gitcmd.extend(args)
+            cmdstr = (' '.join(map(pipes.quote, gitcmd)))
+            sys.stderr.write('Running %s' % cmdstr)
+            ret = subprocess.call(args=gitcmd, stdin=conn, stdout=conn,
+                                  stderr=conn, close_fds=True)
+            if ret != 0:
+                sys.stderr.write('%s exited %d\n' % (cmdstr, ret))
+            # git-daemon returns 255 when the repo doesn't exist
+            if ret not in (0, 255):
+                break
+sys.exit(ret)
