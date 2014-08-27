@@ -258,12 +258,25 @@ another to hold a chunk.
     run_in "$DATADIR/gits/morphs" git commit -m Initial.
     run_in "$DATADIR/gits/morphs" git tag -a "test-tag" -m "Tagging test-tag"
 
+    # Start a git daemon to serve our git repositories
+    port_file="$DATADIR/git-daemon-port"
+    pid_file="$DATADIR/git-daemon-pid"
+    mkfifo "$port_file"
+    # git-daemon needs --foo=bar style arguments so we do that for consistency
+    start-stop-daemon --start --pidfile="$pid_file" --background \
+        --make-pidfile --verbose \
+        --startas="$SRCDIR/scripts/git-daemon-wrap" -- \
+        --port-file="$port_file" \
+        --export-all --verbose --base-path="$DATADIR/gits" \
+        --enable=receive-pack #allow push
+    GIT_DAEMON_PORT="$(cat "$port_file")"
+
     # Create the Morph configuration file so we can access the repos
     # using test:foo URL aliases.
 
     cat << EOF > "$DATADIR/morph.conf"
     [config]
-    repo-alias = test=file://$DATADIR/gits/%s#file://$DATADIR/gits/%s
+    repo-alias = test=git://127.0.0.1:$GIT_DAEMON_PORT/%s#git://127.0.0.1:$GIT_DAEMON_PORT/%s
     cachedir = $DATADIR/cache
     tempdir = $DATADIR/tmp
     trove-host= []
@@ -271,6 +284,15 @@ another to hold a chunk.
 
     mkdir "$DATADIR/cache"
     mkdir "$DATADIR/tmp"
+
+Some resources are cleaned up by yarn, forked processes aren't one of
+these, so need to shut down the git daemon after we finish.
+
+    IMPLEMENTS FINALLY the git server is shut down
+    pid_file="$DATADIR/git-daemon-pid"
+    if [ -e "$pid_file" ]; then
+        start-stop-daemon --stop --pidfile "$pid_file" --oknodo
+    fi
 
 We need a consistent value for the architecture in some tests, so we
 have a morphology using the test architecture.

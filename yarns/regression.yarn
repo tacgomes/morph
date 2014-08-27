@@ -11,6 +11,7 @@ Testing if we can build after checking out from a tag.
     AND         a git server
     WHEN        the user checks out the system tag called test-tag
     THEN        morph build the system systems/test-system.morph of the tag test-tag
+    FINALLY     the git server is shut down
 
 
 Running `morph branch` when the branch directory exists doesn't
@@ -32,6 +33,7 @@ The branch is checked out correctly, now it should fail if the user executes
 The branch still checked out.
 
     AND         the system branch foo is checked out
+    FINALLY     the git server is shut down
 
 
 It doesn't make much sense to be able to build a system with only
@@ -45,6 +47,7 @@ area, hence their results cannot be trusted.
     WHEN        the user checks out the system branch called master
     AND         the user attempts to build the system bootstrap-system.morph in branch master
     THEN        the build error message includes the string "No non-bootstrap chunks found"
+    FINALLY     the git server is shut down
 
 When we started allowing multiple artifacts, a long-standing bug in
 cache-key computation was discovered, it didn't include artifact names,
@@ -67,6 +70,7 @@ source it depended on.
     WHEN     the user builds the system systems/test-system.morph in branch master
     AND      the user deploys the cluster test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"
     THEN     tarball test.tar contains baserock/test-chunk-misc.meta
+    FINALLY  the git server is shut down
 
 
 Implementations
