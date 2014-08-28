@@ -9,6 +9,7 @@ Morph Cross-Building Tests
     AND the user attempts to build the system base-system-testarch.morph in branch master
     THEN morph failed
     AND the build error message includes the string "Are you trying to cross-build?"
+    FINALLY the git server is shut down
 
 
 Morph Cross-Bootstrap Tests
@@ -20,3 +21,4 @@ Morph Cross-Bootstrap Tests
     AND a system called base-system-testarch.morph for the test architecture in the git server
     WHEN the user checks out the system branch called master
     THEN the user cross-bootstraps the system base-system-testarch.morph in branch master of repo test:morphs to the arch testarch
+    FINALLY the git server is shut down

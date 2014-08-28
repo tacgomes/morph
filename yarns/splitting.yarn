@@ -24,6 +24,7 @@ result, so much as it succeeding to build something.
 
     WHEN the user checks out the system branch called master
     THEN morph build the system systems/test-system.morph of the branch master
+    FINALLY the git server is shut down
 
 Smaller systems
 ---------------
@@ -82,6 +83,7 @@ chunks that were needed.
     AND system systems/test-system.morph uses test-stratum-minimal from test-stratum
     WHEN the user checks out the system branch called master
     THEN morph build the system systems/test-system.morph of the branch master
+    FINALLY the git server is shut down
 
 
 Implementations

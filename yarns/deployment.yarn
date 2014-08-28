@@ -8,6 +8,7 @@ Morph Deployment Tests
     AND the user attempts to deploy the system systems/test-system.morph in branch master
     THEN morph failed
     AND the deploy error message includes the string "morph deploy is only supported for cluster morphologies"
+    FINALLY the git server is shut down
 
     SCENARIO deploying a cluster morphology as a tarfile
     GIVEN a workspace
@@ -21,6 +22,7 @@ Morph Deployment Tests
     WHEN the user builds the system systems/test-system.morph in branch master
     AND the user attempts to deploy the cluster test-cluster.morph in branch master
     THEN morph succeeded
+    FINALLY the git server is shut down
 
 Some deployment types support upgrades, but some do not and Morph needs to make
 this clear.
@@ -37,6 +39,7 @@ this clear.
     WHEN the user builds the system systems/test-system.morph in branch master
     AND the user attempts to upgrade the cluster test-cluster.morph in branch master
     THEN morph failed
+    FINALLY the git server is shut down
 
 The rawdisk write extension supports both initial deployment and subsequent
 upgrades. Note that the rawdisk upgrade code needs bringing up to date to use
@@ -58,6 +61,7 @@ the same code paths as a real upgrade.
     THEN morph succeeded
     WHEN the user attempts to upgrade the cluster test-cluster.morph in branch master with options test-system.VERSION_LABEL=test2
     THEN morph succeeded
+    FINALLY the git server is shut down
 
 Nested deployments
 ==================
@@ -102,6 +106,7 @@ deployed system contains the other. Since the baserock directory is in
 every system, we can check for that.
 
     AND tarball test.tar contains var/lib/sysroots/test-system/baserock
+    FINALLY the git server is shut down
 
 Initramfs deployments
 =====================
@@ -185,6 +190,7 @@ will mention the initramfs, and the UUID of the disk.
     AND file mnt/extlinux.conf matches initramfs
     AND file mnt/extlinux.conf matches root=UUID=
     FINALLY mnt is unmounted
+    AND the git server is shut down
 
 Partial deployments
 ===================
@@ -276,3 +282,4 @@ deployment.
 
     WHEN the user attempts to deploy test-system.sysroot from cluster test-cluster.morph in branch master
     THEN morph failed
+    FINALLY the git server is shut down

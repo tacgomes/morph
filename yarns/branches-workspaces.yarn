@@ -55,6 +55,7 @@ to investigate chunks in existing branches.
 
     WHEN the user edits the chunk test-chunk in branch master
     THEN the edited chunk test:test-chunk has git branch master
+    FINALLY the git server is shut down
 
 Checking out a system branch should fail, if the branch doesn't exist.
 
@@ -63,6 +64,7 @@ Checking out a system branch should fail, if the branch doesn't exist.
     AND         a git server
     WHEN        the user attempts to check out the system branch called foo
     THEN        morph failed
+    FINALLY     the git server is shut down
 
 Branching system branches
 -----------------------------------------
@@ -74,6 +76,7 @@ We can, instead, create a new system branch, off master.
     AND         a git server
     WHEN        the user creates a system branch called foo
     THEN        the system branch foo is checked out
+    FINALLY     the git server is shut down
 
 We can also branch off another system branch. However, we need to first
 push the other branch to the git server, since Morph is not smart enough
@@ -86,6 +89,7 @@ to check for that locally.
     AND         the user pushes the system branch called foo to the git server
     AND         the user creates a system branch called bar, based on foo
     THEN        the system branch bar is checked out
+    FINALLY     the git server is shut down
 
 Query commands in workspaces
 ----------------------------
@@ -114,6 +118,7 @@ repository, which is the system branch root repository.
 
     WHEN        the user reports the workspace from the directory  master/test/morphs
     THEN        the workspace is reported correctly
+    FINALLY     the git server is shut down
 
 However, running it outside a workspace should fail.
 
@@ -139,6 +144,7 @@ current working directory, it will find it and report it correctly.
 
     WHEN        the user reports the system branch from the directory .
     THEN        the system branch is reported as master
+    FINALLY     the git server is shut down
 
 However, if there's two system branches checked out below the
 current directory, things should fail.
@@ -150,6 +156,7 @@ current directory, things should fail.
     AND         the user creates a system branch called foo
     AND         the user attempts to report the system branch from the directory .
     THEN        morph failed
+    FINALLY     the git server is shut down
 
 `morph show-branch-root` reports the path of the system branch root
 repository. It can be run inside a checkout, or somewhere outside a
@@ -164,6 +171,7 @@ checkout, where exactly one checkout exists below.
 
     WHEN        the user reports the system branch root repository from the directory .
     THEN        the system branch root repository is reported as workspace/master/test/morphs
+    FINALLY     the git server is shut down
 
 However, it fails if run outside a checkout and there's no system
 branches checked out.
@@ -173,6 +181,7 @@ branches checked out.
     AND         a git server
     WHEN        the user attempts to report the system branch root repository from the directory .
     THEN        morph failed
+    FINALLY     the git server is shut down
 
 Editing components
 ------------------
@@ -199,8 +208,9 @@ purposes.
 Editing a morphology should not cause it to start having repo or ref
 fields when referring to strata, when it didn't before.
 
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without repo
-    AND  in branch foo, system systems/test-system.morph refers to test-stratum without ref
+    AND     in branch foo, system systems/test-system.morph refers to test-stratum without repo
+    AND     in branch foo, system systems/test-system.morph refers to test-stratum without ref
+    FINALLY the git server is shut down
 
 Temporary Build Branch behaviour
 --------------------------------
@@ -208,6 +218,27 @@ Temporary Build Branch behaviour
 Morph always builds from committed changes, but it's not always convenient
 to commit and push changes, so `morph build` can create temporary build
 branches when necessary.
+
+### What gets included in temporary build branches ###
+
+    SCENARIO morph builds the branches of edited chunks you checked-out
+    GIVEN    a workspace
+    AND      a git server
+    WHEN     the user checks out the system branch called master
+    AND      the user edits the chunk test-chunk in branch master
+
+If we make an uncommitted change to an edited chunk, then a temporary
+build branch is made to include that change.
+
+    WHEN the user makes changes to test-chunk in branch master
+    AND  the user builds systems/test-system.morph of the master branch
+    THEN the changes to test-chunk in branch master are included in the temporary build branch
+
+### When branches are created ###
+
+It's convenient to have Temporary Build Branches, but we don't always
+need them, and they get in the way when we don't need them, so we need
+to be careful about when to make them.
 
     SCENARIO morph makes temporary build branches for uncommitted changes when necessary
     GIVEN    a workspace
@@ -351,25 +382,37 @@ We now don't need temporary build branches for local builds.
 
 Nor do we need temporary build branches for distributed builds.
 
-    GIVEN the workspace contains no temporary build branches
-    AND   the git server contains no temporary build branches
-    AND   we must build from pushed branches
-    WHEN  the user builds systems/test-system.morph of the baserock/test branch
-    THEN  the morphs repository in the workspace for baserock/test has no temporary build branches
-    AND   the test-chunk repository in the workspace for baserock/test has no temporary build branches
-    AND   no temporary build branches were pushed to the morphs repository
-    AND   no temporary build branches were pushed to the test-chunk repository
+    GIVEN   the workspace contains no temporary build branches
+    AND     the git server contains no temporary build branches
+    AND     we must build from pushed branches
+    WHEN    the user builds systems/test-system.morph of the baserock/test branch
+    THEN    the morphs repository in the workspace for baserock/test has no temporary build branches
+    AND     the test-chunk repository in the workspace for baserock/test has no temporary build branches
+    AND     no temporary build branches were pushed to the morphs repository
+    AND     no temporary build branches were pushed to the test-chunk repository
+    FINALLY the git server is shut down
+
+
+### Temporary Build Branch implementations ###
 
     IMPLEMENTS WHEN the user makes changes to test-chunk in branch (\S+)
     chunkdir="$(slashify_colons "test:test-chunk")"
     cd "$DATADIR/workspace/$MATCH_1/$chunkdir"
     sed -i -e 's/Hello/Goodbye/g' test-bin
 
+    IMPLEMENTS THEN the changes to test-chunk in branch (\S+) are included in the temporary build branch
+    build_ref_prefix=baserock/builds/
+    chunkdir="$(slashify_colons "test:test-chunk")"
+    cd "$DATADIR/workspace/$MATCH_1/$chunkdir"
+    eval "$(git for-each-ref --count=1 --shell --sort=committerdate \
+            --format='git cat-file -p %(refname):test-bin | diff test-bin -' \
+            "$build_ref_prefix")"
+
     IMPLEMENTS WHEN the user commits changes to (\S+) in branch (\S+)
     chunkdir="$(slashify_colons "test:$MATCH_1")"
     cd "$DATADIR/workspace/$MATCH_2/$chunkdir"
     git commit -a -m 'Commit local changes'
-    
+
 
 Status of system branch checkout
 --------------------------------
@@ -398,6 +441,7 @@ repositories referenced in the system branch.
 
     WHEN        committing changes in test:test-chunk in branch foo
     THEN        morph reports no outstanding changes in foo
+    FINALLY     the git server is shut down
 
 `morph foreach`
 --------------
@@ -413,6 +457,7 @@ branch checkout.
     AND   running shell command in each repo in foo
     THEN  morph ran command in test/morphs in foo
     AND   morph ran command in test/test-chunk in foo
+    FINALLY the git server is shut down
 
 Generating a manifest works
 
