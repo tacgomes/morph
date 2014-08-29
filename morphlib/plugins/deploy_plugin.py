@@ -14,17 +14,18 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import cliapp
-import contextlib
 import json
+import logging
 import os
 import shutil
-import stat
+import sys
 import tarfile
 import tempfile
 import uuid
 
+import cliapp
 import morphlib
+
 
 class DeployPlugin(cliapp.Plugin):
 
@@ -540,33 +541,39 @@ class DeployPlugin(cliapp.Plugin):
             self.app.status(msg='Cleaning up')
             shutil.rmtree(deploy_private_tempdir)
 
+    def _report_extension_stdout(self, line):
+        self.app.status(msg=line.replace('%s', '%%'))
+    def _report_extension_stderr(self, error_list):
+        def cb(line):
+            error_list.append(line)
+            sys.stderr.write('%s\n' % line)
+        return cb
+    def _report_extension_logger(self, name, kind):
+        return lambda line: logging.debug('%s%s: %s', name, kind, line)
     def _run_extension(self, gd, name, kind, args, env):
         '''Run an extension.
-        
+
         The ``kind`` should be either ``.configure`` or ``.write``,
         depending on the kind of extension that is sought.
-        
+
         The extension is found either in the git repository of the
         system morphology (repo, ref), or with the Morph code.
-        
-        '''
-        with morphlib.extensions.get_extension_filename(
-                name, kind) as ext_filename:
-            self.app.status(msg='Running extension %(name)s%(kind)s',
-                            name=name, kind=kind)
-            self.app.runcmd(
-                [ext_filename] + args,
-                ['sh',
-                 '-c',
-                 'while read l; do echo `date "+%F %T"` "$1$l"; done',
-                 '-',
-                 '%s[%s]' % (self.app.status_prefix, name + kind)],
-                cwd=gd.dirname, env=env, stdout=None, stderr=None)
 
-    def _is_executable(self, filename):
-        st = os.stat(filename)
-        mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-        return (stat.S_IMODE(st.st_mode) & mask) != 0
+        '''
+        error_list = []
+        with morphlib.extensions.get_extension_filename(name, kind) as fn:
+            ext = morphlib.extensions.ExtensionSubprocess(
+                report_stdout=self._report_extension_stdout,
+                report_stderr=self._report_extension_stderr(error_list),
+                report_logger=self._report_extension_logger(name, kind),
+            )
+            returncode = ext.run(fn, args, env=env, cwd=gd.dirname)
+        if returncode == 0:
+            logging.info('%s%s succeeded', name, kind)
+        else:
+            message = '%s%s failed with code %s: %s' % (
+                name, kind, returncode, '\n'.join(error_list))
+            raise cliapp.AppException(message)
 
     def create_metadata(self, system_artifact, root_repo_dir, deployment_type,
                         location, env):
