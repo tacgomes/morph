@@ -222,17 +222,14 @@ class BuildBranch(object):
 
         '''
         for gd, (build_ref, index) in self._to_push.iteritems():
-            remote = gd.get_remote('origin')
-            head_ref = gd.disambiguate_ref(gd.HEAD)
+            head_ref = gd.HEAD
+            upstream_ref = gd.get_upstream_of_branch(head_ref)
+            if upstream_ref is None:
+                yield gd
+                continue
             head_sha1 = gd.resolve_ref_to_commit(head_ref)
-            pushed_refs = sorted(
-                    (remote_ref
-                     for remote_sha1, remote_ref in remote.ls()
-                     # substring match of refs, since ref may be a tag,
-                     # in which case it would end with ^{}
-                     if remote_sha1 == head_sha1 and head_ref in remote_ref),
-                    key=len)
-            if not pushed_refs:
+            upstream_sha1 = gd.resolve_ref_to_commit(upstream_ref)
+            if head_sha1 != upstream_sha1:
                 yield gd
 
     def push_build_branches(self, push_cb=lambda **kwargs: None):
