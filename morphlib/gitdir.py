@@ -515,6 +515,22 @@ class GitDirectory(object):
             else:
                 return 'refs/heads/' + ref
 
+    def get_upstream_of_branch(self, branch): # pragma: no cover
+        try:
+            out = morphlib.git.gitcmd(
+                self._runcmd, 'rev-parse', '--abbrev-ref',
+                '%s@{upstream}' % branch).strip()
+            return out
+        except cliapp.AppException as e:
+            emsg = str(e)
+            if 'does not point to a branch' in emsg:
+                # ref wasn't a branch, can't have upstream
+                # treat it the same as no upstream for convenience
+                return None
+            elif 'No upstream configured for branch' in emsg:
+                return None
+            raise
+
     def resolve_ref_to_commit(self, ref):
         return self._rev_parse('%s^{commit}' % ref)
 
