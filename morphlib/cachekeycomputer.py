@@ -35,16 +35,14 @@ class CacheKeyComputer(object):
     def compute_key(self, artifact):
         try:
             ret = self._hashed[artifact]
-            logging.debug('returning cached key for artifact %s from source ',
-                          (artifact.name, artifact.source.repo_name,
-                           artifact.source.sha1, artifact.source.filename))
             return ret
         except KeyError:
-            logging.debug('computing cache key for artifact %s from source ',
-                          (artifact.name, artifact.source.repo_name,
+            ret = self._hash_id(self.get_cache_id(artifact))
+            self._hashed[artifact] = ret
+            logging.debug('computed cache key %s for artifact %s from source ',
+                          ret, (artifact.source.repo_name,
                            artifact.source.sha1, artifact.source.filename))
-            self._hashed[artifact] = self._hash_id(self.get_cache_id(artifact))
-            return self._hashed[artifact]
+            return ret
 
     def _hash_id(self, cache_id):
         sha = hashlib.sha256()
@@ -76,16 +74,8 @@ class CacheKeyComputer(object):
     def get_cache_id(self, artifact):
         try:
             ret = self._calculated[artifact]
-            logging.debug('returning cached id for artifact %s from source '
-                          'repo %s, sha1 %s, filename %s' %
-                          (artifact.name, artifact.source.repo_name,
-                           artifact.source.sha1, artifact.source.filename))
             return ret
         except KeyError:
-            logging.debug('computing cache id for artifact %s from source '
-                          'repo %s, sha1 %s, filename %s' %
-                          (artifact.name, artifact.source.repo_name,
-                           artifact.source.sha1, artifact.source.filename))
             cacheid = self._calculate(artifact)
             self._calculated[artifact] = cacheid
             return cacheid
