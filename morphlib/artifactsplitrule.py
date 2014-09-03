@@ -51,6 +51,9 @@ class FileMatch(Rule):
     def match(self, path):
         return any(r.match(path) for r in self._regexes)
 
+    def __repr__(self):
+        return 'FileMatch(%s)' % '|'.join(r.pattern for r in self._regexes)
+
 
 class ArtifactMatch(Rule):
     '''Match an artifact's name against a list of regular expressions.
@@ -62,6 +65,9 @@ class ArtifactMatch(Rule):
 
     def match(self, (source_name, artifact_name)):
         return any(r.match(artifact_name) for r in self._regexes)
+
+    def __repr__(self):
+        return 'ArtifactMatch(%s)' % '|'.join(r.pattern for r in self._regexes)
 
 
 class ArtifactAssign(Rule):
@@ -80,6 +86,9 @@ class ArtifactAssign(Rule):
     def match(self, (source_name, artifact_name)):
         return (source_name, artifact_name) == self._key
 
+    def __repr__(self):
+        return 'ArtifactAssign(%s, %s)' % self._key
+
 
 class SourceAssign(Rule):
     '''Match only artifacts which come from the specified source.
@@ -95,6 +104,9 @@ class SourceAssign(Rule):
 
     def match(self, (source_name, artifact_name)):
         return source_name == self._source
+
+    def __repr__(self):
+        return 'SourceAssign(%s, *)' % self._source
 
 
 class SplitRules(collections.Iterable):
@@ -171,6 +183,11 @@ class SplitRules(collections.Iterable):
             matches[matched[0]].append(arg)
 
         return matches, overlaps, unmatched
+
+    def __repr__(self):
+        return 'SplitRules(%s)' % ', '.join(
+            '%s=%s' % (artifact, rule)
+            for artifact, rule in  self._rules)
 
 
 # TODO: Work out a good way to feed new defaults in. This is good for

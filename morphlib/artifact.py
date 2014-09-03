@@ -82,6 +82,9 @@ class Artifact(object):
     def __str__(self):  # pragma: no cover
         return '%s|%s' % (self.source, self.name)
 
+    def __repr__(self): # pragma: no cover
+        return 'Artifact(%s)' % str(self)
+
     def walk(self): # pragma: no cover
         '''Return list of an artifact and its build dependencies.
         

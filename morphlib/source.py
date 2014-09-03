@@ -56,3 +56,6 @@ class Source(object):
         return '%s|%s|%s' % (self.repo_name,
                              self.original_ref,
                              self.filename)
+
+    def __repr__(self): # pragma: no cover
+        return 'Source(%s)' % str(self)
