@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,12 +14,15 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import collections
+
+
 class SourcePool(object):
 
     '''Manage a collection of Source objects.'''
 
     def __init__(self):
-        self._sources = {}
+        self._sources = collections.defaultdict(dict)
         self._order = []
 
     def _key(self, repo_name, original_ref, filename):
@@ -30,8 +33,8 @@ class SourcePool(object):
         key = self._key(source.repo_name,
                         source.original_ref,
                         source.filename)
-        if key not in self._sources:
-            self._sources[key] = source
+        if key not in self._sources or source.name not in self._sources[key]:
+            self._sources[key][source.name] = source
             self._order.append(source)
 
     def lookup(self, repo_name, original_ref, filename):
@@ -42,7 +45,7 @@ class SourcePool(object):
         '''
 
         key = self._key(repo_name, original_ref, filename)
-        return self._sources[key]
+        return self._sources[key].values()
 
     def __iter__(self):
         '''Iterate over sources in the pool, in the order they were added.'''

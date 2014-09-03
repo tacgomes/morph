@@ -68,7 +68,7 @@ class ArtifactResolver(object):
         while queue:
             source = queue.popleft()
 
-            if source.morphology['kind'] == 'system':
+            if source.morphology['kind'] == 'system': # pragma: no cover
                 systems = [source.artifacts[name]
                            for name in source.split_rules.artifacts]
 
@@ -85,8 +85,11 @@ class ArtifactResolver(object):
                         artifacts.append(artifact)
                         self._added_artifacts.add(artifact)
             elif source.morphology['kind'] == 'stratum':
+                # Iterate split_rules.artifacts, rather than
+                # artifacts.values() to preserve ordering
                 strata = [source.artifacts[name]
-                          for name in source.split_rules.artifacts]
+                          for name in source.split_rules.artifacts
+                          if name in source.artifacts]
 
                 # If we were not given systems, return the strata here,
                 # rather than have the systems return them.
@@ -126,26 +129,30 @@ class ArtifactResolver(object):
                        if x.morphology['kind'] != 'chunk']
             return collections.deque(sources)
 
-    def _resolve_system_dependencies(self, systems, source, queue):
+    def _resolve_system_dependencies(self, systems,
+                                     source, queue): # pragma: no cover
         artifacts = []
 
         for info in source.morphology['strata']:
-            stratum_source = self._source_pool.lookup(
+            for stratum_source in self._source_pool.lookup(
                 info.get('repo') or source.repo_name,
                 info.get('ref') or source.original_ref,
-                morphlib.util.sanitise_morphology_path(info['morph']))
-            stratum_name = stratum_source.morphology['name']
+                morphlib.util.sanitise_morphology_path(info['morph'])):
 
-            matches, overlaps, unmatched = source.split_rules.partition(
-                    ((stratum_name, sta_name) for sta_name
-                     in stratum_source.split_rules.artifacts))
-            for system in systems:
-                for (stratum_name, sta_name) in matches[system.name]:
-                    stratum = stratum_source.artifacts[sta_name]
-                    system.add_dependency(stratum)
-                    artifacts.append(stratum)
+                stratum_morph_name = stratum_source.morphology['name']
 
-            queue.append(stratum_source)
+                matches, overlaps, unmatched = source.split_rules.partition(
+                        ((stratum_morph_name, sta_name) for sta_name
+                         in stratum_source.split_rules.artifacts))
+                for system in systems:
+                    for (stratum_name, sta_name) in matches[system.name]:
+                        if sta_name in stratum_source.artifacts:
+                            stratum_artifact = \
+                                stratum_source.artifacts[sta_name]
+                            system.add_dependency(stratum_artifact)
+                            artifacts.append(stratum_artifact)
+
+                queue.append(stratum_source)
 
         return artifacts
 
@@ -155,28 +162,32 @@ class ArtifactResolver(object):
         stratum_build_depends = []
 
         for stratum_info in source.morphology.get('build-depends') or []:
-            other_source = self._source_pool.lookup(
+            for other_source in self._source_pool.lookup(
                 stratum_info.get('repo') or source.repo_name,
                 stratum_info.get('ref') or source.original_ref,
-                morphlib.util.sanitise_morphology_path(stratum_info['morph']))
+                morphlib.util.sanitise_morphology_path(stratum_info['morph'])):
 
-            # Make every stratum artifact this stratum source produces
-            # depend on every stratum artifact the other stratum source
-            # produces.
-            for sta_name in other_source.split_rules.artifacts:
-                other_stratum = other_source.artifacts[sta_name]
+                # Make every stratum artifact this stratum source produces
+                # depend on every stratum artifact the other stratum source
+                # produces.
+                for sta_name in other_source.split_rules.artifacts:
+                    # Strata have split rules for artifacts they don't build,
+                    # since they need to know to yield a match to its sibling
+                    if sta_name not in other_source.artifacts:
+                        continue
+                    other_stratum = other_source.artifacts[sta_name]
 
-                stratum_build_depends.append(other_stratum)
+                    stratum_build_depends.append(other_stratum)
 
-                artifacts.append(other_stratum)
+                    artifacts.append(other_stratum)
 
-                for stratum in strata:
-                    if other_stratum.depends_on(stratum):
-                        raise MutualDependencyError(stratum, other_stratum)
+                    for stratum in strata:
+                        if other_stratum.depends_on(stratum):
+                            raise MutualDependencyError(stratum, other_stratum)
 
-                    stratum.add_dependency(other_stratum)
+                        stratum.add_dependency(other_stratum)
 
-            queue.append(other_source)
+                queue.append(other_source)
 
         # 'name' here is the chunk artifact name
         name_to_processed_artifacts = {}
@@ -187,9 +198,9 @@ class ArtifactResolver(object):
             chunk_source = self._source_pool.lookup(
                 info['repo'],
                 info['ref'],
-                filename)
+                filename)[0]
 
-            chunk_name = chunk_source.morphology['name']
+            chunk_name = chunk_source.name
 
             # Resolve now to avoid a search for the parent morphology later
             chunk_source.build_mode = info['build-mode']
@@ -205,7 +216,7 @@ class ArtifactResolver(object):
                     chunk_artifact.add_dependency(other_stratum)
 
             # Add dependencies between chunks mentioned in this stratum
-            for name in build_depends:
+            for name in build_depends: # pragma: no cover
                 if name not in name_to_processed_artifacts:
                     raise DependencyOrderError(
                         source, info['name'], name)

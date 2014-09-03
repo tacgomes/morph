@@ -208,7 +208,7 @@ class BuildCommand(object):
             # a build-dependency, then they must both have the same Repository
             # and Ref specified.
             if src.morphology['kind'] == 'stratum':
-                name = src.morphology['name']
+                name = src.name
                 ref = src.sha1[:7]
                 self.app.status(msg='Stratum [%(name)s] version is %(ref)s', 
                                 name=name, ref=ref)
@@ -236,18 +236,18 @@ class BuildCommand(object):
             logging.debug(
                 'Validating cross ref to %s:%s:%s' %
                     (repo_name, ref, filename))
-            other = srcpool.lookup(repo_name, ref, filename)
-            if other.morphology['kind'] != wanted:
-                raise morphlib.Error(
-                    '%s %s references %s:%s:%s which is a %s, '
-                        'instead of a %s' %
-                        (src.morphology['kind'],
-                         src.morphology['name'],
-                         repo_name,
-                         ref,
-                         filename,
-                         other.morphology['kind'],
-                         wanted))
+            for other in srcpool.lookup(repo_name, ref, filename):
+                if other.morphology['kind'] != wanted:
+                    raise morphlib.Error(
+                        '%s %s references %s:%s:%s which is a %s, '
+                            'instead of a %s' %
+                            (src.morphology['kind'],
+                             src.name,
+                             repo_name,
+                             ref,
+                             filename,
+                             other.morphology['kind'],
+                             wanted))
 
     def _find_root_artifacts(self, artifacts):
         '''Find all the root artifacts among a set of artifacts in a DAG.
