@@ -156,6 +156,8 @@ FIXME
       packages=['morphlib', 'morphlib.plugins', 'distbuild'],
       package_data={
           'morphlib': [
+              'xfer-hole',
+              'recv-hole',
               'exts/*',
               'version',
               'commit',
