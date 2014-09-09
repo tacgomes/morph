@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013 - 2014 Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,7 +63,6 @@ class OpenStackWriteExtension(morphlib.writeexts.WriteExtension):
             raise cliapp.AppException('Wrong number of command line args')
         
         temp_root, location = args
-        self.check_location(location)
 
         os_params = self.get_openstack_parameters()
 
