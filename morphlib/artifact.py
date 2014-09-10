@@ -56,10 +56,7 @@ class Artifact(object):
                              str(self.name))
 
     def metadata_basename(self, metadata_name):  # pragma: no cover
-        return '%s.%s.%s.%s' % (self.cache_key,
-                                str(self.source.morphology['kind']),
-                                str(self.name),
-                                metadata_name)
+        return '%s.%s' % (self.basename(), metadata_name)
 
     def get_dependency_prefix_set(self):
         '''Collects all install prefixes of this artifact's build dependencies
