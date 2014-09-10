@@ -83,10 +83,12 @@ class CacheKeyComputerTests(unittest.TestCase):
                     - morph: stratum2
             ''',
         }.iteritems():
-            source = morphlib.source.Source(
-                'repo', 'original/ref', 'sha', 'tree',
-                loader.load_from_string(text), name)
-            self.source_pool.add(source)
+            morph = loader.load_from_string(text)
+            sources = morphlib.source.make_sources('repo', 'original/ref',
+                                                   name, 'sha1',
+                                                   'tree', morph)
+            for source in sources:
+                self.source_pool.add(source)
             # FIXME: This should use MorphologyFactory
             m = source.morphology
         self.build_env = DummyBuildEnvironment({
@@ -158,40 +160,3 @@ class CacheKeyComputerTests(unittest.TestCase):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         self.assertNotEqual(oldsha, ckc.compute_key(artifact))
-
-    def test_same_morphology_text_but_changed_sha1_gives_same_cache_key(self):
-        old_artifact = self._find_artifact('system-rootfs')
-        morphology = old_artifact.source.morphology
-        new_source = morphlib.source.Source('repo', 'original/ref', 'newsha',
-                                            'tree', morphology,
-                                            old_artifact.source.filename)
-        sp = morphlib.sourcepool.SourcePool()
-        for source in self.source_pool:
-            if source == old_artifact.source:
-                sp.add(new_source)
-            else:
-                sp.add(source)
-        artifacts = self.artifact_resolver.resolve_artifacts(sp)
-        for new_artifact in artifacts:
-            if new_artifact.source == new_source:
-                break
-        else:
-            self.assertTrue(False)
-
-        old_sha = self.ckc.compute_key(old_artifact)
-        new_sha = self.ckc.compute_key(new_artifact)
-        self.assertEqual(old_sha, new_sha)
-
-    def test_same_morphology_added_to_source_pool_only_appears_once(self):
-        loader = morphlib.morphloader.MorphologyLoader()
-        m = loader.load_from_string(
-            '''
-            name: chunk
-            kind: chunk
-            ''')
-        src = morphlib.source.Source('repo', 'original/ref', 'sha', 'tree', m,
-                                     'chunk.morph')
-        sp = morphlib.sourcepool.SourcePool()
-        sp.add(src)
-        sp.add(src)
-        self.assertEqual(1, len([s for s in sp if s == src]))

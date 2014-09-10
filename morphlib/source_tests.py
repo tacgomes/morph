@@ -34,12 +34,11 @@ class SourceTests(unittest.TestCase):
         loader = morphlib.morphloader.MorphologyLoader()
         self.morphology = loader.load_from_string(self.morphology_text)
         self.filename = 'foo.morph'
-        self.source = morphlib.source.Source(
-            self.repo_name, self.original_ref, self.sha1, self.tree,
-            self.morphology, self.filename)
-        self.other = morphlib.source.Source(
-            self.repo_name, self.original_ref, self.sha1, self.tree,
-            self.morphology, self.filename)
+        self.source, = morphlib.source.make_sources(self.repo_name,
+                                                    self.original_ref,
+                                                    self.filename,
+                                                    self.sha1, self.tree,
+                                                    self.morphology)
 
     def test_sets_repo_name(self):
         self.assertEqual(self.source.repo_name, self.repo_name)

@@ -48,6 +48,7 @@ class FakeSource(object):
             'kind': 'b',
             'description': 'c',
         }
+        self.name = 'a'
 
         self.repo = morphlib.cachedrepo.CachedRepo(FakeApp(), 'repo',
                                                    'url', 'path')

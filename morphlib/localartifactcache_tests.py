@@ -43,8 +43,10 @@ class LocalArtifactCacheTests(unittest.TestCase):
                   include:
                     - usr/include
             ''')
-        self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
+        sources = morphlib.source.make_sources('repo', 'ref',
+                                               'chunk.morph', 'sha1',
+                                               'tree', morph)
+        self.source, = sources
         self.runtime_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-runtime')
         self.runtime_artifact.cache_key = '0'*64

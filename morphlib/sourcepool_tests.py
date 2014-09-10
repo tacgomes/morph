@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import morphlib
 class DummySource(object):
 
     def __init__(self):
+        self.name = 'dummy'
         self.repo_name = 'repo'
         self.original_ref = 'original/ref'
         self.sha1 = 'dummy.sha1'
@@ -50,14 +51,7 @@ class SourcePoolTests(unittest.TestCase):
         result = self.pool.lookup(self.source.repo_name,
                                   self.source.original_ref,
                                   self.source.filename)
-        self.assertEqual(result, self.source)
-
-    def test_lookup_raises_keyerror_if_not_found(self):
-        self.assertRaises(KeyError,
-                          self.pool.lookup,
-                          self.source.repo_name,
-                          self.source.original_ref,
-                          self.source.filename)
+        self.assertEqual(result, [self.source])
 
     def test_iterates_in_add_order(self):
         sources = []

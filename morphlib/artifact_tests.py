@@ -39,13 +39,16 @@ class ArtifactTests(unittest.TestCase):
                       include:
                         - usr/include
                 ''')
-        self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
+        self.source, = morphlib.source.make_sources('repo', 'ref',
+                                                    'chunk.morph', 'sha1',
+                                                    'tree', morph)
         self.artifact_name = 'chunk-runtime'
-        self.artifact = morphlib.artifact.Artifact(
-            self.source, self.artifact_name)
-        self.other = morphlib.artifact.Artifact(
-            self.source, self.artifact_name)
+        self.artifact = self.source.artifacts[self.artifact_name]
+        self.other_source, = morphlib.source.make_sources('repo', 'ref',
+                                                          'chunk.morph',
+                                                          'sha1', 'tree',
+                                                          morph)
+        self.other = self.other_source.artifacts[self.artifact_name]
 
     def test_constructor_sets_source(self):
         self.assertEqual(self.artifact.source, self.source)
