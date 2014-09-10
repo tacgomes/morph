@@ -299,12 +299,6 @@ class BuilderBase(object):
         json.dump(meta, f, indent=4, sort_keys=True, encoding='unicode-escape')
         f.close()
 
-    def new_artifact(self, artifact_name):
-        '''Return an Artifact object for something built from our source.'''
-        a = morphlib.artifact.Artifact(self.artifact.source, artifact_name)
-        a.cache_key = self.artifact.cache_key
-        return a
-
     def runcmd(self, *args, **kwargs):
         return self.staging_area.runcmd(*args, **kwargs)
 
@@ -607,9 +601,8 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
         with self.build_watch('overall-build'):
             arch = self.artifact.source.morphology['arch']
 
-            rootfs_name = self.artifact.source.morphology['name'] + '-rootfs'
-            rootfs_artifact = self.new_artifact(rootfs_name)
-            handle = self.local_artifact_cache.put(rootfs_artifact)
+            rootfs_name = self.artifact.source.morphology['name']
+            handle = self.local_artifact_cache.put(self.artifact)
 
             try:
                 fs_root = self.staging_area.destdir(self.artifact.source)

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -161,10 +161,6 @@ class BuilderBaseTests(unittest.TestCase):
                                                      self.repo_cache,
                                                      self.max_jobs,
                                                      False)
-
-    def test_returns_an_artifact(self):
-        artifact = self.builder.new_artifact('le-artifact')
-        self.assertEqual(type(artifact), morphlib.artifact.Artifact)
 
     def test_runs_desired_command(self):
         self.builder.runcmd(['foo', 'bar'])

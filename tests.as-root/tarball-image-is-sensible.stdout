@@ -7,7 +7,7 @@
 ./baserock/hello-misc.meta
 ./baserock/hello-stratum-devel.meta
 ./baserock/hello-stratum-runtime.meta
-./baserock/hello-tarball-rootfs.meta
+./baserock/hello-tarball.meta
 ./baserock/link-stratum-devel.meta
 ./baserock/link-stratum-runtime.meta
 ./baserock/links-bins.meta
