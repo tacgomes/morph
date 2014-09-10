@@ -22,10 +22,7 @@ class Artifact(object):
 
     * ``source`` -- the source from which the artifact is built
     * ``name`` -- the name of the artifact
-    * ``cache_key`` -- a cache key to uniquely identify the artifact
-    * ``cache_id`` -- a dict describing the components of the cache key
-    * ``dependencies`` -- list of Artifacts that need to be built beforehand
-    * ``dependents`` -- list of Artifacts that need this Artifact to be built
+    * ``dependents`` -- list of Sources that need this Artifact to be built
 
     The ``dependencies`` and ``dependents`` lists MUST be modified by
     the ``add_dependencies`` and ``add_dependent`` methods only.
@@ -35,25 +32,10 @@ class Artifact(object):
     def __init__(self, source, name):
         self.source = source
         self.name = name
-        self.cache_id = None
-        self.cache_key = None
-        self.dependencies = []
         self.dependents = []
 
-    def add_dependency(self, artifact):
-        '''Add ``artifact`` to the dependency list.'''
-        if artifact not in self.dependencies:
-            self.dependencies.append(artifact)
-            artifact.dependents.append(self)
-
-    def depends_on(self, artifact):
-        '''Do we depend on ``artifact``?'''
-        return artifact in self.dependencies
-
     def basename(self):  # pragma: no cover
-        return '%s.%s.%s' % (self.cache_key,
-                             str(self.source.morphology['kind']),
-                             str(self.name))
+        return '%s.%s' % (self.source.basename(), str(self.name))
 
     def metadata_basename(self, metadata_name):  # pragma: no cover
         return '%s.%s' % (self.basename(), metadata_name)
@@ -91,7 +73,7 @@ class Artifact(object):
         def depth_first(a):
             if a not in done:
                 done.add(a)
-                for dep in a.dependencies:
+                for dep in a.source.dependencies:
                     for ret in depth_first(dep):
                         yield ret
                 yield a

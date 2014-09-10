@@ -30,8 +30,11 @@ class Source(object):
     * ``tree`` -- the SHA1 of the tree corresponding to the commit
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
-    * ``artifacts`` -- the set of artifacts this source produces.
+    * ``cache_id`` -- a dict describing the components of the cache key
+    * ``cache_key`` -- a cache key to uniquely identify the artifact
+    * ``dependencies`` -- list of Artifacts that need to be built beforehand
     * ``split_rules`` -- rules for splitting the source's produced artifacts
+    * ``artifacts`` -- the set of artifacts this source produces.
 
     '''
 
@@ -45,6 +48,9 @@ class Source(object):
         self.tree = tree
         self.morphology = morphology
         self.filename = filename
+        self.cache_id = None
+        self.cache_key = None
+        self.dependencies = []
 
         self.split_rules = split_rules
         self.artifacts = None
@@ -57,6 +63,19 @@ class Source(object):
 
     def __repr__(self): # pragma: no cover
         return 'Source(%s)' % str(self)
+
+    def basename(self): # pragma: no cover
+        return '%s.%s' % (self.cache_key, str(self.morphology['kind']))
+
+    def add_dependency(self, artifact): # pragma: no cover
+        if artifact not in self.dependencies:
+            self.dependencies.append(artifact)
+        if self not in artifact.dependents:
+            artifact.dependent_sources.append(self)
+
+    def depends_on(self, artifact): # pragma: no cover
+        '''Do we depend on ``artifact``?'''
+        return artifact in self.dependencies
 
 
 def make_sources(reponame, ref, filename, absref, tree, morphology):
