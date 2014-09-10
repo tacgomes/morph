@@ -248,19 +248,6 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertRaises(NotcachedError, self.lmf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
-    def test_does_not_set_needs_artifact_metadata_cached_for_chunk(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
-        self.assertEqual(morph.needs_artifact_metadata_cached, False)
-
-    def test_sets_artifact_metadata_cached_for_stratum(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
-        self.assertEqual(morph.needs_artifact_metadata_cached, True)
-
-    def test_does_not_set_artifact_metadata_cached_for_system(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
-        self.assertEqual(morph.needs_artifact_metadata_cached, False)
-
-
     def test_arch_is_validated(self):
         self.lr.arch = 'unknown'
         self.assertRaises(morphlib.Error, self.mf.get_morphology,
