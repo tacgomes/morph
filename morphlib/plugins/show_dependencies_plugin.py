@@ -74,6 +74,6 @@ class ShowDependenciesPlugin(cliapp.Plugin):
 
             for artifact in reversed(root_artifact.walk()):
                 self.app.output.write('  %s\n' % artifact)
-                for dependency in sorted(artifact.dependencies, key=str):
-                    self.app.output.write('    -> %s\n' % dependency)
+                for dep in sorted(artifact.source.dependencies, key=str):
+                    self.app.output.write('    -> %s\n' % dep)
 
