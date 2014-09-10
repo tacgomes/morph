@@ -616,7 +616,6 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 self.unpack_strata(fs_root)
                 self.write_metadata(fs_root, rootfs_name)
                 self.run_system_integration_commands(fs_root)
-                self.copy_kernel_into_artifact_cache(fs_root)
                 unslashy_root = fs_root[1:]
                 def uproot_info(info):
                     info.name = relpath(info.name, unslashy_root)
@@ -765,25 +764,6 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 logging.debug('Unmounting %s in system root filesystem'
                                   % mount_path)
                 morphlib.fsutils.unmount(self.app.runcmd, mount_path)
-
-    def copy_kernel_into_artifact_cache(self, path):
-        '''Copy the installed kernel image into the local artifact cache.
-
-        The kernel image will be a separate artifact from the root
-        filesystem/disk image/whatever. This is sometimes useful with
-        funky bootloaders or virtualisation.
-
-        '''
-
-        name = self.artifact.source.morphology['name'] + '-kernel'
-        a = self.new_artifact(name)
-        with self.local_artifact_cache.put(a) as dest:
-            for basename in ['zImage', 'vmlinuz']:
-                installed_path = os.path.join(path, 'boot', basename)
-                if os.path.exists(installed_path):
-                    with open(installed_path) as kernel:
-                        shutil.copyfileobj(kernel, dest)
-                    break
 
 
 class Builder(object):  # pragma: no cover
