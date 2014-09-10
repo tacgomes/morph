@@ -303,7 +303,7 @@ class CrossBootstrapPlugin(cliapp.Plugin):
             build_command.cache_or_build_artifact(a, build_env)
 
         for i, a in enumerate(native_chunks):
-            build_command.get_sources(a)
+            build_command.fetch_sources(a)
 
         # Install those to the output tarball ...
         self.app.status(msg='Building final bootstrap system image')

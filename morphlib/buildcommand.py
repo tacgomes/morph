@@ -312,7 +312,7 @@ class BuildCommand(object):
                         name=artifact.name,
                         kind=artifact.source.morphology['kind'])
 
-        self.get_sources(artifact)
+        self.fetch_sources(artifact)
         deps = self.get_recursive_deps(artifact)
         self.cache_artifacts_locally(deps)
 
@@ -353,7 +353,7 @@ class BuildCommand(object):
     def get_recursive_deps(self, artifact):
         return artifact.walk()[:-1]
 
-    def get_sources(self, artifact):
+    def fetch_sources(self, artifact):
         '''Update the local git repository cache with the sources.'''
 
         repo_name = artifact.source.repo_name
