@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import itertools
 import os
 import shutil
 import logging
@@ -175,9 +176,9 @@ class BuildCommand(object):
 
         self.app.status(msg='Computing cache keys', chatty=True)
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        for artifact in artifacts:
-            artifact.cache_key = ckc.compute_key(artifact)
-            artifact.cache_id = ckc.get_cache_id(artifact)
+        for source in set(a.source for a in artifacts):
+            source.cache_key = ckc.compute_key(source)
+            source.cache_id = ckc.get_cache_id(source)
 
         root_artifact.build_env = build_env
         return root_artifact
@@ -210,7 +211,7 @@ class BuildCommand(object):
             if src.morphology['kind'] == 'stratum':
                 name = src.name
                 ref = src.sha1[:7]
-                self.app.status(msg='Stratum [%(name)s] version is %(ref)s', 
+                self.app.status(msg='Stratum [%(name)s] version is %(ref)s',
                                 name=name, ref=ref)
                 if name in stratum_names:
                     raise morphlib.Error(
@@ -251,78 +252,94 @@ class BuildCommand(object):
 
     def _find_root_artifacts(self, artifacts):
         '''Find all the root artifacts among a set of artifacts in a DAG.
-        
+
         It would be nice if the ArtifactResolver would return its results in a
         more useful order to save us from needing to do this -- the root object
         is known already since that's the one the user asked us to build.
-        
+
         '''
 
-        return [a for a in artifacts if not a.dependents]
+        return [a for a in artifacts if not a.dependent_sources]
+
+    @staticmethod
+    def get_ordered_sources(artifacts):
+        ordered_sources = []
+        known_sources = set()
+        for artifact in artifacts:
+            if artifact.source not in known_sources:
+                known_sources.add(artifact.source)
+                yield artifact.source
 
     def build_in_order(self, root_artifact):
         '''Build everything specified in a build order.'''
 
-        self.app.status(msg='Building a set of artifacts', chatty=True)
+        self.app.status(msg='Building a set of sources', chatty=True)
         build_env = root_artifact.build_env
-        artifacts = root_artifact.walk()
+        ordered_sources = list(self.get_ordered_sources(root_artifact.walk()))
         old_prefix = self.app.status_prefix
-        for i, a in enumerate(artifacts):
+        for i, s in enumerate(ordered_sources):
             self.app.status_prefix = (
                 old_prefix + '[Build %(index)d/%(total)d] [%(name)s] ' % {
                     'index': (i+1),
-                    'total': len(artifacts),
-                    'name': a.name,
+                    'total': len(ordered_sources),
+                    'name': s.name,
                 })
 
-            self.cache_or_build_artifact(a, build_env)
-
-            self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
-                            kind=a.source.morphology['kind'], name=a.name,
-                            cachepath=self.lac.artifact_filename(a),
-                            chatty=(a.source.morphology['kind'] != "system"))
+            self.cache_or_build_source(s, build_env)
 
         self.app.status_prefix = old_prefix
 
-    def cache_or_build_artifact(self, artifact, build_env):
-        '''Make the built artifact available in the local cache.
+    def cache_or_build_source(self, source, build_env):
+        '''Make artifacts of the built source available in the local cache.
 
         This can be done by retrieving from a remote artifact cache, or if
-        that doesn't work for some reason, by building the artifact locally.
+        that doesn't work for some reason, by building the source locally.
 
         '''
+        artifacts = source.artifacts.values()
         if self.rac is not None:
             try:
-                self.cache_artifacts_locally([artifact])
+                self.cache_artifacts_locally(artifacts)
             except morphlib.remoteartifactcache.GetError:
                 # Error is logged by the RemoteArtifactCache object.
                 pass
 
-        if not self.lac.has(artifact):
-            self.build_artifact(artifact, build_env)
+        if any(not self.lac.has(artifact) for artifact in artifacts):
+            self.build_source(source, build_env)
 
-    def build_artifact(self, artifact, build_env):
-        '''Build one artifact.
+        for a in artifacts:
+            self.app.status(msg='%(kind)s %(name)s is cached at %(cachepath)s',
+                            kind=source.morphology['kind'], name=a.name,
+                            cachepath=self.lac.artifact_filename(a),
+                            chatty=(source.morphology['kind'] != "system"))
+
+    def build_source(self, source, build_env):
+        '''Build all artifacts for one source.
 
         All the dependencies are assumed to be built and available
         in either the local or remote cache already.
 
         '''
         self.app.status(msg='Building %(kind)s %(name)s',
-                        name=artifact.name,
-                        kind=artifact.source.morphology['kind'])
+                        name=source.name,
+                        kind=source.morphology['kind'])
 
-        self.fetch_sources(artifact)
-        deps = self.get_recursive_deps(artifact)
+        self.fetch_sources(source)
+        # TODO: Make an artifact.walk() that takes multiple root artifacts.
+        # as this does a walk for every artifact. This was the status
+        # quo before build logic was made to work per-source, but we can
+        # now do better.
+        deps = self.get_recursive_deps(source.artifacts.values())
         self.cache_artifacts_locally(deps)
 
         use_chroot = False
         setup_mounts = False
-        if artifact.source.morphology['kind'] == 'chunk':
-            build_mode = artifact.source.build_mode
-            extra_env = {'PREFIX': artifact.source.prefix}
+        if source.morphology['kind'] == 'chunk':
+            build_mode = source.build_mode
+            extra_env = {'PREFIX': source.prefix}
 
-            dep_prefix_set = artifact.get_dependency_prefix_set()
+            dep_prefix_set = set(a.source.prefix for a in deps
+                                 if a.source.morphology['kind'] == 'chunk')
             extra_path = [os.path.join(d, 'bin') for d in dep_prefix_set]
 
             if build_mode not in ['bootstrap', 'staging', 'test']:
@@ -340,37 +357,44 @@ class BuildCommand(object):
                                                     extra_env=extra_env,
                                                     extra_path=extra_path)
             try:
-                self.install_dependencies(staging_area, deps, artifact)
+                self.install_dependencies(staging_area, deps, source)
             except BaseException:
                 staging_area.abort()
                 raise
         else:
             staging_area = self.create_staging_area(build_env, False)
 
-        self.build_and_cache(staging_area, artifact, setup_mounts)
+        self.build_and_cache(staging_area, source, setup_mounts)
         self.remove_staging_area(staging_area)
 
-    def get_recursive_deps(self, artifact):
-        return artifact.walk()[:-1]
+    def get_recursive_deps(self, artifacts):
+        deps = set()
+        ordered_deps = []
+        for artifact in artifacts:
+            for dep in artifact.walk():
+                if dep not in deps and dep not in artifacts:
+                    deps.add(dep)
+                    ordered_deps.append(dep)
+        return ordered_deps
 
-    def fetch_sources(self, artifact):
+    def fetch_sources(self, source):
         '''Update the local git repository cache with the sources.'''
 
-        repo_name = artifact.source.repo_name
+        repo_name = source.repo_name
         if self.app.settings['no-git-update']:
             self.app.status(msg='Not updating existing git repository '
                                 '%(repo_name)s '
                                 'because of no-git-update being set',
                             chatty=True,
                             repo_name=repo_name)
-            artifact.source.repo = self.lrc.get_repo(repo_name)
+            source.repo = self.lrc.get_repo(repo_name)
             return
 
         if self.lrc.has_repo(repo_name):
-            artifact.source.repo = self.lrc.get_repo(repo_name)
+            source.repo = self.lrc.get_repo(repo_name)
             try:
-                sha1 = artifact.source.sha1
-                artifact.source.repo.resolve_ref(sha1)
+                sha1 = source.sha1
+                source.repo.resolve_ref(sha1)
                 self.app.status(msg='Not updating git repository '
                                     '%(repo_name)s because it '
                                     'already contains sha1 %(sha1)s',
@@ -379,17 +403,17 @@ class BuildCommand(object):
             except morphlib.cachedrepo.InvalidReferenceError:
                 self.app.status(msg='Updating %(repo_name)s',
                                 repo_name=repo_name)
-                artifact.source.repo.update()
+                source.repo.update()
         else:
             self.app.status(msg='Cloning %(repo_name)s',
                             repo_name=repo_name)
-            artifact.source.repo = self.lrc.cache_repo(repo_name)
+            source.repo = self.lrc.cache_repo(repo_name)
 
         # Update submodules.
         done = set()
         self.app.cache_repo_and_submodules(
-            self.lrc, artifact.source.repo.url,
-            artifact.source.sha1, done)
+            self.lrc, source.repo.url,
+            source.sha1, done)
 
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
@@ -455,14 +479,25 @@ class BuildCommand(object):
 
     # Nasty hack to avoid installing chunks built in 'bootstrap' mode in a
     # different stratum when constructing staging areas.
-    def is_stratum(self, a):
-        return a.source.morphology['kind'] == 'stratum'
+    # TODO: make nicer by having chunk morphs keep a reference to the
+    #       stratum they were in
+    def in_same_stratum(self, s1, s2):
+        '''Checks whether two chunk sources are from the same stratum.
 
-    def in_same_stratum(self, a, b):
-        return len(filter(self.is_stratum, a.dependencies)) == \
-               len(filter(self.is_stratum, b.dependencies))
+        In the absence of morphologies tracking where they came from,
+        this checks whether both sources are depended on by artifacts
+        that belong to sources which have the same morphology.
 
-    def install_dependencies(self, staging_area, artifacts, target_artifact):
+        '''
+        def dependent_stratum_morphs(source):
+            dependent_sources = set(itertools.chain.from_iterable(
+                a.dependent_sources for a in source.artifacts.itervalues()))
+            dependent_strata = set(s for s in dependent_sources
+                                   if s.morphology['kind'] == 'stratum')
+            return set(s.morphology for s in dependent_strata)
+        return dependent_stratum_morphs(s1) == dependent_stratum_morphs(s2)
+
+    def install_dependencies(self, staging_area, artifacts, target_source):
         '''Install chunk artifacts into staging area.
 
         We only ever care about chunk artifacts as build dependencies,
@@ -477,29 +512,29 @@ class BuildCommand(object):
             if artifact.source.morphology['kind'] != 'chunk':
                 continue
             if artifact.source.build_mode == 'bootstrap':
-               if not self.in_same_stratum(artifact, target_artifact):
+               if not self.in_same_stratum(artifact.source, target_source):
                     continue
             self.app.status(
                 msg='Installing chunk %(chunk_name)s from cache %(cache)s',
                 chunk_name=artifact.name,
-                cache=artifact.cache_key[:7],
+                cache=artifact.source.cache_key[:7],
                 chatty=True)
             handle = self.lac.get(artifact)
             staging_area.install_artifact(handle)
 
-        if target_artifact.source.build_mode == 'staging':
+        if target_source.build_mode == 'staging':
             morphlib.builder2.ldconfig(self.app.runcmd, staging_area.dirname)
 
-    def build_and_cache(self, staging_area, artifact, setup_mounts):
-        '''Build an artifact and put it into the local artifact cache.'''
+    def build_and_cache(self, staging_area, source, setup_mounts):
+        '''Build a source and put its artifacts into the local cache.'''
 
         self.app.status(msg='Starting actual build: %(name)s '
                             '%(sha1)s',
-                        name=artifact.name, sha1=artifact.source.sha1[:7])
+                        name=source.name, sha1=source.sha1[:7])
         builder = morphlib.builder2.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
             self.app.settings['max-jobs'], setup_mounts)
-        return builder.build_and_cache(artifact)
+        return builder.build_and_cache(source)
 
 class InitiatorBuildCommand(BuildCommand):
 

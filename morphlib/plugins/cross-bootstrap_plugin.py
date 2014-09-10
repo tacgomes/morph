@@ -58,38 +58,39 @@ class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
 
     def build_and_cache(self):
         with self.build_watch('overall-build'):
-            handle = self.local_artifact_cache.put(self.artifact)
-            fs_root = self.staging_area.destdir(self.artifact.source)
-            try:
-                self.unpack_binary_chunks(fs_root)
-                self.unpack_sources(fs_root)
-                self.write_build_script(fs_root)
-                system_name = self.artifact.source.morphology['name']
-                self.create_tarball(handle, fs_root, system_name)
-            except BaseException, e:
-                logging.error(traceback.format_exc())
-                self.app.status(msg='Error while building bootstrap image',
-                                error=True)
-                handle.abort()
-                raise
+            for system_name, artifact in self.source.artifacts.iteritems():
+                handle = self.local_artifact_cache.put(artifact)
+                fs_root = self.staging_area.destdir(self.source)
+                try:
+                    self.unpack_binary_chunks(fs_root)
+                    self.unpack_sources(fs_root)
+                    self.write_build_script(fs_root)
+                    self.create_tarball(handle, fs_root, system_name)
+                except BaseException, e:
+                    logging.error(traceback.format_exc())
+                    self.app.status(msg='Error while building bootstrap image',
+                                    error=True)
+                    handle.abort()
+                    raise
 
-            handle.close()
+                handle.close()
 
         self.save_build_times()
-        return [self.artifact]
+        return self.source.artifacts.items()
 
     def unpack_binary_chunks(self, dest):
         cache = self.local_artifact_cache
-        for chunk_artifact in self.artifact.source.cross_chunks:
-            with cache.get(chunk_artifact) as chunk_file:
-                try:
-                    morphlib.bins.unpack_binary_from_file(chunk_file, dest)
-                except BaseException, e:
-                    self.app.status(
-                        msg='Error unpacking binary chunk %(name)s',
-                        name=chunk_artifact.name,
-                        error=True)
-                    raise
+        for chunk_source in self.source.cross_sources:
+            for chunk_artifact in chunk_source.artifacts.itervalues():
+                with cache.get(chunk_artifact) as chunk_file:
+                    try:
+                        morphlib.bins.unpack_binary_from_file(chunk_file, dest)
+                    except BaseException, e:
+                        self.app.status(
+                            msg='Error unpacking binary chunk %(name)s',
+                            name=chunk_artifact.name,
+                            error=True)
+                        raise
 
     def unpack_sources(self, path):
         # Multiple chunks sources may be built from the same repo ('linux'
@@ -98,24 +99,18 @@ class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
         #
         # It might be neater to build these as "source artifacts" individually,
         # but that would waste huge amounts of space in the artifact cache.
-        for a in self.artifact.walk():
-            if a in self.artifact.source.cross_chunks:
-                continue
-            if a.source.morphology['kind'] != 'chunk':
-                continue
-
-            escaped_source = escape_source_name(a.source)
+        for s in self.source.native_sources:
+            escaped_source = escape_source_name(s)
             source_dir = os.path.join(path, 'src', escaped_source)
             if not os.path.exists(source_dir):
                 os.makedirs(source_dir)
                 morphlib.builder2.extract_sources(
-                    self.app, self.repo_cache, a.source.repo, a.source.sha1,
-                    source_dir)
+                    self.app, self.repo_cache, s.repo, s.sha1, source_dir)
 
-            name = a.source.morphology['name']
+            name = s.name
             chunk_script = os.path.join(path, 'src', 'build-%s' % name)
             with morphlib.savefile.SaveFile(chunk_script, 'w') as f:
-                self.write_chunk_build_script(a, f)
+                self.write_chunk_build_script(s, f)
             os.chmod(chunk_script, 0777)
 
     def write_build_script(self, path):
@@ -130,15 +125,8 @@ class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
                 if k != 'PATH':
                     f.write('export %s="%s"\n' % (k, v))
 
-            # FIXME: really, of course, we need to iterate the sources not the
-            # artifacts ... this will break when we have chunk splitting!
-            for a in self.artifact.walk():
-                if a in self.artifact.source.cross_chunks:
-                    continue
-                if a.source.morphology['kind'] != 'chunk':
-                    continue
-
-                name = a.source.morphology['name']
+            for s in self.source.native_sources:
+                name = s.name
                 f.write('\necho Building %s\n' % name)
                 f.write('mkdir /%s.inst\n' % name)
                 f.write('env DESTDIR=/%s.inst $SRCDIR/build-%s\n'
@@ -150,17 +138,17 @@ class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
             f.write(driver_footer)
         os.chmod(driver_script, 0777)
 
-    def write_chunk_build_script(self, chunk, f):
-        m = chunk.source.morphology
+    def write_chunk_build_script(self, source, f):
+        m = source.morphology
         f.write('#!/bin/sh\n')
         f.write('# Build script generated by morph\n')
         f.write('set -e\n')
         f.write('chunk_name=%s\n' % m['name'])
 
-        repo = escape_source_name(chunk.source)
+        repo = escape_source_name(source)
         f.write('cp -a $SRCDIR/%s $DESTDIR/$chunk_name.build\n' % repo)
         f.write('cd $DESTDIR/$chunk_name.build\n')
-        f.write('export PREFIX=%s\n' % chunk.source.prefix)
+        f.write('export PREFIX=%s\n' % source.prefix)
 
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
@@ -280,35 +268,36 @@ class CrossBootstrapPlugin(cliapp.Plugin):
 
         # Calculate build order
         # This is basically a hacked version of BuildCommand.build_in_order()
-        artifacts = system_artifact.walk()
-        cross_chunks = []
-        native_chunks = []
-        for a in artifacts:
-            if a.source.morphology['kind'] == 'chunk':
-                if a.source.build_mode == 'bootstrap':
-                    cross_chunks.append(a)
+        sources = build_command.get_ordered_sources(system_artifact.walk())
+        cross_sources = []
+        native_sources = []
+        for s in sources:
+            if s.morphology['kind'] == 'chunk':
+                if s.build_mode == 'bootstrap':
+                    cross_sources.append(s)
                 else:
-                    native_chunks.append(a)
+                    native_sources.append(s)
 
-        if len(cross_chunks) == 0:
+        if len(cross_sources) == 0:
             raise morphlib.Error(
                 'Nothing to cross-compile. Only chunks built in \'bootstrap\' '
                 'mode can be cross-compiled.')
 
-        for i, a in enumerate(cross_chunks):
-            build_command.cache_or_build_artifact(a, build_env)
+        for s in cross_sources:
+            build_command.cache_or_build_source(s, build_env)
 
-        for i, a in enumerate(native_chunks):
-            build_command.fetch_sources(a)
+        for s in native_sources:
+            build_command.fetch_sources(s)
 
         # Install those to the output tarball ...
         self.app.status(msg='Building final bootstrap system image')
-        system_artifact.source.cross_chunks = cross_chunks
+        system_artifact.source.cross_sources = cross_sources
+        system_artifact.source.native_sources = native_sources
         staging_area = build_command.create_staging_area(
             build_env, use_chroot=False)
         builder = BootstrapSystemBuilder(
             self.app, staging_area, build_command.lac, build_command.rac,
-            system_artifact, build_command.lrc, 1, False)
+            system_artifact.source, build_command.lrc, 1, False)
         builder.build_and_cache()
 
         self.app.status(

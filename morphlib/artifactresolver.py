@@ -149,7 +149,7 @@ class ArtifactResolver(object):
                         if sta_name in stratum_source.artifacts:
                             stratum_artifact = \
                                 stratum_source.artifacts[sta_name]
-                            system.add_dependency(stratum_artifact)
+                            source.add_dependency(stratum_artifact)
                             artifacts.append(stratum_artifact)
 
                 queue.append(stratum_source)
@@ -182,10 +182,10 @@ class ArtifactResolver(object):
                     artifacts.append(other_stratum)
 
                     for stratum in strata:
-                        if other_stratum.depends_on(stratum):
+                        if other_source.depends_on(stratum):
                             raise MutualDependencyError(stratum, other_stratum)
 
-                        stratum.add_dependency(other_stratum)
+                        source.add_dependency(other_stratum)
 
                 queue.append(other_source)
 
@@ -208,12 +208,9 @@ class ArtifactResolver(object):
 
             build_depends = info.get('build-depends', None)
 
-            for ca_name in chunk_source.split_rules.artifacts:
-                chunk_artifact = chunk_source.artifacts[ca_name]
-
-                # Add our stratum's build depends as dependencies of this chunk
-                for other_stratum in stratum_build_depends:
-                    chunk_artifact.add_dependency(other_stratum)
+            # Add our stratum's build depends as dependencies of this chunk
+            for other_stratum in stratum_build_depends:
+                chunk_source.add_dependency(other_stratum)
 
             # Add dependencies between chunks mentioned in this stratum
             for name in build_depends: # pragma: no cover
@@ -222,22 +219,19 @@ class ArtifactResolver(object):
                         source, info['name'], name)
                 other_artifacts = name_to_processed_artifacts[name]
                 for other_artifact in other_artifacts:
-                    for ca_name in chunk_source.split_rules.artifacts:
-                        chunk_artifact = chunk_source.artifacts[ca_name]
-                        chunk_artifact.add_dependency(other_artifact)
+                    chunk_source.add_dependency(other_artifact)
 
             # Add build dependencies between our stratum's artifacts
             # and the chunk artifacts produced by this stratum.
             matches, overlaps, unmatched = source.split_rules.partition(
                     ((chunk_name, ca_name) for ca_name
                      in chunk_source.split_rules.artifacts))
-            for stratum in strata:
-                for (chunk_name, ca_name) in matches[stratum.name]:
-                    chunk_artifact = chunk_source.artifacts[ca_name]
-                    stratum.add_dependency(chunk_artifact)
-                    # Only return chunks required to build strata we need
-                    if chunk_artifact not in artifacts:
-                        artifacts.append(chunk_artifact)
+            for (chunk_name, ca_name) in matches[source.name]:
+                chunk_artifact = chunk_source.artifacts[ca_name]
+                source.add_dependency(chunk_artifact)
+                # Only return chunks required to build strata we need
+                if chunk_artifact not in artifacts:
+                    artifacts.append(chunk_artifact)
 
 
             # Add these chunks to the processed artifacts, so other
