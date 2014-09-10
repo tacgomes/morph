@@ -457,34 +457,6 @@ class ArtifactResolverTests(unittest.TestCase):
         self.assertRaises(morphlib.artifactresolver.DependencyOrderError,
                           self.resolver.resolve_artifacts, pool)
 
-    def test_detection_of_invalid_build_depends_format(self):
-        pool = morphlib.sourcepool.SourcePool()
-
-        loader = morphlib.morphloader.MorphologyLoader()
-        morph = loader.load_from_string(
-            '''
-                name: stratum
-                kind: stratum
-                build-depends: []
-                chunks:
-                    - name: chunk
-                      repo: repo
-                      ref: original/ref
-                      build-depends: whatever
-            ''')
-        morph.builds_artifacts = ['stratum']
-        stratum = morphlib.source.Source(
-            'repo', 'original/ref', 'sha1', 'tree', morph, 'stratum.morph')
-        pool.add(stratum)
-
-        morph = get_chunk_morphology('chunk')
-        chunk = morphlib.source.Source(
-            'repo', 'original/ref', 'sha1', 'tree', morph, 'chunk.morph')
-        pool.add(chunk)
-
-        self.assertRaises(morphlib.artifactresolver.DependencyFormatError,
-                          self.resolver.resolve_artifacts, pool)
-
 
 # TODO: Expand test suite to include better dependency checking, many
 #       tests were removed due to the fundamental change in how artifacts

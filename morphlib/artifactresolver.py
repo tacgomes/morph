@@ -37,15 +37,6 @@ class DependencyOrderError(cliapp.AppException):
             (stratum_source, chunk, dependency_name))
 
 
-class DependencyFormatError(cliapp.AppException):
-
-    def __init__(self, stratum_source, chunk):
-        cliapp.AppException.__init__(
-            self, 'In stratum %s, chunk %s uses an invalid '
-            'build-depends format' % (stratum_source, chunk))
-
-
-
 class ArtifactResolver(object):
 
     '''Resolves sources into artifacts that would be build from the sources.
@@ -214,18 +205,15 @@ class ArtifactResolver(object):
                     chunk_artifact.add_dependency(other_stratum)
 
             # Add dependencies between chunks mentioned in this stratum
-            if isinstance(build_depends, list):
-                for name in build_depends:
-                    if name not in name_to_processed_artifacts:
-                        raise DependencyOrderError(
-                            source, info['name'], name)
-                    other_artifacts = name_to_processed_artifacts[name]
-                    for other_artifact in other_artifacts:
-                        for ca_name in chunk_source.split_rules.artifacts:
-                            chunk_artifact = chunk_source.artifacts[ca_name]
-                            chunk_artifact.add_dependency(other_artifact)
-            else:
-                raise DependencyFormatError(source, info['name'])
+            for name in build_depends:
+                if name not in name_to_processed_artifacts:
+                    raise DependencyOrderError(
+                        source, info['name'], name)
+                other_artifacts = name_to_processed_artifacts[name]
+                for other_artifact in other_artifacts:
+                    for ca_name in chunk_source.split_rules.artifacts:
+                        chunk_artifact = chunk_source.artifacts[ca_name]
+                        chunk_artifact.add_dependency(other_artifact)
 
             # Add build dependencies between our stratum's artifacts
             # and the chunk artifacts produced by this stratum.
