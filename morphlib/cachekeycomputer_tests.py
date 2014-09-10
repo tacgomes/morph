@@ -89,12 +89,6 @@ class CacheKeyComputerTests(unittest.TestCase):
             self.source_pool.add(source)
             # FIXME: This should use MorphologyFactory
             m = source.morphology
-            if m['kind'] == 'system':
-                m.builds_artifacts = [m['name'] + '-rootfs']
-            elif m['kind'] == 'stratum':
-                m.builds_artifacts = [m['name']]
-            elif m['kind'] == 'chunk':
-                m.builds_artifacts = [m['name']]
         self.build_env = DummyBuildEnvironment({
             "LOGNAME": "foouser",
             "MORPH_ARCH": "dummy",

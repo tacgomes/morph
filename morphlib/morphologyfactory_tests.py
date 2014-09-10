@@ -248,24 +248,6 @@ class MorphologyFactoryTests(unittest.TestCase):
         self.assertRaises(NotcachedError, self.lmf.get_morphology,
                           'reponame', 'sha1', 'unreached.morph')
 
-    def test_sets_builds_artifacts_for_simple_chunk(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
-        self.assertEqual(morph.builds_artifacts, ['chunk'])
-
-    def test_sets_builds_artifacts_for_split_chunk(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'chunk-split.morph')
-        self.assertEqual(morph.builds_artifacts,
-                         ['chunk-split-runtime', 'chunk-split-devel'])
-
-    def test_sets_builds_artifacts_for_stratum(self):
-        morph = self.mf.get_morphology('reponame', 'sha1', 'stratum.morph')
-        self.assertEqual(morph.builds_artifacts, ['stratum'])
-
-    def test_sets_build_artifacts_for_system(self):
-        self.lr.arch = 'x86_32'
-        morph = self.mf.get_morphology('reponame', 'sha1', 'system.morph')
-        self.assertEqual(morph.builds_artifacts, ['system-rootfs'])
-
     def test_does_not_set_needs_artifact_metadata_cached_for_chunk(self):
         morph = self.mf.get_morphology('reponame', 'sha1', 'chunk.morph')
         self.assertEqual(morph.needs_artifact_metadata_cached, False)

@@ -103,23 +103,14 @@ class MorphologyFactory(object):
         '''Check and tweak a system morphology.'''
 
         name = morphology['name']
-        morphology.builds_artifacts = [name + '-rootfs']
-
         morphology.needs_artifact_metadata_cached = False
 
     def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
         '''Check and tweak a stratum morphology.'''
 
-        morphology.builds_artifacts = [morphology['name']]
         morphology.needs_artifact_metadata_cached = True
 
     def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
         '''Check and tweak a chunk morphology.'''
-
-        if 'products' in morphology and len(morphology['products']) > 1:
-            morphology.builds_artifacts = [d['artifact']
-                                           for d in morphology['products']]
-        else:
-            morphology.builds_artifacts = [morphology['name']]
 
         morphology.needs_artifact_metadata_cached = False

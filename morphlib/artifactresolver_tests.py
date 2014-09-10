@@ -33,15 +33,12 @@ def get_chunk_morphology(name, artifact_names=[]):
         text = yaml.dump({"name": name,
                           "kind": "chunk",
                           "products": artifacts}, default_flow_style=False)
-        builds_artifacts = artifact_names
     else:
         text = yaml.dump({'name': name,
                           'kind': 'chunk'}, default_flow_style=False)
-        builds_artifacts = [name]
 
     loader = morphlib.morphloader.MorphologyLoader()
     morph = loader.load_from_string(text)
-    morph.builds_artifacts = builds_artifacts
     return morph
 
 def get_stratum_morphology(name, chunks=[], build_depends=[]):
@@ -75,7 +72,6 @@ def get_stratum_morphology(name, chunks=[], build_depends=[]):
 
     loader = morphlib.morphloader.MorphologyLoader()
     morph = loader.load_from_string(text)
-    morph.builds_artifacts = [name]
     return morph
 
 
@@ -242,7 +238,6 @@ class ArtifactResolverTests(unittest.TestCase):
                     - morph: stratum1
                     - morph: stratum2
             ''')
-        morph.builds_artifacts = ['system-rootfs']
         system = morphlib.source.Source(
             'repo', 'ref', 'sha1', 'tree', morph, 'system.morph')
         pool.add(system)
@@ -334,7 +329,6 @@ class ArtifactResolverTests(unittest.TestCase):
                           - chunk1
                           - chunk2
             ''')
-        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
             'repo', 'original/ref', 'sha1', 'tree', morph, 'stratum.morph')
         pool.add(stratum)
@@ -439,7 +433,6 @@ class ArtifactResolverTests(unittest.TestCase):
                       ref: original/ref
                       build-depends: []
             ''')
-        morph.builds_artifacts = ['stratum']
         stratum = morphlib.source.Source(
             'repo', 'original/ref', 'sha1', 'tree', morph, 'stratum.morph')
         pool.add(stratum)
