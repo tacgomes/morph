@@ -85,7 +85,7 @@ class CacheKeyComputer(object):
             'env': self._filterenv(self._build_env.env),
             'kids': [{'artifact': a.name, 'cache-key': self.compute_key(a)}
                      for a in artifact.dependencies],
-            'metadata-version': artifact.metadata_version
+            'metadata-version': 1 # bump if /baserock metadata format changes
         }
 
         kind = artifact.source.morphology['kind']
