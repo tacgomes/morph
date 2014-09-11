@@ -70,7 +70,7 @@ class Source(object):
     def add_dependency(self, artifact): # pragma: no cover
         if artifact not in self.dependencies:
             self.dependencies.append(artifact)
-        if self not in artifact.dependents:
+        if self not in artifact.dependent_sources:
             artifact.dependent_sources.append(self)
 
     def depends_on(self, artifact): # pragma: no cover
