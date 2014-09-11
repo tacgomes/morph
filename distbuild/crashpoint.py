@@ -1,6 +1,6 @@
 # distbuild/crashpoint.py -- user-controlled crashing
 #
-# Copyright (C) 2014  Codethink Limited
+# Copyright (C) 2012, 2014  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
