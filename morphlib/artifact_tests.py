@@ -67,15 +67,17 @@ class ArtifactTests(unittest.TestCase):
 
     def test_adds_dependency(self):
         self.artifact.add_dependency(self.other)
-        self.assertEqual(self.artifact.dependencies, [self.other])
-        self.assertEqual(self.other.dependents, [self.artifact])
+        self.assertIn(self.other, self.artifact.dependencies)
+        self.assertIn(self.artifact, self.other.dependents)
         self.assertTrue(self.artifact.depends_on(self.other))
 
     def test_does_not_add_dependency_twice(self):
         self.artifact.add_dependency(self.other)
         self.artifact.add_dependency(self.other)
-        self.assertEqual(self.artifact.dependencies, [self.other])
-        self.assertEqual(self.other.dependents, [self.artifact])
+        self.assertEqual(len([a for a in self.artifact.dependencies
+                              if a == self.other]), 1)
+        self.assertEqual(len([a for a in self.other.dependents
+                              if a == self.artifact]), 1)
         self.assertTrue(self.artifact.depends_on(self.other))
 
     def test_get_dependency_prefix(self):
