@@ -636,7 +636,8 @@ class BranchAndMergePlugin(cliapp.Plugin):
         system_metadatum = systems[0]
     
         metadata_cache_id_lookup = dict((md['cache-key'], md)
-                                        for md in metadata)
+                                        for md in metadata
+                                        if 'cache-key' in md)
 
         return system_metadatum, metadata_cache_id_lookup
 
