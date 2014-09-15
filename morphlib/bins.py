@@ -24,6 +24,7 @@ Binaries are chunks, strata, and system images.
 import cliapp
 import logging
 import os
+import sys
 import re
 import errno
 import stat
@@ -35,20 +36,48 @@ import morphlib
 from morphlib.extractedtarball import ExtractedTarball
 from morphlib.mountableimage import MountableImage
 
-
 # Work around http://bugs.python.org/issue16477
-def safe_makefile(self, tarinfo, targetpath):
-    '''Create a file, closing correctly in case of exception'''
+if sys.version_info < (2, 7, 4): # pragma: no cover
+    def safe_makefile(self, tarinfo, targetpath):
+        '''Create a file, closing correctly in case of exception'''
 
-    source = self.extractfile(tarinfo)
+        source = self.extractfile(tarinfo)
+        try:
+            with open(targetpath, "wb") as target:
+                shutil.copyfileobj(source, target)
+        finally:
+            source.close()
+    tarfile.TarFile.makefile = safe_makefile
+
+# Work around http://bugs.python.org/issue12841
+if sys.version_info < (2, 7, 3): # pragma: no cover
     try:
-        with open(targetpath, "wb") as target:
-            shutil.copyfileobj(source, target)
-    finally:
-        source.close()
+        import grp, pwd
+    except ImportError:
+        grp = pwd = None
 
-tarfile.TarFile.makefile = safe_makefile
+    def fixed_chown(self, tarinfo, targetpath):
+        '''Set owner of targetpath according to tarinfo.'''
 
+        if pwd and hasattr(os, "geteuid") and os.geteuid() == 0:
+            # We have to be root to do so.
+            try:
+                g = grp.getgrnam(tarinfo.gname)[2]
+            except KeyError:
+                g = tarinfo.gid
+            try:
+                u = pwd.getpwnam(tarinfo.uname)[2]
+            except KeyError:
+                u = tarinfo.uid
+            try:
+                if tarinfo.issym() and hasattr(os, "lchown"):
+                    os.lchown(targetpath, u, g)
+                else:
+                     if sys.platform != "os2emx":
+                        os.chown(targetpath, u, g)
+            except EnvironmentError, e:
+                raise ExtractError("could not change owner")
+    tarfile.TarFile.chown = fixed_chown
 
 def create_chunk(rootdir, f, include, dump_memory_profile=None):
     '''Create a chunk from the contents of a directory.
