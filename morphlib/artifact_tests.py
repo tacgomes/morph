@@ -56,38 +56,5 @@ class ArtifactTests(unittest.TestCase):
     def test_constructor_sets_name(self):
         self.assertEqual(self.artifact.name, self.artifact_name)
 
-    def test_constructor_initializes_cache_key_as_none(self):
-        self.assertEqual(self.artifact.cache_key, None)
-
-    def test_sets_dependencies_to_empty(self):
-        self.assertEqual(self.artifact.dependencies, [])
-
     def test_sets_dependents_to_empty(self):
         self.assertEqual(self.artifact.dependents, [])
-
-    def test_does_not_depend_on_other_initially(self):
-        self.assertFalse(self.artifact.depends_on(self.other))
-
-    def test_adds_dependency(self):
-        self.artifact.add_dependency(self.other)
-        self.assertIn(self.other, self.artifact.dependencies)
-        self.assertIn(self.artifact, self.other.dependents)
-        self.assertTrue(self.artifact.depends_on(self.other))
-
-    def test_does_not_add_dependency_twice(self):
-        self.artifact.add_dependency(self.other)
-        self.artifact.add_dependency(self.other)
-        self.assertEqual(len([a for a in self.artifact.dependencies
-                              if a == self.other]), 1)
-        self.assertEqual(len([a for a in self.other.dependents
-                              if a == self.artifact]), 1)
-        self.assertTrue(self.artifact.depends_on(self.other))
-
-    def test_get_dependency_prefix(self):
-        self.artifact.add_dependency(self.other)
-        self.artifact.source.prefix = '/bar'
-        self.other.source = copy.copy(self.artifact.source)
-        self.other.source.prefix = '/foo'
-
-        prefix_set = self.artifact.get_dependency_prefix_set()
-        self.assertEqual(prefix_set, set(['/foo']))

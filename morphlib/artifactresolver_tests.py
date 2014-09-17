@@ -103,7 +103,7 @@ class ArtifactResolverTests(unittest.TestCase):
         for artifact in artifacts:
             self.assertEqual(artifact.source, source)
             self.assertTrue(artifact.name.startswith('chunk'))
-            self.assertEqual(artifact.dependencies, [])
+            self.assertEqual(source.dependencies, [])
             self.assertEqual(artifact.dependents, [])
 
     def test_resolve_single_chunk_with_one_new_artifact(self):
@@ -123,7 +123,7 @@ class ArtifactResolverTests(unittest.TestCase):
 
         foobartifact, = (a for a in artifacts if a.name == 'chunk-foobar')
         self.assertEqual(foobartifact.source, source)
-        self.assertEqual(foobartifact.dependencies, [])
+        self.assertEqual(foobartifact.source.dependencies, [])
         self.assertEqual(foobartifact.dependents, [])
 
     def test_resolve_single_chunk_with_two_new_artifacts(self):
@@ -145,7 +145,7 @@ class ArtifactResolverTests(unittest.TestCase):
         for name in ('chunk-baz', 'chunk-qux'):
             artifact, = (a for a in artifacts if a.name == name)
             self.assertEqual(artifact.source, source)
-            self.assertEqual(artifact.dependencies, [])
+            self.assertEqual(artifact.source.dependencies, [])
             self.assertEqual(artifact.dependents, [])
 
     def test_resolve_stratum_and_chunk(self):
@@ -184,13 +184,14 @@ class ArtifactResolverTests(unittest.TestCase):
         for stratum_artifact in stratum_artifacts:
             self.assertTrue(stratum_artifact.name.startswith('stratum'))
             self.assertEqual(stratum_artifact.dependents, [])
-            self.assertTrue(any(dep in chunk_artifacts
-                                for dep in stratum_artifact.dependencies))
+            self.assertTrue(
+                any(dep in chunk_artifacts
+                    for dep in stratum_artifact.source.dependencies))
 
         for chunk_artifact in chunk_artifacts:
             self.assertTrue(chunk_artifact.name.startswith('chunk'))
-            self.assertEqual(chunk_artifact.dependencies, [])
-            self.assertTrue(any(dep in stratum_artifacts
+            self.assertEqual(chunk_artifact.source.dependencies, [])
+            self.assertTrue(any(dep in stratum_sources
                                 for dep in chunk_artifact.dependents))
 
     def test_resolve_stratum_and_chunk_with_two_new_artifacts(self):
@@ -230,13 +231,14 @@ class ArtifactResolverTests(unittest.TestCase):
         for stratum_artifact in stratum_artifacts:
             self.assertTrue(stratum_artifact.name.startswith('stratum'))
             self.assertEqual(stratum_artifact.dependents, [])
-            self.assertTrue(any(dep in chunk_artifacts
-                                for dep in stratum_artifact.dependencies))
+            self.assertTrue(
+                any(dep in chunk_artifacts
+                    for dep in stratum_artifact.source.dependencies))
 
         for chunk_artifact in chunk_artifacts:
             self.assertTrue(chunk_artifact.name.startswith('chunk'))
-            self.assertEqual(chunk_artifact.dependencies, [])
-            self.assertTrue(any(dep in stratum_artifacts
+            self.assertEqual(chunk_artifact.source.dependencies, [])
+            self.assertTrue(any(dep in stratum_sources
                                 for dep in chunk_artifact.dependents))
 
     def test_detection_of_mutual_dependency_between_two_strata(self):

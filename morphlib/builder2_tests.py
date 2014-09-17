@@ -167,37 +167,6 @@ class BuilderBaseTests(unittest.TestCase):
         self.builder.runcmd(['foo', 'bar'])
         self.assertEqual(self.commands_run, [['foo', 'bar']])
 
-    def test_creates_metadata_with_required_fields(self):
-        artifact_name = 'le-artifact'
-        source = self.artifact.source
-        morphology = source.morphology
-        meta = self.builder.create_metadata(artifact_name)
-        self.assertEqual(meta['artifact-name'], artifact_name)
-        self.assertEqual(meta['source-name'], morphology['name'])
-        self.assertEqual(meta['kind'], morphology['kind'])
-        self.assertEqual(meta['description'], morphology['description'])
-        self.assertEqual(meta['repo'], source.repo.url)
-        self.assertEqual(meta['original_ref'], source.original_ref)
-        self.assertEqual(meta['sha1'], source.sha1)
-        self.assertEqual(meta['morphology'], source.filename)
-
-    def test_writes_metadata(self):
-        artifact_name = 'le-artifact'
-        orig_meta = self.builder.create_metadata(artifact_name)
-
-        instdir = '/inst/dir'
-
-        self.builder._open = self.fake_open
-        self.builder.write_metadata(instdir, artifact_name)
-
-        self.assertTrue(self.open_filename.startswith(
-                        os.path.join(instdir, 'baserock',
-                                     artifact_name + '.')))
-        self.assertTrue(self.open_filename.endswith('.meta'))
-
-        meta = json.loads(self.open_handle.getvalue())
-        self.assertEqual(meta, orig_meta)
-
     def test_writes_build_times(self):
         with self.builder.build_watch('nothing'):
             pass

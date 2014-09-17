@@ -123,7 +123,7 @@ class CacheKeyComputerTests(unittest.TestCase):
         self.ckc._hash_tuple = inccount(self.ckc._hash_tuple, 'tuple')
 
         artifact = self._find_artifact('system-rootfs')
-        self.ckc.compute_key(artifact)
+        self.ckc.compute_key(artifact.source)
 
         self.assertNotEqual(runcount['thing'], 0)
         self.assertNotEqual(runcount['dict'], 0)
@@ -136,13 +136,13 @@ class CacheKeyComputerTests(unittest.TestCase):
 
     def test_compute_twice_same_key(self):
         artifact = self._find_artifact('system-rootfs')
-        self.assertEqual(self.ckc.compute_key(artifact),
-                         self.ckc.compute_key(artifact))
+        self.assertEqual(self.ckc.compute_key(artifact.source),
+                         self.ckc.compute_key(artifact.source))
 
     def test_compute_twice_same_id(self):
         artifact = self._find_artifact('system-rootfs')
-        id1 = self.ckc.get_cache_id(artifact)
-        id2 = self.ckc.get_cache_id(artifact)
+        id1 = self.ckc.get_cache_id(artifact.source)
+        id2 = self.ckc.get_cache_id(artifact.source)
         hash1 = self.ckc._hash_id(id1)
         hash2 = self.ckc._hash_id(id2)
         self.assertEqual(hash1, hash2)
@@ -150,13 +150,13 @@ class CacheKeyComputerTests(unittest.TestCase):
     def test_compute_key_returns_sha256(self):
         artifact = self._find_artifact('system-rootfs')
         self.assertTrue(self._valid_sha256(
-                        self.ckc.compute_key(artifact)))
+                        self.ckc.compute_key(artifact.source)))
 
     def test_different_env_gives_different_key(self):
         artifact = self._find_artifact('system-rootfs')
-        oldsha = self.ckc.compute_key(artifact)
+        oldsha = self.ckc.compute_key(artifact.source)
         build_env = copy.deepcopy(self.build_env)
         build_env.env["USER"] = "brian"
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
-        self.assertNotEqual(oldsha, ckc.compute_key(artifact))
+        self.assertNotEqual(oldsha, ckc.compute_key(artifact.source))
