@@ -15,7 +15,7 @@ linux-locale.meta
 linux-misc.meta
 linux-stratum-devel.meta
 linux-stratum-runtime.meta
-linux-system.meta
+linux-system-rootfs.meta
 tools-bins.meta
 tools-devel.meta
 tools-doc.meta
