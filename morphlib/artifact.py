@@ -32,8 +32,7 @@ class Artifact(object):
     def __init__(self, source, name):
         self.source = source
         self.name = name
-        # TODO: Rename to dependents when callers are changed
-        self.dependent_sources = []
+        self.dependents = []
 
     def basename(self):  # pragma: no cover
         return '%s.%s' % (self.source.basename(), str(self.name))
@@ -47,38 +46,6 @@ class Artifact(object):
     def __repr__(self): # pragma: no cover
         return 'Artifact(%s)' % str(self)
 
-    # TODO: Remove after build code stops using me
-    def add_dependency(self, artifact): # pragma: no cover
-        return self.source.add_dependency(artifact)
-    def depends_on(self, artifact): # pragma: no cover
-        return self.source.depends_on(artifact)
-    @property
-    def dependencies(self): # pragma: no cover
-        return self.source.dependencies
-    @property
-    def dependents(self): # pragma: no cover
-        seen = set()
-        res = []
-        for s in self.dependent_sources:
-            for a in s.artifacts.itervalues():
-                if a not in seen:
-                    seen.add(a)
-                    res.append(a)
-        return res
-    @property
-    def cache_id(self): # pragma: no cover
-        return self.source.cache_id
-    @cache_id.setter
-    def cache_id(self, v): # pragma: no cover
-        assert self.source.cache_id is None or v == self.source.cache_id
-        self.source.cache_id = v
-    @property
-    def cache_key(self): # pragma: no cover
-        return self.source.cache_key
-    @cache_key.setter
-    def cache_key(self, v): # pragma: no cover
-        assert (self.source.cache_key is None) or (v == self.source.cache_key)
-        self.source.cache_key = v
 
     def walk(self): # pragma: no cover
         '''Return list of an artifact and its build dependencies.

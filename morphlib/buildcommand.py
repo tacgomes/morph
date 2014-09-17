@@ -259,7 +259,7 @@ class BuildCommand(object):
 
         '''
 
-        return [a for a in artifacts if not a.dependent_sources]
+        return [a for a in artifacts if not a.dependents]
 
     @staticmethod
     def get_ordered_sources(artifacts):
@@ -490,9 +490,9 @@ class BuildCommand(object):
 
         '''
         def dependent_stratum_morphs(source):
-            dependent_sources = set(itertools.chain.from_iterable(
-                a.dependent_sources for a in source.artifacts.itervalues()))
-            dependent_strata = set(s for s in dependent_sources
+            dependents = set(itertools.chain.from_iterable(
+                a.dependents for a in source.artifacts.itervalues()))
+            dependent_strata = set(s for s in dependents
                                    if s.morphology['kind'] == 'stratum')
             return set(s.morphology for s in dependent_strata)
         return dependent_stratum_morphs(s1) == dependent_stratum_morphs(s2)
