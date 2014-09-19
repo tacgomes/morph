@@ -536,7 +536,12 @@ class MorphologyLoader(object):
 
         # Require build-dependencies for the stratum itself, unless
         # it has chunks built in bootstrap mode.
-        if 'build-depends' not in morph:
+        if 'build-depends' in morph:
+            if not isinstance(morph['build-depends'], list):
+                raise InvalidTypeError(
+                    'build-depends', list, type(morph['build-depends']),
+                    morph['name'])
+        else:
             for spec in morph['chunks']:
                 if spec.get('build-mode') in ['bootstrap', 'test']:
                     break
@@ -549,11 +554,15 @@ class MorphologyLoader(object):
 
         # Require build-dependencies for each chunk.
         for spec in morph['chunks']:
-            if 'build-depends' not in spec:
+            chunk_name = spec.get('alias', spec['name'])
+            if 'build-depends' in spec:
+                if not isinstance(spec['build-depends'], list):
+                    raise InvalidTypeError(
+                        '%s.build-depends' % chunk_name, list,
+                        type(spec['build-depends']), morph['name'])
+            else:
                 raise NoBuildDependenciesError(
-                    morph['name'],
-                    spec.get('alias', spec['name']),
-                    morph.filename)
+                    morph['name'], chunk_name, morph.filename)
 
     @classmethod
     def _validate_chunk(cls, morphology):
