@@ -203,6 +203,10 @@ class Morph(cliapp.Application):
 
         self.add_subcommand('help-extensions', self.help_extensions)
 
+    def log_config(self):
+        with morphlib.util.hide_password_environment_variables(os.environ):
+            cliapp.Application.log_config(self)
+
     def process_args(self, args):
         self.check_time()
 

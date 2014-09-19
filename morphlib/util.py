@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import contextlib
 import itertools
 import os
 import re
@@ -209,6 +210,16 @@ def new_repo_caches(app):  # pragma: no cover
 
 def env_variable_is_password(key):  # pragma: no cover
     return 'PASSWORD' in key
+
+@contextlib.contextmanager
+def hide_password_environment_variables(env):  # pragma: no cover
+    is_password = env_variable_is_password
+    password_env = { k:v for k,v in env.iteritems() if is_password(k) }
+    for k in password_env:
+        env[k] = '(value hidden)'
+    yield
+    for k, v in password_env.iteritems():
+        env[k] = v
 
 def log_environment_changes(app, current_env, previous_env): # pragma: no cover
     '''Log the differences between two environments to debug log.'''
