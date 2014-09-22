@@ -39,13 +39,16 @@ class ArtifactTests(unittest.TestCase):
                       include:
                         - usr/include
                 ''')
-        self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
+        self.source, = morphlib.source.make_sources('repo', 'ref',
+                                                    'chunk.morph', 'sha1',
+                                                    'tree', morph)
         self.artifact_name = 'chunk-runtime'
-        self.artifact = morphlib.artifact.Artifact(
-            self.source, self.artifact_name)
-        self.other = morphlib.artifact.Artifact(
-            self.source, self.artifact_name)
+        self.artifact = self.source.artifacts[self.artifact_name]
+        self.other_source, = morphlib.source.make_sources('repo', 'ref',
+                                                          'chunk.morph',
+                                                          'sha1', 'tree',
+                                                          morph)
+        self.other = self.other_source.artifacts[self.artifact_name]
 
     def test_constructor_sets_source(self):
         self.assertEqual(self.artifact.source, self.source)
@@ -53,36 +56,5 @@ class ArtifactTests(unittest.TestCase):
     def test_constructor_sets_name(self):
         self.assertEqual(self.artifact.name, self.artifact_name)
 
-    def test_constructor_initializes_cache_key_as_none(self):
-        self.assertEqual(self.artifact.cache_key, None)
-
-    def test_sets_dependencies_to_empty(self):
-        self.assertEqual(self.artifact.dependencies, [])
-
     def test_sets_dependents_to_empty(self):
         self.assertEqual(self.artifact.dependents, [])
-
-    def test_does_not_depend_on_other_initially(self):
-        self.assertFalse(self.artifact.depends_on(self.other))
-
-    def test_adds_dependency(self):
-        self.artifact.add_dependency(self.other)
-        self.assertEqual(self.artifact.dependencies, [self.other])
-        self.assertEqual(self.other.dependents, [self.artifact])
-        self.assertTrue(self.artifact.depends_on(self.other))
-
-    def test_does_not_add_dependency_twice(self):
-        self.artifact.add_dependency(self.other)
-        self.artifact.add_dependency(self.other)
-        self.assertEqual(self.artifact.dependencies, [self.other])
-        self.assertEqual(self.other.dependents, [self.artifact])
-        self.assertTrue(self.artifact.depends_on(self.other))
-
-    def test_get_dependency_prefix(self):
-        self.artifact.add_dependency(self.other)
-        self.artifact.source.prefix = '/bar'
-        self.other.source = copy.copy(self.artifact.source)
-        self.other.source.prefix = '/foo'
-
-        prefix_set = self.artifact.get_dependency_prefix_set()
-        self.assertEqual(prefix_set, set(['/foo']))

@@ -43,14 +43,15 @@ class LocalArtifactCacheTests(unittest.TestCase):
                   include:
                     - usr/include
             ''')
-        self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
+        sources = morphlib.source.make_sources('repo', 'ref',
+                                               'chunk.morph', 'sha1',
+                                               'tree', morph)
+        self.source, = sources
+        self.source.cache_key = '0'*64
         self.runtime_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-runtime')
-        self.runtime_artifact.cache_key = '0'*64
         self.devel_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-devel')
-        self.devel_artifact.cache_key = '0'*64
 
     def test_artifact_filename(self):
         cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
@@ -61,12 +62,13 @@ class LocalArtifactCacheTests(unittest.TestCase):
     def test_get_source_metadata_filename(self):
         cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
         artifact = self.devel_artifact
+        source = self.source
         name = 'foobar'
 
         filename = cache.get_source_metadata_filename(artifact.source,
-                                                      artifact.cache_key, name)
+                                                      source.cache_key, name)
         expected_name = self.tempfs.getsyspath('%s.%s' %
-                                               (artifact.cache_key, name))
+                                               (source.cache_key, name))
         self.assertEqual(filename, expected_name)
 
     def test_put_artifacts_and_check_whether_the_cache_has_them(self):
@@ -165,13 +167,13 @@ class LocalArtifactCacheTests(unittest.TestCase):
         handle.write('runtime')
         handle.close()
 
-        self.assertTrue(len(list(cache.list_contents())) == 1)
+        self.assertEqual(len(list(cache.list_contents())), 1)
 
         handle = cache.put(self.devel_artifact)
         handle.write('devel')
         handle.close()
 
-        self.assertTrue(len(list(cache.list_contents())) == 1)
+        self.assertEqual(len(list(cache.list_contents())), 1)
 
     def test_put_artifacts_and_remove_them_afterwards(self):
         cache = morphlib.localartifactcache.LocalArtifactCache(self.tempfs)
@@ -187,4 +189,4 @@ class LocalArtifactCacheTests(unittest.TestCase):
         key = list(cache.list_contents())[0][0]
         cache.remove(key)
 
-        self.assertTrue(len(list(cache.list_contents())) == 0)
+        self.assertEqual(len(list(cache.list_contents())), 0)

@@ -162,15 +162,15 @@ def get_stratum_files(f, lac):  # pragma: no cover
         cf.close()
 
 
-def get_overlaps(artifact, constituents, lac):  # pragma: no cover
+def get_overlaps(source, constituents, lac):  # pragma: no cover
     # check whether strata overlap
     installed = defaultdict(set)
     for dep in constituents:
         handle = lac.get(dep)
-        if artifact.source.morphology['kind'] == 'stratum':
+        if source.morphology['kind'] == 'stratum':
             for filename in get_chunk_files(handle):
                 installed[filename].add(dep)
-        elif artifact.source.morphology['kind'] == 'system':
+        elif source.morphology['kind'] == 'system':
             for filename in get_stratum_files(handle, lac):
                 installed[filename].add(dep)
         handle.close()
@@ -207,13 +207,13 @@ class BuilderBase(object):
     '''Base class for building artifacts.'''
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, artifact, repo_cache, max_jobs,
+                 remote_artifact_cache, source, repo_cache, max_jobs,
                  setup_mounts):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
         self.remote_artifact_cache = remote_artifact_cache
-        self.artifact = artifact
+        self.source = source
         self.repo_cache = repo_cache
         self.max_jobs = max_jobs
         self.build_watch = morphlib.stopwatch.Stopwatch()
@@ -233,13 +233,13 @@ class BuilderBase(object):
 
         logging.debug('Writing metadata to the cache')
         with self.local_artifact_cache.put_source_metadata(
-                self.artifact.source, self.artifact.cache_key,
+                self.source, self.source.cache_key,
                 'meta') as f:
             json.dump(meta, f, indent=4, sort_keys=True,
                       encoding='unicode-escape')
             f.write('\n')
 
-    def create_metadata(self, artifact_name, contents=[]):
+    def create_metadata(self, artifact_name, contents=[]): # pragma: no cover
         '''Create metadata to artifact to allow it to be reproduced later.
 
         The metadata is represented as a dict, which later on will be
@@ -247,20 +247,20 @@ class BuilderBase(object):
 
         '''
 
-        assert isinstance(self.artifact.source.repo,
+        assert isinstance(self.source.repo,
                           morphlib.cachedrepo.CachedRepo)
         meta = {
             'artifact-name': artifact_name,
-            'source-name': self.artifact.source.morphology['name'],
-            'kind': self.artifact.source.morphology['kind'],
-            'description': self.artifact.source.morphology['description'],
-            'repo': self.artifact.source.repo.url,
-            'repo-alias': self.artifact.source.repo_name,
-            'original_ref': self.artifact.source.original_ref,
-            'sha1': self.artifact.source.sha1,
-            'morphology': self.artifact.source.filename,
-            'cache-key': self.artifact.cache_key,
-            'cache-id': self.artifact.cache_id,
+            'source-name': self.source.name,
+            'kind': self.source.morphology['kind'],
+            'description': self.source.morphology['description'],
+            'repo': self.source.repo.url,
+            'repo-alias': self.source.repo_name,
+            'original_ref': self.source.original_ref,
+            'sha1': self.source.sha1,
+            'morphology': self.source.filename,
+            'cache-key': self.source.cache_key,
+            'cache-id': self.source.cache_id,
             'morph-version': {
                 'ref': morphlib.gitversion.ref,
                 'tree': morphlib.gitversion.tree,
@@ -279,7 +279,8 @@ class BuilderBase(object):
             os.makedirs(dirname)
         return open(filename, mode)
 
-    def write_metadata(self, instdir, artifact_name, contents=[]):
+    def write_metadata(self, instdir, artifact_name,
+                       contents=[]): # pragma: no cover
         '''Write the metadata for an artifact.
 
         The file will be located under the ``baserock`` directory under
@@ -299,12 +300,6 @@ class BuilderBase(object):
         json.dump(meta, f, indent=4, sort_keys=True, encoding='unicode-escape')
         f.close()
 
-    def new_artifact(self, artifact_name):
-        '''Return an Artifact object for something built from our source.'''
-        a = morphlib.artifact.Artifact(self.artifact.source, artifact_name)
-        a.cache_key = self.artifact.cache_key
-        return a
-
     def runcmd(self, *args, **kwargs):
         return self.staging_area.runcmd(*args, **kwargs)
 
@@ -314,7 +309,7 @@ class ChunkBuilder(BuilderBase):
 
     def create_devices(self, destdir): # pragma: no cover
         '''Creates device nodes if the morphology specifies them'''
-        morphology = self.artifact.source.morphology
+        morphology = self.source.morphology
         perms_mask = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
         if 'devices' in morphology and morphology['devices'] is not None:
             for dev in morphology['devices']:
@@ -338,14 +333,14 @@ class ChunkBuilder(BuilderBase):
         with self.build_watch('overall-build'):
 
             builddir, destdir = self.staging_area.chroot_open(
-                self.artifact.source, self.setup_mounts)
+                self.source, self.setup_mounts)
 
             stdout = (self.app.output
                 if self.app.settings['build-log-on-stdout'] else None)
 
             cache = self.local_artifact_cache
             logpath = cache.get_source_metadata_filename(
-                self.artifact.source, self.artifact.cache_key, 'build-log')
+                self.source, self.source.cache_key, 'build-log')
 
             _, temppath = tempfile.mkstemp(dir=os.path.dirname(logpath))
 
@@ -381,7 +376,7 @@ class ChunkBuilder(BuilderBase):
 
     def run_commands(self, builddir, destdir,
                      logfilepath, stdout=None):  # pragma: no cover
-        m = self.artifact.source.morphology
+        m = self.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
         relative_builddir = self.staging_area.relative(builddir)
@@ -413,7 +408,7 @@ class ChunkBuilder(BuilderBase):
 
                 for cmd in cmds:
                     if in_parallel:
-                        max_jobs = self.artifact.source.morphology['max-jobs']
+                        max_jobs = self.source.morphology['max-jobs']
                         if max_jobs is None:
                             max_jobs = self.max_jobs
                         extra_env['MAKEFLAGS'] = '-j%s' % max_jobs
@@ -480,7 +475,7 @@ class ChunkBuilder(BuilderBase):
     def assemble_chunk_artifacts(self, destdir):  # pragma: no cover
         built_artifacts = []
         filenames = []
-        source = self.artifact.source
+        source = self.source
         split_rules = source.split_rules
         morphology = source.morphology
         sys_tag = 'system-integration'
@@ -539,7 +534,7 @@ class ChunkBuilder(BuilderBase):
         return built_artifacts
 
     def get_sources(self, srcdir):  # pragma: no cover
-        s = self.artifact.source
+        s = self.source
         extract_sources(self.app, self.repo_cache, s.repo, s.sha1, srcdir)
 
 
@@ -553,42 +548,42 @@ class StratumBuilder(BuilderBase):
 
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
-            constituents = [d for d in self.artifact.dependencies
+            constituents = [d for d in self.source.dependencies
                             if self.is_constituent(d)]
 
             # the only reason the StratumBuilder has to download chunks is to
             # check for overlap now that strata are lists of chunks
             with self.build_watch('check-chunks'):
-                # download the chunk artifact if necessary
-                download_depends(constituents,
-                                 self.local_artifact_cache,
-                                 self.remote_artifact_cache)
-                # check for chunk overlaps
-                overlaps = get_overlaps(self.artifact, constituents,
-                                        self.local_artifact_cache)
-                if len(overlaps) > 0:
-                    logging.warning('Overlaps in stratum artifact %s detected'
-                                    % self.artifact.name)
-                    log_overlaps(overlaps)
-                    self.app.status(msg='Overlaps in stratum artifact '
-                                        '%(stratum_name)s detected',
-                                    stratum_name=self.artifact.name,
-                                    error=True)
-                    write_overlap_metadata(self.artifact, overlaps,
-                                           self.local_artifact_cache)
+                for a_name, a in self.source.artifacts.iteritems():
+                    # download the chunk artifact if necessary
+                    download_depends(constituents,
+                                     self.local_artifact_cache,
+                                     self.remote_artifact_cache)
+                    # check for chunk overlaps
+                    overlaps = get_overlaps(self.source, constituents,
+                                            self.local_artifact_cache)
+                    if len(overlaps) > 0:
+                        logging.warning(
+                            'Overlaps in stratum artifact %s detected' %a_name)
+                        log_overlaps(overlaps)
+                        self.app.status(msg='Overlaps in stratum artifact '
+                                            '%(stratum_name)s detected',
+                                        stratum_name=a_name, error=True)
+                        write_overlap_metadata(a, overlaps,
+                                               self.local_artifact_cache)
 
             with self.build_watch('create-chunk-list'):
                 lac = self.local_artifact_cache
-                meta = self.create_metadata(self.artifact.name,
-                                            [x.name for x in constituents])
-                with lac.put_artifact_metadata(self.artifact, 'meta')  as f:
-                    json.dump(meta, f, indent=4, sort_keys=True,
-                              encoding='unicode-escape')
-                with self.local_artifact_cache.put(self.artifact) as f:
-                    json.dump([c.basename() for c in constituents], f,
-                              encoding='unicode-escape')
+                for a_name, a in self.source.artifacts.iteritems():
+                    meta = self.create_metadata(
+                        a_name,
+                        [x.name for x in constituents])
+                    with lac.put_artifact_metadata(a, 'meta')  as f:
+                        json.dump(meta, f, indent=4, sort_keys=True)
+                    with self.local_artifact_cache.put(a) as f:
+                        json.dump([c.basename() for c in constituents], f)
         self.save_build_times()
-        return [self.artifact]
+        return self.source.artifacts.values()
 
 
 class SystemBuilder(BuilderBase):  # pragma: no cover
@@ -602,45 +597,42 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
 
     def build_and_cache(self):
         self.app.status(msg='Building system %(system_name)s',
-                        system_name=self.artifact.source.morphology['name'])
+                        system_name=self.source.name)
 
         with self.build_watch('overall-build'):
-            arch = self.artifact.source.morphology['arch']
+            arch = self.source.morphology['arch']
 
-            rootfs_name = self.artifact.source.morphology['name'] + '-rootfs'
-            rootfs_artifact = self.new_artifact(rootfs_name)
-            handle = self.local_artifact_cache.put(rootfs_artifact)
+            for a_name, artifact in self.source.artifacts.iteritems():
+                handle = self.local_artifact_cache.put(artifact)
 
-            try:
-                fs_root = self.staging_area.destdir(self.artifact.source)
-                self.unpack_strata(fs_root)
-                self.write_metadata(fs_root, rootfs_name)
-                self.run_system_integration_commands(fs_root)
-                self.copy_kernel_into_artifact_cache(fs_root)
-                unslashy_root = fs_root[1:]
-                def uproot_info(info):
-                    info.name = relpath(info.name, unslashy_root)
-                    if info.islnk():
-                        info.linkname = relpath(info.linkname,
-                                                unslashy_root)
-                    return info
-                artiname = self.artifact.source.morphology['name']
-                tar = tarfile.open(fileobj=handle, mode="w", name=artiname)
-                self.app.status(msg='Constructing tarball of root filesystem',
-                                chatty=True)
-                tar.add(fs_root, recursive=True, filter=uproot_info)
-                tar.close()
-            except BaseException, e:
-                logging.error(traceback.format_exc())
-                self.app.status(msg='Error while building system',
-                                error=True)
-                handle.abort()
-                raise
-
-            handle.close()
+                try:
+                    fs_root = self.staging_area.destdir(self.source)
+                    self.unpack_strata(fs_root)
+                    self.write_metadata(fs_root, a_name)
+                    self.run_system_integration_commands(fs_root)
+                    unslashy_root = fs_root[1:]
+                    def uproot_info(info):
+                        info.name = relpath(info.name, unslashy_root)
+                        if info.islnk():
+                            info.linkname = relpath(info.linkname,
+                                                    unslashy_root)
+                        return info
+                    tar = tarfile.open(fileobj=handle, mode="w", name=a_name)
+                    self.app.status(msg='Constructing tarball of rootfs',
+                                    chatty=True)
+                    tar.add(fs_root, recursive=True, filter=uproot_info)
+                    tar.close()
+                except BaseException as e:
+                    logging.error(traceback.format_exc())
+                    self.app.status(msg='Error while building system',
+                                    error=True)
+                    handle.abort()
+                    raise
+                else:
+                    handle.close()
 
         self.save_build_times()
-        return [self.artifact]
+        return self.source.artifacts.itervalues()
 
     def unpack_one_stratum(self, stratum_artifact, target):
         '''Unpack a single stratum into a target directory'''
@@ -666,37 +658,37 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
         self.app.status(msg='Unpacking strata to %(path)s',
                         path=path, chatty=True)
         with self.build_watch('unpack-strata'):
-            # download the stratum artifacts if necessary
-            download_depends(self.artifact.dependencies,
-                             self.local_artifact_cache,
-                             self.remote_artifact_cache,
-                             ('meta',))
-
-            # download the chunk artifacts if necessary
-            for stratum_artifact in self.artifact.dependencies:
-                f = self.local_artifact_cache.get(stratum_artifact)
-                chunks = [ArtifactCacheReference(a)
-                          for a in json.load(f, encoding='unicode-escape')]
-                download_depends(chunks,
+            for a_name, a in self.source.artifacts.iteritems():
+                # download the stratum artifacts if necessary
+                download_depends(self.source.dependencies,
                                  self.local_artifact_cache,
-                                 self.remote_artifact_cache)
-                f.close()
+                                 self.remote_artifact_cache,
+                                 ('meta',))
 
-            # check whether the strata overlap
-            overlaps = get_overlaps(self.artifact, self.artifact.dependencies,
-                                    self.local_artifact_cache)
-            if len(overlaps) > 0:
-                self.app.status(msg='Overlaps in system artifact '
-                                    '%(artifact_name)s detected',
-                                artifact_name=self.artifact.name,
-                                error=True)
-                log_overlaps(overlaps)
-                write_overlap_metadata(self.artifact, overlaps,
-                                       self.local_artifact_cache)
+                # download the chunk artifacts if necessary
+                for stratum_artifact in self.source.dependencies:
+                    f = self.local_artifact_cache.get(stratum_artifact)
+                    chunks = [ArtifactCacheReference(c) for c in json.load(f)]
+                    download_depends(chunks,
+                                     self.local_artifact_cache,
+                                     self.remote_artifact_cache)
+                    f.close()
 
-            # unpack it from the local artifact cache
-            for stratum_artifact in self.artifact.dependencies:
-                self.unpack_one_stratum(stratum_artifact, path)
+                # check whether the strata overlap
+                overlaps = get_overlaps(self.source, self.source.dependencies,
+                                        self.local_artifact_cache)
+                if len(overlaps) > 0:
+                    self.app.status(msg='Overlaps in system artifact '
+                                        '%(artifact_name)s detected',
+                                    artifact_name=a_name,
+                                    error=True)
+                    log_overlaps(overlaps)
+                    write_overlap_metadata(a, overlaps,
+                                           self.local_artifact_cache)
+
+                # unpack it from the local artifact cache
+                for stratum_artifact in self.source.dependencies:
+                    self.unpack_one_stratum(stratum_artifact, path)
 
             ldconfig(self.app.runcmd, path)
 
@@ -766,25 +758,6 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                                   % mount_path)
                 morphlib.fsutils.unmount(self.app.runcmd, mount_path)
 
-    def copy_kernel_into_artifact_cache(self, path):
-        '''Copy the installed kernel image into the local artifact cache.
-
-        The kernel image will be a separate artifact from the root
-        filesystem/disk image/whatever. This is sometimes useful with
-        funky bootloaders or virtualisation.
-
-        '''
-
-        name = self.artifact.source.morphology['name'] + '-kernel'
-        a = self.new_artifact(name)
-        with self.local_artifact_cache.put(a) as dest:
-            for basename in ['zImage', 'vmlinuz']:
-                installed_path = os.path.join(path, 'boot', basename)
-                if os.path.exists(installed_path):
-                    with open(installed_path) as kernel:
-                        shutil.copyfileobj(kernel, dest)
-                    break
-
 
 class Builder(object):  # pragma: no cover
 
@@ -806,15 +779,15 @@ class Builder(object):  # pragma: no cover
         self.max_jobs = max_jobs
         self.setup_mounts = setup_mounts
 
-    def build_and_cache(self, artifact):
-        kind = artifact.source.morphology['kind']
+    def build_and_cache(self, source):
+        kind = source.morphology['kind']
         o = self.classes[kind](self.app, self.staging_area,
                                self.local_artifact_cache,
-                               self.remote_artifact_cache, artifact,
+                               self.remote_artifact_cache, source,
                                self.repo_cache, self.max_jobs,
                                self.setup_mounts)
         self.app.status(msg='Builder.build: artifact %s with %s' %
-                       (artifact.name, repr(o)),
+                       (source.name, repr(o)),
                        chatty=True)
         built_artifacts = o.build_and_cache()
         self.app.status(msg='Builder.build: done',

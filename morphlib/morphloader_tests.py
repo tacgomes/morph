@@ -394,6 +394,48 @@ build-system: dummy
         m['chunks'][0]['build-mode'] = 'bootstrap'
         self.loader.validate(m)
 
+    def test_validate_stratum_build_deps_are_list(self):
+        m = morphlib.morphology.Morphology(
+            {
+                "name": "stratum-invalid-bdeps",
+                "kind": "stratum",
+                "build-depends": 0.1,
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": []
+                    }
+                ]
+            })
+
+        self.assertRaises(
+            morphlib.morphloader.InvalidTypeError,
+            self.loader.validate, m)
+
+    def test_validate_chunk_build_deps_are_list(self):
+        m = morphlib.morphology.Morphology(
+            {
+                "name": "stratum-invalid-bdeps",
+                "kind": "stratum",
+                "build-depends": [
+                    { "morph": "foo" },
+                ],
+                "chunks": [
+                    {
+                        "name": "chunk",
+                        "repo": "test:repo",
+                        "ref": "sha1",
+                        "build-depends": 0.1
+                    }
+                ]
+            })
+
+        self.assertRaises(
+            morphlib.morphloader.InvalidTypeError,
+            self.loader.validate, m)
+
     def test_validate_requires_chunks_in_strata(self):
         m = morphlib.morphology.Morphology(
             {

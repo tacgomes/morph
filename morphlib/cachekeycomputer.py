@@ -32,16 +32,15 @@ class CacheKeyComputer(object):
                 "USER", "USERNAME"]
         return dict([(k, env[k]) for k in keys])
 
-    def compute_key(self, artifact):
+    def compute_key(self, source):
         try:
-            ret = self._hashed[artifact]
-            return ret
+            return self._hashed[source]
         except KeyError:
-            ret = self._hash_id(self.get_cache_id(artifact))
-            self._hashed[artifact] = ret
-            logging.debug('computed cache key %s for artifact %s from source ',
-                          ret, (artifact.source.repo_name,
-                           artifact.source.sha1, artifact.source.filename))
+            ret = self._hash_id(self.get_cache_id(source))
+            self._hashed[source] = ret
+            logging.debug(
+                'computed cache key %s for artifact %s from source ',
+                 ret, (source.repo_name, source.sha1, source.filename))
             return ret
 
     def _hash_id(self, cache_id):
@@ -71,47 +70,47 @@ class CacheKeyComputer(object):
         for item in tup:
             self._hash_thing(sha, item)
 
-    def get_cache_id(self, artifact):
+    def get_cache_id(self, source):
         try:
-            ret = self._calculated[artifact]
+            ret = self._calculated[source]
             return ret
         except KeyError:
-            cacheid = self._calculate(artifact)
-            self._calculated[artifact] = cacheid
+            cacheid = self._calculate(source)
+            self._calculated[source] = cacheid
             return cacheid
 
-    def _calculate(self, artifact):
+    def _calculate(self, source):
         keys = {
             'env': self._filterenv(self._build_env.env),
-            'kids': [{'artifact': a.name, 'cache-key': self.compute_key(a)}
-                     for a in artifact.dependencies],
-            'metadata-version': artifact.metadata_version
+            'kids': [{'artifact': a.name,
+                      'cache-key': self.compute_key(a.source)}
+                     for a in source.dependencies],
+            'metadata-version': 1
         }
 
-        kind = artifact.source.morphology['kind']
+        morphology = source.morphology
+        kind = morphology['kind']
         if kind == 'chunk':
-            keys['build-mode'] = artifact.source.build_mode
-            keys['prefix'] = artifact.source.prefix
-            keys['tree'] = artifact.source.tree
+            keys['build-mode'] = source.build_mode
+            keys['prefix'] = source.prefix
+            keys['tree'] = source.tree
             keys['split-rules'] = [(a, [rgx.pattern for rgx in r._regexes])
-                                   for (a, r) in artifact.source.split_rules]
+                                   for (a, r) in source.split_rules]
 
             # Include morphology contents, since it doesn't always come
             # from the source tree
-            morphology = artifact.source.morphology
+            keys['devices'] = morphology.get('devices')
+            keys['max-jobs'] = morphology.get('max-jobs')
+            keys['system-integration'] = morphology.get('system-integration',
+                                                        {})
+            # products is omitted as they are part of the split-rules
             # include {pre-,,post-}{configure,build,test,install}-commands
             # in morphology key
             for prefix in ('pre-', '', 'post-'):
                 for cmdtype in ('configure', 'build', 'test', 'install'):
                     cmd_field = prefix + cmdtype + '-commands'
                     keys[cmd_field] = morphology[cmd_field]
-            keys['devices'] = morphology.get('devices')
-            keys['max-jobs'] = morphology.get('max-jobs')
-            keys['system-integration'] = morphology.get('system-integration',
-                                                        {})
-            # products is omitted as they are part of the split-rules
         elif kind in ('system', 'stratum'):
-            morphology = artifact.source.morphology
             morph_dict = dict((k, morphology[k]) for k in morphology.keys())
 
             # Disregard all fields of a morphology that aren't important

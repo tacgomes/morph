@@ -30,13 +30,17 @@ class Source(object):
     * ``tree`` -- the SHA1 of the tree corresponding to the commit
     * ``morphology`` -- the in-memory representation of the morphology we use
     * ``filename`` -- basename of the morphology filename
-    * ``artifacts`` -- the set of artifacts this source produces.
+    * ``cache_id`` -- a dict describing the components of the cache key
+    * ``cache_key`` -- a cache key to uniquely identify the artifact
+    * ``dependencies`` -- list of Artifacts that need to be built beforehand
     * ``split_rules`` -- rules for splitting the source's produced artifacts
+    * ``artifacts`` -- the set of artifacts this source produces.
 
     '''
 
-    def __init__(self, repo_name, original_ref, sha1, tree, morphology,
-            filename):
+    def __init__(self, name, repo_name, original_ref, sha1, tree, morphology,
+            filename, split_rules):
+        self.name = name
         self.repo = None
         self.repo_name = repo_name
         self.original_ref = original_ref
@@ -44,15 +48,63 @@ class Source(object):
         self.tree = tree
         self.morphology = morphology
         self.filename = filename
+        self.cache_id = None
+        self.cache_key = None
+        self.dependencies = []
 
-        kind = morphology['kind']
-        unifier = getattr(morphlib.artifactsplitrule,
-                          'unify_%s_matches' % kind)
-        self.split_rules = unifier(morphology)
-        self.artifacts = {name: morphlib.artifact.Artifact(self, name)
-                          for name in self.split_rules.artifacts}
+        self.split_rules = split_rules
+        self.artifacts = None
 
     def __str__(self):  # pragma: no cover
-        return '%s|%s|%s' % (self.repo_name,
-                             self.original_ref,
-                             self.filename)
+        return '%s|%s|%s|%s' % (self.repo_name,
+                                self.original_ref,
+                                self.filename,
+                                self.name)
+
+    def __repr__(self): # pragma: no cover
+        return 'Source(%s)' % str(self)
+
+    def basename(self): # pragma: no cover
+        return '%s.%s' % (self.cache_key, str(self.morphology['kind']))
+
+    def add_dependency(self, artifact): # pragma: no cover
+        if artifact not in self.dependencies:
+            self.dependencies.append(artifact)
+        if self not in artifact.dependents:
+            artifact.dependents.append(self)
+
+    def depends_on(self, artifact): # pragma: no cover
+        '''Do we depend on ``artifact``?'''
+        return artifact in self.dependencies
+
+
+def make_sources(reponame, ref, filename, absref, tree, morphology):
+    kind = morphology['kind']
+    if kind in ('system', 'chunk'):
+        unifier = getattr(morphlib.artifactsplitrule,
+                          'unify_%s_matches' % kind)
+        split_rules = unifier(morphology)
+        # chunk and system sources are named after the morphology
+        source_name = morphology['name']
+        source = morphlib.source.Source(source_name, reponame, ref,
+                                        absref, tree, morphology,
+                                        filename, split_rules)
+        source.artifacts = {name: morphlib.artifact.Artifact(source, name)
+                     for name in split_rules.artifacts}
+        yield source
+    elif kind == 'stratum': # pragma: no cover
+        unifier = morphlib.artifactsplitrule.unify_stratum_matches
+        split_rules = unifier(morphology)
+        for name in split_rules.artifacts:
+            source = morphlib.source.Source(
+                name, # stratum source name is artifact name
+                reponame, ref, absref, tree, morphology, filename,
+                # stratum sources need to match the unified
+                # split rules, so they know to yield the match
+                # to a different source
+                split_rules)
+            source.artifacts = {name: morphlib.artifact.Artifact(source, name)}
+            yield source
+    else:
+        # cluster morphologies don't have sources
+        pass

@@ -43,17 +43,19 @@ class RemoteArtifactCacheTests(unittest.TestCase):
                       include:
                           - usr/share/doc
             ''')
-        self.source = morphlib.source.Source(
-            'repo', 'ref', 'sha1', 'tree', morph, 'chunk.morph')
+        sources = morphlib.source.make_sources('repo', 'original/ref',
+                                               'chunk.morph', 'sha1',
+                                               'tree', morph)
+        self.source, = sources
         self.runtime_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-runtime')
-        self.runtime_artifact.cache_key = 'CHUNK-RUNTIME'
+        self.runtime_artifact.cache_key = 'CHUNK'
         self.devel_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-devel')
-        self.devel_artifact.cache_key = 'CHUNK-DEVEL'
+        self.devel_artifact.cache_key = 'CHUNK'
         self.doc_artifact = morphlib.artifact.Artifact(
             self.source, 'chunk-doc')
-        self.doc_artifact.cache_key = 'CHUNK-DOC'
+        self.doc_artifact.cache_key = 'CHUNK'
 
         self.existing_files = set([
             self.runtime_artifact.basename(),

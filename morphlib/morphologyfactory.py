@@ -50,7 +50,7 @@ class MorphologyFactory(object):
         if self._app is not None:
             self._app.status(*args, **kwargs)
 
-    def _load_morphology(self, reponame, sha1, filename):
+    def get_morphology(self, reponame, sha1, filename):
         morph_name = os.path.splitext(os.path.basename(filename))[0]
         loader = morphlib.morphloader.MorphologyLoader()
         if self._lrc.has_repo(reponame):
@@ -88,38 +88,3 @@ class MorphologyFactory(object):
             loader.set_commands(morph)
             loader.set_defaults(morph)
         return morph
-
-    def get_morphology(self, reponame, sha1, filename):
-        morphology = self._load_morphology(reponame, sha1, filename)
-
-        method_name = '_check_and_tweak_%s' % morphology['kind']
-        if hasattr(self, method_name):
-            method = getattr(self, method_name)
-            method(morphology, reponame, sha1, filename)
-
-        return morphology
-
-    def _check_and_tweak_system(self, morphology, reponame, sha1, filename):
-        '''Check and tweak a system morphology.'''
-
-        name = morphology['name']
-        morphology.builds_artifacts = [name + '-rootfs']
-
-        morphology.needs_artifact_metadata_cached = False
-
-    def _check_and_tweak_stratum(self, morphology, reponame, sha1, filename):
-        '''Check and tweak a stratum morphology.'''
-
-        morphology.builds_artifacts = [morphology['name']]
-        morphology.needs_artifact_metadata_cached = True
-
-    def _check_and_tweak_chunk(self, morphology, reponame, sha1, filename):
-        '''Check and tweak a chunk morphology.'''
-
-        if 'products' in morphology and len(morphology['products']) > 1:
-            morphology.builds_artifacts = [d['artifact']
-                                           for d in morphology['products']]
-        else:
-            morphology.builds_artifacts = [morphology['name']]
-
-        morphology.needs_artifact_metadata_cached = False

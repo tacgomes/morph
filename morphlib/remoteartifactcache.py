@@ -31,9 +31,9 @@ class GetError(cliapp.AppException):
 
     def __init__(self, cache, artifact):
         cliapp.AppException.__init__(
-            self, 'Failed to get the artifact %s with cache key %s '
+            self, 'Failed to get the artifact %s '
                   'from the artifact cache %s' %
-                  (artifact.basename(), artifact.cache_key, cache))
+                  (artifact.basename(), cache))
 
 
 class GetArtifactMetadataError(GetError):

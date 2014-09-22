@@ -43,3 +43,9 @@ class Morphology(UserDict.IterableUserDict):
         self.filename = None
         self.dirty = None
 
+    @property
+    def needs_artifact_metadata_cached(self): # pragma: no cover
+        return self.get('kind') == 'stratum'
+
+    def __hash__(self):
+        return id(self)

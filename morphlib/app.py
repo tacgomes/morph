@@ -294,9 +294,11 @@ class Morph(cliapp.Application):
         pool = morphlib.sourcepool.SourcePool()
 
         def add_to_pool(reponame, ref, filename, absref, tree, morphology):
-            source = morphlib.source.Source(reponame, ref, absref, tree,
-                                            morphology, filename)
-            pool.add(source)
+            sources = morphlib.source.make_sources(reponame, ref,
+                                                   filename, absref,
+                                                   tree, morphology)
+            for source in sources:
+                pool.add(source)
 
         self.traverse_morphs(repo, ref, [filename], lrc, rrc,
                              update=not self.settings['no-git-update'],

@@ -37,6 +37,7 @@ class FakeSource(object):
         self.morphology = {
             'name': 'le-name',
         }
+        self.name = 'le-name'
 
 
 class FakeApplication(object):
