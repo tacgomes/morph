@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import contextlib
 import itertools
 import os
 import re
@@ -207,24 +208,37 @@ def new_repo_caches(app):  # pragma: no cover
 
     return lrc, rrc
 
+def env_variable_is_password(key):  # pragma: no cover
+    return 'PASSWORD' in key
 
-def log_dict_diff(app, cur, pre): # pragma: no cover
-    '''Log the differences between two dicts to debug log'''
-    dictA = cur
-    dictB = pre
-    for key in dictA.keys():
-        if key not in dictB:
-            app.status(msg="New environment: %(key)s = %(value)s",
-                       key=key, value=dictA[key], chatty=True)
-        elif dictA[key] != dictB[key]:
-            app.status(msg="Environment changed: \
-                %(key)s = %(valA)s to %(key)s = %(valB)s",
-                key=key, valA=dictA[key], valB=dictB[key], chatty=True)
-    for key in dictB.keys():
-        if key not in dictA:
-            app.status(msg="Environment removed:  %(key)s = %(value)s",
-                       key=key, value=dictB[key], chatty=True)
+@contextlib.contextmanager
+def hide_password_environment_variables(env):  # pragma: no cover
+    is_password = env_variable_is_password
+    password_env = { k:v for k,v in env.iteritems() if is_password(k) }
+    for k in password_env:
+        env[k] = '(value hidden)'
+    yield
+    for k, v in password_env.iteritems():
+        env[k] = v
 
+def log_environment_changes(app, current_env, previous_env): # pragma: no cover
+    '''Log the differences between two environments to debug log.'''
+    def log_event(key, value, event):
+        if env_variable_is_password(key):
+            value_msg = '(value hidden)'
+        else:
+            value_msg = '= "%s"' % value
+        msg = '%s environment variable %s %s' % (event, key, value_msg)
+        app.status(msg=msg, chatty=True)
+
+    for key in current_env.keys():
+        if key not in previous_env:
+            log_event(key, current_env[key], 'new')
+        elif current_env[key] != previous_env[key]:
+            log_event(key, current_env[key], 'changed')
+    for key in previous_env.keys():
+        if key not in current_env:
+            log_event(key, previous_env[key], 'unset')
 
 # This acquired from rdiff-backup which is GPLv2+ and a patch from 2011
 # which has not yet been merged, combined with a tad of tidying from us.

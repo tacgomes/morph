@@ -203,6 +203,10 @@ class Morph(cliapp.Application):
 
         self.add_subcommand('help-extensions', self.help_extensions)
 
+    def log_config(self):
+        with morphlib.util.hide_password_environment_variables(os.environ):
+            cliapp.Application.log_config(self)
+
     def process_args(self, args):
         self.check_time()
 
@@ -493,7 +497,7 @@ class Morph(cliapp.Application):
 
         # Log the environment.
         prev = getattr(self, 'prev_env', {})
-        morphlib.util.log_dict_diff(self, kwargs['env'], prev)
+        morphlib.util.log_environment_changes(self, kwargs['env'], prev)
         self.prev_env = kwargs['env']
 
         # run the command line

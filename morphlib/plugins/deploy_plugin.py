@@ -591,8 +591,7 @@ class DeployPlugin(cliapp.Plugin):
         '''
 
         def remove_passwords(env):
-            def is_password(key):
-                return 'PASSWORD' in key
+            is_password = morphlib.util.env_variable_is_password
             return { k:v for k, v in env.iteritems() if not is_password(k) }
 
         meta = {
