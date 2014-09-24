@@ -363,6 +363,25 @@ have a morphology using the test architecture.
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 and strata morphologies."
 
+You need an architecture to build a system, we don't default to the host architecture.
+
+    IMPLEMENTS GIVEN a system called (\S+) with no architecture in the git server
+    name="$(basename "${MATCH_1%.*}")"
+    cat << EOF > "$DATADIR/gits/morphs/$MATCH_1"
+    configuration-extensions: []
+    description: A system called $name for test architecture
+    kind: system
+    name: $name
+    strata:
+    -   name: build-essential
+        morph: strata/build-essential.morph
+    -   name: core
+        morph: strata/core.morph
+    EOF
+
+    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
+    run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1."
+
 
 Implementation sections for system branch operations
 ----------------------------------------------------
