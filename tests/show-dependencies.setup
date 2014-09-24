@@ -64,40 +64,37 @@ chunks:
   - name: freetype
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
+    build-mode: bootstrap
   - name: fontconfig
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
+    build-mode: bootstrap
   - name: cairo
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
+    build-mode: bootstrap
   - name: pango
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - freetype
       - fontconfig
   - name: glib
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
+    build-mode: bootstrap
   - name: gdk-pixbuf
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - glib
   - name: gtk
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - cairo
       - gdk-pixbuf
@@ -106,12 +103,11 @@ chunks:
   - name: dbus
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
+    build-mode: bootstrap
   - name: dbus-glib
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - dbus
       - glib
@@ -160,48 +156,40 @@ chunks:
   - name: libxfce4util
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
   - name: xfconf
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4util
   - name: libxfce4ui
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - xfconf
   - name: exo
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4util
   - name: garcon
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4util
   - name: thunar
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - exo
   - name: tumbler
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends: []
   - name: xfce4-panel
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - exo
@@ -209,7 +197,6 @@ chunks:
   - name: xfce4-settings
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - exo
@@ -217,7 +204,6 @@ chunks:
   - name: xfce4-session
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - exo
@@ -225,21 +211,18 @@ chunks:
   - name: xfwm4
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - xfconf
   - name: xfdesktop
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - xfconf
   - name: xfce4-appfinder
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - garcon
@@ -247,7 +230,6 @@ chunks:
   - name: gtk-xfce-engine
     repo: test:test-repo
     ref: master
-    build-mode: test
     build-depends:
       - libxfce4ui
       - garcon
@@ -261,8 +243,8 @@ name: xfce-system
 kind: system
 arch: $("$SRCDIR/scripts/test-morph" print-architecture)
 strata:
-  - build-mode: test
-    morph: xfce-core
+  - morph: xfce-core
+    build-mode: bootstrap
 EOF
 git add xfce-system.morph
 git commit --quiet -m "add xfce-system"
