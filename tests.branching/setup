@@ -63,7 +63,7 @@ chunks:
   repo: test:hello
   ref: master
   build-depends: []
-  build-mode: test
+  build-mode: bootstrap
 EOF
 
 scripts/run-git-in "$DATADIR/morphs" init

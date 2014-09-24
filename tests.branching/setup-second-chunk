@@ -49,12 +49,12 @@ chunks:
   repo: test:hello
   ref: master
   build-depends: []
-  build-mode: test
+  build-mode: bootstrap
 - name: goodbye
   repo: test:goodbye
   ref: master
   build-depends: []
-  build-mode: test
+  build-mode: bootstrap
 EOF
 
 git commit -q --all -m "Add goodbye to hello-stratum"
