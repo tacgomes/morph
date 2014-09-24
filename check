@@ -153,20 +153,6 @@ else
     echo "NOT RUNNING test.branching"
 fi
 
-if false && "$run_cmdtests"
-then
-    cmdtest tests.merging
-else
-    echo "NOT RUNNING test.merging"
-fi
-
-if "$run_cmdtests"
-then
-    cmdtest tests.deploy
-else
-    echo "NOT RUNNING test.deploy"
-fi
-
 # Building systems requires the 'filter' parameter of tarfile.TarFile.add():
 # this was introduced in Python 2.7
 if ! "$run_cmdtests"; then
