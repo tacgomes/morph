@@ -257,44 +257,12 @@ class ManifestGenerator(object):
 class ArtifactInspectionPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('run-in-artifact',
-                                self.run_in_artifact,
-                                arg_synopsis='ARTIFACT CMD')
         self.app.add_subcommand('generate-manifest',
                                 self.generate_manifest,
                                 arg_synopsis='SYSTEM-ARTIFACT')
 
     def disable(self):
         pass
-
-    def run_in_artifact(self, args):
-        '''Run a command inside an extracted/mounted chunk or system.
-
-        Command line arguments:
-
-        * `ARTIFACT` is a filename for the artifact.
-        * `CMD` is the command to run.
-
-        run-in-artifact unpacks an artifact, and runs a command in
-        the temporary directory it was unpacked to.
-
-        The command must be given to Morph as a single argument, so
-        use shell quoting appropriately.
-
-        '''
-
-        if len(args) < 2:
-            raise cliapp.AppException(
-                    'run-in-artifact requires arguments: a chunk or '
-                    'system artifact and a a shell command')
-
-        artifact, cmd = args[0], args[1:]
-
-        def run_command_in_dir(dirname):
-            output = self.app.runcmd(cmd, cwd=dirname)
-            self.app.output.write(output)
-
-        call_in_artifact_directory(self.app, artifact, run_command_in_dir)
 
     def generate_manifest(self, args):
         '''Generate a content manifest for a system image.
