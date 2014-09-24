@@ -382,6 +382,10 @@ Attempt to check out a system branch from a root that has no systems.
     cd "$DATADIR/workspace"
     attempt_morph checkout test:test-chunk master
 
+    IMPLEMENTS WHEN the user attempts to check out the system branch from (\S+) called (\S+)
+    cd "$DATADIR/workspace"
+    attempt_morph branch-from-image --metadata-dir "$DATADIR/$MATCH_1/baserock" "$MATCH_2"
+
 We also need to verify that a system branch has been checked out.
 
     IMPLEMENTS THEN the system branch (\S+) is checked out

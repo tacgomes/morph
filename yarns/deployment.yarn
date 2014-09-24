@@ -283,3 +283,48 @@ deployment.
     WHEN the user attempts to deploy test-system.sysroot from cluster test-cluster.morph in branch master
     THEN morph failed
     FINALLY the git server is shut down
+
+Deploying branch-from-image produced systems
+============================================
+
+We have this nifty subcommand called branch-from-image, which can be
+used to build the same thing as an existing image.
+
+There's no special requirements for making the image reproducible.
+
+    SCENARIO reproducing systems
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    AND the user builds the system systems/test-system.morph in branch master
+    GIVEN a cluster called test-cluster.morph in system branch master
+    AND a system in cluster test-cluster.morph in branch master called test-system
+    AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
+    AND system test-system in cluster test-cluster.morph in branch master has deployment type: sysroot
+    AND system test-system in cluster test-cluster.morph in branch master has deployment location: test-system
+    WHEN the user attempts to deploy the cluster test-cluster.morph in branch master
+    THEN morph succeeded
+    AND file workspace/master/test/morphs/test-system exists
+
+To reproduce an existing image, do a checkout with the extracted root
+filesystem's /baserock directory as the `--metadata-dir` argument.
+
+    WHEN the user attempts to check out the system branch from workspace/master/test/morphs/test-system called mybranch
+    THEN morph succeeded
+    AND the system branch mybranch is checked out
+
+After it is checked-out, the system can be rebuilt.
+
+    WHEN the user attempts to build the system systems/test-system.morph in branch mybranch
+    THEN morph succeeded
+
+Once it is rebuilt, it can be deployed.
+
+    GIVEN a cluster called test-cluster.morph in system branch mybranch
+    AND a system in cluster test-cluster.morph in branch mybranch called test-system
+    AND system test-system in cluster test-cluster.morph in branch mybranch builds systems/test-system.morph
+    AND system test-system in cluster test-cluster.morph in branch mybranch has deployment type: tar
+    AND system test-system in cluster test-cluster.morph in branch mybranch has deployment location: test-system.tar
+    WHEN the user attempts to deploy the cluster test-cluster.morph in branch mybranch
+    THEN morph succeeded
+    AND file workspace/mybranch/test/morphs/test-system.tar exists
