@@ -228,8 +228,8 @@ def log_environment_changes(app, current_env, previous_env): # pragma: no cover
             value_msg = '(value hidden)'
         else:
             value_msg = '= "%s"' % value
-        msg = '%s environment variable %s %s' % (event, key, value_msg)
-        app.status(msg=msg, chatty=True)
+        app.status(msg='%(event)s environment variable %(key)s %(value)s',
+                   event=event, key=key, value=value_msg, chatty=True)
 
     for key in current_env.keys():
         if key not in previous_env:
