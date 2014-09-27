@@ -19,6 +19,7 @@ import os
 import shutil
 import logging
 import tempfile
+import datetime
 
 import morphlib
 import distbuild
@@ -320,6 +321,7 @@ class BuildCommand(object):
         in either the local or remote cache already.
 
         '''
+        starttime = datetime.datetime.now()
         self.app.status(msg='Building %(kind)s %(name)s',
                         name=source.name,
                         kind=source.morphology['kind'])
@@ -366,6 +368,11 @@ class BuildCommand(object):
 
         self.build_and_cache(staging_area, source, setup_mounts)
         self.remove_staging_area(staging_area)
+
+        td = datetime.datetime.now() - starttime
+        td_string = "%02d:%02d:%02d" % (td.seconds/3600,
+                                        td.seconds%3600/60, td.seconds%60)
+        self.app.status(msg="Elapsed time %(duration)s", duration=td_string)
 
     def get_recursive_deps(self, artifacts):
         deps = set()
