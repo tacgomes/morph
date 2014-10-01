@@ -31,5 +31,24 @@ morphlib/plugins/print_architecture_plugin.py
 morphlib/plugins/add_binary_plugin.py
 morphlib/plugins/push_pull_plugin.py
 morphlib/plugins/distbuild_plugin.py
+distbuild/__init__.py
+distbuild/build_controller.py
+distbuild/connection_machine.py
+distbuild/distbuild_socket.py
+distbuild/eventsrc.py
+distbuild/helper_router.py
+distbuild/idgen.py
+distbuild/initiator.py
+distbuild/initiator_connection.py
+distbuild/jm.py
+distbuild/json_router.py
+distbuild/mainloop.py
+distbuild/protocol.py
+distbuild/proxy_event_source.py
+distbuild/sockbuf.py
+distbuild/socketsrc.py
+distbuild/sockserv.py
+distbuild/timer_event_source.py
+distbuild/worker_build_scheduler.py
 # Not unit tested, since it needs a full system branch
 morphlib/buildbranch.py
