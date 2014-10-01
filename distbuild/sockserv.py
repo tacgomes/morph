@@ -39,7 +39,7 @@ class ListenServer(StateMachine):
         if self._port_file:
             host, port = src.sock.getsockname()
             with open(self._port_file, 'w') as f:
-                f.write(port)
+                f.write('%s\n' % port)
         self.mainloop.add_event_source(src)
 
         spec = [

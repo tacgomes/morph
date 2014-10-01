@@ -253,7 +253,7 @@ class ControllerDaemon(cliapp.Plugin):
             port = self.app.settings[port]
             port_file = self.app.settings[port_file]
             listener = distbuild.ListenServer(
-                addr, port, sm, extra_args=extra_args)
+                addr, port, sm, extra_args=extra_args, port_file=port_file)
             loop.add_state_machine(listener)
 
         for worker in self.app.settings['worker']:
