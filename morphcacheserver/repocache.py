@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013,2014 Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ class RepoCache(object):
             raise RepositoryNotFoundError(repo_url)
         try:
             sha1 = self._rev_parse(repo_dir, ref)
-        except:
+        except BaseException:
             raise InvalidReferenceError(repo_url, ref)
 
         return self._cat_file(repo_dir, sha1, filename)
@@ -110,7 +110,7 @@ class RepoCache(object):
 
         try:
             sha1 = self._rev_parse(repo_dir, ref)
-        except:
+        except BaseException:
             raise InvalidReferenceError(repo_url, ref)
 
         lines = self._ls_tree(repo_dir, sha1, path).strip()

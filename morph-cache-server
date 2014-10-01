@@ -45,6 +45,10 @@ class MorphCacheServer(cliapp.Application):
                               'port to listen on',
                               metavar='PORTNUM',
                               default=defaults['port'])
+        self.settings.string(['port-file'],
+                              'write port number to FILE',
+                              metavar='FILE',
+                              default='')
         self.settings.string(['repo-dir'],
                              'path to the repository cache directory',
                              metavar='PATH',
@@ -322,7 +326,8 @@ class MorphCacheServer(cliapp.Application):
                         % artifact)
                     return
 
-                filename = os.path.join(self.settings['artifact-dir'], artifact)
+                filename = os.path.join(self.settings['artifact-dir'],
+                                        artifact)
                 results[artifact] = os.path.exists(filename)
 
                 if results[artifact]:
@@ -338,8 +343,29 @@ class MorphCacheServer(cliapp.Application):
 
         if self.settings['fcgi-server']:
             WSGIServer(root).run()
+        elif self.settings['port-file']:
+            import wsgiref.simple_server
+
+            server_port_file = self.settings['port-file']
+            class DebugServer(wsgiref.simple_server.WSGIServer):
+                '''WSGI-like server that uses an ephemeral port.
+                
+                Rather than use a specified port, or default, the
+                DebugServer binds to an ephemeral port on 127.0.0.1
+                and writes its number to port-file, so a non-racy
+                temporary port can be used.
+                
+                '''
+                
+                def __init__(self, (host, port), *args, **kwargs):
+                    wsgiref.simple_server.WSGIServer.__init__(
+                        self, ('127.0.0.1', 0), *args, **kwargs)
+                    with open(server_port_file, 'w') as f:
+                        f.write(str(self.server_port) + '\n')
+            run(root, server_class=DebugServer, debug=True)
         else:
-            run(root, host='0.0.0.0', port=self.settings['port'], reloader=True)
+            run(root, host='0.0.0.0', port=self.settings['port'],
+                reloader=True)
 
     def _unescape_parameter(self, param):
         return urllib.unquote(param)
