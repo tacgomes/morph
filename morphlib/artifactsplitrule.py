@@ -230,7 +230,7 @@ DEFAULT_STRATUM_RULES = [
 ]
 
 
-def unify_chunk_matches(morphology):
+def unify_chunk_matches(morphology, default_rules=DEFAULT_CHUNK_RULES):
     '''Create split rules including defaults and per-chunk rules.
 
     With rules specified in the morphology's 'products' field and the
@@ -246,7 +246,7 @@ def unify_chunk_matches(morphology):
         split_rules.add(ca_name, FileMatch(patterns))
 
     name = morphology['name']
-    for suffix, patterns in DEFAULT_CHUNK_RULES:
+    for suffix, patterns in default_rules:
         ca_name = name + suffix
         # Explicit rules override the default rules. This is an all-or-nothing
         # override: there is no way to extend the default split rules right now
@@ -257,7 +257,7 @@ def unify_chunk_matches(morphology):
     return split_rules
 
 
-def unify_stratum_matches(morphology):
+def unify_stratum_matches(morphology, default_rules=DEFAULT_STRATUM_RULES):
     '''Create split rules including defaults and per-stratum rules.
 
     With rules specified in the chunk spec's 'artifacts' fields, the
@@ -284,7 +284,7 @@ def unify_stratum_matches(morphology):
                                for d in morphology.get('products', {})):
         match_split_rules.add(sta_name, ArtifactMatch(patterns))
 
-    for suffix, patterns in DEFAULT_STRATUM_RULES:
+    for suffix, patterns in default_rules:
         sta_name = morphology['name'] + suffix
         # Explicit rules override the default rules. This is an all-or-nothing
         # override: there is no way to extend the default split rules right now
