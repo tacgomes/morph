@@ -105,10 +105,12 @@ class ListArtifactsPlugin(cliapp.Plugin):
             self.app.settings, system_artifact.source.morphology['arch'])
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
-        artifact_files = set()
-        for artifact in system_artifact.walk():
+        for source in set(a.source for a in system_artifact.walk()):
             artifact.cache_key = ckc.compute_key(artifact)
             artifact.cache_id = ckc.get_cache_id(artifact)
+
+        artifact_files = set()
+        for artifact in system_artifact.walk():
 
             artifact_files.add(artifact.basename())
 
