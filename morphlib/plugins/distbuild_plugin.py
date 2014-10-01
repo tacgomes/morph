@@ -121,6 +121,11 @@ class WorkerDaemon(cliapp.Plugin):
             'listen for connections on PORT',
             default=3434,
             group=group_distbuild)
+        self.app.settings.string(
+            ['worker-daemon-port-file'],
+            'write port used by worker-daemon to FILE',
+            default='',
+            group=group_distbuild)
         self.app.add_subcommand(
             'worker-daemon',
             self.worker_daemon,
@@ -136,7 +141,9 @@ class WorkerDaemon(cliapp.Plugin):
 
         address = self.app.settings['worker-daemon-address']
         port = self.app.settings['worker-daemon-port']
-        router = distbuild.ListenServer(address, port, distbuild.JsonRouter)
+        port_file = self.app.settings['worker-daemon-port-file']
+        router = distbuild.ListenServer(address, port, distbuild.JsonRouter,
+                                        port_file=port_file)
         loop = distbuild.MainLoop()
         loop.add_state_machine(router)
         loop.run()
@@ -156,6 +163,11 @@ class ControllerDaemon(cliapp.Plugin):
             'listen for initiator connections on PORT',
             default=7878,
             group=group_distbuild)
+        self.app.settings.string(
+            ['controller-initiator-port-file'],
+            'write the port to listen for initiator connections to FILE',
+            default='',
+            group=group_distbuild)
 
         self.app.settings.string(
             ['controller-helper-address'],
@@ -166,6 +178,11 @@ class ControllerDaemon(cliapp.Plugin):
             ['controller-helper-port'],
             'listen for helper connections on PORT',
             default=5656,
+            group=group_distbuild)
+        self.app.settings.string(
+            ['controller-helper-port-file'],
+            'write the port to listen for helper connections to FILE',
+            default='',
             group=group_distbuild)
 
         self.app.settings.string_list(
@@ -218,8 +235,10 @@ class ControllerDaemon(cliapp.Plugin):
         listener_specs = [
             # address, port, class to initiate on connection, class init args
             ('controller-helper-address', 'controller-helper-port', 
+             'controller-helper-port-file',
              distbuild.HelperRouter, []),
             ('controller-initiator-address', 'controller-initiator-port',
+             'controller-initiator-port-file',
              distbuild.InitiatorConnection, 
              [artifact_cache_server, morph_instance]),
         ]
@@ -229,9 +248,10 @@ class ControllerDaemon(cliapp.Plugin):
         queuer = distbuild.WorkerBuildQueuer()
         loop.add_state_machine(queuer)
 
-        for addr, port, sm, extra_args in listener_specs:
+        for addr, port, port_file, sm, extra_args in listener_specs:
             addr = self.app.settings[addr]
             port = self.app.settings[port]
+            port_file = self.app.settings[port_file]
             listener = distbuild.ListenServer(
                 addr, port, sm, extra_args=extra_args)
             loop.add_state_machine(listener)
