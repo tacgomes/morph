@@ -142,7 +142,18 @@ def new_artifact_caches(settings):  # pragma: no cover
 
 
 def combine_aliases(app):  # pragma: no cover
-    '''Create a full repo-alias set from the app's settings.'''
+    '''Create a full repo-alias set from the app's settings.
+
+    The standard 'baserock:' and 'upstream:' keyed URLs use whatever trove was
+    set as 'trove-host'.
+
+    Every trove listed in 'trove-ids' has its own repo-alias created in
+    addition to the defaults. We assume these require authenticated access, so
+    the keyed URL expansions for these troves are ssh:// URLs for both read and
+    write access. This can be overridden by the user if they calculate the full
+    repo-alias string and set it in their config manually.
+
+    '''
     trove_host = app.settings['trove-host']
     trove_ids = app.settings['trove-id']
     repo_aliases = app.settings['repo-alias']
@@ -173,7 +184,7 @@ def combine_aliases(app):  # pragma: no cover
                     m.group('prefix'),
                     _expand(m.group('pull'), m.group('path')),
                     _expand(m.group('push'), m.group('path')))
-            elif '=' not in trove_id:
+            elif '=' not in trove_id and trove_id not in alias_map:
                 alias_map[trove_id] = "%s=%s#%s" % (
                     trove_id,
                     _expand('ssh', trove_id),
