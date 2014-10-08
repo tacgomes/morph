@@ -8,3 +8,37 @@ Morph Building Tests
     AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
     THEN morph build the system systems/base-system.morph of the branch master
     FINALLY the git server is shut down
+
+    SCENARIO distbuilding
+    ASSUMING the morph-cache-server can be run
+    GIVEN a workspace
+    AND a git server
+    AND a communal cache server
+    AND a distbuild worker
+    AND a distbuild controller
+
+Distbuilding works much the same way as regular building.
+
+    WHEN the user checks out the system branch called master
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
+    THEN morph distbuild the system systems/base-system.morph of the branch master
+
+Distbuilt systems can be deployed locally, since the building process
+lets you download the artifacts for local use.
+
+Note: Currently broken. It's currently complaining about not having
+repos cached locally.
+
+>   GIVEN a cluster called test-cluster.morph in system branch master
+>   AND a system in cluster test-cluster.morph in branch master called test-system
+>   AND system test-system in cluster test-cluster.morph in branch master builds systems/base-system.morph
+>   AND system test-system in cluster test-cluster.morph in branch master has deployment type: sysroot
+>   AND system test-system in cluster test-cluster.morph in branch master has deployment location: test-system
+>   WHEN the user attempts to deploy the cluster test-cluster.morph in branch master
+>   THEN morph succeeded
+>   AND file workspace/master/test/morphs/test-system exists
+
+    FINALLY the distbuild controller is terminated
+    AND the distbuild worker is terminated
+    AND the communal cache server is terminated
+    AND the git server is shut down

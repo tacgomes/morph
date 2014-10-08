@@ -15,7 +15,7 @@ To test that all the fields are recognised, we set the new fields to
 their default values.
 
     AND chunk test-chunk includes the default splitting rules
-    AND stratum strata/test-stratum.morph includes the default splitting rules
+    AND stratum strata/core.morph includes the default splitting rules
     AND system systems/test-system.morph includes the default splitting rules
 
 The default rules produce a system that is identical to not providing
@@ -41,7 +41,7 @@ libraries.
 The only change we need to make is to add a field to the system morphology
 to select which artifact to use in the system.
 
-    AND system systems/test-system.morph uses test-stratum-runtime from test-stratum
+    AND system systems/test-system.morph uses core-runtime from core
     WHEN the user checks out the system branch called master
 
 The best way to test that only using some stratum artifacts works is
@@ -79,8 +79,8 @@ This GIVEN has a chunk in the stratum that never successfully builds,
 so we know that if the system successfully builds, then we only built
 chunks that were needed.
 
-    AND stratum strata/test-stratum.morph has chunks that aren't used in test-stratum-minimal
-    AND system systems/test-system.morph uses test-stratum-minimal from test-stratum
+    AND stratum strata/core.morph has chunks that aren't used in core-minimal
+    AND system systems/test-system.morph uses core-minimal from core
     WHEN the user checks out the system branch called master
     THEN morph build the system systems/test-system.morph of the branch master
     FINALLY the git server is shut down
@@ -92,7 +92,7 @@ Implementations
     IMPLEMENTS GIVEN chunk (\S+) includes the default splitting rules
     # Append default products rules
     name="$(basename "${MATCH_1%.*}")"
-    cat <<EOF >>"$DATADIR/gits/morphs/$MATCH_1"
+    cat <<EOF >>"$DATADIR/gits/morphs/$MATCH_1.morph"
     products:
     - artifact: $name-bins
       include: [ "(usr/)?s?bin/.*" ]
@@ -119,7 +119,7 @@ Implementations
     - artifact: $name-misc
       include: [ .* ]
     EOF
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
+    run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
     run_in "$DATADIR/gits/morphs" git commit -m 'Add default splitting rules'
 
     IMPLEMENTS GIVEN stratum (\S+) includes the default splitting rules
@@ -127,6 +127,8 @@ Implementations
     cat <<EOF >"$DATADIR/gits/morphs/$MATCH_1"
     name: $name
     kind: stratum
+    build-depends:
+    - morph: strata/build-essential.morph
     products:
     - artifact: $name-devel
       include:
@@ -146,7 +148,6 @@ Implementations
         unpetrify-ref: master
         ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
         morph: test-chunk.morph
-        build-mode: test
         build-depends: []
         artifacts:
             test-chunk-bins: $name-runtime
@@ -162,11 +163,13 @@ Implementations
     IMPLEMENTS GIVEN system (\S+) includes the default splitting rules
     cat << EOF >> "$DATADIR/gits/morphs/$MATCH_1"
     strata:
-    -   name: test-stratum
-        morph: strata/test-stratum.morph
+    -   name: build-essential
+        morph: strata/build-essential.morph
+    -   name: core
+        morph: strata/core.morph
         artifacts:
-        - test-stratum-runtime
-        - test-stratum-devel
+        - core-runtime
+        - core-devel
     EOF
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
     run_in "$DATADIR/gits/morphs" git commit -m 'Add default splitting rules'
@@ -195,14 +198,12 @@ Implementations
       morph: test-chunk.morph
       unpetrify-ref: master
       ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
-      build-mode: test
       build-depends: []
     - name: unbuildable-chunk
       repo: test:test-chunk
       unpetrify-ref: refs/heads/master
       ref: $(run_in "$DATADIR/gits/test-chunk" git rev-parse master)
       morph: unbuildable-chunk.morph
-      build-mode: test
       build-depends:
       - test-chunk
     EOF

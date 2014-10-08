@@ -22,3 +22,15 @@ Morph Cross-Bootstrap Tests
     WHEN the user checks out the system branch called master
     THEN the user cross-bootstraps the system base-system-testarch.morph in branch master of repo test:morphs to the arch testarch
     FINALLY the git server is shut down
+
+Architecture validation Tests
+=============================
+
+    SCENARIO building a system with no architecture
+    GIVEN a workspace
+    AND a git server
+    AND a system called base-system-noarch.morph with no architecture in the git server
+    WHEN the user checks out the system branch called master
+    AND the user attempts to build the system base-system-testarch.morph in branch master
+    THEN morph failed
+    FINALLY the git server is shut down

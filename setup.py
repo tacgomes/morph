@@ -128,15 +128,11 @@ class Check(Command):
     def run(self):
         subprocess.check_call(['python', '-m', 'CoverageTestRunner',
                                '--ignore-missing-from=without-test-modules',
-                               'morphlib'])
+                               'morphlib', 'distbuild'])
         os.remove('.coverage')
 
 
 setup(name='morph',
-      description='FIXME',
-      long_description='''\
-FIXME
-''',
       classifiers=[
           'Development Status :: 2 - Pre-Alpha',
           'Environment :: Console',
@@ -152,8 +148,9 @@ FIXME
       author='Codethink Limited',
       author_email='baserock-dev@baserock.org',
       url='http://www.baserock.org/',
-      scripts=['morph', 'distbuild-helper'],
-      packages=['morphlib', 'morphlib.plugins', 'distbuild'],
+      scripts=['morph', 'distbuild-helper', 'morph-cache-server'],
+      packages=['morphlib', 'morphlib.plugins', 'distbuild',
+                'morphcacheserver'],
       package_data={
           'morphlib': [
               'xfer-hole',

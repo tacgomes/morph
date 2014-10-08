@@ -23,13 +23,22 @@ import distbuild
 
 class MockMorphology(object):
 
-    def __init__(self, name):
+    def __init__(self, name, kind):
         self.dict = {
             'name': '%s.morphology.name' % name,
-            'kind': '%s.morphology.kind' % name,
+            'kind': kind,
+            'chunks': [],
+            'products': [
+                {
+                    'artifact': name,
+                    'include': [r'.*'],
+                },
+            ],
         }
-        self.needs_staging_area = None
-        self.needs_artifact_metadata_cached = None
+
+    @property
+    def needs_artifact_metadata_cached(self):
+        return self.dict['kind'] == 'stratum'
         
     def keys(self):
         return self.dict.keys()
@@ -40,36 +49,57 @@ class MockMorphology(object):
 
 class MockSource(object):
 
-    def __init__(self, name):
+    build_mode = 'staging'
+    prefix = '/usr'
+    def __init__(self, name, kind):
+        self.name = name
         self.repo = None
         self.repo_name = '%s.source.repo_name' % name
         self.original_ref = '%s.source.original_ref' % name
         self.sha1 = '%s.source.sha1' % name
         self.tree = '%s.source.tree' % name
-        self.morphology = MockMorphology(name)
+        self.morphology = MockMorphology(name, kind)
         self.filename = '%s.source.filename' % name
-
-
-class MockArtifact(object):
-
-    def __init__(self, name):
-        self.source = MockSource(name)
-        self.name = name
+        self.dependencies = []
         self.cache_id = {
             'blip': '%s.blip' % name,
             'integer': 42,
         }
         self.cache_key = '%s.cache_key' % name
-        self.dependencies = []
+        self.artifacts = {}
+
+
+class MockArtifact(object):
+
+    arch = 'testarch'
+
+    def __init__(self, name, kind):
+        self.source = MockSource(name, kind)
+        self.source.artifacts = {name: self}
+        self.name = name
+        self.dependents = []
+
+    def walk(self): # pragma: no cover
+        done = set()
+        
+        def depth_first(a):
+            if a not in done:
+                done.add(a)
+                for dep in a.source.dependencies:
+                    for ret in depth_first(dep):
+                        yield ret
+                yield a
+
+        return list(depth_first(self))
 
 
 class SerialisationTests(unittest.TestCase):
 
     def setUp(self):
-        self.art1 = MockArtifact('name1')
-        self.art2 = MockArtifact('name2')
-        self.art3 = MockArtifact('name3')
-        self.art4 = MockArtifact('name4')
+        self.art1 = MockArtifact('name1', 'stratum')
+        self.art2 = MockArtifact('name2', 'chunk')
+        self.art3 = MockArtifact('name3', 'chunk')
+        self.art4 = MockArtifact('name4', 'chunk')
 
     def assertEqualMorphologies(self, a, b):
         self.assertEqual(sorted(a.keys()), sorted(b.keys()))
@@ -77,11 +107,8 @@ class SerialisationTests(unittest.TestCase):
         a_values = [a[k] for k in keys]
         b_values = [b[k] for k in keys]
         self.assertEqual(a_values, b_values)
-        self.assertEqual(a.needs_staging_area, b.needs_staging_area)
         self.assertEqual(a.needs_artifact_metadata_cached, 
                          b.needs_artifact_metadata_cached)
-        self.assertEqual(a.needs_staging_area, 
-                         b.needs_staging_area)
 
     def assertEqualSources(self, a, b):
         self.assertEqual(a.repo, b.repo)
@@ -95,30 +122,29 @@ class SerialisationTests(unittest.TestCase):
     def assertEqualArtifacts(self, a, b):
         self.assertEqualSources(a.source, b.source)
         self.assertEqual(a.name, b.name)
-        self.assertEqual(a.cache_id, b.cache_id)
-        self.assertEqual(a.cache_key, b.cache_key)
-        self.assertEqual(len(a.dependencies), len(b.dependencies))
-        for i in range(len(a.dependencies)):
-            self.assertEqualArtifacts(a.dependencies[i], b.dependencies[i])
+        self.assertEqual(a.source.cache_id, b.source.cache_id)
+        self.assertEqual(a.source.cache_key, b.source.cache_key)
+        self.assertEqual(len(a.source.dependencies),
+                         len(b.source.dependencies))
+        for i in range(len(a.source.dependencies)):
+            self.assertEqualArtifacts(a.source.dependencies[i],
+                                      b.source.dependencies[i])
 
     def verify_round_trip(self, artifact):
         encoded = distbuild.serialise_artifact(artifact)
         decoded = distbuild.deserialise_artifact(encoded)
         self.assertEqualArtifacts(artifact, decoded)
         
-        def key(a):
-            return a.cache_key
-        
         objs = {}
         queue = [decoded]
         while queue:
             obj = queue.pop()
-            k = key(obj)
+            k = obj.source.cache_key
             if k in objs:
                 self.assertTrue(obj is objs[k])
             else:
                 objs[k] = obj
-            queue.extend(obj.dependencies)
+            queue.extend(obj.source.dependencies)
 
     def test_returns_string(self):
         encoded = distbuild.serialise_artifact(self.art1)
@@ -128,21 +154,21 @@ class SerialisationTests(unittest.TestCase):
         self.verify_round_trip(self.art1)
 
     def test_works_with_single_dependency(self):
-        self.art1.dependencies = [self.art2]
+        self.art1.source.dependencies = [self.art2]
         self.verify_round_trip(self.art1)
 
     def test_works_with_two_dependencies(self):
-        self.art1.dependencies = [self.art2, self.art3]
+        self.art1.source.dependencies = [self.art2, self.art3]
         self.verify_round_trip(self.art1)
 
     def test_works_with_two_levels_of_dependencies(self):
-        self.art2.dependencies = [self.art4]
-        self.art1.dependencies = [self.art2, self.art3]
+        self.art2.source.dependencies = [self.art4]
+        self.art1.source.dependencies = [self.art2, self.art3]
         self.verify_round_trip(self.art1)
 
     def test_works_with_dag(self):
-        self.art2.dependencies = [self.art4]
-        self.art3.dependencies = [self.art4]
-        self.art1.dependencies = [self.art2, self.art3]
+        self.art2.source.dependencies = [self.art4]
+        self.art3.source.dependencies = [self.art4]
+        self.art1.source.dependencies = [self.art2, self.art3]
         self.verify_round_trip(self.art1)
 

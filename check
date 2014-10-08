@@ -153,20 +153,6 @@ else
     echo "NOT RUNNING test.branching"
 fi
 
-if false && "$run_cmdtests"
-then
-    cmdtest tests.merging
-else
-    echo "NOT RUNNING test.merging"
-fi
-
-if "$run_cmdtests"
-then
-    cmdtest tests.deploy
-else
-    echo "NOT RUNNING test.deploy"
-fi
-
 # Building systems requires the 'filter' parameter of tarfile.TarFile.add():
 # this was introduced in Python 2.7
 if ! "$run_cmdtests"; then
@@ -175,20 +161,4 @@ elif ! (python --version 2>&1 | grep -q '^Python 2\.[78]'); then
     echo "NOT RUNNING tests.build (requires Python 2.7)"
 else
     cmdtest tests.build
-fi
-
-# The as-root tests use YAML morphologies, so they require the PyYAML module.
-if ! "$run_slow_cmdtests"; then
-    echo "NOT RUNNING tests.as-root"
-elif [ $(whoami) != root ] || ! command -v mkfs.btrfs > /dev/null; then
-    echo "NOT RUNNING tests.as-root (no btrfs)"
-elif ! python -c "
-import morphlib, sys
-if not morphlib.got_yaml:
-    sys.exit(1)
-" > /dev/null 2>&1
-then
-    echo "NOT RUNNING tests.as-root (requires PyYAML)"
-else
-    cmdtest tests.as-root
 fi

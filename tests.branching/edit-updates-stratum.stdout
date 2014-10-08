@@ -1,5 +1,5 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index e012b5f..cc0609a 100644
+index f335879..7bf9d37 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
 @@ -3,6 +3,7 @@ kind: stratum
@@ -10,4 +10,4 @@ index e012b5f..cc0609a 100644
 +  ref: newbranch
 +  unpetrify-ref: master
    build-depends: []
-   build-mode: test
+   build-mode: bootstrap

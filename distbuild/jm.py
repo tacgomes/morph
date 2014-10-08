@@ -22,6 +22,7 @@ import logging
 import os
 import socket
 import sys
+import yaml
 
 from sm import StateMachine 
 from stringbuffer import StringBuffer
@@ -79,7 +80,12 @@ class JsonMachine(StateMachine):
         
     def send(self, msg):
         '''Send a message to the other side.'''
-        self.sockbuf.write('%s\n' % json.dumps(msg))
+        if self.debug_json:
+            logging.debug('JsonMachine: Sending message %s' % repr(msg))
+        s = json.dumps(yaml.safe_dump(msg))
+        if self.debug_json:
+            logging.debug('JsonMachine: As %s' % repr(s))
+        self.sockbuf.write('%s\n' % s)
     
     def close(self):
         '''Tell state machine it should shut down.
@@ -103,7 +109,7 @@ class JsonMachine(StateMachine):
             line = line.rstrip()
             if self.debug_json:
                 logging.debug('JsonMachine: line: %s' % repr(line))
-            msg = json.loads(line)
+            msg = yaml.load(json.loads(line))
             self.mainloop.queue_event(self, JsonNewMessage(msg))
 
     def _send_eof(self, event_source, event):

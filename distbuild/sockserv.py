@@ -26,15 +26,20 @@ class ListenServer(StateMachine):
 
     '''Listen for new connections on a port, send events for them.'''
 
-    def __init__(self, addr, port, machine, extra_args=None):
+    def __init__(self, addr, port, machine, extra_args=None, port_file=''):
         StateMachine.__init__(self, 'listening')
         self._addr = addr
         self._port = port
         self._machine = machine
         self._extra_args = extra_args or []
+        self._port_file = port_file
         
     def setup(self):
         src = ListeningSocketEventSource(self._addr, self._port)
+        if self._port_file:
+            host, port = src.sock.getsockname()
+            with open(self._port_file, 'w') as f:
+                f.write('%s\n' % port)
         self.mainloop.add_event_source(src)
 
         spec = [
