@@ -24,9 +24,6 @@ class Artifact(object):
     * ``name`` -- the name of the artifact
     * ``dependents`` -- list of Sources that need this Artifact to be built
 
-    The ``dependencies`` and ``dependents`` lists MUST be modified by
-    the ``add_dependencies`` and ``add_dependent`` methods only.
-
     '''
 
     def __init__(self, source, name):
