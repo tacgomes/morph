@@ -57,19 +57,11 @@ class ArtifactResolver(object):
                 if not a.dependents]
 
     def _resolve_system_artifacts(self, source, artifacts): # pragma: no cover
-        systems = [source.artifacts[name]
-                   for name in source.split_rules.artifacts]
+        systems = [source.artifacts[name] for name
+                   in source.split_rules.artifacts]
 
-        for system in (s for s in systems if s not in self._added_artifacts):
-            artifacts.append(system)
-            self._added_artifacts.add(system)
-
-        resolved_artifacts = self._resolve_system_dependencies(systems, source)
-
-        for artifact in resolved_artifacts:
-            if not artifact in self._added_artifacts:
-                artifacts.append(artifact)
-                self._added_artifacts.add(artifact)
+        artifacts += systems
+        artifacts += self._resolve_system_dependencies(systems, source)
 
     def _resolve_stratum_artifacts(self, source, artifacts):
         # Iterate split_rules.artifacts, rather than
