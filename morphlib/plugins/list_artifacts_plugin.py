@@ -89,7 +89,7 @@ class ListArtifactsPlugin(cliapp.Plugin):
 
         self.app.status(
             msg='Resolving artifacts for %s' % system_filename, chatty=True)
-        artifacts = self.resolver.resolve_artifacts(source_pool)
+        root_artifacts = self.resolver.resolve_root_artifacts(source_pool)
 
         def find_artifact_by_name(artifacts_list, filename):
             for a in artifacts_list:
@@ -97,7 +97,8 @@ class ListArtifactsPlugin(cliapp.Plugin):
                     return a
             raise ValueError
 
-        system_artifact = find_artifact_by_name(artifacts, system_filename)
+        system_artifact = find_artifact_by_name(root_artifacts,
+                                                system_filename)
 
         self.app.status(
             msg='Computing cache keys for %s' % system_filename, chatty=True)
@@ -106,8 +107,8 @@ class ListArtifactsPlugin(cliapp.Plugin):
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
         for source in set(a.source for a in system_artifact.walk()):
-            artifact.cache_key = ckc.compute_key(artifact)
-            artifact.cache_id = ckc.get_cache_id(artifact)
+            source.cache_key = ckc.compute_key(source)
+            source.cache_id = ckc.get_cache_id(source)
 
         artifact_files = set()
         for artifact in system_artifact.walk():
@@ -120,8 +121,8 @@ class ListArtifactsPlugin(cliapp.Plugin):
             # This is unfortunate hardwiring of behaviour; in future we
             # should list all artifacts in the meta-artifact file, so we
             # don't have to guess what files there will be.
-            artifact_files.add('%s.meta' % artifact.cache_key)
+            artifact_files.add('%s.meta' % artifact.source.cache_key)
             if artifact.source.morphology['kind'] == 'chunk':
-                artifact_files.add('%s.build-log' % artifact.cache_key)
+                artifact_files.add('%s.build-log' % artifact.source.cache_key)
 
         return artifact_files
