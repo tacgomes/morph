@@ -56,85 +56,67 @@ class ArtifactResolver(object):
         return [a for a in self._resolve_artifacts(source_pool)
                 if not a.dependents]
 
+    def _resolve_system_artifacts(self, source, artifacts): # pragma: no cover
+        systems = [source.artifacts[name] for name
+                   in source.split_rules.artifacts]
+
+        artifacts += systems
+        artifacts += self._resolve_system_dependencies(systems, source)
+
+    def _resolve_stratum_artifacts(self, source, artifacts):
+        # Iterate split_rules.artifacts, rather than
+        # artifacts.values() to preserve ordering
+        strata = [source.artifacts[name]
+                  for name in source.split_rules.artifacts
+                  if name in source.artifacts]
+
+        # If we were not given systems, return the strata here,
+        # rather than have the systems return them.
+        if not any(s.morphology['kind'] == 'system'
+                   for s in self._source_pool):
+            for stratum in (s for s in strata
+                            if s not in self._added_artifacts):
+                artifacts.append(stratum)
+                self._added_artifacts.add(stratum)
+
+        resolved_artifacts = self._resolve_stratum_dependencies(
+            strata, source)
+
+        for artifact in resolved_artifacts:
+            if not artifact in self._added_artifacts:
+                artifacts.append(artifact)
+                self._added_artifacts.add(artifact)
+
+    def _resolve_chunk_artifacts(self, source, artifacts):
+        chunks = [source.artifacts[name]
+                  for name in source.split_rules.artifacts]
+        # If we were only given chunks, return them here, rather than
+        # have the strata return them.
+        if not any(s.morphology['kind'] == 'stratum'
+                   for s in self._source_pool):
+            for chunk in (c for c in chunks
+                          if c not in self._added_artifacts):
+                artifacts.append(chunk)
+                self._added_artifacts.add(chunk)
+
     def _resolve_artifacts(self, source_pool):
         self._source_pool = source_pool
         self._added_artifacts = set()
-
-        artifacts = self._resolve_artifacts_recursively()
-        # TODO perform cycle detection, e.g. based on:
-        # http://stackoverflow.com/questions/546655/finding-all-cycles-in-graph
-        return artifacts
-
-    def _resolve_artifacts_recursively(self):
         artifacts = []
 
-        queue = self._create_initial_queue()
-        while queue:
-            source = queue.popleft()
+        # TODO perform cycle detection, e.g. based on:
+        # http://stackoverflow.com/questions/546655/finding-all-cycles-in-graph
 
-            if source.morphology['kind'] == 'system': # pragma: no cover
-                systems = [source.artifacts[name]
-                           for name in source.split_rules.artifacts]
+        resolvers = {'system': self._resolve_system_artifacts,
+                     'stratum': self._resolve_stratum_artifacts,
+                     'chunk': self._resolve_chunk_artifacts}
 
-                for system in (s for s in systems
-                               if s not in self._added_artifacts):
-                    artifacts.append(system)
-                    self._added_artifacts.add(system)
-
-                resolved_artifacts = self._resolve_system_dependencies(
-                    systems, source, queue)
-
-                for artifact in resolved_artifacts:
-                    if not artifact in self._added_artifacts:
-                        artifacts.append(artifact)
-                        self._added_artifacts.add(artifact)
-            elif source.morphology['kind'] == 'stratum':
-                # Iterate split_rules.artifacts, rather than
-                # artifacts.values() to preserve ordering
-                strata = [source.artifacts[name]
-                          for name in source.split_rules.artifacts
-                          if name in source.artifacts]
-
-                # If we were not given systems, return the strata here,
-                # rather than have the systems return them.
-                if not any(s.morphology['kind'] == 'system'
-                           for s in self._source_pool):
-                    for stratum in (s for s in strata
-                                    if s not in self._added_artifacts):
-                        artifacts.append(stratum)
-                        self._added_artifacts.add(stratum)
-
-                resolved_artifacts = self._resolve_stratum_dependencies(
-                    strata, source, queue)
-
-                for artifact in resolved_artifacts:
-                    if not artifact in self._added_artifacts:
-                        artifacts.append(artifact)
-                        self._added_artifacts.add(artifact)
-            elif source.morphology['kind'] == 'chunk':
-                chunks = [source.artifacts[name]
-                          for name in source.split_rules.artifacts]
-                # If we were only given chunks, return them here, rather than
-                # have the strata return them.
-                if not any(s.morphology['kind'] == 'stratum'
-                           for s in self._source_pool):
-                    for chunk in (c for c in chunks
-                                  if c not in self._added_artifacts):
-                        artifacts.append(chunk)
-                        self._added_artifacts.add(chunk)
+        for source in self._source_pool:
+            resolvers[source.morphology['kind']](source, artifacts)
 
         return artifacts
 
-    def _create_initial_queue(self):
-        if all([x.morphology['kind'] == 'chunk' for x in self._source_pool]):
-            return collections.deque(self._source_pool)
-        else:
-            sources = [x for x in self._source_pool
-                       if x.morphology['kind'] != 'chunk']
-            return collections.deque(sources)
-
-    def _resolve_system_dependencies(self, systems,
-                                     source, queue): # pragma: no cover
+    def _resolve_system_dependencies(self, systems, source): # pragma: no cover
         artifacts = []
 
         for info in source.morphology['strata']:
@@ -156,11 +138,9 @@ class ArtifactResolver(object):
                             source.add_dependency(stratum_artifact)
                             artifacts.append(stratum_artifact)
 
-                queue.append(stratum_source)
-
         return artifacts
 
-    def _resolve_stratum_dependencies(self, strata, source, queue):
+    def _resolve_stratum_dependencies(self, strata, source):
         artifacts = []
 
         stratum_build_depends = []
@@ -190,8 +170,6 @@ class ArtifactResolver(object):
                             raise MutualDependencyError(stratum, other_stratum)
 
                         source.add_dependency(other_stratum)
-
-                queue.append(other_source)
 
         # 'name' here is the chunk artifact name
         name_to_processed_artifacts = {}
@@ -236,7 +214,6 @@ class ArtifactResolver(object):
                 # Only return chunks required to build strata we need
                 if chunk_artifact not in artifacts:
                     artifacts.append(chunk_artifact)
-
 
             # Add these chunks to the processed artifacts, so other
             # chunks may refer to them.
