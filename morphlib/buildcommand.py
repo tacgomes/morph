@@ -184,7 +184,7 @@ class BuildCommand(object):
     def _validate_cross_morphology_references(self, srcpool):
         '''Perform validation across all morphologies involved in the build'''
 
-        stratum_names = []
+        stratum_names = {}
 
         for src in srcpool:
             kind = src.morphology['kind']
@@ -210,10 +210,9 @@ class BuildCommand(object):
                 name = src.name
                 if name in stratum_names:
                     raise morphlib.Error(
-                        "Conflicting versions of stratum '%s' appear in the "
-                        "build. Check the contents of the system against the "
-                        "build-depends of the strata." % name)
-                stratum_names.append(name)
+                        "Multiple strata produce a '%s' artifact: %s and %s" %
+                        (name, stratum_names[name].filename, src.filename))
+                stratum_names[name] = src
 
     def _validate_cross_refs_for_system(self, src, srcpool):
         self._validate_cross_refs_for_xxx(
