@@ -36,7 +36,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'branch', self.branch, arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand(
-            'edit', self.edit, arg_synopsis='SYSTEM STRATUM [CHUNK]')
+            'edit', self.edit, arg_synopsis='CHUNK')
         self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
