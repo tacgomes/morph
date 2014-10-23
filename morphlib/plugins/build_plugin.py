@@ -191,5 +191,6 @@ class BuildPlugin(cliapp.Plugin):
                 bb, loader=loader, changes_need_pushing=push,
                 name=name, email=email, build_uuid=build_uuid,
                 status=self.app.status)
-        with pbb as (repo, ref):
-            build_command.build(repo, ref, system_filename)
+        with pbb as (repo, commit, original_ref):
+            build_command.build(repo, commit, system_filename,
+                                original_ref=original_ref)
