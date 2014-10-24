@@ -50,7 +50,7 @@ class BuildCommand(object):
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
 
-    def build(self, repo_name, ref, filename):
+    def build(self, repo_name, ref, filename, original_ref=None):
         '''Build a given system morphology.'''
 
         self.app.status(
@@ -58,7 +58,8 @@ class BuildCommand(object):
             repo_name=repo_name, ref=ref, filename=filename)
 
         self.app.status(msg='Deciding on task order')
-        srcpool = self.create_source_pool(repo_name, ref, filename)
+        srcpool = self.create_source_pool(
+            repo_name, ref, filename, original_ref)
         self.validate_sources(srcpool)
         root_artifact = self.resolve_artifacts(srcpool)
         self.build_in_order(root_artifact)
@@ -84,7 +85,7 @@ class BuildCommand(object):
         return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
                                                           arch)
 
-    def create_source_pool(self, repo_name, ref, filename):
+    def create_source_pool(self, repo_name, ref, filename, original_ref=None):
         '''Find the source objects required for building a the given artifact
 
         The SourcePool will contain every stratum and chunk dependency of the
@@ -94,7 +95,8 @@ class BuildCommand(object):
         '''
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
-            self.lrc, self.rrc, repo_name, ref, filename)
+            self.lrc, self.rrc, repo_name, ref, filename,
+            original_ref=original_ref)
 
         return srcpool
 
