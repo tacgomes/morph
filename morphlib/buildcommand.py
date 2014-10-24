@@ -50,21 +50,23 @@ class BuildCommand(object):
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
 
-    def build(self, args):
-        '''Build triplets specified on command line.'''
+    def build(self, repo_name, ref, filename):
+        '''Build a given system morphology.'''
 
-        self.app.status(msg='Build starts', chatty=True)
+        self.app.status(
+            msg='Building %(repo_name)s %(ref)s %(filename)s',
+            repo_name=repo_name, ref=ref, filename=filename)
 
-        for repo_name, ref, filename in self.app.itertriplets(args):
-            self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
-                            repo_name=repo_name, ref=ref, filename=filename)
-            self.app.status(msg='Deciding on task order')
-            srcpool = self.create_source_pool(repo_name, ref, filename)
-            self.validate_sources(srcpool)
-            root_artifact = self.resolve_artifacts(srcpool)
-            self.build_in_order(root_artifact)
+        self.app.status(msg='Deciding on task order')
+        srcpool = self.create_source_pool(repo_name, ref, filename)
+        self.validate_sources(srcpool)
+        root_artifact = self.resolve_artifacts(srcpool)
+        self.build_in_order(root_artifact)
 
-        self.app.status(msg='Build ends successfully')
+        self.app.status(
+            msg='Build of %(repo_name)s %(ref)s %(filename)s ended '
+                'successfully',
+            repo_name=repo_name, ref=ref, filename=filename)
 
     def new_artifact_caches(self):
         '''Create interfaces for the build artifact caches.
