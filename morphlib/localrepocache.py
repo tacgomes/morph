@@ -195,7 +195,7 @@ class LocalRepoCache(object):
             else:
                 errors.append(error)
                 self._app.status(
-                    msg='Failed to fetch tarball, falling back to git clone.')
+                    msg='Using git clone.')
         target = self._mkdtemp(self._cachedir)
         try:
             self._git(['clone', '--mirror', '-n', repourl, target])
