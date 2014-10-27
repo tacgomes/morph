@@ -328,14 +328,14 @@ class DeployPlugin(cliapp.Plugin):
                 bb, loader=loader, changes_need_pushing=False,
                 name=name, email=email, build_uuid=build_uuid,
                 status=self.app.status)
-        with pbb as (repo, ref):
+        with pbb as (repo, commit, original_ref):
             # Create a tempdir for this deployment to work in
             deploy_tempdir = tempfile.mkdtemp(
                 dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
             try:
                 for system in cluster_morphology['systems']:
                     self.deploy_system(build_command, deploy_tempdir,
-                                       root_repo_dir, repo, ref, system,
+                                       root_repo_dir, repo, commit, system,
                                        env_vars, deployments,
                                        parent_location='')
             finally:
