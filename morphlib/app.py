@@ -290,7 +290,8 @@ class Morph(cliapp.Application):
                    morphlib.util.sanitise_morphology_path(args[2]))
             args = args[3:]
 
-    def create_source_pool(self, lrc, rrc, repo, ref, filename):
+    def create_source_pool(self, lrc, rrc, repo, ref, filename,
+                           original_ref=None):
         pool = morphlib.sourcepool.SourcePool()
 
         def add_to_pool(reponame, ref, filename, absref, tree, morphology):
@@ -302,7 +303,8 @@ class Morph(cliapp.Application):
 
         self.traverse_morphs(repo, ref, [filename], lrc, rrc,
                              update=not self.settings['no-git-update'],
-                             visit=add_to_pool)
+                             visit=add_to_pool,
+                             definitions_original_ref=original_ref)
         return pool
 
     def resolve_ref(self, lrc, rrc, reponame, ref, update=True):
@@ -346,7 +348,8 @@ class Morph(cliapp.Application):
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
                         system_filenames, lrc, rrc, update=True,
-                        visit=lambda rn, rf, fn, arf, m: None):
+                        visit=lambda rn, rf, fn, arf, m: None,
+                        definitions_original_ref=None):
         morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
                                                                      self)
         definitions_queue = collections.deque(system_filenames)
@@ -358,6 +361,9 @@ class Morph(cliapp.Application):
         # Resolve the (repo, ref) pair for the definitions repo, cache result.
         definitions_absref, definitions_tree = self.resolve_ref(
             lrc, rrc, definitions_repo, definitions_ref, update)
+
+        if definitions_original_ref:
+            definitions_ref = definitions_original_ref
 
         while definitions_queue:
             filename = definitions_queue.popleft()

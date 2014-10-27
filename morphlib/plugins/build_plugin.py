@@ -56,7 +56,8 @@ class BuildPlugin(cliapp.Plugin):
 
         build_command = morphlib.buildcommand.InitiatorBuildCommand(
             self.app, addr, port)
-        build_command.build(args)
+        for repo_name, ref, filename in self.app.itertriplets(args):
+            build_command.build(repo_name, ref, filename)
 
     def distbuild(self, args):
         '''Distbuild a system image in the current system branch
@@ -116,7 +117,8 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir-min-space'])
 
         build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command.build(args)
+        for repo_name, ref, filename in self.app.itertriplets(args):
+            build_command.build(repo_name, ref, filename)
 
     def build(self, args):
         '''Build a system image in the current system branch
@@ -189,5 +191,6 @@ class BuildPlugin(cliapp.Plugin):
                 bb, loader=loader, changes_need_pushing=push,
                 name=name, email=email, build_uuid=build_uuid,
                 status=self.app.status)
-        with pbb as (repo, ref):
-            build_command.build([repo, ref, system_filename])
+        with pbb as (repo, commit, original_ref):
+            build_command.build(repo, commit, system_filename,
+                                original_ref=original_ref)

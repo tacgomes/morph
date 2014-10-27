@@ -50,21 +50,24 @@ class BuildCommand(object):
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()
 
-    def build(self, args):
-        '''Build triplets specified on command line.'''
+    def build(self, repo_name, ref, filename, original_ref=None):
+        '''Build a given system morphology.'''
 
-        self.app.status(msg='Build starts', chatty=True)
+        self.app.status(
+            msg='Building %(repo_name)s %(ref)s %(filename)s',
+            repo_name=repo_name, ref=ref, filename=filename)
 
-        for repo_name, ref, filename in self.app.itertriplets(args):
-            self.app.status(msg='Building %(repo_name)s %(ref)s %(filename)s',
-                            repo_name=repo_name, ref=ref, filename=filename)
-            self.app.status(msg='Deciding on task order')
-            srcpool = self.create_source_pool(repo_name, ref, filename)
-            self.validate_sources(srcpool)
-            root_artifact = self.resolve_artifacts(srcpool)
-            self.build_in_order(root_artifact)
+        self.app.status(msg='Deciding on task order')
+        srcpool = self.create_source_pool(
+            repo_name, ref, filename, original_ref)
+        self.validate_sources(srcpool)
+        root_artifact = self.resolve_artifacts(srcpool)
+        self.build_in_order(root_artifact)
 
-        self.app.status(msg='Build ends successfully')
+        self.app.status(
+            msg='Build of %(repo_name)s %(ref)s %(filename)s ended '
+                'successfully',
+            repo_name=repo_name, ref=ref, filename=filename)
 
     def new_artifact_caches(self):
         '''Create interfaces for the build artifact caches.
@@ -82,7 +85,7 @@ class BuildCommand(object):
         return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
                                                           arch)
 
-    def create_source_pool(self, repo_name, ref, filename):
+    def create_source_pool(self, repo_name, ref, filename, original_ref=None):
         '''Find the source objects required for building a the given artifact
 
         The SourcePool will contain every stratum and chunk dependency of the
@@ -92,7 +95,8 @@ class BuildCommand(object):
         '''
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = self.app.create_source_pool(
-            self.lrc, self.rrc, repo_name, ref, filename)
+            self.lrc, self.rrc, repo_name, ref, filename,
+            original_ref=original_ref)
 
         return srcpool
 
@@ -184,7 +188,7 @@ class BuildCommand(object):
     def _validate_cross_morphology_references(self, srcpool):
         '''Perform validation across all morphologies involved in the build'''
 
-        stratum_names = []
+        stratum_names = {}
 
         for src in srcpool:
             kind = src.morphology['kind']
@@ -208,15 +212,11 @@ class BuildCommand(object):
             # and Ref specified.
             if src.morphology['kind'] == 'stratum':
                 name = src.name
-                ref = src.sha1[:7]
-                self.app.status(msg='Stratum [%(name)s] version is %(ref)s',
-                                name=name, ref=ref)
                 if name in stratum_names:
                     raise morphlib.Error(
-                        "Conflicting versions of stratum '%s' appear in the "
-                        "build. Check the contents of the system against the "
-                        "build-depends of the strata." % name)
-                stratum_names.append(name)
+                        "Multiple strata produce a '%s' artifact: %s and %s" %
+                        (name, stratum_names[name].filename, src.filename))
+                stratum_names[name] = src
 
     def _validate_cross_refs_for_system(self, src, srcpool):
         self._validate_cross_refs_for_xxx(

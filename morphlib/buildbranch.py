@@ -254,6 +254,10 @@ class BuildBranch(object):
         return self._sb.get_config('branch.name')
 
     @property
+    def root_commit(self):
+        return self._root.resolve_ref_to_commit(self.root_ref)
+
+    @property
     def root_local_repo_url(self):
         return urlparse.urljoin('file://', self._root.dirname)
 
@@ -291,7 +295,13 @@ def pushed_build_branch(bb, loader, changes_need_pushing, name, email,
         unpushed = any(bb.get_unpushed_branches())
 
         if not changes_made and not unpushed:
-            yield bb.root_repo_url, bb.root_ref
+            # We resolve the system branch ref to the commit SHA1 here, so that
+            # the build uses whatever commit the user's copy of the root repo
+            # considers the head of that branch to be. If we returned a named
+            # ref, we risk building what the remote considers the head of that
+            # branch to be instead, and we also trigger a needless update in
+            # the cached copy of the root repo.
+            yield bb.root_repo_url, bb.root_commit, bb.root_ref
             return
 
         def report_inject(gd):
@@ -318,6 +328,6 @@ def pushed_build_branch(bb, loader, changes_need_pushing, name, email,
                            remote=remote.get_push_url(), chatty=True)
             bb.push_build_branches(push_cb=report_push)
 
-            yield bb.root_repo_url, bb.root_build_ref
+            yield bb.root_repo_url, bb.root_build_ref, bb.root_build_ref
         else:
-            yield bb.root_local_repo_url, bb.root_build_ref
+            yield bb.root_local_repo_url, bb.root_build_ref, bb.root_build_ref
