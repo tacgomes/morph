@@ -45,7 +45,7 @@ class SerialiseArtifactPlugin(cliapp.Plugin):
 
     def enable(self):
         self.app.add_subcommand('serialise-artifact', self.serialise_artifact, 
-                                arg_synopsis='REPO REF MORPHOLOGY')
+                                arg_synopsis='REPO REF MORPHOLOGY [ORIGINAL_REF]')
 
     def disable(self):
         pass
@@ -55,13 +55,22 @@ class SerialiseArtifactPlugin(cliapp.Plugin):
         
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
         
-        if len(args) != 3:
-            raise cliapp.AppException('Must get triplet')
-        
-        repo_name, ref, morph_name = args
+        if len(args) != 3 and len(args) != 4:
+            raise cliapp.AppException(
+                'This command takes a repo/ref/morph triplet, and optionally '
+                'a ref name.')
+
+        repo_name, ref, morph_name = args[0:3]
+
+        if len(args) == 4:
+            original_ref = args[3]
+        else:
+            original_ref = ref
+
         filename = morphlib.util.sanitise_morphology_path(morph_name)
         build_command = morphlib.buildcommand.BuildCommand(self.app)
-        srcpool = build_command.create_source_pool(repo_name, ref, filename)
+        srcpool = build_command.create_source_pool(
+            repo_name, ref, filename, original_ref=original_ref)
         artifact = build_command.resolve_artifacts(srcpool)
         self.app.output.write(distbuild.serialise_artifact(artifact))
         self.app.output.write('\n')

@@ -542,14 +542,10 @@ class InitiatorBuildCommand(BuildCommand):
         self.app.settings['push-build-branches'] = True
         super(InitiatorBuildCommand, self).__init__(app)
 
-    def build(self, args):
+    def build(self, repo_name, ref, filename, original_ref=None):
         '''Initiate a distributed build on a controller'''
 
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
-
-        if len(args) != 3:
-            raise morphlib.Error(
-                'Need repo, ref, morphology triplet to build')
 
         if self.addr == '':
             raise morphlib.Error(
@@ -557,6 +553,7 @@ class InitiatorBuildCommand(BuildCommand):
 
         self.app.status(msg='Starting distributed build')
         loop = distbuild.MainLoop()
+        args = [repo_name, ref, filename, original_ref or ref]
         cm = distbuild.InitiatorConnectionMachine(self.app,
                                                   self.addr,
                                                   self.port,
