@@ -44,8 +44,8 @@ class DistbuildOptionsPlugin(cliapp.Plugin):
 class SerialiseArtifactPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('serialise-artifact', self.serialise_artifact, 
-                                arg_synopsis='REPO REF MORPHOLOGY [ORIGINAL_REF]')
+        self.app.add_subcommand('serialise-artifact', self.serialise_artifact,
+                                arg_synopsis='REPO REF MORPHOLOGY [REF_NAME]')
 
     def disable(self):
         pass

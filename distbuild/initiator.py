@@ -39,7 +39,8 @@ class _Failed(object):
 
 class Initiator(distbuild.StateMachine):
 
-    def __init__(self, cm, conn, app, repo_name, ref, morphology, original_ref):
+    def __init__(self, cm, conn, app, repo_name, ref, morphology,
+                 original_ref):
         distbuild.StateMachine.__init__(self, 'waiting')
         self._cm = cm
         self._conn = conn
