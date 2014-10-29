@@ -39,7 +39,7 @@ class _Failed(object):
 
 class Initiator(distbuild.StateMachine):
 
-    def __init__(self, cm, conn, app, repo_name, ref, morphology):
+    def __init__(self, cm, conn, app, repo_name, ref, morphology, original_ref):
         distbuild.StateMachine.__init__(self, 'waiting')
         self._cm = cm
         self._conn = conn
@@ -47,6 +47,7 @@ class Initiator(distbuild.StateMachine):
         self._repo_name = repo_name
         self._ref = ref
         self._morphology = morphology
+        self._original_ref = original_ref
         self._steps = None
         self._step_outputs = {}
         self._step_output_dir = app.settings['initiator-step-output-dir']
@@ -80,7 +81,8 @@ class Initiator(distbuild.StateMachine):
             id=random_id,
             repo=self._repo_name,
             ref=self._ref,
-            morphology=self._morphology
+            morphology=self._morphology,
+            original_ref=self._original_ref
         )
         self._jm.send(msg)
         logging.debug('Initiator: sent to controller: %s', repr(msg))

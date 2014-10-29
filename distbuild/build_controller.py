@@ -258,6 +258,8 @@ class BuildController(distbuild.StateMachine):
             self._request['ref'],
             self._request['morphology'],
         ]
+        if 'original_ref' in self._request:
+            argv.append(self._request['original_ref'])
         msg = distbuild.message('exec-request',
             id=self._idgen.next(),
             argv=argv,

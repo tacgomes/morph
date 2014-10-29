@@ -19,7 +19,7 @@
 '''Construct protocol message objects (dicts).'''
 
 
-_types = {
+_required_fields = {
     'build-request': [
         'id',
         'repo',
@@ -84,15 +84,26 @@ _types = {
 }
 
 
+_optional_fields = {
+    'build-request': [
+        'original_ref'
+    ]
+}
+
+
 def message(message_type, **kwargs):
-    assert message_type in _types
-    required_fields = _types[message_type]
+    known_types = _required_fields.keys()
+    assert message_type in known_types
+
+    required_fields = _required_fields[message_type]
+    optional_fields = _optional_fields.get(message_type, [])
 
     for name in required_fields:
         assert name in kwargs, 'field %s is required' % name
 
     for name in kwargs:
-        assert name in required_fields, 'field %s is not allowed' % name
+        assert (name in required_fields or name in optional_fields), \
+              'field %s is not allowed' % name
 
     msg = dict(kwargs)
     msg['type'] = message_type
