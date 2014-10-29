@@ -227,9 +227,10 @@ class LocalRepoCache(object):
     def get_updated_repo(self, reponame): # pragma: no cover
         '''Return object representing cached repository, which is updated.'''
 
-        self._app.status(msg='Updating git repository %s in cache' % reponame)
         if not self._app.settings['no-git-update']:
             cached_repo = self.cache_repo(reponame)
+            self._app.status(
+                msg='Updating git repository %s in cache' % reponame)
             cached_repo.update()
         else:
             cached_repo = self.get_repo(reponame)
