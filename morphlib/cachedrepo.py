@@ -298,7 +298,8 @@ class CachedRepo(object):
 
     def _update(self):  # pragma: no cover
         morphlib.git.gitcmd(self._runcmd, 'remote', 'update',
-                            'origin', '--prune')
+                            'origin', '--prune',
+                            echo_stderr=self.app.settings['verbose'])
 
     def __str__(self):  # pragma: no cover
         return self.url

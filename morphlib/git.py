@@ -22,6 +22,7 @@ import os
 import re
 import string
 import StringIO
+import sys
 import time
 
 
@@ -333,6 +334,16 @@ def gitcmd(runcmd, *args, **kwargs):
     # is enough to say what it contains, so we turn it off by setting
     # the right flag in an environment variable.
     kwargs['env']['GIT_NO_REPLACE_OBJECTS'] = '1'
+
     cmdline = ['git']
+
+    echo_stderr = kwargs.pop('echo_stderr', False)
+    if echo_stderr:
+        if 'stderr' not in kwargs:
+            # Ensure status output is visible. Git will hide it if stderr is
+            # redirected somewhere else (the --progress flag overrides this
+            # behaviour for the 'clone' command, but not others).
+            kwargs['stderr'] = sys.stderr
+
     cmdline.extend(args)
     return runcmd(cmdline, **kwargs)
