@@ -297,12 +297,8 @@ class CachedRepo(object):
             raise CheckoutError(self, ref, target_dir)
 
     def _update(self):  # pragma: no cover
-        try:
-            morphlib.git.gitcmd(self._runcmd, 'remote', 'update',
-                                'origin', '--prune')
-        except cliapp.AppException, ae:
-            morphlib.git.gitcmd(self._runcmd, 'remote', 'prune', 'origin')
-            morphlib.git.gitcmd(self._runcmd, 'remote', 'update', 'origin')
+        morphlib.git.gitcmd(self._runcmd, 'remote', 'update',
+                            'origin', '--prune')
 
     def __str__(self):  # pragma: no cover
         return self.url
