@@ -45,7 +45,6 @@ class StagingArea(object):
         self.dirname = dirname
         self.builddirname = None
         self.destdirname = None
-        self.mounted = []
         self._bind_readonly_mount = None
 
         self.use_chroot = use_chroot
@@ -224,23 +223,6 @@ class StagingArea(object):
             os.makedirs(ccache_destdir)
         return ccache_repodir
 
-    def do_mounts(self, setup_mounts):  # pragma: no cover
-        if not setup_mounts:
-            return
-        for mount_point, mount_type, source in self.to_mount:
-            logging.debug('Mounting %s in staging area' % mount_point)
-            path = os.path.join(self.dirname, mount_point)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            morphlib.fsutils.mount(self._app.runcmd, source, path, mount_type)
-            self.mounted.append(path)
-        return
-
-    def do_unmounts(self):  # pragma: no cover
-        for path in reversed(self.mounted):
-            logging.debug('Unmounting %s in staging area' % path)
-            morphlib.fsutils.unmount(self._app.runcmd, path)
-
     def chroot_open(self, source, setup_mounts): # pragma: no cover
         '''Setup staging area for use as a chroot.'''
 
@@ -251,8 +233,6 @@ class StagingArea(object):
         self.builddirname = builddir
         self.destdirname = destdir
 
-        self.do_mounts(setup_mounts)
-
         return builddir, destdir
 
     def chroot_close(self): # pragma: no cover
@@ -261,22 +241,17 @@ class StagingArea(object):
         This should be called after the staging area is no longer needed.
 
         '''
-
-        self.do_unmounts()
+        # No cleanup is currently required
+        pass
 
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
         assert 'env' not in kwargs
-        kwargs['env'] = self.env
+        kwargs['env'] = dict(self.env)
         if 'extra_env' in kwargs:
             kwargs['env'].update(kwargs['extra_env'])
             del kwargs['extra_env']
 
-        if 'cwd' in kwargs:
-            cwd = kwargs['cwd']
-            del kwargs['cwd']
-        else:
-            cwd = '/'
         ccache_dir = kwargs.pop('ccache_dir', None)
 
         chroot_dir = self.dirname if self.use_chroot else '/'
@@ -289,40 +264,28 @@ class StagingArea(object):
                              for d in staging_dirs]
         if not self.use_chroot:
             do_not_mount_dirs += [temp_dir]
-
         logging.debug("Not mounting dirs %r" % do_not_mount_dirs)
 
-        real_argv = ['linux-user-chroot', '--chdir', cwd, '--unshare-net']
-        for d in morphlib.fsutils.invert_paths(os.walk(chroot_dir),
-                                               do_not_mount_dirs):
-            if not os.path.islink(d):
-                real_argv += ['--mount-readonly', self.relative(d)]
-
-        if self.use_chroot:
-            proc_target = os.path.join(self.dirname, 'proc')
-            if not os.path.exists(proc_target):
-                os.makedirs(proc_target)
-            real_argv += ['--mount-proc', self.relative(proc_target)]
-
+        mount_proc = self.use_chroot
         if ccache_dir and not self._app.settings['no-ccache']:
             ccache_target = os.path.join(
                     self.dirname, kwargs['env']['CCACHE_DIR'].lstrip('/'))
-            real_argv += ['--mount-bind', ccache_dir,
-                          self.relative(ccache_target)]
+            binds = ((ccache_dir, ccache_target),)
+        else:
+            binds = ()
 
-        real_argv += [chroot_dir]
-
-        real_argv += argv
-
+        cmdline = morphlib.util.containerised_cmdline(
+                    argv, cwd=kwargs.pop('cwd', '/'),
+                    root=chroot_dir, mounts=self.to_mount,
+                    binds=binds, mount_proc=mount_proc,
+                    writable_paths=do_not_mount_dirs)
         try:
-            if 'logfile' in kwargs and kwargs['logfile'] != None:
-                logfile = kwargs['logfile']
-                del kwargs['logfile']
-
+            if kwargs.get('logfile') != None:
+                logfile = kwargs.pop('logfile')
                 teecmd = ['tee', '-a', logfile]
-                return self._app.runcmd(real_argv, teecmd, **kwargs)
+                return self._app.runcmd(cmdline, teecmd, **kwargs)
             else:
-                return self._app.runcmd(real_argv, **kwargs)
+                return self._app.runcmd(cmdline, **kwargs)
         except cliapp.AppException as e:
             raise cliapp.AppException('In staging area %s: running '
                                       'command \'%s\' failed.' % 

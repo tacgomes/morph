@@ -104,6 +104,11 @@ def invert_paths(tree_walker, paths):
 
     for dirpath, dirnames, filenames in tree_walker:
 
+        if any(p == dirpath for p in paths): # pragma: no cover
+            # Dir is an exact match for a path
+            # don't recurse any further
+            # Don't yield it, since we don't return listed paths
+            continue
         dn_copy = list(dirnames)
         for subdir in dn_copy:
             subdirpath = os.path.join(dirpath, subdir)
