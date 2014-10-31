@@ -20,6 +20,7 @@ import re
 import urllib2
 import urlparse
 import string
+import sys
 import tempfile
 
 import cliapp
@@ -102,7 +103,7 @@ class LocalRepoCache(object):
         self._tarball_base_url = tarball_base_url
         self._cached_repo_objects = {}
 
-    def _git(self, args, cwd=None):  # pragma: no cover
+    def _git(self, args, **kwargs):  # pragma: no cover
         '''Execute git command.
 
         This is a method of its own so that unit tests can easily override
@@ -110,7 +111,7 @@ class LocalRepoCache(object):
 
         '''
 
-        morphlib.git.gitcmd(self._app.runcmd, *args, cwd=cwd)
+        morphlib.git.gitcmd(self._app.runcmd, *args, **kwargs)
 
     def _fetch(self, url, path):  # pragma: no cover
         '''Fetch contents of url into a file.
@@ -120,8 +121,20 @@ class LocalRepoCache(object):
         '''
         self._app.status(msg="Trying to fetch %(tarball)s to seed the cache",
                          tarball=url, chatty=True)
-        self._app.runcmd(['wget', '-q', '-O-', url],
-                         ['tar', 'xf', '-'], cwd=path)
+
+        if self._app.settings['verbose']:
+            verbosity_flags = []
+            kwargs = dict(stderr=sys.stderr)
+        else:
+            verbosity_flags = ['--quiet']
+            kwargs = dict()
+
+        def wget_command():
+            return ['wget'] + verbosity_flags + ['-O-', url]
+
+        self._app.runcmd(wget_command(),
+                         ['tar', 'xf', '-'],
+                         cwd=path, **kwargs)
 
     def _mkdtemp(self, dirname):  # pragma: no cover
         '''Creates a temporary directory.
@@ -196,9 +209,12 @@ class LocalRepoCache(object):
                 errors.append(error)
                 self._app.status(
                     msg='Using git clone.')
+
         target = self._mkdtemp(self._cachedir)
+
         try:
-            self._git(['clone', '--mirror', '-n', repourl, target])
+            self._git(['clone', '--mirror', '-n', repourl, target],
+                      echo_stderr=self._app.settings['verbose'])
         except cliapp.AppException, e:
             errors.append('Unable to clone from %s to %s: %s' %
                           (repourl, target, e))
@@ -227,9 +243,10 @@ class LocalRepoCache(object):
     def get_updated_repo(self, reponame): # pragma: no cover
         '''Return object representing cached repository, which is updated.'''
 
-        self._app.status(msg='Updating git repository %s in cache' % reponame)
         if not self._app.settings['no-git-update']:
             cached_repo = self.cache_repo(reponame)
+            self._app.status(
+                msg='Updating git repository %s in cache' % reponame)
             cached_repo.update()
         else:
             cached_repo = self.get_repo(reponame)

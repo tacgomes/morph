@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2013  Codethink Limited
+# Copyright (C) 2012-2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,11 @@ import morphlib
 
 
 class FakeApplication(object):
+
+    def __init__(self):
+        self.settings = {
+            'verbose': True
+        }
 
     def status(self, msg):
         pass
@@ -53,7 +58,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc._mkdtemp = self.fake_mkdtemp
         self._mkdtemp_count = 0
 
-    def fake_git(self, args, cwd=None):
+    def fake_git(self, args, **kwargs):
         if args[0] == 'clone':
             self.assertEqual(len(args), 5)
             remote = args[3]
@@ -112,7 +117,7 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc.cache_repo(self.repourl)
 
     def test_fails_to_cache_when_remote_does_not_exist(self):
-        def fail(args):
+        def fail(args, **kwargs):
             self.lrc.fs.makedir(args[4])
             raise cliapp.AppException('')
         self.lrc._git = fail
