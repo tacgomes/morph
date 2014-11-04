@@ -352,12 +352,19 @@ class GitDirectory(object):
 
     '''
 
-    def __init__(self, dirname):
-        self.dirname = morphlib.util.find_root(dirname, '.git')
-        # if we are in a bare repo, self.dirname will now be None
-        # so we just use the provided dirname
-        if not self.dirname:
-            self.dirname = dirname
+    def __init__(self, dirname, search_for_root=False):
+        '''Set up a GitDirectory instance for the repository at 'dirname'.
+
+        If 'search_for_root' is set to True, 'dirname' may point to a
+        subdirectory inside the working tree of repository. Otherwise 'dirname'
+        must be the top directory.
+
+        '''
+
+        if search_for_root:
+            dirname = morphlib.util.find_root(dirname, '.git')
+
+        self.dirname = dirname
         self._config = {}
 
     def _runcmd(self, argv, **kwargs):

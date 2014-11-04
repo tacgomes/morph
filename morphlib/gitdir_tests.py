@@ -43,6 +43,16 @@ class GitDirectoryTests(unittest.TestCase):
         gitdir = morphlib.gitdir.GitDirectory(self.dirname)
         self.assertEqual(gitdir.dirname, self.dirname)
 
+    def test_can_search_for_top_directory(self):
+        self.fake_git_clone()
+
+        path_inside_working_tree = os.path.join(self.dirname, 'a', 'b', 'c')
+        os.makedirs(path_inside_working_tree)
+
+        gitdir = morphlib.gitdir.GitDirectory(
+            path_inside_working_tree, search_for_root=True)
+        self.assertEqual(gitdir.dirname, self.dirname)
+
     def test_runs_command_in_right_directory(self):
         self.fake_git_clone()
         gitdir = morphlib.gitdir.GitDirectory(self.dirname)

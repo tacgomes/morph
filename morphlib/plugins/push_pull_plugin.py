@@ -52,7 +52,7 @@ class PushPullPlugin(cliapp.Plugin):
         if len(args) != 2:
             raise morphlib.Error('push must get exactly two arguments')
 
-        gd = morphlib.gitdir.GitDirectory(os.getcwd())
+        gd = morphlib.gitdir.GitDirectory(os.getcwd(), search_for_root=True)
         remote, branch = args
         rs = morphlib.gitdir.RefSpec(branch)
         gd.get_remote(remote).push(rs)
@@ -81,7 +81,7 @@ class PushPullPlugin(cliapp.Plugin):
         if len(args) > 1:
             raise morphlib.Error('pull takes at most one argument')
 
-        gd = morphlib.gitdir.GitDirectory(os.getcwd())
+        gd = morphlib.gitdir.GitDirectory(os.getcwd(), search_for_root=True)
         remote = gd.get_remote('origin')
         if args:
             branch = args[0]
