@@ -343,12 +343,20 @@ class Remote(object):
 
 class GitDirectory(object):
 
-    '''Represent a git working tree + .git directory.
+    '''Represents a local Git repository.
 
-    This class represents a directory that is the result of a
-    "git clone". It includes both the .git subdirectory and
-    the working tree. It is a thin abstraction, meant to make
-    it easier to do certain git operations.
+    This class represents a directory that is the result of a `git clone` or
+    `git init`. It includes both the .git subdirectory and the working tree.
+    It is a thin abstraction, meant to make it easier to do certain git
+    operations.
+
+    In the case of bare repositories, there is no working tree. These are
+    supported, but a NoWorkingTree exception will be raised if you try to
+    perform any operations that require a working tree.
+
+    The repository must already exist on disk. Use gitdir.init() to create a
+    new repo, or gitdir.clone_from_cached_repo() if you want to clone a repo
+    that Morph has cached locally.
 
     '''
 
