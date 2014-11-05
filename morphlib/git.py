@@ -107,7 +107,7 @@ class Submodules(object):
                     # list objects in the parent repo tree to find the commit
                     # object that corresponds to the submodule
                     commit = gitcmd(self.app.runcmd, 'ls-tree', self.ref,
-                                    submodule.name, cwd=self.repo)
+                                    submodule.path, cwd=self.repo)
 
                     # read the commit hash from the output
                     fields = commit.split()
