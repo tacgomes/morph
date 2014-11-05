@@ -537,6 +537,13 @@ class GitDirectory(object):
     def resolve_ref_to_tree(self, ref):
         return self._rev_parse('%s^{tree}' % ref)
 
+    def ref_exists(self, ref):
+        try:
+            self._rev_parse('%s^{commit}' % ref)
+            return True
+        except InvalidRefError:
+            return False
+
     def _list_files_in_work_tree(self):
         for dirpath, subdirs, filenames in os.walk(self.dirname):
             if dirpath == self.dirname and '.git' in subdirs:
