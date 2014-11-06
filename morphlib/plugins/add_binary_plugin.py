@@ -56,7 +56,7 @@ class AddBinaryPlugin(cliapp.Plugin):
         if not binaries:
             raise morphlib.Error('add-binary must get at least one argument')
 
-        gd = morphlib.gitdir.GitDirectory(os.getcwd())
+        gd = morphlib.gitdir.GitDirectory(os.getcwd(), search_for_root=True)
         gd.fat_init()
         if not gd.has_fat():
             self._make_gitfat(gd)

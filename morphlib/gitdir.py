@@ -343,21 +343,36 @@ class Remote(object):
 
 class GitDirectory(object):
 
-    '''Represent a git working tree + .git directory.
+    '''Represents a local Git repository.
 
-    This class represents a directory that is the result of a
-    "git clone". It includes both the .git subdirectory and
-    the working tree. It is a thin abstraction, meant to make
-    it easier to do certain git operations.
+    This class represents a directory that is the result of a `git clone` or
+    `git init`. It includes both the .git subdirectory and the working tree.
+    It is a thin abstraction, meant to make it easier to do certain git
+    operations.
+
+    In the case of bare repositories, there is no working tree. These are
+    supported, but a NoWorkingTree exception will be raised if you try to
+    perform any operations that require a working tree.
+
+    The repository must already exist on disk. Use gitdir.init() to create a
+    new repo, or gitdir.clone_from_cached_repo() if you want to clone a repo
+    that Morph has cached locally.
 
     '''
 
-    def __init__(self, dirname):
-        self.dirname = morphlib.util.find_root(dirname, '.git')
-        # if we are in a bare repo, self.dirname will now be None
-        # so we just use the provided dirname
-        if not self.dirname:
-            self.dirname = dirname
+    def __init__(self, dirname, search_for_root=False):
+        '''Set up a GitDirectory instance for the repository at 'dirname'.
+
+        If 'search_for_root' is set to True, 'dirname' may point to a
+        subdirectory inside the working tree of repository. Otherwise 'dirname'
+        must be the top directory.
+
+        '''
+
+        if search_for_root:
+            dirname = morphlib.util.find_root(dirname, '.git')
+
+        self.dirname = dirname
         self._config = {}
 
     def _runcmd(self, argv, **kwargs):
