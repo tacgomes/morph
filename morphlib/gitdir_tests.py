@@ -162,6 +162,13 @@ class GitDirectoryContentsTests(unittest.TestCase):
         self.assertEqual(len(tree), 40)
         self.assertNotEqual(commit, tree)
 
+    def test_ref_exists(self):
+        gd = morphlib.gitdir.GitDirectory(self.dirname)
+        self.assertFalse(gd.ref_exists('non-existant-ref'))
+        self.assertTrue(gd.ref_exists('master'))
+        self.assertFalse(
+            gd.ref_exists('0000000000000000000000000000000000000000'))
+
     def test_store_blob_with_string(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         sha1 = gd.store_blob('test string')
