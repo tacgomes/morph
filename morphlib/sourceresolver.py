@@ -17,11 +17,15 @@
 import collections
 import cPickle
 import logging
+import os
 import pylru
 
 import cliapp
 
 import morphlib
+
+tree_cache_size = 10000
+tree_cache_filename = 'trees.cache.pickle'
 
 
 class PickleCacheManager(object):
@@ -92,9 +96,10 @@ class NotcachedError(SourceResolverError):
 class SourceResolver(object):
     '''Provides a way of resolving the set of sources for a given system.
 
-    There are two levels of caching involved in resolving the sources to build.
+    There are three levels of caching involved in resolving the sources to
+    build.
 
-    The canonical source for each source is specified in the build-command
+    The canonical repo for each source is specified in the build-command
     (for strata and systems) or in the stratum morphology (for chunks). It will
     be either a normal URL, or a keyed URL using a repo-alias like
     'baserock:baserock/definitions'.
@@ -111,27 +116,55 @@ class SourceResolver(object):
     entire repositories in $cachedir/gits. If a repo is not in the remote repo
     cache then it must be present in the local repo cache.
 
+    The third layer of caching is a simple commit SHA1 -> tree SHA mapping. It
+    turns out that even if all repos are available locally, running
+    'git rev-parse' on hundreds of repos requires a lot of IO and can take
+    several minutes. Likewise, on a slow network connection it is time
+    consuming to keep querying the remote repo cache. This third layer of
+    caching works around both of those issues.
+
+    The need for 3 levels of caching highlights design inconsistencies in
+    Baserock, but for now it is worth the effort to maintain this code to save
+    users from waiting 7 minutes each time that they want to build. The level 3
+    cache is fairly simple because commits are immutable, so there is no danger
+    of this cache being stale as long as it is indexed by commit SHA1. Due to
+    the policy in Baserock of always using a commit SHA1 (rather than a named
+    ref) in the system definitions, it makes repeated builds of a system very
+    fast as no resolution needs to be done at all.
+
     '''
 
-    def __init__(self, local_repo_cache, remote_repo_cache, update_repos,
-                 status_cb=None):
+    def __init__(self, local_repo_cache, remote_repo_cache,
+                 tree_cache_manager, update_repos, status_cb=None):
         self.lrc = local_repo_cache
         self.rrc = remote_repo_cache
+        self.tree_cache_manager = tree_cache_manager
 
         self.update = update_repos
-
         self.status = status_cb
 
+        self._resolved_trees = {}
         self._resolved_morphologies = {}
 
-    def resolve_ref(self, reponame, ref):
+    def _resolve_ref(self, reponame, ref):
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
-        If update is True then this has the side-effect of updating
-        or cloning the repository into the local repo cache.
-        '''
-        absref = None
+        If update is True then this has the side-effect of updating or cloning
+        the repository into the local repo cache.
 
+        This function is complex due to the 3 layers of caching described in
+        the SourceResolver docstring.
+
+        '''
+
+        # The Baserock reference definitions use absolute refs so, and, if the
+        # absref is cached, we can short-circuit all this code.
+        if (reponame, ref) in self._resolved_trees:
+            logging.debug('Returning tree (%s, %s) from tree cache',
+                          reponame, ref)
+            return ref, self._resolved_trees[(reponame, ref)]
+
+        absref = None
         if self.lrc.has_repo(reponame):
             repo = self.lrc.get_repo(reponame)
             if self.update and repo.requires_update_for_ref(ref):
@@ -160,9 +193,16 @@ class SourceResolver(object):
                 repo = self.lrc.cache_repo(reponame)
                 repo.update()
             else:
+                # This is likely to raise an exception, because if the local
+                # repo cache had the repo we'd have already resolved the ref.
                 repo = self.lrc.get_repo(reponame)
             absref = repo.resolve_ref_to_commit(ref)
             tree = repo.resolve_ref_to_tree(absref)
+
+        logging.debug('Writing tree to cache with ref (%s, %s)',
+                      reponame, absref)
+        self._resolved_trees[(reponame, absref)] = tree
+
         return absref, tree
 
     def _get_morphology(self, reponame, sha1, filename):
@@ -173,23 +213,23 @@ class SourceResolver(object):
 
         morph_name = os.path.splitext(os.path.basename(filename))[0]
         loader = morphlib.morphloader.MorphologyLoader()
-        if self._lrc.has_repo(reponame):
-            self.status(msg="Looking for %s in local repo cache" % filename,
-                        chatty=True)
+        if self.lrc.has_repo(reponame):
+            self.status(msg="Looking for %(reponame)s:%(filename)s in the "
+                            "local repo cache.",
+                        reponame=reponame, filename=filename, chatty=True)
             try:
-                repo = self._lrc.get_repo(reponame)
+                repo = self.lrc.get_repo(reponame)
                 text = repo.read_file(filename, sha1)
                 morph = loader.load_from_string(text)
             except IOError:
                 morph = None
                 file_list = repo.list_files(ref=sha1, recurse=False)
-        elif self._rrc is not None:
-            self.status(msg="Retrieving %(reponame)s %(sha1)s %(filename)s"
-                        " from the remote git cache.",
-                        reponame=reponame, sha1=sha1, filename=filename,
-                        chatty=True)
+        elif self.rrc is not None:
+            self.status(msg="Looking for %(reponame)s:%(filename)s in the "
+                            "remote repo cache.",
+                        reponame=reponame, filename=filename, chatty=True)
             try:
-                text = self._rrc.cat_file(reponame, sha1, filename)
+                text = self.rrc.cat_file(reponame, sha1, filename)
                 morph = loader.load_from_string(text)
             except morphlib.remoterepocache.CatFileError:
                 morph = None
@@ -221,11 +261,13 @@ class SourceResolver(object):
         chunk_in_source_repo_queue = []
 
         resolved_commits = {}
-        resolved_trees = {}
+
+        self._resolved_trees = self.tree_cache_manager.load_cache()
+
         resolved_morphologies = {}
 
         # Resolve the (repo, ref) pair for the definitions repo, cache result.
-        definitions_absref, definitions_tree = self.resolve_ref(
+        definitions_absref, definitions_tree = self._resolve_ref(
             definitions_repo, definitions_ref)
 
         if definitions_original_ref:
@@ -271,12 +313,7 @@ class SourceResolver(object):
         # only) those with the morphology in the chunk's source repository.
 
         def process_chunk(repo, ref, filename):
-            if (repo, ref) not in resolved_trees:
-                commit_sha1, tree_sha1 = self.resolve_ref(repo, ref)
-                resolved_commits[repo, ref] = commit_sha1
-                resolved_trees[repo, commit_sha1] = tree_sha1
-            absref = resolved_commits[repo, ref]
-            tree = resolved_trees[repo, absref]
+            absref, tree = self._resolve_ref(repo, ref)
             key = (definitions_repo, definitions_absref, filename)
             morphology = self._get_morphology(*key)
             visit(repo, ref, filename, absref, tree, morphology)
@@ -287,8 +324,11 @@ class SourceResolver(object):
         for repo, ref, filename in chunk_in_source_repo_queue:
             process_chunk_repo(repo, ref, filename)
 
+        logging.debug('Saving contents of resolved tree cache')
+        self.tree_cache_manager.save_cache(self._resolved_trees)
 
-def create_source_pool(lrc, rrc, repo, ref, filename,
+
+def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
                        original_ref=None, update_repos=True,
                        status_cb=None):
     '''Find all the sources involved in building a given system.
@@ -314,7 +354,10 @@ def create_source_pool(lrc, rrc, repo, ref, filename,
         for source in sources:
             pool.add(source)
 
-    resolver = SourceResolver(lrc, rrc, update_repos, status_cb)
+    tree_cache_manager = PickleCacheManager(
+        os.path.join(cachedir, tree_cache_filename), tree_cache_size)
+
+    resolver = SourceResolver(lrc, rrc, tree_cache_manager, update_repos, status_cb)
     resolver.traverse_morphs(repo, ref, [filename],
                              visit=add_to_pool,
                              definitions_original_ref=original_ref)
