@@ -350,8 +350,8 @@ class Morph(cliapp.Application):
                         system_filenames, lrc, rrc, update=True,
                         visit=lambda rn, rf, fn, arf, m: None,
                         definitions_original_ref=None):
-        morph_factory = morphlib.morphologyfactory.MorphologyFactory(lrc, rrc,
-                                                                     self)
+        morph_factory = morphlib.morphologyfactory.MorphologyFactory(
+            lrc, rrc, self.status)
         definitions_queue = collections.deque(system_filenames)
         chunk_in_definitions_repo_queue = []
         chunk_in_source_repo_queue = []

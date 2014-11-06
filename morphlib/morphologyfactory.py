@@ -41,14 +41,13 @@ class MorphologyFactory(object):
 
     '''A way of creating morphologies which will provide a default'''
 
-    def __init__(self, local_repo_cache, remote_repo_cache=None, app=None):
+    def __init__(self, local_repo_cache, remote_repo_cache=None,
+                 status_cb=None):
         self._lrc = local_repo_cache
         self._rrc = remote_repo_cache
-        self._app = app
 
-    def status(self, *args, **kwargs):  # pragma: no cover
-        if self._app is not None:
-            self._app.status(*args, **kwargs)
+        null_status_function = lambda **kwargs: None
+        self.status = status_cb or null_status_function
 
     def get_morphology(self, reponame, sha1, filename):
         morph_name = os.path.splitext(os.path.basename(filename))[0]
