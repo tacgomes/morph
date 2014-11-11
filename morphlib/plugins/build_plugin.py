@@ -1,4 +1,4 @@
-# Copyright (C) 2012,2013,2014  Codethink Limited
+# Copyright (C) 2012-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -135,11 +135,13 @@ class BuildPlugin(cliapp.Plugin):
         The location of the resulting system image artifact is printed
         at the end of the build output.
 
-        You do not need to commit your changes before building, Morph
-        does that for you, in a temporary branch for each build. However,
-        note that Morph does not untracked files to the temporary branch,
-        only uncommitted changes to files git already knows about. You
-        need to `git add` and commit each new file yourself.
+        If the 'local-changes' setting is set to 'include', you do not need
+        to commit your changes before building. Morph does that for you, in a
+        temporary branch for each build. Note that any system produced this way
+        will not be reproducible later on as the branch it is built from will
+        have been deleted. Also note that Morph does not add untracked files to
+        the temporary branch, only uncommitted changes to files git already
+        knows about. You need to `git add` and commit each new file yourself.
 
         Example:
 
@@ -163,8 +165,6 @@ class BuildPlugin(cliapp.Plugin):
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
 
-        build_uuid = uuid.uuid4().hex
-
         if self.use_distbuild:
             addr = self.app.settings['controller-initiator-address']
             port = self.app.settings['controller-initiator-port']
@@ -173,6 +173,22 @@ class BuildPlugin(cliapp.Plugin):
                 self.app, addr, port)
         else:
             build_command = morphlib.buildcommand.BuildCommand(self.app)
+
+        if self.app.settings['local-changes'] == 'include':
+            self._build_with_local_changes(build_command, sb, system_filename)
+        else:
+            self._build_local_commit(build_command, sb, system_filename)
+
+    def _build_with_local_changes(self, build_command, sb, system_filename):
+        '''Construct a branch including user's local changes, and build that.
+
+        It is often a slow process to check all repos in the system branch for
+        local changes. However, when using a distributed build cluster, all
+        code being built must be pushed to the associated Trove, and it can be
+        helpful to have this automated as part of the `morph build` command.
+
+        '''
+        build_uuid = uuid.uuid4().hex
 
         loader = morphlib.morphloader.MorphologyLoader()
         push = self.app.settings['push-build-branches']
@@ -194,3 +210,33 @@ class BuildPlugin(cliapp.Plugin):
         with pbb as (repo, commit, original_ref):
             build_command.build(repo, commit, system_filename,
                                 original_ref=original_ref)
+
+    def _build_local_commit(self, build_command, sb, system_filename):
+        '''Build whatever commit the user has checked-out locally.
+
+        This ignores any uncommitted changes. Also, if the user has a commit
+        checked out locally that hasn't been pushed to the Trove that Morph is
+        configured to work with, the build will fail in this sort of way:
+
+            ERROR: Ref c55b853d92a52a5b5fe62edbfbf351169eb79c0a is an invalid
+            reference for repo
+            git://git.baserock.org/baserock/baserock/definitions
+
+        The build process doesn't use the checked-out definitions repo at all,
+        except to resolve the checked-out commit (HEAD). Instead, it uses the
+        cached version of the definitions repo, updating the cache if
+        necessary.
+
+        We don't detect and warn the user about any uncommitted changes because
+        doing so is slow when there are no changes (around 5 seconds on my
+        machine for Baserock's definitions.git).
+
+        '''
+        root_repo_url = sb.get_config('branch.root')
+        ref = sb.get_config('branch.name')
+
+        definitions_repo_path = sb.get_git_directory_name(root_repo_url)
+        definitions_repo = morphlib.gitdir.GitDirectory(definitions_repo_path)
+        commit = definitions_repo.resolve_ref_to_commit(ref)
+
+        build_command.build(root_repo_url, commit, system_filename)

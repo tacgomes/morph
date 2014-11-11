@@ -1,4 +1,4 @@
-# Copyright (C) 2013, 2014  Codethink Limited
+# Copyright (C) 2013-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -376,23 +376,24 @@ class DeployPlugin(cliapp.Plugin):
         self.validate_deployment_options(
             env_vars, all_deployments, all_subsystems)
 
-        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
-        pbb = morphlib.buildbranch.pushed_build_branch(
-                bb, loader=loader, changes_need_pushing=False,
-                name=name, email=email, build_uuid=build_uuid,
-                status=self.app.status)
-        with pbb as (repo, commit, original_ref):
-            # Create a tempdir for this deployment to work in
-            deploy_tempdir = tempfile.mkdtemp(
-                dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
-            try:
-                for system in cluster_morphology['systems']:
-                    self.deploy_system(build_command, deploy_tempdir,
-                                       root_repo_dir, repo, commit, system,
-                                       env_vars, deployments,
-                                       parent_location='')
-            finally:
-                shutil.rmtree(deploy_tempdir)
+        if self.app.settings['local-changes'] == 'include':
+            bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
+            pbb = morphlib.buildbranch.pushed_build_branch(
+                    bb, loader=loader, changes_need_pushing=False,
+                    name=name, email=email, build_uuid=build_uuid,
+                    status=self.app.status)
+            with pbb as (repo, commit, original_ref):
+                self.deploy_cluster(build_command, cluster_morphology,
+                                    root_repo_dir, repo, commit, env_vars,
+                                    deployments)
+        else:
+            repo = sb.get_config('branch.root')
+            ref = sb.get_config('branch.name')
+            commit = root_repo_dir.resolve_ref_to_commit(ref)
+
+            self.deploy_cluster(build_command, cluster_morphology,
+                                root_repo_dir, repo, commit, env_vars,
+                                deployments)
 
         self.app.status(msg='Finished deployment')
 
@@ -411,6 +412,20 @@ class DeployPlugin(cliapp.Plugin):
                     raise cliapp.AppException(
                         'Variable referenced a non-existent deployment '
                         'name: %s' % var)
+
+    def deploy_cluster(self, build_command, cluster_morphology, root_repo_dir,
+                       repo, commit, env_vars, deployments):
+        # Create a tempdir for this deployment to work in
+        deploy_tempdir = tempfile.mkdtemp(
+            dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
+        try:
+            for system in cluster_morphology['systems']:
+                self.deploy_system(build_command, deploy_tempdir,
+                                   root_repo_dir, repo, commit, system,
+                                   env_vars, deployments,
+                                   parent_location='')
+        finally:
+            shutil.rmtree(deploy_tempdir)
 
     def deploy_system(self, build_command, deploy_tempdir,
                       root_repo_dir, build_repo, ref, system, env_vars,
