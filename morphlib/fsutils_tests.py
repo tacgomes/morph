@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Codethink Limited
+# Copyright (C) 2013, 2014  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,10 +51,25 @@ class InvertPathsTests(unittest.TestCase):
             },
         }
 
-    def test_flat_lists_single_files(self):
+    def test_flat_lists_top_dir(self):
         walker = dummy_top_down_walker('.', self.flat_tree)
-        self.assertEqual(sorted(["./foo", "./bar", "./baz"]),
+        self.assertEqual(["."],
                          sorted(morphlib.fsutils.invert_paths(walker, [])))
+
+    def test_flat_skips_all_with_root_pased(self):
+        walker = dummy_top_down_walker('.', self.flat_tree)
+        self.assertEqual([],
+                         list(morphlib.fsutils.invert_paths(walker, ['.'])))
+
+    def test_flat_lists_top_dir(self):
+        walker = dummy_top_down_walker('.', self.nested_tree)
+        self.assertEqual(["."],
+                         sorted(morphlib.fsutils.invert_paths(walker, [])))
+
+    def test_flat_skips_all_with_root_pased(self):
+        walker = dummy_top_down_walker('.', self.nested_tree)
+        self.assertEqual([],
+                         list(morphlib.fsutils.invert_paths(walker, ['.'])))
 
     def test_flat_excludes_listed_files(self):
         walker = dummy_top_down_walker('.', self.flat_tree)
@@ -95,5 +110,5 @@ class InvertPathsTests(unittest.TestCase):
                      "./tmp/morph/staging/inst",
                      "./tmp",
                     ]))
-        expected = ("./bin",)
-        self.assertEqual(sorted(found), sorted(expected))
+        expected = ["./bin"]
+        self.assertEqual(sorted(found), expected)

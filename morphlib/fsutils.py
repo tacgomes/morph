@@ -97,48 +97,43 @@ def invert_paths(tree_walker, paths):
 
     '''
 
-    def is_subpath(prefix, path):
-        prefix_components = prefix.split(os.sep)
-        path_components = path.split(os.sep)
-        return path_components[:len(prefix_components)] == prefix_components
+    def normpath(path):
+        if path == '.':
+            return path
+        path = os.path.normpath(path)
+        if not os.path.isabs(path):
+            path = os.path.join('.', path)
+        return path
+    def any_paths_are_subpath_of(prefix):
+        prefix = normpath(prefix)
+        norm_paths = (normpath(path) for path in paths)
+        return any(path[:len(prefix)] == prefix
+                   for path in norm_paths)
+
+    def path_is_listed(path):
+        return any(normpath(path) == normpath(other)
+                   for other in paths)
 
     for dirpath, dirnames, filenames in tree_walker:
 
-        if any(p == dirpath for p in paths): # pragma: no cover
-            # Dir is an exact match for a path
-            # don't recurse any further
-            # Don't yield it, since we don't return listed paths
-            continue
-        dn_copy = list(dirnames)
-        for subdir in dn_copy:
-            subdirpath = os.path.join(dirpath, subdir)
-
-            if any(p == subdirpath for p in paths):
-                # Subdir is an exact match for a path
-                # Don't recurse into it, so remove from list
-                # Don't yield it, since we don't return listed paths
-                dirnames.remove(subdir)
-            elif any(is_subpath(subdirpath, p) for p in paths):
-                # This directory is a parent directory of one
-                # of our paths
-                # Recurse into it, so don't remove it from the list
-                # Don't yield it, since we don't return listed paths
-                pass
-            else:
-                # This directory is neither one marked for writing,
-                # nor a parent of a file marked for writing
-                # Don't recurse, so remove it from the list
-                # Yield it, since we return listed paths
-                dirnames.remove(subdir)
-                yield subdirpath
+        if path_is_listed(dirpath):
+            # No subpaths need to be considered
+            del dirnames[:]
+            del filenames[:]
+        elif any_paths_are_subpath_of(dirpath):
+            # Subpaths may be marked, or may not, need to leave this
+            # writable, so don't yield, but we don't cull.
+            pass
+        else:
+            # not listed as a parent or an exact match, needs to be
+            # yielded, but we don't need to consider subdirs, so can cull
+            yield dirpath
+            del dirnames[:]
+            del filenames[:]
 
         for filename in filenames:
             fullpath = os.path.join(dirpath, filename)
-            if any(is_subpath(p, fullpath) for p in paths):
-                # The file path is a child of one of the paths
-                # or is equal.
-                # Don't yield because either it is one of the specified
-                # paths, or is a file in a directory specified by a path
+            if path_is_listed(fullpath):
                 pass
             else:
                 yield fullpath
