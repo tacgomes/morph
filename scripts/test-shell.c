@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <ftw.h>
 #include <errno.h>
+#include <err.h>
 
 char *readlinka(char const *path){
     size_t buflen = BUFSIZ;
@@ -113,8 +114,8 @@ int copy_file_objects(FILE *source, FILE *target) {
     do {
         read = fread(buffer, 1, sizeof(buffer), source);
         fwrite(buffer, 1, read, target);
-    } while (!feof(source));
-    return ferror(source) ? -1 : 0;
+    } while (!feof(source) && !feof(target));
+    return (ferror(source) || ferror(target)) ? -1 : 0;
 }
 
 int run_commands(FILE *cmdstream){
@@ -145,8 +146,14 @@ int run_commands(FILE *cmdstream){
         } else if (strstr(line, "create file ") == line) {
             char const *filename = line + sizeof("create file ") -1;
             FILE *outfile = fopen(filename, "w");
+            if (outfile == NULL){
+                ret = 1;
+                err(errno, "Opening %s for write failed", filename);
+                break;
+            }
             if (copy_file_objects(cmdstream, outfile) < 0) {
                 ret = 1;
+                err(errno, "Writing to %s failed", filename);
                 fclose(outfile);
                 break;
             }

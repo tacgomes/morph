@@ -39,9 +39,13 @@ run_morph()
         set +e
         "$SRCDIR"/morph --verbose \
             --cachedir-min-space=0 --tempdir-min-space=0 \
-            --no-default-config --config "$DATADIR/morph.conf" "$@" \
-            2> "$DATADIR/result-$1" > "$DATADIR/out-$1"
+            --no-default-config --config "$DATADIR/morph.conf" \
+            --log="$DATADIR/log-$1"  \
+            "$@" 2> "$DATADIR/result-$1" > "$DATADIR/out-$1"
         local exit_code="$?"
+        for o in log result out; do
+            ln -sf "$o-$1" "$DATADIR/$o-latest"
+        done
         cat "$DATADIR/out-$1"
         cat "$DATADIR/result-$1" >&2
         return "$exit_code"

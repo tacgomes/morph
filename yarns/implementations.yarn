@@ -34,7 +34,8 @@ we can test it later in a THEN step.
     case $(cat "$DATADIR/morph-exit") in
     0)  echo "Morph succeeded!"
         ;;
-    *)  die "Morph should have succeeded, but didn't. Unexpected failure!"
+    *)  cat "$DATADIR/result-latest" >&2
+        die "Morph should have succeeded, but didn't. Unexpected failure!"
         ;;
     esac
 
