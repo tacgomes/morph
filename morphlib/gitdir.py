@@ -24,6 +24,13 @@ import re
 import morphlib
 
 
+class NoGitRepoError(cliapp.AppException):
+
+    def __init__(self, dirname):
+        cliapp.AppException.__init__(
+            self, 'Directory %s is not a Git repository. ' % dirname)
+
+
 class NoWorkingTreeError(cliapp.AppException):
 
     def __init__(self, repo):
@@ -375,6 +382,8 @@ class GitDirectory(object):
         self.dirname = dirname
         self._config = {}
 
+        self._ensure_is_git_repo()
+
     def _runcmd(self, argv, **kwargs):
         '''Run a command at the root of the git directory.
 
@@ -389,6 +398,13 @@ class GitDirectory(object):
 
     def _runcmd_unchecked(self, *args, **kwargs):
         return cliapp.runcmd_unchecked(*args, cwd=self.dirname, **kwargs)
+
+    def _ensure_is_git_repo(self):
+        try:
+            self._runcmd(['git', 'rev-parse', '--git-dir'])
+        except cliapp.AppException as e:
+            # Exact error is logged already by the runcmd() function.
+            raise NoGitRepoError(self.dirname)
 
     def checkout(self, branch_name): # pragma: no cover
         '''Check out a git branch.'''
@@ -752,4 +768,3 @@ def clone_from_cached_repo(cached_repo, dirname, ref): # pragma: no cover
 
     cached_repo.clone_checkout(ref, dirname)
     return GitDirectory(dirname)
-

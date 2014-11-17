@@ -34,17 +34,24 @@ class GitDirectoryTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def fake_git_clone(self):
+    def empty_git_directory(self):
         os.mkdir(self.dirname)
-        os.mkdir(os.path.join(self.dirname, '.git'))
+        return morphlib.gitdir.init(self.dirname)
+
+    def test_ensures_is_a_git_repo(self):
+        self.assertRaises(OSError,
+                          morphlib.gitdir.GitDirectory, self.dirname)
+
+        os.mkdir(self.dirname)
+        self.assertRaises(morphlib.gitdir.NoGitRepoError,
+                          morphlib.gitdir.GitDirectory, self.dirname)
 
     def test_has_dirname_attribute(self):
-        self.fake_git_clone()
-        gitdir = morphlib.gitdir.GitDirectory(self.dirname)
+        gitdir = self.empty_git_directory()
         self.assertEqual(gitdir.dirname, self.dirname)
 
     def test_can_search_for_top_directory(self):
-        self.fake_git_clone()
+        self.empty_git_directory()
 
         path_inside_working_tree = os.path.join(self.dirname, 'a', 'b', 'c')
         os.makedirs(path_inside_working_tree)
@@ -54,20 +61,17 @@ class GitDirectoryTests(unittest.TestCase):
         self.assertEqual(gitdir.dirname, self.dirname)
 
     def test_runs_command_in_right_directory(self):
-        self.fake_git_clone()
-        gitdir = morphlib.gitdir.GitDirectory(self.dirname)
+        gitdir = self.empty_git_directory()
         output = gitdir._runcmd(['pwd'])
         self.assertEqual(output.strip(), self.dirname)
 
     def test_sets_and_gets_configuration(self):
-        os.mkdir(self.dirname)
-        gitdir = morphlib.gitdir.init(self.dirname)
+        gitdir = self.empty_git_directory()
         gitdir.set_config('foo.bar', 'yoyo')
         self.assertEqual(gitdir.get_config('foo.bar'), 'yoyo')
 
     def test_gets_index(self):
-        os.mkdir(self.dirname)
-        gitdir = morphlib.gitdir.init(self.dirname)
+        gitdir = self.empty_git_directory()
         self.assertIsInstance(gitdir.get_index(), morphlib.gitindex.GitIndex)
 
 
