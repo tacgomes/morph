@@ -26,6 +26,8 @@ import morphlib
 
 tree_cache_size = 10000
 tree_cache_filename = 'trees.cache.pickle'
+buildsystem_cache_size = 10000
+buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
 
 class PickleCacheManager(object):
@@ -135,16 +137,19 @@ class SourceResolver(object):
     '''
 
     def __init__(self, local_repo_cache, remote_repo_cache,
-                 tree_cache_manager, update_repos, status_cb=None):
+                 tree_cache_manager, buildsystem_cache_manager, update_repos,
+                 status_cb=None):
         self.lrc = local_repo_cache
         self.rrc = remote_repo_cache
         self.tree_cache_manager = tree_cache_manager
+        self.buildsystem_cache_manager = buildsystem_cache_manager
 
         self.update = update_repos
         self.status = status_cb
 
         self._resolved_trees = {}
         self._resolved_morphologies = {}
+        self._resolved_buildsystems = {}
 
     def _resolve_ref(self, reponame, ref):
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
@@ -206,12 +211,15 @@ class SourceResolver(object):
         return absref, tree
 
     def _get_morphology(self, reponame, sha1, filename):
-        '''Read the morphology at the specified location.'''
+        '''Read the morphology at the specified location.
+
+        Returns None if the file does not exist in the specified commit.
+
+        '''
         key = (reponame, sha1, filename)
         if key in self._resolved_morphologies:
             return self._resolved_morphologies[key]
 
-        morph_name = os.path.splitext(os.path.basename(filename))[0]
         loader = morphlib.morphloader.MorphologyLoader()
         if self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
@@ -233,23 +241,62 @@ class SourceResolver(object):
                 morph = loader.load_from_string(text)
             except morphlib.remoterepocache.CatFileError:
                 morph = None
-                file_list = self._rrc.ls_tree(reponame, sha1)
         else:
+            # We assume that _resolve_ref() must have already been called and
+            # so the repo in question would have been made available already
+            # if it had been possible.
             raise NotcachedError(reponame)
 
         if morph is None:
-            self.status(msg="File %s doesn't exist: attempting to infer "
-                            "chunk morph from repo's build system"
-                        % filename, chatty=True)
-            bs = morphlib.buildsystem.detect_build_system(file_list)
-            if bs is None:
-                raise MorphologyNotFoundError(filename)
-            morph = bs.get_morphology(morph_name)
+            return None
+        else:
             loader.validate(morph)
             loader.set_commands(morph)
             loader.set_defaults(morph)
+            self._resolved_morphologies[key] = morph
+            return morph
 
-        self._resolved_morphologies[morph] = morph
+    def _detect_build_system(self, reponame, sha1, expected_filename):
+        '''Attempt to detect buildsystem of the given commit.
+
+        Returns None if no known build system was detected.
+
+        '''
+        self.status(msg="File %s doesn't exist: attempting to infer "
+                        "chunk morph from repo's build system" %
+                    expected_filename, chatty=True)
+
+        if self.lrc.has_repo(reponame):
+            repo = self.lrc.get_repo(reponame)
+            file_list = repo.list_files(ref=sha1, recurse=False)
+        elif self.rrc is not None:
+            file_list = self.rrc.ls_tree(reponame, sha1)
+        else:
+            # We assume that _resolve_ref() must have already been called and
+            # so the repo in question would have been made available already
+            # if it had been possible.
+            raise NotcachedError(reponame)
+
+        buildsystem = morphlib.buildsystem.detect_build_system(file_list)
+
+        if buildsystem is None:
+            # It might surprise you to discover that if we can't autodetect a
+            # build system, we raise MorphologyNotFoundError. Users are
+            # required to provide a morphology for any chunk where Morph can't
+            # infer the build instructions automatically, so this is the right
+            # error.
+            raise MorphologyNotFoundError(expected_filename)
+
+        return buildsystem.name
+
+    def _create_morphology_for_build_system(self, buildsystem_name,
+                                            morph_name):
+        bs = morphlib.buildsystem.lookup_build_system(buildsystem_name)
+        loader = morphlib.morphloader.MorphologyLoader()
+        morph = bs.get_morphology(morph_name)
+        loader.validate(morph)
+        loader.set_commands(morph)
+        loader.set_defaults(morph)
         return morph
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
@@ -260,9 +307,9 @@ class SourceResolver(object):
         chunk_in_definitions_repo_queue = []
         chunk_in_source_repo_queue = []
 
-        resolved_commits = {}
-
         self._resolved_trees = self.tree_cache_manager.load_cache()
+        self._resolved_buildsystems = \
+            self.buildsystem_cache_manager.load_cache()
 
         resolved_morphologies = {}
 
@@ -314,18 +361,47 @@ class SourceResolver(object):
 
         def process_chunk(repo, ref, filename):
             absref, tree = self._resolve_ref(repo, ref)
-            key = (definitions_repo, definitions_absref, filename)
-            morphology = self._get_morphology(*key)
+
+            key = (repo, ref, filename)
+            morph_name = os.path.splitext(os.path.basename(filename))[0]
+
+            morphology = None
+            buildsystem = None
+
+            if key in self._resolved_buildsystems:
+                buildsystem = self._resolved_buildsystems[key]
+
+            if buildsystem is None:
+                # The morphologies aren't locally cached, so a morphology
+                # for a chunk kept in the chunk repo will be read every time.
+                # So, always keep your chunk morphs in your definitions repo.
+                morphology = self._get_morphology(*key)
+
+            if morphology is None:
+                if buildsystem is None:
+                    buildsystem = self._detect_build_system(*key)
+                if buildsystem is None:
+                    raise MorphologyNotFoundError(filename)
+                else:
+                    morphology = self._create_morphology_for_build_system(
+                        buildsystem, morph_name)
+                    self._resolved_morphologies[key] = morphology
+
             visit(repo, ref, filename, absref, tree, morphology)
 
         for repo, ref, filename in chunk_in_definitions_repo_queue:
-            process_chunk_repo(repo, ref, filename)
+            process_chunk(repo, ref, filename)
 
         for repo, ref, filename in chunk_in_source_repo_queue:
-            process_chunk_repo(repo, ref, filename)
+            process_chunk(repo, ref, filename)
 
         logging.debug('Saving contents of resolved tree cache')
         self.tree_cache_manager.save_cache(self._resolved_trees)
+
+        logging.debug('Saving contents of build systems cache')
+        self.buildsystem_cache_manager.save_cache(
+            self._resolved_buildsystems)
+
 
 
 def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
@@ -357,7 +433,13 @@ def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
     tree_cache_manager = PickleCacheManager(
         os.path.join(cachedir, tree_cache_filename), tree_cache_size)
 
-    resolver = SourceResolver(lrc, rrc, tree_cache_manager, update_repos, status_cb)
+    buildsystem_cache_manager = PickleCacheManager(
+        os.path.join(cachedir, buildsystem_cache_filename),
+        buildsystem_cache_size)
+
+    resolver = SourceResolver(lrc, rrc, tree_cache_manager,
+                              buildsystem_cache_manager, update_repos,
+                              status_cb)
     resolver.traverse_morphs(repo, ref, [filename],
                              visit=add_to_pool,
                              definitions_original_ref=original_ref)
