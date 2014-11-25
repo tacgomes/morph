@@ -299,36 +299,24 @@ class SourceResolver(object):
         loader.set_defaults(morph)
         return morph
 
-    def traverse_morphs(self, definitions_repo, definitions_ref,
-                        system_filenames,
-                        visit=lambda rn, rf, fn, arf, m: None,
-                        definitions_original_ref=None):
+    def _process_definitions_with_children(self, system_filenames,
+                                           definitions_repo,
+                                           definitions_ref,
+                                           definitions_absref,
+                                           definitions_tree,
+                                           visit):
         definitions_queue = collections.deque(system_filenames)
-        chunk_in_definitions_repo_queue = []
-        chunk_in_source_repo_queue = []
-
-        self._resolved_trees = self.tree_cache_manager.load_cache()
-        self._resolved_buildsystems = \
-            self.buildsystem_cache_manager.load_cache()
-
-        resolved_morphologies = {}
-
-        # Resolve the (repo, ref) pair for the definitions repo, cache result.
-        definitions_absref, definitions_tree = self._resolve_ref(
-            definitions_repo, definitions_ref)
-
-        if definitions_original_ref:
-            definitions_ref = definitions_original_ref
-
-        # First, process the system and its stratum morphologies. These will
-        # all live in the same Git repository, and will point to various chunk
-        # morphologies.
+        chunk_in_definitions_repo_queue = set()
+        chunk_in_source_repo_queue = set()
 
         while definitions_queue:
             filename = definitions_queue.popleft()
 
             morphology = self._get_morphology(
                 definitions_repo, definitions_absref, filename)
+
+            if morphology is None:
+                raise MorphologyNotFoundError(filename)
 
             visit(definitions_repo, definitions_ref, filename,
                   definitions_absref, definitions_tree, morphology)
@@ -349,59 +337,89 @@ class SourceResolver(object):
                     if 'morph' not in c:
                         path = morphlib.util.sanitise_morphology_path(
                             c.get('morph', c['name']))
-                        chunk_in_source_repo_queue.append(
+                        chunk_in_source_repo_queue.add(
                             (c['repo'], c['ref'], path))
                         continue
-                    chunk_in_definitions_repo_queue.append(
+                    chunk_in_definitions_repo_queue.add(
                         (c['repo'], c['ref'], c['morph']))
 
-        # Now process all the chunks involved in the build. First those with
-        # morphologies in definitions.git, and then (for compatibility reasons
-        # only) those with the morphology in the chunk's source repository.
+        return chunk_in_definitions_repo_queue, chunk_in_source_repo_queue
 
-        def process_chunk(repo, ref, filename):
-            absref, tree = self._resolve_ref(repo, ref)
+    def process_chunk(self, definition_repo, definition_ref, chunk_repo,
+                      chunk_ref, filename, visit):
+        definition_key = (definition_repo, definition_ref, filename)
+        chunk_key = (chunk_repo, chunk_ref, filename)
 
-            key = (repo, ref, filename)
-            morph_name = os.path.splitext(os.path.basename(filename))[0]
+        morph_name = os.path.splitext(os.path.basename(filename))[0]
 
-            morphology = None
-            buildsystem = None
+        morphology = None
+        buildsystem = None
 
-            if key in self._resolved_buildsystems:
-                buildsystem = self._resolved_buildsystems[key]
+        if chunk_key in self._resolved_buildsystems:
+            buildsystem = self._resolved_buildsystems[chunk_key]
 
+        if buildsystem is None:
+            # The morphologies aren't locally cached, so a morphology
+            # for a chunk kept in the chunk repo will be read every time.
+            # So, always keep your chunk morphs in your definitions repo,
+            # not in the chunk repo!
+            morphology = self._get_morphology(*definition_key)
+
+        if morphology is None:
             if buildsystem is None:
-                # The morphologies aren't locally cached, so a morphology
-                # for a chunk kept in the chunk repo will be read every time.
-                # So, always keep your chunk morphs in your definitions repo.
-                morphology = self._get_morphology(*key)
+                buildsystem = self._detect_build_system(*chunk_key)
+            if buildsystem is None:
+                raise MorphologyNotFoundError(filename)
+            else:
+                self._resolved_buildsystems[chunk_key] = buildsystem
+                morphology = self._create_morphology_for_build_system(
+                    buildsystem, morph_name)
+                self._resolved_morphologies[definition_key] = morphology
 
-            if morphology is None:
-                if buildsystem is None:
-                    buildsystem = self._detect_build_system(*key)
-                if buildsystem is None:
-                    raise MorphologyNotFoundError(filename)
-                else:
-                    morphology = self._create_morphology_for_build_system(
-                        buildsystem, morph_name)
-                    self._resolved_morphologies[key] = morphology
+        absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+        visit(chunk_repo, chunk_ref, filename, absref, tree, morphology)
 
-            visit(repo, ref, filename, absref, tree, morphology)
+    def traverse_morphs(self, definitions_repo, definitions_ref,
+                        system_filenames,
+                        visit=lambda rn, rf, fn, arf, m: None,
+                        definitions_original_ref=None):
+        self._resolved_trees = self.tree_cache_manager.load_cache()
+        self._resolved_buildsystems = \
+            self.buildsystem_cache_manager.load_cache()
 
-        for repo, ref, filename in chunk_in_definitions_repo_queue:
-            process_chunk(repo, ref, filename)
+        # Resolve the (repo, ref) pair for the definitions repo, cache result.
+        definitions_absref, definitions_tree = self._resolve_ref(
+            definitions_repo, definitions_ref)
 
-        for repo, ref, filename in chunk_in_source_repo_queue:
-            process_chunk(repo, ref, filename)
+        if definitions_original_ref:
+            definitions_ref = definitions_original_ref
 
-        logging.debug('Saving contents of resolved tree cache')
-        self.tree_cache_manager.save_cache(self._resolved_trees)
+        try:
+            # First, process the system and its stratum morphologies. These
+            # will all live in the same Git repository, and will point to
+            # various chunk morphologies.
+            chunk_in_definitions_repo_queue, chunk_in_source_repo_queue = \
+                self._process_definitions_with_children(
+                    system_filenames, definitions_repo, definitions_ref,
+                    definitions_absref, definitions_tree, visit)
 
-        logging.debug('Saving contents of build systems cache')
-        self.buildsystem_cache_manager.save_cache(
-            self._resolved_buildsystems)
+            # Now process all the chunks involved in the build. First those
+            # with morphologies in definitions.git, and then (for compatibility
+            # reasons only) those with the morphology in the chunk's source
+            # repository.
+            for repo, ref, filename in chunk_in_definitions_repo_queue:
+                self.process_chunk(definitions_repo, definitions_absref, repo,
+                                   ref, filename, visit)
 
+            for repo, ref, filename in chunk_in_source_repo_queue:
+                self.process_chunk(repo, ref, repo, ref, filename, visit)
+        finally:
+            logging.debug('Saving contents of resolved tree cache')
+            self.tree_cache_manager.save_cache(self._resolved_trees)
+
+            logging.debug('Saving contents of build systems cache')
+            self.buildsystem_cache_manager.save_cache(
+                self._resolved_buildsystems)
 
 
 def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
