@@ -182,14 +182,16 @@ class DeployPlugin(cliapp.Plugin):
 
         1. In the cluster definition file, e.g.
 
-            …
+            ...
             systems:
             - morph: systems/foo-system.morph
               deploy:
                 foo:
                   HOSTNAME: foo
 
-        2.  In the environment before running e.g. `HOSTNAME=foo morph deploy …`
+        2.  In the environment before running e.g.
+
+            `HOSTNAME=foo morph deploy ...`
 
         3.  On the command-line e.g.
          `morph deploy clusters/foo.morph foo.HOSTNAME=foo`
