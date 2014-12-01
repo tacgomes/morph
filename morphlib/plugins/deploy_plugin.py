@@ -124,7 +124,7 @@ class DeployPlugin(cliapp.Plugin):
 
         Each system defined in a cluster morphology can be deployed in
         multiple ways (`type` in a cluster morphology). Morph provides
-        five types of deployment:
+        the following types of deployment:
 
         * `tar` where Morph builds a tar archive of the root file system.
 
@@ -143,6 +143,32 @@ class DeployPlugin(cliapp.Plugin):
 
         * `nfsboot` where Morph creates a system to be booted over
           a network.
+
+        * `ssh-rsync` where Morph copies a binary delta over to the target
+          system and arranges for it to be bootable. This requires
+          `system-version-manager` from the tbdiff chunk
+
+        * `initramfs`, where Morph turns the system into an initramfs image,
+          suitable for being used as the early userland environment for a system
+          to be able to locate more complicated storage for its root
+          file-system, or on its own for diskless deployments.
+
+        * `image-package` where Morph creates a tarball that includes scripts
+          that can be used to make disk images outside of a Baserock
+          environment. The example in definitions.git will create scripts for
+          generating disk images and installing to existing disks.
+
+        * `sdk` where Morph generates something resembing a BitBake SDK, which
+          provides a toolchain for building software to target a system built
+          by Baserock, from outside of a Baserock environment. This creates a
+          self-extracting shell archive which you pass a directory to extract
+          to, and inside that has a shell snippet called
+          environment-setup-$TARGET which can be used to set environment
+          variables to use the toolchain.
+
+        * `pxeboot` where Morph temporarily network-boots the system you are
+          deploying, so it can install a more permanent system onto local
+          storage.
 
         In addition to the deployment type, the user must also give
         a value for `location`. Its syntax depends on the deployment
