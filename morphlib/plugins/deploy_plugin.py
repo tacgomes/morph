@@ -177,6 +177,29 @@ class DeployPlugin(cliapp.Plugin):
           the _address_ of the trove, _not_ `user@...`, since `root@` will
           automatically be prepended to the server address.)
 
+        In addition to the `location`parameter, deployments can take additional
+        `KEY=VALUE` parameters. These can be provided in the following ways:
+
+        1. In the cluster definition file, e.g.
+
+            …
+            systems:
+            - morph: systems/foo-system.morph
+              deploy:
+                foo:
+                  HOSTNAME: foo
+
+        2.  In the environment before running e.g. `HOSTNAME=foo morph deploy …`
+
+        3.  On the command-line e.g.
+         `morph deploy clusters/foo.morph foo.HOSTNAME=foo`
+
+        For any boolean `KEY=VALUE` parameters, allowed values are:
+
+        +ve `yes`, `1`, `true`;
+
+        -ve `no`, `0`, `false`;
+
         The following `KEY=VALUE` parameters are supported for `rawdisk`,
         `virtualbox-ssh` and `kvm` and deployment types:
 
