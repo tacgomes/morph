@@ -22,6 +22,9 @@ import shutil
 import sys
 import time
 import tempfile
+import errno
+import stat
+import contextlib
 
 import morphlib
 
@@ -145,28 +148,39 @@ class WriteExtension(cliapp.Application):
 
     def create_local_system(self, temp_root, raw_disk):
         '''Create a raw system image locally.'''
+
+        with self.created_disk_image(raw_disk):
+            self.format_btrfs(raw_disk)
+            self.create_system(temp_root, raw_disk)
+
+    @contextlib.contextmanager
+    def created_disk_image(self, location):
         size = self.get_disk_size()
         if not size:
             raise cliapp.AppException('DISK_SIZE is not defined')
-        self.create_raw_disk_image(raw_disk, size)
+        self.create_raw_disk_image(location, size)
+        try:
+            yield
+        except BaseException:
+            os.unlink(location)
+            raise
+
+    def format_btrfs(self, raw_disk):
         try:
             self.mkfs_btrfs(raw_disk)
-            mp = self.mount(raw_disk)
         except BaseException:
             sys.stderr.write('Error creating disk image')
-            os.remove(raw_disk)
             raise
-        try:
-            self.create_btrfs_system_layout(
-                temp_root, mp, version_label='factory',
-                disk_uuid=self.get_uuid(raw_disk))
-        except BaseException, e:
-            sys.stderr.write('Error creating Btrfs system layout')
-            self.unmount(mp)
-            os.remove(raw_disk)
-            raise
-        else:
-            self.unmount(mp)
+
+    def create_system(self, temp_root, raw_disk):
+        with self.mount(raw_disk) as mp:
+            try:
+                self.create_btrfs_system_layout(
+                    temp_root, mp, version_label='factory',
+                    disk_uuid=self.get_uuid(raw_disk))
+            except BaseException, e:
+                sys.stderr.write('Error creating Btrfs system layout')
+                raise
 
     def _parse_size(self, size):
         '''Parse a size from a string.
@@ -224,7 +238,7 @@ class WriteExtension(cliapp.Application):
     def mkfs_btrfs(self, location):
         '''Create a btrfs filesystem on the disk.'''
         self.status(msg='Creating btrfs filesystem')
-        cliapp.runcmd(['mkfs.btrfs', '-L', 'baserock', location])
+        cliapp.runcmd(['mkfs.btrfs', '-f', '-L', 'baserock', location])
 
     def get_uuid(self, location):
         '''Get the UUID of a block device's file system.'''
@@ -232,31 +246,26 @@ class WriteExtension(cliapp.Application):
         # lies by exiting successfully.
         return cliapp.runcmd(['blkid', '-s', 'UUID', '-o', 'value',
                               location]).strip()
-        
-    def mount(self, location):
-        '''Mount the filesystem so it can be tweaked.
-        
-        Return path to the mount point.
-        The mount point is a newly created temporary directory.
-        The caller must call self.unmount to unmount on the return value.
-        
-        '''
 
-        self.status(msg='Mounting filesystem')        
-        tempdir = tempfile.mkdtemp()
-        cliapp.runcmd(['mount', '-o', 'loop', location, tempdir])
-        return tempdir
-        
-    def unmount(self, mount_point):
-        '''Unmount the filesystem mounted by self.mount.
-        
-        Also, remove the temporary directory.
-        
-        '''
-        
-        self.status(msg='Unmounting filesystem')
-        cliapp.runcmd(['umount', mount_point])
-        os.rmdir(mount_point)
+    @contextlib.contextmanager
+    def mount(self, location):
+        self.status(msg='Mounting filesystem')
+        try:
+            mount_point = tempfile.mkdtemp()
+            if self.is_device(location):
+                cliapp.runcmd(['mount', location, mount_point])
+            else:
+                cliapp.runcmd(['mount', '-o', 'loop', location, mount_point])
+        except BaseException, e:
+            sys.stderr.write('Error mounting filesystem')
+            os.rmdir(mount_point)
+            raise
+        try:
+            yield mount_point
+        finally:
+            self.status(msg='Unmounting filesystem')
+            cliapp.runcmd(['umount', mount_point])
+            os.rmdir(mount_point)
 
     def create_btrfs_system_layout(self, temp_root, mountpoint, version_label,
                                    disk_uuid):
@@ -572,3 +581,12 @@ class WriteExtension(cliapp.Application):
             logging.error("Error checking SSH connectivity: %s", str(e))
             raise cliapp.AppException(
                 'Unable to SSH to %s: %s' % (ssh_host, e))
+
+    def is_device(self, location):
+        try:
+            st = os.stat(location)
+            return stat.S_ISBLK(st.st_mode)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                return False
+            raise
