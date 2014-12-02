@@ -13,9 +13,7 @@ test:hello
 * remote origin
   Fetch URL: file://TMP/hello
   Push  URL: file://TMP/hello
-  HEAD branch (remote HEAD is ambiguous, may be one of the following):
-    alfred
-    master
+  HEAD branch: master
   Remote branches:
     alfred tracked
     master tracked
