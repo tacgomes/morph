@@ -66,7 +66,7 @@ class BuildBranch(object):
                 repo_uuid = gd.get_config('morph.uuid')
             except cliapp.AppException:
                 # Not a repository cloned by morph, ignore
-                break
+                continue
             build_ref = os.path.join('refs/heads', build_ref_prefix,
                                      branch_uuid, repo_uuid)
             # index is commit of workspace + uncommitted changes may want
