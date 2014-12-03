@@ -72,7 +72,11 @@ class SystemBranchDirectory(object):
 
     def _find_git_directory(self, repo_url):
         for gd in self.list_git_directories():
-            if gd.get_config('morph.repository') == repo_url:
+            try:
+                gd_repo_url = gd.get_config('morph.repository')
+            except cliapp.AppException:  # pragma: no cover
+                continue
+            if gd_repo_url == repo_url:
                 return gd.dirname
         return None
 
