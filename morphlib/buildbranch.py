@@ -35,6 +35,15 @@ class BuildBranchCleanupError(cliapp.AppException):
                   % locals())
 
 
+class NoReposError(cliapp.AppException):
+    def __init__(self, bb, ignored):
+        self.bb = bb
+        cliapp.AppException.__init__(
+            self, "No repos were found in system branch (ignored %i which "
+                  "didn't have the right morph.uuid setting)" % (ignored))
+
+
+
 class BuildBranch(object):
     '''Represent the sources modified in a system branch.
 
@@ -61,7 +70,7 @@ class BuildBranch(object):
         self._branch_root = sb.get_config('branch.root')
         branch_uuid = sb.get_config('branch.uuid')
 
-        for gd in sb.list_git_directories():
+        for count, gd in enumerate(sb.list_git_directories()):
             try:
                 repo_uuid = gd.get_config('morph.uuid')
             except cliapp.AppException:
@@ -75,6 +84,9 @@ class BuildBranch(object):
             index = gd.get_index(self._td.getsyspath(repo_uuid))
             index.set_to_tree(gd.resolve_ref_to_tree(gd.HEAD))
             self._to_push[gd] = (build_ref, index)
+
+        if len(self._to_push) == 0:
+            raise NoReposError(self, count)
 
         rootinfo, = ((gd, index) for gd, (build_ref, index)
                      in self._to_push.iteritems()
