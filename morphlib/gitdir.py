@@ -485,11 +485,15 @@ class GitDirectory(object):
         self._config[key] = value
 
     def get_config(self, key):
-        '''Return value for a git repository configuration variable.'''
+        '''Return value for a git repository configuration variable.
+
+        If the variable is unset, this will raise cliapp.AppException.
+
+        '''
 
         if key not in self._config:
-                value = morphlib.git.gitcmd(self._runcmd, 'config', '-z', key)
-                self._config[key] = value.rstrip('\0')
+            value = morphlib.git.gitcmd(self._runcmd, 'config', '-z', key)
+            self._config[key] = value.rstrip('\0')
         return self._config[key]
 
     def get_remote(self, *args, **kwargs):
