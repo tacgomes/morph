@@ -432,7 +432,7 @@ class Morph(cliapp.Application):
         self._help(True)
 
     def help_extensions(self, args):
-        exts = extensions.list_extensions(self.settings['build-ref-prefix'])
+        exts = extensions.list_extensions()
         template = "Extensions:\n    %s\n"
         ext_string = '\n    '.join(exts)
         self.output.write(template % (ext_string))
