@@ -38,6 +38,7 @@ class ExtensionNotExecutableError(ExtensionError):
     pass
 
 def _get_root_repo():
+    workspace = morphlib.workspace.open('.')
     system_branch = morphlib.sysbranchdir.open_from_within('.')
     root_repo_dir = morphlib.gitdir.GitDirectory(
             system_branch.get_git_directory_name(
@@ -77,7 +78,8 @@ def _list_extensions(kind):
     try:
         repo_extension_filenames = \
                 _list_repo_extension_filenames(kind)
-    except (sysbranchdir.NotInSystemBranch):
+    except (morphlib.workspace.NotInWorkspace,
+            sysbranchdir.NotInSystemBranch):
         # Squash this and just return no system branch extensions
         pass
     morph_extension_filenames = _list_morph_extension_filenames(kind)
