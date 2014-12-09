@@ -149,9 +149,12 @@ class DeployPlugin(cliapp.Plugin):
           `system-version-manager` from the tbdiff chunk
 
         * `initramfs`, where Morph turns the system into an initramfs image,
-          suitable for being used as the early userland environment for a system
-          to be able to locate more complicated storage for its root
+          suitable for being used as the early userland environment for a
+          system to be able to locate more complicated storage for its root
           file-system, or on its own for diskless deployments.
+
+        There are additional extensions that currently live in the Baserock
+        definitions repo (baserock:baserock/definitions). These include:
 
         * `image-package` where Morph creates a tarball that includes scripts
           that can be used to make disk images outside of a Baserock
