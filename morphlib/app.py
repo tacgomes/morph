@@ -358,16 +358,15 @@ class Morph(cliapp.Application):
         else:
             print_command = True
 
-        # convert the command line arguments into a string
-        commands = [argv] + list(args)
-        for command in commands:
-            if isinstance(command, list):
-                for i in xrange(0, len(command)):
-                    command[i] = str(command[i])
-        commands = [' '.join(command) for command in commands]
-
-        # print the command line
         if print_command:
+            # Print the command line
+            commands = [argv] + list(args)
+            for command in commands:
+                if isinstance(command, list):
+                    for i in xrange(0, len(command)):
+                        command[i] = str(command[i])
+            commands = [' '.join(command) for command in commands]
+
             self.status(msg='# %(cmdline)s',
                         cmdline=' | '.join(commands),
                         chatty=True)
