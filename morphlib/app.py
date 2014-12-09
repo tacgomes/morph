@@ -348,7 +348,7 @@ class Morph(cliapp.Application):
             self.output.write('%s %s\n' % (timestamp, text))
             self.output.flush()
 
-    def runcmd(self, argv, *args, **kwargs):
+    def _prepare_for_runcmd(self, argv, args, kwargs):
         if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
 
@@ -377,8 +377,13 @@ class Morph(cliapp.Application):
         morphlib.util.log_environment_changes(self, kwargs['env'], prev)
         self.prev_env = kwargs['env']
 
-        # run the command line
+    def runcmd(self, argv, *args, **kwargs):
+        self._prepare_for_runcmd(argv, args, kwargs)
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)
+
+    def runcmd_unchecked(self, argv, *args, **kwargs):
+        self._prepare_for_runcmd(argv, args, kwargs)
+        return cliapp.Application.runcmd_unchecked(self, argv, *args, **kwargs)
 
     def parse_args(self, args, configs_only=False):
         return self.settings.parse_args(args,

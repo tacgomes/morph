@@ -15,11 +15,13 @@
 
 import contextlib
 import itertools
+import logging
 import os
 import re
 import subprocess
 import textwrap
 
+import cliapp
 import fs.osfs
 
 import morphlib
@@ -626,3 +628,17 @@ def containerised_cmdline(args, cwd='.', root='/', binds=(),
     cmdargs.append(root)
     cmdargs.extend(args)
     return unshared_cmdline(cmdargs, root=root, **kwargs)
+
+
+def error_message_for_containerised_commandline(
+        argv, err, container_kwargs):  # pragma: no cover
+    '''Return a semi-readable error message for a containerised command.'''
+
+    # This function should do some formatting of the container_kwargs dict,
+    # rather than just dumping it in the error message, but that is better than
+    # nothing.
+
+    return 'Command failed: %s:\n' \
+           'Containerisation settings: %s\n' \
+           'Error output:\n%s' \
+           % (' '.join(argv), container_kwargs, err)
