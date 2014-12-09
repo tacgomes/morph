@@ -43,7 +43,6 @@ try:
     from multiprocessing import cpu_count
 except NotImplementedError:  # pragma: no cover
     cpu_count = lambda: 1
-import os
 
 
 def indent(string, spaces=4):
