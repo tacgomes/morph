@@ -300,7 +300,12 @@ class StagingArea(object):
             msg = morphlib.util.error_message_for_containerised_commandline(
                 argv, err, container_config)
             raise cliapp.AppException(
-                'In staging area %s: %s' % (self.dirname, msg))
+                'In staging area %s: %s' % (self._failed_location(), msg))
+
+    def _failed_location(self):  # pragma: no cover
+        '''Path this staging area will be moved to if an error occurs.'''
+        return os.path.join(self._app.settings['tempdir'], 'failed',
+                            os.path.basename(self.dirname))
 
     def abort(self): # pragma: no cover
         '''Handle what to do with a staging area in the case of failure.
@@ -309,9 +314,7 @@ class StagingArea(object):
         # TODO: when we add the option to throw away failed builds,
         #       hook it up here
 
-
-        dest_dir = os.path.join(self._app.settings['tempdir'],
-                                'failed', os.path.basename(self.dirname))
+        dest_dir = self._failed_location()
         os.rename(self.dirname, dest_dir)
         self.dirname = dest_dir
 
