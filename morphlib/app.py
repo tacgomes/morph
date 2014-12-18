@@ -17,6 +17,7 @@
 import cliapp
 import logging
 import os
+import pipes
 import sys
 import time
 import urlparse
@@ -348,7 +349,7 @@ class Morph(cliapp.Application):
             self.output.write('%s %s\n' % (timestamp, text))
             self.output.flush()
 
-    def runcmd(self, argv, *args, **kwargs):
+    def _prepare_for_runcmd(self, argv, args, kwargs):
         if 'env' not in kwargs:
             kwargs['env'] = dict(os.environ)
 
@@ -358,16 +359,15 @@ class Morph(cliapp.Application):
         else:
             print_command = True
 
-        # convert the command line arguments into a string
-        commands = [argv] + list(args)
-        for command in commands:
-            if isinstance(command, list):
-                for i in xrange(0, len(command)):
-                    command[i] = str(command[i])
-        commands = [' '.join(command) for command in commands]
-
-        # print the command line
         if print_command:
+            # Print the command line
+            commands = [argv] + list(args)
+            for command in commands:
+                if isinstance(command, list):
+                    for i in xrange(0, len(command)):
+                        command[i] = str(command[i])
+            commands = ' '.join(map(pipes.quote, command))
+
             self.status(msg='# %(cmdline)s',
                         cmdline=' | '.join(commands),
                         chatty=True)
@@ -377,8 +377,13 @@ class Morph(cliapp.Application):
         morphlib.util.log_environment_changes(self, kwargs['env'], prev)
         self.prev_env = kwargs['env']
 
-        # run the command line
+    def runcmd(self, argv, *args, **kwargs):
+        self._prepare_for_runcmd(argv, args, kwargs)
         return cliapp.Application.runcmd(self, argv, *args, **kwargs)
+
+    def runcmd_unchecked(self, argv, *args, **kwargs):
+        self._prepare_for_runcmd(argv, args, kwargs)
+        return cliapp.Application.runcmd_unchecked(self, argv, *args, **kwargs)
 
     def parse_args(self, args, configs_only=False):
         return self.settings.parse_args(args,

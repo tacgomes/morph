@@ -274,22 +274,38 @@ class StagingArea(object):
         else:
             binds = ()
 
+        container_config=dict(
+            cwd=kwargs.pop('cwd', '/'),
+            root=chroot_dir,
+            mounts=self.to_mount,
+            binds=binds,
+            mount_proc=mount_proc,
+            writable_paths=do_not_mount_dirs)
+
         cmdline = morphlib.util.containerised_cmdline(
-                    argv, cwd=kwargs.pop('cwd', '/'),
-                    root=chroot_dir, mounts=self.to_mount,
-                    binds=binds, mount_proc=mount_proc,
-                    writable_paths=do_not_mount_dirs)
-        try:
-            if kwargs.get('logfile') != None:
-                logfile = kwargs.pop('logfile')
-                teecmd = ['tee', '-a', logfile]
-                return self._app.runcmd(cmdline, teecmd, **kwargs)
-            else:
-                return self._app.runcmd(cmdline, **kwargs)
-        except cliapp.AppException as e:
-            raise cliapp.AppException('In staging area %s: running '
-                                      'command \'%s\' failed.' % 
-                                      (self.dirname, ' '.join(argv)))
+            argv, **container_config)
+
+        if kwargs.get('logfile') != None:
+            logfile = kwargs.pop('logfile')
+            teecmd = ['tee', '-a', logfile]
+            exit, out, err = self._app.runcmd_unchecked(
+                cmdline, teecmd, **kwargs)
+        else:
+            exit, out, err = self._app.runcmd_unchecked(cmdline, **kwargs)
+
+        if exit == 0:
+            return out
+        else:
+            logging.debug('Command returned code %i', exit)
+            msg = morphlib.util.error_message_for_containerised_commandline(
+                argv, err, container_config)
+            raise cliapp.AppException(
+                'In staging area %s: %s' % (self._failed_location(), msg))
+
+    def _failed_location(self):  # pragma: no cover
+        '''Path this staging area will be moved to if an error occurs.'''
+        return os.path.join(self._app.settings['tempdir'], 'failed',
+                            os.path.basename(self.dirname))
 
     def abort(self): # pragma: no cover
         '''Handle what to do with a staging area in the case of failure.
@@ -298,9 +314,7 @@ class StagingArea(object):
         # TODO: when we add the option to throw away failed builds,
         #       hook it up here
 
-
-        dest_dir = os.path.join(self._app.settings['tempdir'],
-                                'failed', os.path.basename(self.dirname))
+        dest_dir = self._failed_location()
         os.rename(self.dirname, dest_dir)
         self.dirname = dest_dir
 

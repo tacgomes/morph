@@ -665,11 +665,18 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
         )
         try:
             for bin in sorted(os.listdir(sys_integration_dir)):
-                self.app.runcmd(
-                    morphlib.util.containerised_cmdline(
-                        [os.path.join(SYSTEM_INTEGRATION_PATH, bin)],
-                        root=rootdir, mounts=to_mount, mount_proc=True),
-                    env=env)
+                argv = [os.path.join(SYSTEM_INTEGRATION_PATH, bin)]
+                container_config = dict(
+                    root=rootdir, mounts=to_mount, mount_proc=True)
+                cmdline = morphlib.util.containerised_cmdline(
+                    argv, **container_config)
+                exit, out, err = self.app.runcmd_unchecked(
+                    cmdline, env=env)
+                if exit != 0:
+                    logging.debug('Command returned code %i', exit)
+                    msg = error_message_for_containerised_commandline(
+                        argv, err, container_config)
+                    raise cliapp.AppException(msg)
         except BaseException, e:
             self.app.status(
                     msg='Error while running system integration commands',

@@ -16,6 +16,7 @@
 import contextlib
 import itertools
 import os
+import pipes
 import re
 import subprocess
 import textwrap
@@ -41,7 +42,6 @@ try:
     from multiprocessing import cpu_count
 except NotImplementedError:  # pragma: no cover
     cpu_count = lambda: 1
-import os
 
 
 def indent(string, spaces=4):
@@ -626,3 +626,18 @@ def containerised_cmdline(args, cwd='.', root='/', binds=(),
     cmdargs.append(root)
     cmdargs.extend(args)
     return unshared_cmdline(cmdargs, root=root, **kwargs)
+
+
+def error_message_for_containerised_commandline(
+        argv, err, container_kwargs):  # pragma: no cover
+    '''Return a semi-readable error message for a containerised command.'''
+
+    # This function should do some formatting of the container_kwargs dict,
+    # rather than just dumping it in the error message, but that is better than
+    # nothing.
+
+    argv_string = ' '.join(map(pipes.quote, argv))
+    return 'Command failed: %s:\n' \
+           'Containerisation settings: %s\n' \
+           'Error output:\n%s' \
+           % (argv_string, container_kwargs, err)
