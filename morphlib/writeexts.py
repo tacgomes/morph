@@ -83,14 +83,14 @@ class Fstab(object):
 class WriteExtension(cliapp.Application):
 
     '''A base class for deployment write extensions.
-    
+
     A subclass should subclass this class, and add a
     ``process_args`` method.
-    
+
     Note that it is not necessary to subclass this class for write
     extensions. This class is here just to collect common code for
     write extensions.
-    
+
     '''
 
     def setup_logging(self):
@@ -125,13 +125,13 @@ class WriteExtension(cliapp.Application):
 
     def status(self, **kwargs):
         '''Provide status output.
-        
+
         The ``msg`` keyword argument is the actual message,
         the rest are values for fields in the message as interpolated
         by %.
-        
+
         '''
-        
+
         self.output.write('%s\n' % (kwargs['msg'] % kwargs))
         self.output.flush()
 
@@ -184,9 +184,9 @@ class WriteExtension(cliapp.Application):
 
     def _parse_size(self, size):
         '''Parse a size from a string.
-        
+
         Return size in bytes.
-        
+
         '''
 
         m = re.match('^(\d+)([kmgKMG]?)$', size)
@@ -474,6 +474,12 @@ class WriteExtension(cliapp.Application):
 
         self.status(msg='Creating extlinux.conf')
         config = os.path.join(real_root, 'extlinux.conf')
+
+        ''' Please also update the documentation in the following files
+            if you change these default kernel args:
+            - kvm.write.help
+            - rawdisk.write.help
+            - virtualbox-ssh.write.help '''
         kernel_args = (
             'rw ' # ro ought to work, but we don't test that regularly
             'init=/sbin/init ' # default, but it doesn't hurt to be explicit
@@ -545,9 +551,8 @@ class WriteExtension(cliapp.Application):
         '''Does the user want to generate a bootloader config?
 
         The user may set $BOOTLOADER_CONFIG_FORMAT to the desired
-        format (u-boot or extlinux). If not set, extlinux is the
-        default but will be generated on x86-32 and x86-64, but not
-        otherwise.
+        format. 'extlinux' is the only allowed value, and is the default
+        value for x86-32 and x86-64.
 
         '''
 
