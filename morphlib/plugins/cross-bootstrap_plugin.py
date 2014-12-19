@@ -46,7 +46,7 @@ def escape_source_name(source):
 
 # Most of this is ripped from RootfsTarballBuilder, and should be reconciled
 # with it.
-class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
+class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
     '''Build a bootstrap system tarball
     
        The bootstrap system image contains a minimal cross-compiled toolchain
@@ -104,7 +104,7 @@ class BootstrapSystemBuilder(morphlib.builder2.BuilderBase):
             source_dir = os.path.join(path, 'src', escaped_source)
             if not os.path.exists(source_dir):
                 os.makedirs(source_dir)
-                morphlib.builder2.extract_sources(
+                morphlib.builder.extract_sources(
                     self.app, self.repo_cache, s.repo, s.sha1, source_dir)
 
             name = s.name

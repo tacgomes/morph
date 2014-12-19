@@ -154,7 +154,7 @@ class BuilderBaseTests(unittest.TestCase):
         self.repo_cache = None
         self.build_env = FakeBuildEnv()
         self.max_jobs = 1
-        self.builder = morphlib.builder2.BuilderBase(self.app,
+        self.builder = morphlib.builder.BuilderBase(self.app,
                                                      self.staging_area,
                                                      self.artifact_cache,
                                                      None,
@@ -193,7 +193,7 @@ class BuilderBaseTests(unittest.TestCase):
             fh = rac.put(a)
             fh.write(a.name)
             fh.close()
-        morphlib.builder2.download_depends(afacts, lac, rac)
+        morphlib.builder.download_depends(afacts, lac, rac)
         self.assertTrue(all(lac.has(a) for a in afacts))
 
     def test_downloads_depends_metadata(self):
@@ -207,7 +207,7 @@ class BuilderBaseTests(unittest.TestCase):
             fh = rac.put_artifact_metadata(a, 'meta')
             fh.write('metadata')
             fh.close()
-        morphlib.builder2.download_depends(afacts, lac, rac, ('meta',))
+        morphlib.builder.download_depends(afacts, lac, rac, ('meta',))
         self.assertTrue(all(lac.has(a) for a in afacts))
         self.assertTrue(all(lac.has_artifact_metadata(a, 'meta')
                             for a in afacts))
@@ -217,5 +217,5 @@ class ChunkBuilderTests(unittest.TestCase):
 
     def setUp(self):
         self.app = FakeApp()
-        self.build = morphlib.builder2.ChunkBuilder(self.app, None, None,
+        self.build = morphlib.builder.ChunkBuilder(self.app, None, None,
                                                     None, None, None, 1, False)
