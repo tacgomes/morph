@@ -190,9 +190,10 @@ class StagingArea(object):
 
         shutil.rmtree(self.dirname)
 
-    to_mount = (
+    to_mount_in_staging = (
         ('dev/shm', 'tmpfs', 'none'),
     )
+    to_mount_in_bootstrap = ()
 
     def ccache_dir(self, source): #pragma: no cover
         ccache_dir = self._app.settings['compiler-cache-dir']
@@ -266,7 +267,13 @@ class StagingArea(object):
             do_not_mount_dirs += [temp_dir]
         logging.debug("Not mounting dirs %r" % do_not_mount_dirs)
 
+        if self.use_chroot:
+            mounts = self.to_mount_in_staging
+        else:
+            mounts = [(os.path.join(self.dirname, target), type, source)
+                       for target, type, source in self.to_mount_in_bootstrap]
         mount_proc = self.use_chroot
+
         if ccache_dir and not self._app.settings['no-ccache']:
             ccache_target = os.path.join(
                     self.dirname, kwargs['env']['CCACHE_DIR'].lstrip('/'))
@@ -277,9 +284,9 @@ class StagingArea(object):
         container_config=dict(
             cwd=kwargs.pop('cwd', '/'),
             root=chroot_dir,
-            mounts=self.to_mount,
-            binds=binds,
+            mounts=mounts,
             mount_proc=mount_proc,
+            binds=binds,
             writable_paths=do_not_mount_dirs)
 
         cmdline = morphlib.util.containerised_cmdline(
