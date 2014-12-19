@@ -126,11 +126,21 @@ class BuildCommand(object):
 
         root_arch = root_artifact.source.morphology['arch']
         host_arch = morphlib.util.get_host_architecture()
-        if root_arch != host_arch:
-            raise morphlib.Error(
-                'Are you trying to cross-build? '
-                    'Host architecture is %s but target is %s'
-                    % (host_arch, root_arch))
+
+        if root_arch == host_arch:
+            return
+
+        # Since the armv8 instruction set is nearly entirely armv7 compatible,
+        # and since the incompatibilities are appropriately trapped in the
+        # kernel, we can safely run any armv7 toolchain natively on armv8.
+        if host_arch == 'armv8l' and root_arch in ('armv7l', 'armv7lhf'):
+            return
+        if host_arch == 'armv8b' and root_arch in ('armv7b', 'armv7bhf'):
+            return
+
+        raise morphlib.Error(
+            'Are you trying to cross-build? Host architecture is %s but '
+            'target is %s' % (host_arch, root_arch))
 
     @staticmethod
     def _validate_has_non_bootstrap_chunks(srcpool):
