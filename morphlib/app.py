@@ -309,6 +309,11 @@ class Morph(cliapp.Application):
                     if (submod.url, submod.commit) not in done:
                         subs_to_process.add((submod.url, submod.commit))
 
+    def _write_status(self, text):
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        self.output.write('%s %s\n' % (timestamp, text))
+        self.output.flush()
+
     def status(self, **kwargs):
         '''Show user a status update.
 
@@ -345,9 +350,20 @@ class Morph(cliapp.Application):
 
         ok = verbose or error or (not quiet and not chatty)
         if ok:
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-            self.output.write('%s %s\n' % (timestamp, text))
-            self.output.flush()
+            self._write_status(text)
+
+    def _commandline_as_message(self, argv, args):
+        '''Create a status string for a command that's about to be executed.'''
+
+        commands = []
+        for command in [argv] + list(args):
+            if isinstance(command, list):
+                command_str = ' '.join(map(pipes.quote, command))
+            else:
+                command_str = pipes.quote(command)
+            commands.append(command_str)
+
+        return '# ' + ' | '.join(commands)
 
     def _prepare_for_runcmd(self, argv, args, kwargs):
         if 'env' not in kwargs:
@@ -359,19 +375,11 @@ class Morph(cliapp.Application):
         else:
             print_command = True
 
-        if print_command:
-            # Print the command line
-            commands = []
-            for command in [argv] + list(args):
-                if isinstance(command, list):
-                    command_str = ' '.join(map(pipes.quote, command))
-                else:
-                    command_str = pipes.quote(command)
-                commands.append(command_str)
-
-            self.status(msg='# %(cmdline)s',
-                        cmdline=' | '.join(commands),
-                        chatty=True)
+        if print_command and self.settings['verbose']:
+            # Don't call self.status() here, to avoid writing the message to
+            # the log as well as to the console. The cliapp.runcmd() function
+            # will also log the command, and it's messy having it logged twice.
+            self._write_status(self._commandline_as_message(argv, args))
 
         # Log the environment.
         prev = getattr(self, 'prev_env', {})
