@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2014  Codethink Limited
+# Copyright (C) 2011-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -361,12 +361,13 @@ class Morph(cliapp.Application):
 
         if print_command:
             # Print the command line
-            commands = [argv] + list(args)
-            for command in commands:
+            commands = []
+            for command in [argv] + list(args):
                 if isinstance(command, list):
-                    for i in xrange(0, len(command)):
-                        command[i] = str(command[i])
-            commands = ' '.join(map(pipes.quote, command))
+                    command_str = ' '.join(map(pipes.quote, command))
+                else:
+                    command_str = pipes.quote(command)
+                commands.append(command_str)
 
             self.status(msg='# %(cmdline)s',
                         cmdline=' | '.join(commands),
