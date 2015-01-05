@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2014  Codethink Limited
+# Copyright (C) 2011-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -528,7 +528,7 @@ class BuildCommand(object):
             staging_area.install_artifact(handle)
 
         if target_source.build_mode == 'staging':
-            morphlib.builder2.ldconfig(self.app.runcmd, staging_area.dirname)
+            morphlib.builder.ldconfig(self.app.runcmd, staging_area.dirname)
 
     def build_and_cache(self, staging_area, source, setup_mounts):
         '''Build a source and put its artifacts into the local cache.'''
@@ -536,7 +536,7 @@ class BuildCommand(object):
         self.app.status(msg='Starting actual build: %(name)s '
                             '%(sha1)s',
                         name=source.name, sha1=source.sha1[:7])
-        builder = morphlib.builder2.Builder(
+        builder = morphlib.builder.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
             self.app.settings['max-jobs'], setup_mounts)
         return builder.build_and_cache(source)

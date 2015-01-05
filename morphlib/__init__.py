@@ -56,7 +56,7 @@ import buildbranch
 import buildcommand
 import buildenvironment
 import buildsystem
-import builder2
+import builder
 import cachedrepo
 import cachekeycomputer
 import extensions
