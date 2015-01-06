@@ -19,6 +19,8 @@ import cPickle
 import logging
 import os
 import pylru
+import shutil
+import tempfile
 
 import cliapp
 
@@ -151,6 +153,8 @@ class SourceResolver(object):
         self._resolved_morphologies = {}
         self._resolved_buildsystems = {}
 
+        self._definitions_checkout_dir = None
+
     def _resolve_ref(self, reponame, ref):
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
@@ -220,8 +224,18 @@ class SourceResolver(object):
         if key in self._resolved_morphologies:
             return self._resolved_morphologies[key]
 
+        if reponame == self._definitions_repo and \
+                sha1 == self._definitions_absref:
+            defs_filename = os.path.join(self._definitions_checkout_dir,
+                                         filename)
+        else:
+            defs_filename = None
+
+
         loader = morphlib.morphloader.MorphologyLoader()
-        if self.lrc.has_repo(reponame):
+        if defs_filename and os.path.exists(defs_filename):
+            morph = loader.load_from_file(defs_filename)
+        elif self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "local repo cache.",
                         reponame=reponame, filename=filename, chatty=True)
@@ -394,7 +408,19 @@ class SourceResolver(object):
         if definitions_original_ref:
             definitions_ref = definitions_original_ref
 
+        self._definitions_checkout_dir = tempfile.mkdtemp()
+
         try:
+            # FIXME: not an ideal way of passing this info across
+            self._definitions_repo = definitions_repo
+            self._definitions_absref = definitions_absref
+            try:
+                definitions_cached_repo = self.lrc.get_repo(definitions_repo)
+            except morphlib.localrepocache.NotCached:
+                definitions_cached_repo = self.lrc.cache_repo(definitions_repo)
+            definitions_cached_repo.extract_commit(
+                definitions_absref, self._definitions_checkout_dir)
+
             # First, process the system and its stratum morphologies. These
             # will all live in the same Git repository, and will point to
             # various chunk morphologies.
@@ -414,6 +440,9 @@ class SourceResolver(object):
             for repo, ref, filename in chunk_in_source_repo_queue:
                 self.process_chunk(repo, ref, repo, ref, filename, visit)
         finally:
+            shutil.rmtree(self._definitions_checkout_dir)
+            self._definitions_checkout_dir = None
+
             logging.debug('Saving contents of resolved tree cache')
             self.tree_cache_manager.save_cache(self._resolved_trees)
 
