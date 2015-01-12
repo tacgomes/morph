@@ -71,7 +71,8 @@ class SourceResolver(object):
                 repo.update()
             # If the user passed --no-git-update, and the ref is a SHA1 not
             # available locally, this call will raise an exception.
-            absref, tree = repo.resolve_ref(ref)
+            absref = repo.resolve_ref_to_commit(ref)
+            tree = repo.resolve_ref_to_tree(absref)
         elif self.rrc is not None:
             try:
                 absref, tree = self.rrc.resolve_ref(reponame, ref)
@@ -91,7 +92,8 @@ class SourceResolver(object):
                 repo.update()
             else:
                 repo = self.lrc.get_repo(reponame)
-            absref, tree = repo.resolve_ref(ref)
+            absref = repo.resolve_ref_to_commit(ref)
+            tree = repo.resolve_ref_to_tree(absref)
         return absref, tree
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
@@ -103,7 +105,9 @@ class SourceResolver(object):
         definitions_queue = collections.deque(system_filenames)
         chunk_in_definitions_repo_queue = []
         chunk_in_source_repo_queue = []
-        resolved_refs = {}
+
+        resolved_commits = {}
+        resolved_trees = {}
         resolved_morphologies = {}
 
         # Resolve the (repo, ref) pair for the definitions repo, cache result.
@@ -146,9 +150,12 @@ class SourceResolver(object):
                         (c['repo'], c['ref'], c['morph']))
 
         for repo, ref, filename in chunk_in_definitions_repo_queue:
-            if (repo, ref) not in resolved_refs:
-                resolved_refs[repo, ref] = self.resolve_ref(repo, ref)
-            absref, tree = resolved_refs[repo, ref]
+            if (repo, ref) not in resolved_trees:
+                commit_sha1, tree_sha1 = self.resolve_ref(repo, ref)
+                resolved_commits[repo, ref] = commit_sha1
+                resolved_trees[repo, commit_sha1] = tree_sha1
+            absref = resolved_commits[repo, ref]
+            tree = resolved_trees[repo, absref]
             key = (definitions_repo, definitions_absref, filename)
             if not key in resolved_morphologies:
                 resolved_morphologies[key] = morph_factory.get_morphology(*key)
@@ -156,9 +163,12 @@ class SourceResolver(object):
             visit(repo, ref, filename, absref, tree, morphology)
 
         for repo, ref, filename in chunk_in_source_repo_queue:
-            if (repo, ref) not in resolved_refs:
-                resolved_refs[repo, ref] = self.resolve_ref(repo, ref)
-            absref, tree = resolved_refs[repo, ref]
+            if (repo, ref) not in resolved_trees:
+                commit_sha1, tree_sha1 = self.resolve_ref(repo, ref)
+                resolved_commits[repo, ref] = commit_sha1
+                resolved_trees[repo, commit_sha1] = tree_sha1
+            absref = resolved_commits[repo, ref]
+            tree = resolved_trees[repo, absref]
             key = (repo, absref, filename)
             if key not in resolved_morphologies:
                 resolved_morphologies[key] = morph_factory.get_morphology(*key)
