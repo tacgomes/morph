@@ -25,7 +25,7 @@ from sockbuf import (SocketBufferNewData, SocketBufferEof,
                      SocketBufferClosed, SocketBuffer)
 from mainloop import MainLoop
 from sockserv import ListenServer
-from jm import JsonMachine, JsonNewMessage, JsonEof
+from jm import JsonMachine, JsonNewMessage, JsonEof, JsonError
 
 from artifact_reference import (encode_artifact,
                                 encode_artifact_reference,

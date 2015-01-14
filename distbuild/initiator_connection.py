@@ -75,6 +75,8 @@ class InitiatorConnection(distbuild.StateMachine):
             # state, source, event_class, new_state, callback
             ('idle', self.jm, distbuild.JsonNewMessage, 'idle', 
                 self._handle_msg),
+            ('idle', self.jm, distbuild.JsonError, 'closing',
+                self._disconnect),
             ('idle', self.jm, distbuild.JsonEof, 'closing', self._disconnect),
             ('idle', distbuild.BuildController, distbuild.BuildFinished,
                 'idle', self._send_build_finished_message),

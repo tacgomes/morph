@@ -38,8 +38,17 @@ class JsonNewMessage(object):
 class JsonEof(object):
 
     pass
-    
-    
+
+
+class JsonError(object):
+
+    '''An error has occured with a socket used for communication.'''
+
+    def __init__(self, sock, exception):
+        self.sock = sock
+        self.exception = exception
+
+
 class _Close2(object):
 
     pass
@@ -71,9 +80,12 @@ class JsonMachine(StateMachine):
             # state, source, event_class, new_state, callback
             ('rw', sockbuf, SocketBufferNewData, 'rw', self._parse),
             ('rw', sockbuf, SocketBufferEof, 'w', self._send_eof),
+            ('rw', sockbuf, SocketError, 'error', self._send_error),
             ('rw', self, _Close2, None, self._really_close),
             
             ('w', self, _Close2, None, self._really_close),
+
+            ('error', self, _Close2, None, self._really_close)
         ]
         self.add_transitions(spec)
         
@@ -118,6 +130,9 @@ class JsonMachine(StateMachine):
 
     def _send_eof(self, event_source, event):
         self.mainloop.queue_event(self, JsonEof())
+
+    def _send_error(self, event_source, event):
+        self.mainloop.queue_event(self, JsonError(event.sock, event.exception))
 
     def _really_close(self, event_source, event):
         self.sockbuf.close()

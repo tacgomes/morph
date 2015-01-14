@@ -105,22 +105,27 @@ class SocketBuffer(StateMachine):
             ('reading', self, _WriteBufferNotEmpty, 'rw', 
                 self._start_writing),
             ('reading', self, SocketBufferEof, 'idle', None),
+            ('reading', self, SocketError, None, self._really_close),
             ('reading', self, _Close, None, self._really_close),
             
             ('rw', src, SocketReadable, 'rw', self._fill),
             ('rw', src, SocketWriteable, 'rw', self._flush),
             ('rw', self, _WriteBufferIsEmpty, 'reading', self._stop_writing),
             ('rw', self, SocketBufferEof, 'w', None),
+            ('rw', self, SocketError, None, self._really_close),
             ('rw', self, _Close, 'wc', None),
             
             ('idle', self, _WriteBufferNotEmpty, 'w', self._start_writing),
+            ('idle', self, SocketError, None, self._really_close),
             ('idle', self, _Close, None, self._really_close),
             
             ('w', src, SocketWriteable, 'w', self._flush),
             ('w', self, _WriteBufferIsEmpty, 'idle', self._stop_writing),
+            ('w', self, SocketError, None, self._really_close),
 
             ('wc', src, SocketWriteable, 'wc', self._flush),
             ('wc', self, _WriteBufferIsEmpty, None, self._really_close),
+            ('wc', self, SocketError, None, self._really_close),
         ]
         self.add_transitions(spec)
 
