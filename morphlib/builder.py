@@ -34,6 +34,7 @@ import cliapp
 
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
+from morphlib.util import error_message_for_containerised_commandline
 import morphlib.gitversion
 
 SYSTEM_INTEGRATION_PATH = os.path.join('baserock', 'system-integration')
@@ -674,7 +675,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                     cmdline, env=env)
                 if exit != 0:
                     logging.debug('Command returned code %i', exit)
-                    msg = morphlib.util.error_message_for_containerised_commandline(
+                    msg = error_message_for_containerised_commandline(
                         argv, err, container_config)
                     raise cliapp.AppException(msg)
         except BaseException, e:
