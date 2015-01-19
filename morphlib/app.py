@@ -139,6 +139,14 @@ class Morph(cliapp.Application):
                               'always push temporary build branches to the '
                               'remote repository',
                               group=group_build)
+        self.settings.choice (['local-changes'],
+                              ['include', 'ignore'],
+                              'the `build` and `deploy` commands detect '
+                              'uncommitted/unpushed local changes and operate '
+                              'operate from a temporary branch containing '
+                              'those changes. Disable this behaviour with the '
+                              '`ignore` setting.',
+                              group=group_build)
 
         group_storage = 'Storage Options'
         self.settings.string(['tempdir'],
