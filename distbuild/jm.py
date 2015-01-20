@@ -109,8 +109,13 @@ class JsonMachine(StateMachine):
             line = line.rstrip()
             if self.debug_json:
                 logging.debug('JsonMachine: line: %s' % repr(line))
-            msg = yaml.load(json.loads(line))
-            self.mainloop.queue_event(self, JsonNewMessage(msg))
+            msg = None
+            try:
+                msg = yaml.safe_load(json.loads(line))
+            except Exception:
+                logging.error('Invalid input: %s' % line)
+            if msg:
+                self.mainloop.queue_event(self, JsonNewMessage(msg))
 
     def _send_eof(self, event_source, event):
         self.mainloop.queue_event(self, JsonEof())
