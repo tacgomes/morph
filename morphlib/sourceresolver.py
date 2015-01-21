@@ -32,7 +32,7 @@ buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
 
-class PickleCacheManager(object):
+class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
 
     The 'pickle' format is less than ideal in many ways and is actually
@@ -84,7 +84,7 @@ class SourceResolverError(cliapp.AppException):
     pass
 
 
-class MorphologyNotFoundError(SourceResolverError):
+class MorphologyNotFoundError(SourceResolverError): # pragma: no cover
     def __init__(self, filename):
         SourceResolverError.__init__(
             self, "Couldn't find morphology: %s" % filename)
@@ -155,7 +155,7 @@ class SourceResolver(object):
 
         self._definitions_checkout_dir = None
 
-    def _resolve_ref(self, reponame, ref):
+    def _resolve_ref(self, reponame, ref): # pragma: no cover
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
         If update is True then this has the side-effect of updating or cloning
@@ -225,7 +225,7 @@ class SourceResolver(object):
             return self._resolved_morphologies[key]
 
         if reponame == self._definitions_repo and \
-                sha1 == self._definitions_absref:
+                sha1 == self._definitions_absref: # pragma: no cover
             defs_filename = os.path.join(self._definitions_checkout_dir,
                                          filename)
         else:
@@ -233,7 +233,7 @@ class SourceResolver(object):
 
 
         loader = morphlib.morphloader.MorphologyLoader()
-        if defs_filename and os.path.exists(defs_filename):
+        if defs_filename and os.path.exists(defs_filename): # pragma: no cover
             morph = loader.load_from_file(defs_filename)
         elif self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
@@ -304,7 +304,7 @@ class SourceResolver(object):
         return buildsystem.name
 
     def _create_morphology_for_build_system(self, buildsystem_name,
-                                            morph_name):
+                                            morph_name): # pragma: no cover
         bs = morphlib.buildsystem.lookup_build_system(buildsystem_name)
         loader = morphlib.morphloader.MorphologyLoader()
         morph = bs.get_morphology(morph_name)
@@ -318,7 +318,7 @@ class SourceResolver(object):
                                            definitions_ref,
                                            definitions_absref,
                                            definitions_tree,
-                                           visit):
+                                           visit): # pragma: no cover
         definitions_queue = collections.deque(system_filenames)
         chunk_in_definitions_repo_queue = set()
         chunk_in_source_repo_queue = set()
@@ -360,7 +360,7 @@ class SourceResolver(object):
         return chunk_in_definitions_repo_queue, chunk_in_source_repo_queue
 
     def process_chunk(self, definition_repo, definition_ref, chunk_repo,
-                      chunk_ref, filename, visit):
+                      chunk_ref, filename, visit): # pragma: no cover
         definition_key = (definition_repo, definition_ref, filename)
         chunk_key = (chunk_repo, chunk_ref, filename)
 
@@ -396,7 +396,7 @@ class SourceResolver(object):
     def traverse_morphs(self, definitions_repo, definitions_ref,
                         system_filenames,
                         visit=lambda rn, rf, fn, arf, m: None,
-                        definitions_original_ref=None):
+                        definitions_original_ref=None): # pragma: no cover
         self._resolved_trees = self.tree_cache_manager.load_cache()
         self._resolved_buildsystems = \
             self.buildsystem_cache_manager.load_cache()
@@ -453,7 +453,7 @@ class SourceResolver(object):
 
 def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
                        original_ref=None, update_repos=True,
-                       status_cb=None):
+                       status_cb=None): # pragma: no cover
     '''Find all the sources involved in building a given system.
 
     Given a system morphology, this function will traverse the tree of stratum
