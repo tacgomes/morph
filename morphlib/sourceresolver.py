@@ -14,12 +14,62 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import collections
+import cPickle
+import logging
+import pylru
+
 import cliapp
 
-import collections
-import logging
-
 import morphlib
+
+
+class PickleCacheManager(object):
+    '''Cache manager for PyLRU that reads and writes to Pickle files.
+
+    The 'pickle' format is less than ideal in many ways and is actually
+    slower than JSON in Python. However, the data we need to cache is keyed
+    by tuples and in JSON a dict can only be keyed with strings. For now,
+    using 'pickle' seems to be the least worst option.
+
+    '''
+
+    def __init__(self, filename, size):
+        self.filename = filename
+        self.size = size
+
+    def _populate_cache_from_file(self, filename, cache):
+        try:
+            with open(filename, 'r') as f:
+                data = cPickle.load(f)
+            for key, value in data.iteritems():
+                cache[key] = value
+        except (EOFError, IOError, cPickle.PickleError) as e:
+            logging.warning('Failed to load cache %s: %s', self.filename, e)
+
+    def load_cache(self):
+        '''Create a pylru.lrucache object prepopulated with saved data.'''
+        cache = pylru.lrucache(self.size)
+        # There should be a more efficient way to do this, by hooking into
+        # the json module directly.
+        self._populate_cache_from_file(self.filename, cache)
+        return cache
+
+    def save_cache(self, cache):
+        '''Save the data from a pylru.lrucache object to disk.
+
+        Any changes that have been made by other instances or processes since
+        load_cache() was called will be overwritten.
+
+        '''
+        data = {}
+        for key, value in cache.items():
+            data[key] = value
+        try:
+            with morphlib.savefile.SaveFile(self.filename, 'w') as f:
+                cPickle.dump(data, f)
+        except (IOError, cPickle.PickleError) as e:
+            logging.warning('Failed to save cache to %s: %s', self.filename, e)
 
 
 class SourceResolverError(cliapp.AppException):
