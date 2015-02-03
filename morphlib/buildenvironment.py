@@ -115,9 +115,9 @@ class BuildEnvironment():
         # than leaving it up to individual morphologies.
         if arch == 'x86_32':
             cpu = 'i686'
-        elif arch == 'armv8l64':
+        elif arch == 'armv8l64':  # pragma: no cover
             cpu = 'aarch64'
-        elif arch == 'armv8b64':
+        elif arch == 'armv8b64':  # pragma: no cover
             cpu = 'aarch64_be'
         else:
             cpu = arch
