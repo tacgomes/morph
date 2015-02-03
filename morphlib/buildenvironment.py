@@ -115,10 +115,14 @@ class BuildEnvironment():
         # than leaving it up to individual morphologies.
         if arch == 'x86_32':
             cpu = 'i686'
+        elif arch == 'armv8l64':
+            cpu = 'aarch64'
+        elif arch == 'armv8b64':
+            cpu = 'aarch64_be'
         else:
             cpu = arch
 
-        if arch.startswith('arm'):
+        if arch.startswith('armv7'):
             abi = 'eabi'
         else:
             abi = ''
