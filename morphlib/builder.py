@@ -14,9 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from collections import defaultdict
-import datetime
-import errno
 import json
 import logging
 import os
@@ -28,7 +25,6 @@ import time
 import traceback
 import subprocess
 import tempfile
-import gzip
 
 import cliapp
 
