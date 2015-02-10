@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014  Codethink Limited
+# Copyright (C) 2012-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,10 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import logging
 import os
-import re
-import urllib2
 import urlparse
 import string
 import sys
@@ -244,15 +241,68 @@ class LocalRepoCache(object):
                 return repo
         raise NotCached(reponame)
 
-    def get_updated_repo(self, reponame): # pragma: no cover
-        '''Return object representing cached repository, which is updated.'''
+    def get_updated_repo(self, repo_name, ref=None):  # pragma: no cover
+        '''Return object representing cached repository.
 
-        if not self._app.settings['no-git-update']:
-            cached_repo = self.cache_repo(reponame)
-            self._app.status(
-                msg='Updating git repository %s in cache' % reponame)
-            cached_repo.update()
+        If 'ref' is None, the repo will be updated unless
+        app.settings['no-git-update'] is set.
+
+        If 'ref' is set to a SHA1, the repo will only be updated if 'ref' isn't
+        already available locally.
+
+        '''
+
+        if self._app.settings['no-git-update']:
+            self._app.status(msg='Not updating existing git repository '
+                                 '%(repo_name)s '
+                                 'because of no-git-update being set',
+                             chatty=True,
+                             repo_name=repo_name)
+            return self.get_repo(repo_name)
+
+        if self.has_repo(repo_name):
+            repo = self.get_repo(repo_name)
+            if ref and morphlib.git.is_valid_sha1(ref):
+                try:
+                    repo.resolve_ref_to_commit(ref)
+                    self._app.status(msg='Not updating git repository '
+                                         '%(repo_name)s because it '
+                                         'already contains sha1 %(sha1)s',
+                                     chatty=True, repo_name=repo_name,
+                                     sha1=ref)
+                    return repo
+                except morphlib.gitdir.InvalidRefError:
+                    pass
+
+            self._app.status(msg='Updating %(repo_name)s',
+                             repo_name=repo_name)
+            repo.update()
+            return repo
         else:
-            cached_repo = self.get_repo(reponame)
-        return cached_repo
+            self._app.status(msg='Cloning %(repo_name)s',
+                             repo_name=repo_name)
+            return self.cache_repo(repo_name)
 
+    def ensure_submodules(self, toplevel_repo,
+                          toplevel_ref):  # pragma: no cover
+        '''Ensure any submodules of a given repo are cached and up to date.'''
+
+        def submodules_for_repo(repo_path, ref):
+            try:
+                submodules = morphlib.git.Submodules(self._app, repo_path, ref)
+                submodules.load()
+                return [(submod.url, submod.commit) for submod in submodules]
+            except morphlib.git.NoModulesFileError:
+                return []
+
+        done = set()
+        subs_to_process = submodules_for_repo(toplevel_repo.path, toplevel_ref)
+        while subs_to_process:
+            url, ref = subs_to_process.pop()
+            done.add((url, ref))
+
+            cached_repo = self.get_updated_repo(url, ref=ref)
+
+            for submod in submodules_for_repo(cached_repo.path, ref):
+                if (submod.url, submod.commit) not in done:
+                    subs_to_process.add((submod.url, submod.commit))

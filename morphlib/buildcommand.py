@@ -386,39 +386,8 @@ class BuildCommand(object):
         '''Update the local git repository cache with the sources.'''
 
         repo_name = source.repo_name
-        if self.app.settings['no-git-update']:
-            self.app.status(msg='Not updating existing git repository '
-                                '%(repo_name)s '
-                                'because of no-git-update being set',
-                            chatty=True,
-                            repo_name=repo_name)
-            source.repo = self.lrc.get_repo(repo_name)
-            return
-
-        if self.lrc.has_repo(repo_name):
-            source.repo = self.lrc.get_repo(repo_name)
-            try:
-                sha1 = source.sha1
-                source.repo.resolve_ref_to_commit(sha1)
-                self.app.status(msg='Not updating git repository '
-                                    '%(repo_name)s because it '
-                                    'already contains sha1 %(sha1)s',
-                                chatty=True, repo_name=repo_name,
-                                sha1=sha1)
-            except morphlib.gitdir.InvalidRefError:
-                self.app.status(msg='Updating %(repo_name)s',
-                                repo_name=repo_name)
-                source.repo.update()
-        else:
-            self.app.status(msg='Cloning %(repo_name)s',
-                            repo_name=repo_name)
-            source.repo = self.lrc.cache_repo(repo_name)
-
-        # Update submodules.
-        done = set()
-        self.app.cache_repo_and_submodules(
-            self.lrc, source.repo.url,
-            source.sha1, done)
+        source.repo = self.lrc.get_updated_repo(repo_name, ref=source.sha1)
+        self.lrc.ensure_submodules(source.repo, source.sha1)
 
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
