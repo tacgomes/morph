@@ -244,6 +244,15 @@ class BuildController(distbuild.StateMachine):
     
         self.mainloop.queue_event(self, _Start())
 
+    def _request_command_execution(self, argv, request_id):
+        '''Tell the controller's distbuild-helper to run a command.'''
+        msg = distbuild.message('exec-request',
+            id=request_id,
+            argv=argv,
+            stdin_contents='')
+        req = distbuild.HelperRequest(msg)
+        self.mainloop.queue_event(distbuild.HelperRouter, req)
+
     def _start_graphing(self, event_source, event):
         distbuild.crash_point()
 
@@ -260,14 +269,10 @@ class BuildController(distbuild.StateMachine):
         ]
         if 'original_ref' in self._request:
             argv.append(self._request['original_ref'])
-        msg = distbuild.message('exec-request',
-            id=self._idgen.next(),
-            argv=argv,
-            stdin_contents='')
-        self._helper_id = msg['id']
-        req = distbuild.HelperRequest(msg)
-        self.mainloop.queue_event(distbuild.HelperRouter, req)
-        
+
+        self._helper_id = self._idgen.next()
+        self._request_command_execution(argv, self._helper_id)
+
         progress = BuildProgress(self._request['id'], 'Computing build graph')
         self.mainloop.queue_event(BuildController, progress)
 
