@@ -37,21 +37,11 @@ class _Start(object): pass
 class _Annotated(object): pass
 class _Built(object): pass
 
-class _AnnotationFailed(object):
-
-    def __init__(self, http_status_code, error_msg):
-        self.http_status_code = http_status_code
-        self.error_msg = error_msg
 
 class _GotGraph(object):
 
     def __init__(self, artifact):
         self.artifact = artifact
-
-
-class _GraphFailed(object):
-
-    pass
 
 
 class BuildCancel(object):
@@ -192,14 +182,13 @@ class BuildController(distbuild.StateMachine):
                 'graphing', self._maybe_finish_graph),
             ('graphing', self, _GotGraph,
                 'annotating', self._start_annotating),
-            ('graphing', self, _GraphFailed, None, None),
+            ('graphing', self, BuildFailed, None, None),
             ('graphing', self._initiator_connection,
                 distbuild.InitiatorDisconnect, None, None),
 
             ('annotating', distbuild.HelperRouter, distbuild.HelperResult,
                 'annotating', self._maybe_handle_cache_response),
-            ('annotating', self, _AnnotationFailed, None,
-                self._notify_annotation_failed),
+            ('annotating', self, BuildFailed, None, None),
             ('annotating', self, _Annotated, 'building', 
                 self._queue_worker_builds),
             ('annotating', self._initiator_connection,
@@ -244,6 +233,17 @@ class BuildController(distbuild.StateMachine):
     
         self.mainloop.queue_event(self, _Start())
 
+    def fail(self, reason):
+        logging.error(reason)
+        message = BuildFailed(self._request['id'], reason)
+
+        # The message is sent twice so that it can be matched both by state
+        # transitions listening for this specific controller instance, and by
+        # state transitions listening for messages from the BuildController
+        # class that then filter the message based on the request ID field.
+        self.mainloop.queue_event(self, message)
+        self.mainloop.queue_event(BuildController, message)
+
     def _request_command_execution(self, argv, request_id):
         '''Tell the controller's distbuild-helper to run a command.'''
         msg = distbuild.message('exec-request',
@@ -286,16 +286,6 @@ class BuildController(distbuild.StateMachine):
     def _maybe_finish_graph(self, event_source, event):
         distbuild.crash_point()
 
-        def notify_failure(msg_text):
-            logging.error('Graph creation failed: %s' % msg_text)
-            
-            failed = BuildFailed(
-                self._request['id'], 
-                'Failed to compute build graph: %s' % msg_text)
-            self.mainloop.queue_event(BuildController, failed)
-            
-            self.mainloop.queue_event(self, _GraphFailed())
-
         def notify_success(artifact):
             logging.debug('Graph is finished')
 
@@ -313,8 +303,8 @@ class BuildController(distbuild.StateMachine):
 
             error_text = self._artifact_error.peek()
             if event.msg['exit'] != 0 or error_text:
-                notify_failure('Problem with serialise-artifact: %s'
-                    % error_text)
+                self.fail('Failed to compute build graph. Problem with '
+                          'serialise-artifact: %s' % error_text)
 
             if event.msg['exit'] != 0:
                 return
@@ -324,7 +314,7 @@ class BuildController(distbuild.StateMachine):
                 artifact = distbuild.deserialise_artifact(text)
             except ValueError, e:
                 logging.error(traceback.format_exc())
-                notify_failure(str(e))
+                self.fail('Failed to compute build graph: %s' % e)
                 return
 
             notify_success(artifact)
@@ -367,13 +357,10 @@ class BuildController(distbuild.StateMachine):
         logging.debug('Got cache response: %s' % repr(event.msg))
 
         http_status_code = event.msg['status']
-        error_msg = event.msg['body']
 
         if http_status_code != httplib.OK:
-            logging.debug('Cache request failed with status: %s'
-                % event.msg['status'])
-            self.mainloop.queue_event(self,
-                _AnnotationFailed(http_status_code, error_msg))
+            self.fail('Failed to annotate build graph: http request got %d: %s'
+                      % (http_status_code, event.msg['body']))
             return
 
         cache_state = json.loads(event.msg['body'])
@@ -586,14 +573,6 @@ class BuildController(distbuild.StateMachine):
 
         self._queue_worker_builds(None, event)
 
-    def _notify_annotation_failed(self, event_source, event):
-        errmsg = ('Failed to annotate build graph: http request got %d: %s'
-                  % (event.http_status_code, event.error_msg))
-
-        logging.error(errmsg)
-        failed = BuildFailed(self._request['id'], errmsg)
-        self.mainloop.queue_event(BuildController, failed)
-
     def _maybe_notify_build_failed(self, event_source, event):
         distbuild.crash_point()
 
@@ -618,10 +597,7 @@ class BuildController(distbuild.StateMachine):
             self._request['id'], build_step_name(artifact))
         self.mainloop.queue_event(BuildController, step_failed)
 
-        build_failed = BuildFailed(
-            self._request['id'], 
-            'Building failed for %s' % artifact.name)
-        self.mainloop.queue_event(BuildController, build_failed)
+        self.fail('Building failed for %s' % artifact.name)
 
         # Cancel any jobs waiting to be executed, since there is no point
         # running them if this build has failed, it would just waste
