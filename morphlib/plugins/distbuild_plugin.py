@@ -238,6 +238,11 @@ class ControllerDaemon(cliapp.Plugin):
         
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
 
+        if not self.app.settings['worker']:
+            raise cliapp.AppException(
+                'Distbuild controller has no workers configured. Refusing to '
+                'start.')
+
         artifact_cache_server = (
             self.app.settings['artifact-cache-server'] or
             self.app.settings['cache-server'])
