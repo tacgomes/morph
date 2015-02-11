@@ -361,8 +361,9 @@ class BuildController(distbuild.StateMachine):
         http_status_code = event.msg['status']
 
         if http_status_code != httplib.OK:
-            self.fail('Failed to annotate build graph: http request got %d: %s'
-                      % (http_status_code, event.msg['body']))
+            self.fail('Failed to annotate build graph: HTTP request to %s got '
+                      '%d: %s' % (self._artifact_cache_server,
+                                  http_status_code, event.msg['body']))
             return
 
         cache_state = json.loads(event.msg['body'])
