@@ -14,9 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from collections import defaultdict
-import datetime
-import errno
 import json
 import logging
 import os
@@ -28,7 +25,6 @@ import time
 import traceback
 import subprocess
 import tempfile
-import gzip
 
 import cliapp
 
@@ -144,23 +140,6 @@ def download_depends(constituents, lac, rac, metadatas=None):
                         shutil.copyfileobj(src, dst)
                         dst.close()
                         src.close()
-
-
-def get_chunk_files(f):  # pragma: no cover
-    tar = tarfile.open(fileobj=f)
-    for member in tar.getmembers():
-        if member.type is not tarfile.DIRTYPE:
-            yield member.name
-    tar.close()
-
-
-def get_stratum_files(f, lac):  # pragma: no cover
-    for ca in (ArtifactCacheReference(a)
-               for a in json.load(f, encoding='unicode-escape')):
-        cf = lac.get(ca)
-        for filename in get_chunk_files(cf):
-            yield filename
-        cf.close()
 
 
 class BuilderBase(object):
