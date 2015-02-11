@@ -306,8 +306,7 @@ class BuildController(distbuild.StateMachine):
 
             error_text = self._artifact_error.peek()
             if event.msg['exit'] != 0 or error_text:
-                self.fail('Failed to compute build graph. Problem with '
-                          'serialise-artifact: %s' % error_text)
+                self.fail(error_text)
 
             if event.msg['exit'] != 0:
                 return
