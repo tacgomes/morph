@@ -1,6 +1,6 @@
 # distbuild_plugin.py -- Morph distributed build plugin
 #
-# Copyright (C) 2014  Codethink Limited
+# Copyright (C) 2014-2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
