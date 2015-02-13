@@ -102,6 +102,18 @@ class InitiatorConnection(distbuild.StateMachine):
 
         try:
             if event.msg['type'] == 'build-request':
+                if (event.msg.get('protocol_version') !=
+                   distbuild.protocol.VERSION):
+                    msg = distbuild.message('build-failed',
+                        id=event.msg['id'],
+                        reason=('Protocol version mismatch between server & '
+                                'initiator: distbuild network uses distbuild '
+                                'protocol version %i, but client uses version'
+                                ' %i.', distbuild.protocol.VERSION,
+                                event.msg.get('protocol_version')))
+                    self.jm.send(msg)
+                    self._log_send(msg)
+                    return
                 new_id = self._idgen.next()
                 self.our_ids.add(new_id)
                 self._route_map.add(event.msg['id'], new_id)

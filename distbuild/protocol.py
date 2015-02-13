@@ -1,6 +1,6 @@
 # distbuild/protocol.py -- abstractions for the JSON messages
 #
-# Copyright (C) 2012, 2014  Codethink Limited
+# Copyright (C) 2012, 2014 - 2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,12 +19,20 @@
 '''Construct protocol message objects (dicts).'''
 
 
+# Version refers to an integer that should be incremented by one each time a
+# time a change is introduced that would break server/initiator compatibility
+
+
+VERSION = 1
+
+
 _required_fields = {
     'build-request': [
         'id',
         'repo',
         'ref',
         'morphology',
+        'protocol_version',
     ],
     'build-progress': [
         'id',
