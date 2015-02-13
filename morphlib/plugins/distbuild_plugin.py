@@ -1,6 +1,6 @@
 # distbuild_plugin.py -- Morph distributed build plugin
 #
-# Copyright (C) 2014  Codethink Limited
+# Copyright (C) 2014-2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -237,6 +237,11 @@ class ControllerDaemon(cliapp.Plugin):
         '''Daemon that gives jobs to worker daemons.'''
         
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
+
+        if not self.app.settings['worker']:
+            raise cliapp.AppException(
+                'Distbuild controller has no workers configured. Refusing to '
+                'start.')
 
         artifact_cache_server = (
             self.app.settings['artifact-cache-server'] or

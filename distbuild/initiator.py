@@ -1,6 +1,6 @@
 # distbuild/initiator.py -- state machine for the initiator
 #
-# Copyright (C) 2012, 2014  Codethink Limited
+# Copyright (C) 2012, 2014-2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ import cliapp
 import logging
 import os
 import random
-import sys
+import time
 
 import distbuild
 
@@ -137,23 +137,35 @@ class Initiator(distbuild.StateMachine):
         self._step_outputs[msg['step_name']].close()
         del self._step_outputs[msg['step_name']]
 
+    def _get_output(self, msg):
+        return self._step_outputs[msg['step_name']]
+
     def _handle_step_already_started_message(self, msg):
-        self._app.status(
-            msg='%s is already building on %s' % (msg['step_name'],
-                msg['worker_name']))
+        status = '%s is already building on %s' % (
+            msg['step_name'], msg['worker_name'])
+        self._app.status(msg=status)
+
         self._open_output(msg)
 
+        f = self._get_output(msg)
+        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
+        f.flush()
+
     def _handle_step_started_message(self, msg):
-        self._app.status(
-            msg='Started building %(step_name)s on %(worker_name)s',
-            step_name=msg['step_name'],
-            worker_name=msg['worker_name'])
+        status = 'Started building %s on %s' % (
+            msg['step_name'], msg['worker_name'])
+        self._app.status(msg=status)
+
         self._open_output(msg)
+
+        f = self._get_output(msg)
+        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
+        f.flush()
 
     def _handle_step_output_message(self, msg):
         step_name = msg['step_name']
         if step_name in self._step_outputs:
-            f = self._step_outputs[step_name]
+            f = self._get_output(msg)
             f.write(msg['stdout'])
             f.write(msg['stderr'])
             f.flush()
@@ -164,9 +176,12 @@ class Initiator(distbuild.StateMachine):
     def _handle_step_finished_message(self, msg):
         step_name = msg['step_name']
         if step_name in self._step_outputs:
-            self._app.status(
-                msg='Finished building %(step_name)s',
-                step_name=step_name)
+            status = 'Finished building %s' % step_name
+            self._app.status(msg=status)
+
+            f = self._get_output(msg)
+            f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
+
             self._close_output(msg)
         else:
             logging.warning(
@@ -175,9 +190,12 @@ class Initiator(distbuild.StateMachine):
     def _handle_step_failed_message(self, msg):
         step_name = msg['step_name']
         if step_name in self._step_outputs:
-            self._app.status(
-                msg='Build failed: %(step_name)s',
-                step_name=step_name)
+            status = 'Build of %s failed.' % step_name
+            self._app.status(msg=status)
+
+            f = self._get_output(msg)
+            f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
+
             self._close_output(msg)
         else:
             logging.warning(
