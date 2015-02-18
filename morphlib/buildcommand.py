@@ -96,6 +96,7 @@ class BuildCommand(object):
         self.app.status(msg='Creating source pool', chatty=True)
         srcpool = morphlib.sourceresolver.create_source_pool(
             self.lrc, self.rrc, repo_name, ref, filename,
+            cachedir=self.app.settings['cachedir'],
             original_ref=original_ref,
             update_repos=not self.app.settings['no-git-update'],
             status_cb=self.app.status)
@@ -271,7 +272,7 @@ class BuildCommand(object):
     def build_in_order(self, root_artifact):
         '''Build everything specified in a build order.'''
 
-        self.app.status(msg='Building a set of sources', chatty=True)
+        self.app.status(msg='Building a set of sources')
         build_env = root_artifact.build_env
         ordered_sources = list(self.get_ordered_sources(root_artifact.walk()))
         old_prefix = self.app.status_prefix

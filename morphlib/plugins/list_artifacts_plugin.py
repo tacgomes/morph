@@ -1,4 +1,4 @@
-# Copyright (C) 2014  Codethink Limited
+# Copyright (C) 2014-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -86,6 +86,7 @@ class ListArtifactsPlugin(cliapp.Plugin):
             msg='Creating source pool for %s' % system_filename, chatty=True)
         source_pool = morphlib.sourceresolver.create_source_pool(
             self.lrc, self.rrc, repo, ref, system_filename,
+            cachedir=self.app.settings['cachedir'],
             update_repos = not self.app.settings['no-git-update'],
             status_cb=self.app.status)
 
