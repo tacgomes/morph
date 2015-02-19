@@ -233,6 +233,7 @@ class SourceResolver(object):
 
 
         loader = morphlib.morphloader.MorphologyLoader()
+        morph = None
         if defs_filename and os.path.exists(defs_filename): # pragma: no cover
             morph = loader.load_from_file(defs_filename)
         elif self.lrc.has_repo(reponame):
@@ -245,7 +246,6 @@ class SourceResolver(object):
                 morph = loader.load_from_string(text)
             except IOError:
                 morph = None
-                file_list = repo.list_files(ref=sha1, recurse=False)
         elif self.rrc is not None:
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "remote repo cache.",
@@ -280,16 +280,28 @@ class SourceResolver(object):
                         "chunk morph from repo's build system" %
                     expected_filename, chatty=True)
 
+        file_list = None
+
         if self.lrc.has_repo(reponame):
             repo = self.lrc.get_repo(reponame)
             file_list = repo.list_files(ref=sha1, recurse=False)
         elif self.rrc is not None:
-            file_list = self.rrc.ls_tree(reponame, sha1)
-        else:
-            # We assume that _resolve_ref() must have already been called and
-            # so the repo in question would have been made available already
-            # if it had been possible.
-            raise NotcachedError(reponame)
+            try:
+                # This may or may not succeed; if the is repo not
+                # hosted on the same Git server as the cache server then
+                # it'll definitely fail.
+                file_list = self.rrc.ls_tree(reponame, sha1)
+            except morphlib.remoterepocache.LsTreeError:
+                pass
+        if not file_list:
+            if self.update:
+                self.status(msg='Caching git repository %(reponame)s',
+                            reponame=reponame)
+                repo = self.lrc.cache_repo(reponame)
+                repo.update()
+                file_list = repo.list_files(ref=sha1, recurse=False)
+            else:  # pragma: no cover
+                raise NotcachedError(reponame)
 
         buildsystem = morphlib.buildsystem.detect_build_system(file_list)
 
