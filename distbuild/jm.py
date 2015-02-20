@@ -1,6 +1,6 @@
 # mainloop/jm.py -- state machine for JSON communication between nodes
 #
-# Copyright (C) 2012, 2014  Codethink Limited
+# Copyright (C) 2012, 2014 - 2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -109,8 +109,13 @@ class JsonMachine(StateMachine):
             line = line.rstrip()
             if self.debug_json:
                 logging.debug('JsonMachine: line: %s' % repr(line))
-            msg = yaml.load(json.loads(line))
-            self.mainloop.queue_event(self, JsonNewMessage(msg))
+            msg = None
+            try:
+                msg = yaml.safe_load(json.loads(line))
+            except Exception:
+                logging.error('Invalid input: %s' % line)
+            if msg:
+                self.mainloop.queue_event(self, JsonNewMessage(msg))
 
     def _send_eof(self, event_source, event):
         self.mainloop.queue_event(self, JsonEof())

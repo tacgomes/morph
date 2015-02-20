@@ -1,6 +1,6 @@
 # distbuild/initiator_connection.py -- communicate with initiator
 #
-# Copyright (C) 2012, 2014  Codethink Limited
+# Copyright (C) 2012, 2014 - 2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -100,15 +100,19 @@ class InitiatorConnection(distbuild.StateMachine):
         logging.debug('InitiatorConnection: from %s: %r', self.initiator_name,
                 event.msg)
 
-        if event.msg['type'] == 'build-request':
-            new_id = self._idgen.next()
-            self.our_ids.add(new_id)
-            self._route_map.add(event.msg['id'], new_id)
-            event.msg['id'] = new_id
-            build_controller = distbuild.BuildController(
-                self, event.msg, self.artifact_cache_server,
-                self.morph_instance)
-            self.mainloop.add_state_machine(build_controller)
+        try:
+            if event.msg['type'] == 'build-request':
+                new_id = self._idgen.next()
+                self.our_ids.add(new_id)
+                self._route_map.add(event.msg['id'], new_id)
+                event.msg['id'] = new_id
+                build_controller = distbuild.BuildController(
+                    self, event.msg, self.artifact_cache_server,
+                    self.morph_instance)
+                self.mainloop.add_state_machine(build_controller)
+        except (KeyError, ValueError) as ex:
+            logging.error('Invalid message from initiator: %s: exception %s',
+                           event.msg, ex)
 
     def _disconnect(self, event_source, event):
         for id in self.our_ids:
