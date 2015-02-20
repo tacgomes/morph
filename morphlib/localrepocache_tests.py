@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014  Codethink Limited
+# Copyright (C) 2012-2015 Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -139,7 +139,11 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.lrc._fetch = lambda url, path: self.fetched.append(url)
         self.unpacked_tar = ""
         self.mkdir_path = ""
-        self.lrc.cache_repo(self.repourl)
+
+        with morphlib.gitdir_tests.monkeypatch(
+                morphlib.cachedrepo.CachedRepo, 'update', lambda self: None):
+            self.lrc.cache_repo(self.repourl)
+
         self.assertEqual(self.fetched, [self.tarball_url])
         self.assertFalse(self.lrc.fs.exists(self.cache_path + '.tar'))
         self.assertEqual(self.remotes['origin']['url'], self.repourl)

@@ -22,8 +22,7 @@ import unittest
 import morphlib
 from morphlib.sourceresolver import (SourceResolver,
                                      PickleCacheManager,
-                                     MorphologyNotFoundError,
-                                     NotcachedError)
+                                     MorphologyNotFoundError)
 from morphlib.remoterepocache import CatFileError, LsTreeError
 
 

@@ -90,13 +90,6 @@ class MorphologyNotFoundError(SourceResolverError): # pragma: no cover
             self, "Couldn't find morphology: %s" % filename)
 
 
-class NotcachedError(SourceResolverError):
-    def __init__(self, repo_name):
-        SourceResolverError.__init__(
-            self, "Repository %s is not cached locally and there is no "
-                  "remote cache specified" % repo_name)
-
-
 class SourceResolver(object):
     '''Provides a way of resolving the set of sources for a given system.
 
@@ -155,6 +148,18 @@ class SourceResolver(object):
 
         self._definitions_checkout_dir = None
 
+    def cache_repo_locally(self, reponame):
+        if self.update:
+            self.status(msg='Caching git repository %(reponame)s',
+                        reponame=reponame)
+            repo = self.lrc.cache_repo(reponame)
+        else:  # pragma: no cover
+            # This is likely to raise a morphlib.localrepocache.NotCached
+            # exception, because the caller should have checked if the
+            # localrepocache already had the repo. But we may as well try.
+            repo = self.lrc.get_repo(reponame)
+        return repo
+
     def _resolve_ref(self, reponame, ref): # pragma: no cover
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
@@ -195,16 +200,9 @@ class SourceResolver(object):
                                 chatty=True)
             except BaseException, e:
                 logging.warning('Caught (and ignored) exception: %s' % str(e))
+
         if absref is None:
-            if self.update:
-                self.status(msg='Caching git repository %(reponame)s',
-                            reponame=reponame)
-                repo = self.lrc.cache_repo(reponame)
-                repo.update()
-            else:
-                # This is likely to raise an exception, because if the local
-                # repo cache had the repo we'd have already resolved the ref.
-                repo = self.lrc.get_repo(reponame)
+            repo = self.cache_repo_locally(reponame)
             absref = repo.resolve_ref_to_commit(ref)
             tree = repo.resolve_ref_to_tree(absref)
 
@@ -306,15 +304,10 @@ class SourceResolver(object):
                 file_list = self.rrc.ls_tree(reponame, sha1)
             except morphlib.remoterepocache.LsTreeError:
                 pass
+
         if not file_list:
-            if self.update:
-                self.status(msg='Caching git repository %(reponame)s',
-                            reponame=reponame)
-                repo = self.lrc.cache_repo(reponame)
-                repo.update()
-                file_list = repo.list_files(ref=sha1, recurse=False)
-            else:  # pragma: no cover
-                raise NotcachedError(reponame)
+            repo = self.cache_repo_locally(reponame)
+            file_list = repo.list_files(ref=sha1, recurse=False)
 
         buildsystem = morphlib.buildsystem.detect_build_system(file_list)
 
@@ -453,7 +446,8 @@ class SourceResolver(object):
             try:
                 definitions_cached_repo = self.lrc.get_repo(definitions_repo)
             except morphlib.localrepocache.NotCached:
-                definitions_cached_repo = self.lrc.cache_repo(definitions_repo)
+                definitions_cached_repo = self.cache_repo_locally(
+                    definitions_repo)
             definitions_cached_repo.extract_commit(
                 definitions_absref, self._definitions_checkout_dir)
 
