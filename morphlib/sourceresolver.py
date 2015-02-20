@@ -214,11 +214,14 @@ class SourceResolver(object):
 
         return absref, tree
 
-    def _get_morphology_from_definitions(self, loader, filename):
-        return loader.load_from_file(filename)
+    def _get_morphology_from_definitions(self, loader,
+                                         filename):  # pragma: no cover
+        if os.path.exists(filename):
+            return loader.load_from_file(filename)
+        else:
+            return None
 
-    def _get_morphology_from_chunk_repo(self, loader, reponame, sha1,
-                                        filename):
+    def _get_morphology_from_repo(self, loader, reponame, sha1, filename):
         if self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "local repo cache.",
@@ -246,8 +249,7 @@ class SourceResolver(object):
 
         return morph
 
-    def _get_morphology(self, reponame, sha1, filename,
-                        look_in_chunk_repo=True):
+    def _get_morphology(self, reponame, sha1, filename):
         '''Read the morphology at the specified location.
 
         Returns None if the file does not exist in the specified commit.
@@ -257,20 +259,20 @@ class SourceResolver(object):
         if key in self._resolved_morphologies:
             return self._resolved_morphologies[key]
 
-        if reponame == self._definitions_repo and \
-                sha1 == self._definitions_absref: # pragma: no cover
-            defs_filename = os.path.join(self._definitions_checkout_dir,
-                                         filename)
-        else:
-            defs_filename = None
-
-
         loader = morphlib.morphloader.MorphologyLoader()
         morph = None
-        if defs_filename and os.path.exists(defs_filename): # pragma: no cover
-            morph = self._get_morphology_from_definitions(loader, defs_filename)
-        elif look_in_chunk_repo:
-            morph = self._get_morphology_from_chunk_repo(loader, reponame, sha1, filename)
+
+        if reponame == self._definitions_repo and \
+                sha1 == self._definitions_absref: # pragma: no cover
+            # There is a temporary local checkout of the definitions repo which
+            # we can quickly read definitions files from.
+            defs_filename = os.path.join(self._definitions_checkout_dir,
+                                         filename)
+            morph = self._get_morphology_from_definitions(loader,
+                                                          defs_filename)
+        else:
+            morph = self._get_morphology_from_repo(loader, reponame, sha1,
+                                                   filename)
 
         if morph is None:
             return None
@@ -343,8 +345,7 @@ class SourceResolver(object):
                                            definitions_tree,
                                            visit): # pragma: no cover
         definitions_queue = collections.deque(system_filenames)
-        chunk_in_definitions_repo_queue = set()
-        chunk_in_source_repo_queue = set()
+        chunk_queue = set()
 
         while definitions_queue:
             filename = definitions_queue.popleft()
@@ -372,15 +373,22 @@ class SourceResolver(object):
                         for s in morphology['build-depends'])
                 for c in morphology['chunks']:
                     if 'morph' not in c:
+                        # Autodetect a path if one is not given. This is to
+                        # support the deprecated approach of putting the chunk
+                        # .morph file in the toplevel directory of the chunk
+                        # repo, instead of putting it in the definitions.git
+                        # repo.
+                        #
+                        # All users should be specifying a full path to the
+                        # chunk morph file, using the 'morph' field, and this
+                        # code path should be removed.
                         path = morphlib.util.sanitise_morphology_path(
                             c.get('morph', c['name']))
-                        chunk_in_source_repo_queue.add(
-                            (c['repo'], c['ref'], path))
-                        continue
-                    chunk_in_definitions_repo_queue.add(
-                        (c['repo'], c['ref'], c['morph']))
+                        chunk_queue.add((c['repo'], c['ref'], path))
+                    else:
+                        chunk_queue.add((c['repo'], c['ref'], c['morph']))
 
-        return chunk_in_definitions_repo_queue, chunk_in_source_repo_queue
+        return chunk_queue
 
     def process_chunk(self, definition_repo, definition_ref, chunk_repo,
                       chunk_ref, filename, visit): # pragma: no cover
@@ -392,8 +400,7 @@ class SourceResolver(object):
 
         morph_name = os.path.splitext(os.path.basename(filename))[0]
 
-        morphology = self._get_morphology(
-            *definition_key, look_in_chunk_repo=False)
+        morphology = self._get_morphology(*definition_key)
         buildsystem = None
 
         if chunk_key in self._resolved_buildsystems:
@@ -404,8 +411,7 @@ class SourceResolver(object):
             # potentially require cloning the whole thing).
             absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
             chunk_key = (chunk_repo, absref, filename)
-            morphology = self._get_morphology(
-                *chunk_key, look_in_chunk_repo=True)
+            morphology = self._get_morphology(*chunk_key)
 
         if morphology is None:
             if buildsystem is None:
@@ -454,18 +460,14 @@ class SourceResolver(object):
             # First, process the system and its stratum morphologies. These
             # will all live in the same Git repository, and will point to
             # various chunk morphologies.
-            chunk_in_definitions_repo_queue, chunk_in_source_repo_queue = \
-                self._process_definitions_with_children(
+            chunk_queue = self._process_definitions_with_children(
                     system_filenames, definitions_repo, definitions_ref,
                     definitions_absref, definitions_tree, visit)
 
             # Now process all the chunks involved in the build.
-            for repo, ref, filename in chunk_in_definitions_repo_queue:
+            for repo, ref, filename in chunk_queue:
                 self.process_chunk(definitions_repo, definitions_absref, repo,
                                    ref, filename, visit)
-
-            for repo, ref, filename in chunk_in_source_repo_queue:
-                self.process_chunk(repo, ref, repo, ref, filename, visit)
         finally:
             shutil.rmtree(self._definitions_checkout_dir)
             self._definitions_checkout_dir = None

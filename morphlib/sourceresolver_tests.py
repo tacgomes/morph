@@ -308,10 +308,12 @@ class SourceResolverTests(unittest.TestCase):
                                             'assumed-local.morph')
         self.assertEqual('autotools', name)
 
-    def test_fails_when_local_not_cached_and_no_remote(self):
+    def test_succeeds_when_local_not_cached_and_no_remote(self):
         self.lrc.has_repo = self.doesnothaverepo
-        self.assertRaises(NotcachedError, self.lsr._get_morphology,
-                          'reponame', 'sha1', 'unreached.morph')
+        self.lr.list_files = self.localmorph
+        morph = self.sr._get_morphology('reponame', 'sha1',
+                                       'chunk.morph')
+        self.assertEqual('chunk', morph['name'])
 
     def test_arch_is_validated(self):
         self.lr.arch = 'unknown'
