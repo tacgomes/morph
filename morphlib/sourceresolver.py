@@ -239,11 +239,10 @@ class SourceResolver(object):
                 morph = loader.load_from_string(text)
             except morphlib.remoterepocache.CatFileError:
                 morph = None
-        else:
-            # We assume that _resolve_ref() must have already been called and
-            # so the repo in question would have been made available already
-            # if it had been possible.
-            raise NotcachedError(reponame)
+        else:  # pragma: no cover
+            repo = self.cache_repo_locally(reponame)
+            text = repo.read_file(filename, sha1)
+            morph = loader.load_from_string(text)
 
         return morph
 
@@ -295,7 +294,10 @@ class SourceResolver(object):
 
         if self.lrc.has_repo(reponame):
             repo = self.lrc.get_repo(reponame)
-            file_list = repo.list_files(ref=sha1, recurse=False)
+            try:
+                file_list = repo.list_files(ref=sha1, recurse=False)
+            except morphlib.gitdir.InvalidRefError:  # pragma: no cover
+                pass
         elif self.rrc is not None:
             try:
                 # This may or may not succeed; if the is repo not
