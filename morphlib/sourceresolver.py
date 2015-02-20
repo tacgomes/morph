@@ -214,29 +214,12 @@ class SourceResolver(object):
 
         return absref, tree
 
-    def _get_morphology(self, reponame, sha1, filename):
-        '''Read the morphology at the specified location.
+    def _get_morphology_from_definitions(self, loader, filename):
+        return loader.load_from_file(filename)
 
-        Returns None if the file does not exist in the specified commit.
-
-        '''
-        key = (reponame, sha1, filename)
-        if key in self._resolved_morphologies:
-            return self._resolved_morphologies[key]
-
-        if reponame == self._definitions_repo and \
-                sha1 == self._definitions_absref: # pragma: no cover
-            defs_filename = os.path.join(self._definitions_checkout_dir,
-                                         filename)
-        else:
-            defs_filename = None
-
-
-        loader = morphlib.morphloader.MorphologyLoader()
-        morph = None
-        if defs_filename and os.path.exists(defs_filename): # pragma: no cover
-            morph = loader.load_from_file(defs_filename)
-        elif self.lrc.has_repo(reponame):
+    def _get_morphology_from_chunk_repo(self, loader, reponame, sha1,
+                                        filename):
+        if self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "local repo cache.",
                         reponame=reponame, filename=filename, chatty=True)
@@ -260,6 +243,34 @@ class SourceResolver(object):
             # so the repo in question would have been made available already
             # if it had been possible.
             raise NotcachedError(reponame)
+
+        return morph
+
+    def _get_morphology(self, reponame, sha1, filename,
+                        look_in_chunk_repo=True):
+        '''Read the morphology at the specified location.
+
+        Returns None if the file does not exist in the specified commit.
+
+        '''
+        key = (reponame, sha1, filename)
+        if key in self._resolved_morphologies:
+            return self._resolved_morphologies[key]
+
+        if reponame == self._definitions_repo and \
+                sha1 == self._definitions_absref: # pragma: no cover
+            defs_filename = os.path.join(self._definitions_checkout_dir,
+                                         filename)
+        else:
+            defs_filename = None
+
+
+        loader = morphlib.morphloader.MorphologyLoader()
+        morph = None
+        if defs_filename and os.path.exists(defs_filename): # pragma: no cover
+            morph = self._get_morphology_from_definitions(loader, defs_filename)
+        elif look_in_chunk_repo:
+            morph = self._get_morphology_from_chunk_repo(loader, reponame, sha1, filename)
 
         if morph is None:
             return None
@@ -378,18 +389,18 @@ class SourceResolver(object):
 
         morph_name = os.path.splitext(os.path.basename(filename))[0]
 
-        morphology = None
+        morphology = self._get_morphology(
+            *definition_key, look_in_chunk_repo=False)
         buildsystem = None
 
         if chunk_key in self._resolved_buildsystems:
             buildsystem = self._resolved_buildsystems[chunk_key]
 
-        if buildsystem is None:
-            # The morphologies aren't locally cached, so a morphology
-            # for a chunk kept in the chunk repo will be read every time.
-            # So, always keep your chunk morphs in your definitions repo,
-            # not in the chunk repo!
-            morphology = self._get_morphology(*definition_key)
+        if morphology is None and buildsystem is None:
+            # This is a slow operation (looking for a file in Git repo may
+            # potentially require cloning the whole thing).
+            morphology = self._get_morphology(
+                *definition_key, look_in_chunk_repo=True)
 
         if morphology is None:
             if buildsystem is None:
