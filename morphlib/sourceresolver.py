@@ -384,8 +384,11 @@ class SourceResolver(object):
 
     def process_chunk(self, definition_repo, definition_ref, chunk_repo,
                       chunk_ref, filename, visit): # pragma: no cover
+        absref = None
+        tree = None
+
         definition_key = (definition_repo, definition_ref, filename)
-        chunk_key = (chunk_repo, chunk_ref, filename)
+        chunk_key = None
 
         morph_name = os.path.splitext(os.path.basename(filename))[0]
 
@@ -399,8 +402,10 @@ class SourceResolver(object):
         if morphology is None and buildsystem is None:
             # This is a slow operation (looking for a file in Git repo may
             # potentially require cloning the whole thing).
+            absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+            chunk_key = (chunk_repo, absref, filename)
             morphology = self._get_morphology(
-                *definition_key, look_in_chunk_repo=True)
+                *chunk_key, look_in_chunk_repo=True)
 
         if morphology is None:
             if buildsystem is None:
@@ -413,7 +418,9 @@ class SourceResolver(object):
                     buildsystem, morph_name)
                 self._resolved_morphologies[definition_key] = morphology
 
-        absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+        if not absref or not tree:
+            absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+
         visit(chunk_repo, chunk_ref, filename, absref, tree, morphology)
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
@@ -452,10 +459,7 @@ class SourceResolver(object):
                     system_filenames, definitions_repo, definitions_ref,
                     definitions_absref, definitions_tree, visit)
 
-            # Now process all the chunks involved in the build. First those
-            # with morphologies in definitions.git, and then (for compatibility
-            # reasons only) those with the morphology in the chunk's source
-            # repository.
+            # Now process all the chunks involved in the build.
             for repo, ref, filename in chunk_in_definitions_repo_queue:
                 self.process_chunk(definitions_repo, definitions_absref, repo,
                                    ref, filename, visit)
