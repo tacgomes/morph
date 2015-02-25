@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014  Codethink Limited
+# Copyright (C) 2012-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -204,7 +204,9 @@ class LocalRepoCache(object):
         if self._tarball_base_url:
             ok, error = self._clone_with_tarball(repourl, path)
             if ok:
-                return self.get_repo(reponame)
+                repo = self.get_repo(reponame)
+                repo.update()
+                return repo
             else:
                 errors.append(error)
                 self._app.status(

@@ -22,9 +22,8 @@ import unittest
 import morphlib
 from morphlib.sourceresolver import (SourceResolver,
                                      PickleCacheManager,
-                                     MorphologyNotFoundError,
-                                     NotcachedError)
-from morphlib.remoterepocache import CatFileError
+                                     MorphologyNotFoundError)
+from morphlib.remoterepocache import CatFileError, LsTreeError
 
 
 class FakeRemoteRepoCache(object):
@@ -135,6 +134,9 @@ class FakeLocalRepo(object):
     def list_files(self, ref, recurse):
         return self.morphologies.keys()
 
+    def update(self):
+        pass
+
 
 class FakeLocalRepoCache(object):
 
@@ -145,6 +147,9 @@ class FakeLocalRepoCache(object):
         return True
 
     def get_repo(self, reponame):
+        return self.lr
+
+    def cache_repo(self, reponame):
         return self.lr
 
 
@@ -187,6 +192,9 @@ class SourceResolverTests(unittest.TestCase):
 
     def noremotefile(self, *args):
         raise CatFileError('reponame', 'ref', 'filename')
+
+    def noremoterepo(self, *args):
+        raise LsTreeError('reponame', 'ref')
 
     def localmorph(self, *args):
         return ['chunk.morph']
@@ -241,6 +249,15 @@ class SourceResolverTests(unittest.TestCase):
                                             'assumed-local.morph')
         self.assertEqual('autotools', name)
 
+    def test_cache_repo_if_not_in_either_cache(self):
+        self.lrc.has_repo = self.doesnothaverepo
+        self.lr.read_file = self.nolocalmorph
+        self.lr.list_files = self.autotoolsbuildsystem
+        self.rrc.ls_tree = self.noremoterepo
+        name = self.sr._detect_build_system('reponame', 'sha1',
+                                            'assumed-local.morph')
+        self.assertEqual('autotools', name)
+
     def test_autodetects_remote_morphology(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.rrc.cat_file = self.noremotemorph
@@ -262,7 +279,8 @@ class SourceResolverTests(unittest.TestCase):
 
     def test_raises_error_when_repo_does_not_exist(self):
         self.lrc.has_repo = self.doesnothaverepo
-        self.assertRaises(NotcachedError, self.lsr._detect_build_system,
+        self.assertRaises(MorphologyNotFoundError,
+                          self.lsr._detect_build_system,
                           'reponame', 'sha1', 'non-existent.morph')
 
     def test_raises_error_when_failed_to_detect_build_system(self):
@@ -289,10 +307,12 @@ class SourceResolverTests(unittest.TestCase):
                                             'assumed-local.morph')
         self.assertEqual('autotools', name)
 
-    def test_fails_when_local_not_cached_and_no_remote(self):
+    def test_succeeds_when_local_not_cached_and_no_remote(self):
         self.lrc.has_repo = self.doesnothaverepo
-        self.assertRaises(NotcachedError, self.lsr._get_morphology,
-                          'reponame', 'sha1', 'unreached.morph')
+        self.lr.list_files = self.localmorph
+        morph = self.sr._get_morphology('reponame', 'sha1',
+                                       'chunk.morph')
+        self.assertEqual('chunk', morph['name'])
 
     def test_arch_is_validated(self):
         self.lr.arch = 'unknown'
