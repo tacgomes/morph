@@ -83,11 +83,12 @@ class Initiator(distbuild.StateMachine):
             repo=self._repo_name,
             ref=self._ref,
             morphology=self._morphology,
-            original_ref=self._original_ref
+            original_ref=self._original_ref,
+            protocol_version=distbuild.protocol.VERSION
         )
         self._jm.send(msg)
         logging.debug('Initiator: sent to controller: %s', repr(msg))
-        
+
     def _handle_json_message(self, event_source, event):
         distbuild.crash_point()
 
