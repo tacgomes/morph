@@ -212,10 +212,19 @@ class SourceResolver(object):
 
         return absref, tree
 
+    def _get_file_contents_from_definitions(self,
+                                            filename):  # pragma: no cover
+        if os.path.exists(filename):
+            with open(filename) as f:
+                return f.read()
+        else:
+            return None
+
     def _get_morphology_from_definitions(self, loader,
                                          filename):  # pragma: no cover
         if os.path.exists(filename):
-            return loader.load_from_file(filename)
+            text = self._get_file_contents_from_definitions(filename)
+            return self.load_from_string(text, filename=filename)
         else:
             return None
 
