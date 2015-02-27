@@ -261,7 +261,27 @@ class SourceResolver(object):
 
         return morph
 
-    def _get_morphology(self, reponame, sha1, filename):
+    def _get_file_contents(self, reponame, sha1, filename):  # pragma: no cover
+        '''Read the file at the specified location.
+
+        Returns None if the file does not exist in the specified commit.
+
+        '''
+        text = None
+
+        if reponame == self._definitions_repo and \
+                sha1 == self._definitions_absref: # pragma: no cover
+            # There is a temporary local checkout of the definitions repo which
+            # we can quickly read definitions files from.
+            defs_filename = os.path.join(self._definitions_checkout_dir,
+                                         filename)
+            text = self._get_file_contents_from_definitions(defs_filename)
+        else:
+            text = self._get_file_contents_from_repo(reponame, sha1, filename)
+
+        return text
+
+    def _get_morphology(self, reponame, sha1, filename):  # pragma: no cover
         '''Read the morphology at the specified location.
 
         Returns None if the file does not exist in the specified commit.
@@ -274,17 +294,8 @@ class SourceResolver(object):
         loader = morphlib.morphloader.MorphologyLoader()
         morph = None
 
-        if reponame == self._definitions_repo and \
-                sha1 == self._definitions_absref: # pragma: no cover
-            # There is a temporary local checkout of the definitions repo which
-            # we can quickly read definitions files from.
-            defs_filename = os.path.join(self._definitions_checkout_dir,
-                                         filename)
-            morph = self._get_morphology_from_definitions(loader,
-                                                          defs_filename)
-        else:
-            morph = self._get_morphology_from_repo(loader, reponame, sha1,
-                                                   filename)
+        text = self._get_file_contents(reponame, sha1, filename)
+        morph = loader.load_from_string(text)
 
         if morph is None:
             return None
