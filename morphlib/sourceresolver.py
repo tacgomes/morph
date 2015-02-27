@@ -292,19 +292,14 @@ class SourceResolver(object):
             return self._resolved_morphologies[key]
 
         loader = morphlib.morphloader.MorphologyLoader()
-        morph = None
 
         text = self._get_file_contents(reponame, sha1, filename)
         morph = loader.load_from_string(text)
 
-        if morph is None:
-            return None
-        else:
-            loader.validate(morph)
-            loader.set_commands(morph)
-            loader.set_defaults(morph)
+        if morph is not None:
             self._resolved_morphologies[key] = morph
-            return morph
+
+        return morph
 
     def _detect_build_system(self, reponame, sha1, expected_filename):
         '''Attempt to detect buildsystem of the given commit.
