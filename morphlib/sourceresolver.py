@@ -220,14 +220,6 @@ class SourceResolver(object):
         else:
             return None
 
-    def _get_morphology_from_definitions(self, loader,
-                                         filename):  # pragma: no cover
-        if os.path.exists(filename):
-            text = self._get_file_contents_from_definitions(filename)
-            return self.load_from_string(text, filename=filename)
-        else:
-            return None
-
     def _get_file_contents_from_repo(self, reponame,
                                      sha1, filename):  # pragma: no cover
         if self.lrc.has_repo(reponame):
@@ -252,14 +244,6 @@ class SourceResolver(object):
             text = repo.read_file(filename, sha1)
 
         return text
-
-    def _get_morphology_from_repo(self, loader, reponame, sha1, filename):
-        text = self._get_file_contents_from_repo(self, reponame, sha1, filename)
-
-        if file not None:
-            morph = loader.load_from_string(text)
-
-        return morph
 
     def _get_file_contents(self, reponame, sha1, filename):  # pragma: no cover
         '''Read the file at the specified location.
