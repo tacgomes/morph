@@ -219,7 +219,8 @@ class SourceResolver(object):
         else:
             return None
 
-    def _get_morphology_from_repo(self, loader, reponame, sha1, filename):
+    def _get_file_contents_from_repo(self, reponame,
+                                     sha1, filename):  # pragma: no cover
         if self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "local repo cache.",
@@ -227,21 +228,26 @@ class SourceResolver(object):
             try:
                 repo = self.lrc.get_repo(reponame)
                 text = repo.read_file(filename, sha1)
-                morph = loader.load_from_string(text)
             except IOError:
-                morph = None
+                text = None
         elif self.rrc is not None:
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "remote repo cache.",
                         reponame=reponame, filename=filename, chatty=True)
             try:
                 text = self.rrc.cat_file(reponame, sha1, filename)
-                morph = loader.load_from_string(text)
             except morphlib.remoterepocache.CatFileError:
-                morph = None
+                text = None
         else:  # pragma: no cover
             repo = self.cache_repo_locally(reponame)
             text = repo.read_file(filename, sha1)
+
+        return text
+
+    def _get_morphology_from_repo(self, loader, reponame, sha1, filename):
+        text = self._get_file_contents_from_repo(self, reponame, sha1, filename)
+
+        if file not None:
             morph = loader.load_from_string(text)
 
         return morph
