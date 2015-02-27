@@ -398,12 +398,16 @@ class MorphologyLoader(object):
 
         return morphlib.morphology.Morphology(obj)
 
-    def load_from_string(self, string, filename='string'):
+    def load_from_string(self, string,
+                         filename='string'):  # pragma: no cover
         '''Load a morphology from a string.
 
         Return the Morphology object.
 
         '''
+
+        if string is None:
+            return None
 
         m = self.parse_morphology_text(string, filename)
         m.filename = filename
