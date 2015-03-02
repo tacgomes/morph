@@ -21,6 +21,7 @@ import os
 import pylru
 import shutil
 import tempfile
+import yaml
 
 import cliapp
 
@@ -31,6 +32,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
+not_supported_versions = []
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -88,6 +90,11 @@ class MorphologyNotFoundError(SourceResolverError): # pragma: no cover
     def __init__(self, filename):
         SourceResolverError.__init__(
             self, "Couldn't find morphology: %s" % filename)
+
+class UnknownVersionError(SourceResolverError): # pragma: no cover
+    def __init__(self, version):
+        SourceResolverError.__init__(
+            self, "Definitions format version %s is not supported" % version)
 
 
 class SourceResolver(object):
@@ -338,6 +345,22 @@ class SourceResolver(object):
         loader.set_defaults(morph)
         return morph
 
+    def _check_version_file(self,definitions_repo,
+                            definitions_absref): # pragma: no cover
+        version_file = self._get_file_contents(
+            definitions_repo, definitions_absref, 'VERSION')
+
+        if version_file is None:
+            return
+
+        try:
+            version = yaml.safe_load(version_file)['version']
+        except (yaml.error.YAMLError, KeyError, TypeError):
+            version = 0
+
+        if version in not_supported_versions:
+            raise UnknownVersionError(version)
+
     def _process_definitions_with_children(self, system_filenames,
                                            definitions_repo,
                                            definitions_ref,
@@ -346,6 +369,8 @@ class SourceResolver(object):
                                            visit): # pragma: no cover
         definitions_queue = collections.deque(system_filenames)
         chunk_queue = set()
+
+        self._check_version_file(definitions_repo, definitions_absref)
 
         while definitions_queue:
             filename = definitions_queue.popleft()
