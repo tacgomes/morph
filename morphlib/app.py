@@ -297,26 +297,6 @@ class Morph(cliapp.Application):
                    morphlib.util.sanitise_morphology_path(args[2]))
             args = args[3:]
 
-    def cache_repo_and_submodules(self, cache, url, ref, done):
-        subs_to_process = set()
-        subs_to_process.add((url, ref))
-        while subs_to_process:
-            url, ref = subs_to_process.pop()
-            done.add((url, ref))
-            cached_repo = cache.cache_repo(url)
-            cached_repo.update()
-
-            try:
-                submodules = morphlib.git.Submodules(self, cached_repo.path,
-                                                     ref)
-                submodules.load()
-            except morphlib.git.NoModulesFileError:
-                pass
-            else:
-                for submod in submodules:
-                    if (submod.url, submod.commit) not in done:
-                        subs_to_process.add((submod.url, submod.commit))
-
     def _write_status(self, text):
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         self.output.write('%s %s\n' % (timestamp, text))
