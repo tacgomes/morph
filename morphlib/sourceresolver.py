@@ -21,6 +21,7 @@ import os
 import pylru
 import shutil
 import tempfile
+import yaml
 
 import cliapp
 
@@ -31,6 +32,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
+not_supported_versions = []
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -88,6 +90,11 @@ class MorphologyNotFoundError(SourceResolverError): # pragma: no cover
     def __init__(self, filename):
         SourceResolverError.__init__(
             self, "Couldn't find morphology: %s" % filename)
+
+class UnknownVersionError(SourceResolverError): # pragma: no cover
+    def __init__(self, version):
+        SourceResolverError.__init__(
+            self, "Definitions format version %s is not supported" % version)
 
 
 class SourceResolver(object):
@@ -212,14 +219,16 @@ class SourceResolver(object):
 
         return absref, tree
 
-    def _get_morphology_from_definitions(self, loader,
-                                         filename):  # pragma: no cover
+    def _get_file_contents_from_definitions(self,
+                                            filename):  # pragma: no cover
         if os.path.exists(filename):
-            return loader.load_from_file(filename)
+            with open(filename) as f:
+                return f.read()
         else:
             return None
 
-    def _get_morphology_from_repo(self, loader, reponame, sha1, filename):
+    def _get_file_contents_from_repo(self, reponame,
+                                     sha1, filename):  # pragma: no cover
         if self.lrc.has_repo(reponame):
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "local repo cache.",
@@ -227,26 +236,43 @@ class SourceResolver(object):
             try:
                 repo = self.lrc.get_repo(reponame)
                 text = repo.read_file(filename, sha1)
-                morph = loader.load_from_string(text)
             except IOError:
-                morph = None
+                text = None
         elif self.rrc is not None:
             self.status(msg="Looking for %(reponame)s:%(filename)s in the "
                             "remote repo cache.",
                         reponame=reponame, filename=filename, chatty=True)
             try:
                 text = self.rrc.cat_file(reponame, sha1, filename)
-                morph = loader.load_from_string(text)
             except morphlib.remoterepocache.CatFileError:
-                morph = None
+                text = None
         else:  # pragma: no cover
             repo = self.cache_repo_locally(reponame)
             text = repo.read_file(filename, sha1)
-            morph = loader.load_from_string(text)
 
-        return morph
+        return text
 
-    def _get_morphology(self, reponame, sha1, filename):
+    def _get_file_contents(self, reponame, sha1, filename):  # pragma: no cover
+        '''Read the file at the specified location.
+
+        Returns None if the file does not exist in the specified commit.
+
+        '''
+        text = None
+
+        if reponame == self._definitions_repo and \
+                sha1 == self._definitions_absref: # pragma: no cover
+            # There is a temporary local checkout of the definitions repo which
+            # we can quickly read definitions files from.
+            defs_filename = os.path.join(self._definitions_checkout_dir,
+                                         filename)
+            text = self._get_file_contents_from_definitions(defs_filename)
+        else:
+            text = self._get_file_contents_from_repo(reponame, sha1, filename)
+
+        return text
+
+    def _get_morphology(self, reponame, sha1, filename):  # pragma: no cover
         '''Read the morphology at the specified location.
 
         Returns None if the file does not exist in the specified commit.
@@ -257,28 +283,14 @@ class SourceResolver(object):
             return self._resolved_morphologies[key]
 
         loader = morphlib.morphloader.MorphologyLoader()
-        morph = None
 
-        if reponame == self._definitions_repo and \
-                sha1 == self._definitions_absref: # pragma: no cover
-            # There is a temporary local checkout of the definitions repo which
-            # we can quickly read definitions files from.
-            defs_filename = os.path.join(self._definitions_checkout_dir,
-                                         filename)
-            morph = self._get_morphology_from_definitions(loader,
-                                                          defs_filename)
-        else:
-            morph = self._get_morphology_from_repo(loader, reponame, sha1,
-                                                   filename)
+        text = self._get_file_contents(reponame, sha1, filename)
+        morph = loader.load_from_string(text)
 
-        if morph is None:
-            return None
-        else:
-            loader.validate(morph)
-            loader.set_commands(morph)
-            loader.set_defaults(morph)
+        if morph is not None:
             self._resolved_morphologies[key] = morph
-            return morph
+
+        return morph
 
     def _detect_build_system(self, reponame, sha1, expected_filename):
         '''Attempt to detect buildsystem of the given commit.
@@ -333,6 +345,22 @@ class SourceResolver(object):
         loader.set_defaults(morph)
         return morph
 
+    def _check_version_file(self,definitions_repo,
+                            definitions_absref): # pragma: no cover
+        version_file = self._get_file_contents(
+            definitions_repo, definitions_absref, 'VERSION')
+
+        if version_file is None:
+            return
+
+        try:
+            version = yaml.safe_load(version_file)['version']
+        except (yaml.error.YAMLError, KeyError, TypeError):
+            version = 0
+
+        if version in not_supported_versions:
+            raise UnknownVersionError(version)
+
     def _process_definitions_with_children(self, system_filenames,
                                            definitions_repo,
                                            definitions_ref,
@@ -341,6 +369,8 @@ class SourceResolver(object):
                                            visit): # pragma: no cover
         definitions_queue = collections.deque(system_filenames)
         chunk_queue = set()
+
+        self._check_version_file(definitions_repo, definitions_absref)
 
         while definitions_queue:
             filename = definitions_queue.popleft()

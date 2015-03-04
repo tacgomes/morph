@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2014  Codethink Limited
+# Copyright (C) 2013-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -398,12 +398,16 @@ class MorphologyLoader(object):
 
         return morphlib.morphology.Morphology(obj)
 
-    def load_from_string(self, string, filename='string'):
+    def load_from_string(self, string,
+                         filename='string'):  # pragma: no cover
         '''Load a morphology from a string.
 
         Return the Morphology object.
 
         '''
+
+        if string is None:
+            return None
 
         m = self.parse_morphology_text(string, filename)
         m.filename = filename
