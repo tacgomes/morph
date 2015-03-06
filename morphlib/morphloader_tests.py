@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2014  Codethink Limited
+# Copyright (C) 2013-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -343,26 +343,6 @@ build-system: dummy
             ])
         self.loader.validate(m)
         self.assertEqual(m['arch'], 'armv7l')
-
-    def test_validate_requires_build_deps_for_chunks_in_strata(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "kind": "stratum",
-                "name": "foo",
-                "chunks": [
-                    {
-                        "name": "foo",
-                        "repo": "foo",
-                        "ref": "foo",
-                        "morph": "foo",
-                        "build-mode": "bootstrap",
-                    }
-                ],
-            })
-
-        self.assertRaises(
-            morphlib.morphloader.NoBuildDependenciesError,
-            self.loader.validate, m)
 
     def test_validate_requires_build_deps_or_bootstrap_mode_for_strata(self):
         m = morphlib.morphology.Morphology(

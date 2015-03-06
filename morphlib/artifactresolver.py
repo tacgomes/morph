@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014  Codethink Limited
+# Copyright (C) 2012-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -195,13 +195,14 @@ class ArtifactResolver(object):
                 chunk_source.add_dependency(other_stratum)
 
             # Add dependencies between chunks mentioned in this stratum
-            for name in build_depends: # pragma: no cover
-                if name not in name_to_processed_artifacts:
-                    raise DependencyOrderError(
-                        source, info['name'], name)
-                other_artifacts = name_to_processed_artifacts[name]
-                for other_artifact in other_artifacts:
-                    chunk_source.add_dependency(other_artifact)
+            if build_depends is not None:
+                for name in build_depends: # pragma: no cover
+                    if name not in name_to_processed_artifacts:
+                        raise DependencyOrderError(
+                            source, info['name'], name)
+                    other_artifacts = name_to_processed_artifacts[name]
+                    for other_artifact in other_artifacts:
+                        chunk_source.add_dependency(other_artifact)
 
             # Add build dependencies between our stratum's artifacts
             # and the chunk artifacts produced by this stratum.

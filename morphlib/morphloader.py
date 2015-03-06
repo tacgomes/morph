@@ -111,14 +111,6 @@ class UnknownArchitectureError(MorphologyValidationError):
                     % (arch, morph_filename))
 
 
-class NoBuildDependenciesError(MorphologyValidationError):
-
-    def __init__(self, stratum_name, chunk_name, morph_filename):
-        self.msg = (
-            'Stratum %s has no build dependencies for chunk %s in %s' %
-                (stratum_name, chunk_name, morph_filename))
-
-
 class NoStratumBuildDependenciesError(MorphologyValidationError):
 
     def __init__(self, stratum_name, morph_filename):
@@ -556,7 +548,7 @@ class MorphologyLoader(object):
         # Validate build-dependencies if specified
         self._validate_stratum_specs_fields(morph, 'build-depends')
 
-        # Require build-dependencies for each chunk.
+        # Check build-dependencies for each chunk.
         for spec in morph['chunks']:
             chunk_name = spec.get('alias', spec['name'])
             if 'build-depends' in spec:
@@ -564,9 +556,6 @@ class MorphologyLoader(object):
                     raise InvalidTypeError(
                         '%s.build-depends' % chunk_name, list,
                         type(spec['build-depends']), morph['name'])
-            else:
-                raise NoBuildDependenciesError(
-                    morph['name'], chunk_name, morph.filename)
 
     @classmethod
     def _validate_chunk(cls, morphology):
