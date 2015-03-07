@@ -185,6 +185,8 @@ class SourceResolver(object):
                           reponame, ref)
             return ref, self._resolved_trees[(reponame, ref)]
 
+        logging.debug('tree (%s, %s) not in cache', reponame, ref)
+
         absref = None
         if self.lrc.has_repo(reponame):
             repo = self.lrc.get_repo(reponame)
@@ -428,9 +430,6 @@ class SourceResolver(object):
         morphology = self._get_morphology(*definition_key)
         buildsystem = None
 
-        if chunk_key in self._resolved_buildsystems:
-            buildsystem = self._resolved_buildsystems[chunk_key]
-
         if morphology is None and buildsystem is None:
             # This is a slow operation (looking for a file in Git repo may
             # potentially require cloning the whole thing).
@@ -438,12 +437,21 @@ class SourceResolver(object):
             chunk_key = (chunk_repo, absref, filename)
             morphology = self._get_morphology(*chunk_key)
 
+        if chunk_key in self._resolved_buildsystems:
+            logging.debug('Build system for %s is cached', str(chunk_key))
+            self.status(msg='Build system for %s is cached' % str(chunk_key),
+                        chatty=True)
+            buildsystem = self._resolved_buildsystems[chunk_key]
+
         if morphology is None:
             if buildsystem is None:
                 buildsystem = self._detect_build_system(*chunk_key)
+
             if buildsystem is None:
                 raise MorphologyNotFoundError(filename)
             else:
+                logging.debug('Caching build system for chunk with key %s',
+                              chunk_key)
                 self._resolved_buildsystems[chunk_key] = buildsystem
                 morphology = self._create_morphology_for_build_system(
                     buildsystem, morph_name)
