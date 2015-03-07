@@ -417,25 +417,39 @@ class SourceResolver(object):
 
         return chunk_queue
 
+    def _generate_morph_and_cache_buildsystem(self,
+                                              definition_key, chunk_key,
+                                              buildsystem,
+                                              morph_name): # pragma: no cover
+        logging.debug('Caching build system for chunk with key %s', chunk_key)
+
+        self._resolved_buildsystems[chunk_key] = buildsystem
+
+        morphology = self._create_morphology_for_build_system(buildsystem,
+                                                              morph_name)
+        self._resolved_morphologies[definition_key] = morphology
+        return morphology
+
     def process_chunk(self, definition_repo, definition_ref, chunk_repo,
                       chunk_ref, filename, visit): # pragma: no cover
         absref = None
         tree = None
-
-        definition_key = (definition_repo, definition_ref, filename)
         chunk_key = None
+        buildsystem = None
 
         morph_name = os.path.splitext(os.path.basename(filename))[0]
 
+        # Get morphology from definitions repo
+        definition_key = (definition_repo, definition_ref, filename)
         morphology = self._get_morphology(*definition_key)
-        buildsystem = None
 
-        if morphology is None and buildsystem is None:
-            # This is a slow operation (looking for a file in Git repo may
-            # potentially require cloning the whole thing).
+        if morphology:
             absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
-            chunk_key = (chunk_repo, absref, filename)
-            morphology = self._get_morphology(*chunk_key)
+            visit(chunk_repo, chunk_ref, filename, absref, tree, morphology)
+            return
+
+        absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+        chunk_key = (chunk_repo, absref, filename)
 
         if chunk_key in self._resolved_buildsystems:
             logging.debug('Build system for %s is cached', str(chunk_key))
@@ -443,22 +457,36 @@ class SourceResolver(object):
                         chatty=True)
             buildsystem = self._resolved_buildsystems[chunk_key]
 
-        if morphology is None:
-            if buildsystem is None:
+            # If the build system for this chunk is cached then:
+            #   * the chunk does not have a chunk morph
+            #     (so we don't need to look for one)
+            #
+            #   * a suitable (generated) morphology may already be cached.
+            #
+            # If the morphology is not already cached we can generate it
+            # from the build-system and cache it.
+            if definition_key in self._resolved_morphologies:
+                morphology = self._resolved_morphologies[definition_key]
+            else:
+                morphology = self._generate_morph_and_cache_buildsystem(
+                    definition_key, chunk_key, buildsystem, morph_name)
+        else:
+            logging.debug('Build system for %s is NOT cached', str(chunk_key))
+            # build-system not cached, look for morphology in chunk repo
+            # this can be slow (we may need to clone the repo from a remote)
+            morphology = self._get_morphology(*chunk_key)
+
+            if morphology != None:
+                self._resolved_morphologies[definition_key] = morphology
+            else:
+                # This chunk doesn't have a chunk morph
                 buildsystem = self._detect_build_system(*chunk_key)
 
-            if buildsystem is None:
-                raise MorphologyNotFoundError(filename)
-            else:
-                logging.debug('Caching build system for chunk with key %s',
-                              chunk_key)
-                self._resolved_buildsystems[chunk_key] = buildsystem
-                morphology = self._create_morphology_for_build_system(
-                    buildsystem, morph_name)
-                self._resolved_morphologies[definition_key] = morphology
-
-        if not absref or not tree:
-            absref, tree = self._resolve_ref(chunk_repo, chunk_ref)
+                if buildsystem is None:
+                    raise MorphologyNotFoundError(filename)
+                else:
+                    morphology = self._generate_morph_and_cache_buildsystem(
+                        definition_key, chunk_key, buildsystem, morph_name)
 
         visit(chunk_repo, chunk_ref, filename, absref, tree, morphology)
 
