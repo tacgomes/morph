@@ -113,7 +113,7 @@ class _Abort(object):
 
 def build_step_name(artifact):
     '''Return user-comprehensible name for a given artifact.'''
-    return artifact.source.name
+    return artifact.source_name
 
 
 def map_build_graph(artifact, callback, components=[]):
@@ -135,7 +135,7 @@ def map_build_graph(artifact, callback, components=[]):
         a = queue.pop()
         if a not in done:
             result.append(callback(a))
-            queue.extend(a.source.dependencies)
+            queue.extend(a.dependencies)
             done.add(a)
             if a in components:
                 mapped_components.append(a)
@@ -145,8 +145,7 @@ def map_build_graph(artifact, callback, components=[]):
 def find_artifacts(components, artifact):
     found = []
     for a in artifact.walk():
-        name = a.source.morphology['name']
-        if name in components:
+        if a.name in components:
             found.append(a)
     return found
 
@@ -428,7 +427,7 @@ class BuildController(distbuild.StateMachine):
         def is_ready_to_build(artifact):
             return (artifact.state == UNBUILT and
                     all(a.state == BUILT
-                        for a in artifact.source.dependencies))
+                        for a in artifact.dependencies))
 
         artifacts, _ = map_build_graph(self._artifact, lambda a: a,
                                        self._components)
@@ -472,19 +471,19 @@ class BuildController(distbuild.StateMachine):
 
             logging.debug(
                 'Requesting worker-build of %s (%s)' %
-                    (artifact.name, artifact.source.cache_key))
+                    (artifact.name, artifact.cache_key))
             request = distbuild.WorkerBuildRequest(artifact,
                                                    self._request['id'])
             self.mainloop.queue_event(distbuild.WorkerBuildQueuer, request)
 
             artifact.state = BUILDING
-            if artifact.source.morphology['kind'] == 'chunk':
+            if artifact.kind == 'chunk':
                 # Chunk artifacts are not built independently
                 # so when we're building any chunk artifact
                 # we're also building all the chunk artifacts
                 # in this source
                 for a in ready:
-                    if a.source == artifact.source:
+                    if a.cache_key == artifact.cache_key:
                         a.state = BUILDING
 
     def _maybe_notify_initiator_disconnected(self, event_source, event):
@@ -588,7 +587,7 @@ class BuildController(distbuild.StateMachine):
     def _find_artifact(self, cache_key):
         artifacts, _ = map_build_graph(self._artifact, lambda a: a,
                                        self._components)
-        wanted = [a for a in artifacts if a.source.cache_key == cache_key]
+        wanted = [a for a in artifacts if a.cache_key == cache_key]
         if wanted:
             return wanted[0]
         else:
@@ -614,10 +613,10 @@ class BuildController(distbuild.StateMachine):
         artifact.state = BUILT
 
         def set_state(a):
-            if a.source == artifact.source:
+            if a.cache_key == artifact.cache_key:
                 a.state = BUILT
 
-        if artifact.source.morphology['kind'] == 'chunk':
+        if artifact.kind == 'chunk':
             # Building a single chunk artifact
             # yields all chunk artifacts for the given source
             # so we set the state of this source's artifacts
@@ -677,14 +676,14 @@ class BuildController(distbuild.StateMachine):
         urls = []
         for c in self._components:
             name = ('%s.%s.%s' %
-                (c.source.cache_key,
-                 c.source.morphology['kind'],
+                (c.cache_key,
+                 c.kind,
                  c.name))
             urls.append('%s?filename=%s' % (baseurl, urllib.quote(name)))
         if not self._components:
             name = ('%s.%s.%s' %
-                (self._artifact.source.cache_key,
-                 self._artifact.source.morphology['kind'],
+                (self._artifact.cache_key,
+                 self._artifact.kind,
                  self._artifact.name))
             urls.append('%s?filename=%s' % (baseurl, urllib.quote(name)))
 
