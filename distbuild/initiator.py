@@ -17,6 +17,7 @@
 
 
 import cliapp
+import itertools
 import logging
 import os
 import random
@@ -37,6 +38,20 @@ class _Failed(object):
         self.msg = msg
 
 
+def create_build_directory(prefix='build'):
+    '''Create a new directory to store build logs.
+
+    The directory will be named build-0, unless that directory already exists,
+    in which case it will be named build-1, and so on.
+
+    '''
+    for i in itertools.count():
+        path = '%s-%02i' % (prefix, i)
+        if not os.path.exists(path):
+            os.mkdir(path)
+            return path
+
+
 class Initiator(distbuild.StateMachine):
 
     def __init__(self, cm, conn, app, repo_name, ref, morphology,
@@ -49,10 +64,13 @@ class Initiator(distbuild.StateMachine):
         self._ref = ref
         self._morphology = morphology
         self._original_ref = original_ref
-        self._steps = None
         self._step_outputs = {}
-        self._step_output_dir = app.settings['initiator-step-output-dir']
         self.debug_transitions = False
+
+        if app.settings['initiator-step-output-dir'] == '':
+            self._step_output_dir = create_build_directory()
+        else:
+            self._step_output_dir = app.settings['initiator-step-output-dir']
 
     def setup(self):
         distbuild.crash_point()
@@ -98,7 +116,6 @@ class Initiator(distbuild.StateMachine):
             'build-finished': self._handle_build_finished_message,
             'build-failed': self._handle_build_failed_message,
             'build-progress': self._handle_build_progress_message,
-            'build-steps': self._handle_build_steps_message,
             'step-started': self._handle_step_started_message,
             'step-already-started': self._handle_step_already_started_message,
             'step-output': self._handle_step_output_message,
@@ -118,12 +135,6 @@ class Initiator(distbuild.StateMachine):
     def _handle_build_progress_message(self, msg):
         self._app.status(msg='Progress: %(msgtext)s', msgtext=msg['message'])
 
-    def _handle_build_steps_message(self, msg):
-        self._steps = msg['steps']
-        self._app.status(
-            msg='Build steps in total: %(steps)d',
-            steps=len(self._steps))
-
     def _open_output(self, msg):
         assert msg['step_name'] not in self._step_outputs
         if self._step_output_dir:
@@ -141,16 +152,17 @@ class Initiator(distbuild.StateMachine):
     def _get_output(self, msg):
         return self._step_outputs[msg['step_name']]
 
+    def _write_status_to_build_log(self, f, status):
+        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
+        f.flush()
+
     def _handle_step_already_started_message(self, msg):
         status = '%s is already building on %s' % (
             msg['step_name'], msg['worker_name'])
         self._app.status(msg=status)
 
         self._open_output(msg)
-
-        f = self._get_output(msg)
-        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
-        f.flush()
+        self._write_status_to_build_log(self._get_output(msg), status)
 
     def _handle_step_started_message(self, msg):
         status = 'Started building %s on %s' % (
@@ -158,10 +170,7 @@ class Initiator(distbuild.StateMachine):
         self._app.status(msg=status)
 
         self._open_output(msg)
-
-        f = self._get_output(msg)
-        f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
-        f.flush()
+        self._write_status_to_build_log(self._get_output(msg), status)
 
     def _handle_step_output_message(self, msg):
         step_name = msg['step_name']
@@ -180,9 +189,7 @@ class Initiator(distbuild.StateMachine):
             status = 'Finished building %s' % step_name
             self._app.status(msg=status)
 
-            f = self._get_output(msg)
-            f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
-
+            self._write_status_to_build_log(self._get_output(msg), status)
             self._close_output(msg)
         else:
             logging.warning(
@@ -194,9 +201,7 @@ class Initiator(distbuild.StateMachine):
             status = 'Build of %s failed.' % step_name
             self._app.status(msg=status)
 
-            f = self._get_output(msg)
-            f.write(time.strftime('%Y-%m-%d %H:%M:%S ') + status + '\n')
-
+            self._write_status_to_build_log(self._get_output(msg), status)
             self._close_output(msg)
         else:
             logging.warning(
@@ -227,3 +232,13 @@ class Initiator(distbuild.StateMachine):
         self.mainloop.queue_event(self._cm, distbuild.StopConnecting())
         self._jm.close()
 
+    def handle_cancel(self):
+        # Note in each build-step.log file that the initiator cancelled: this
+        # makes it easier to tell whether a build was aborted due to a bug or
+        # dropped connection, or if the user cancelled with CTRL+C / SIGINT.
+
+        for f in self._step_outputs.itervalues():
+            self._write_status_to_build_log(f, 'Initiator cancelled')
+            f.close()
+
+        self._step_outputs = {}

@@ -1,6 +1,6 @@
 # distbuild/__init__.py -- library for Morph's distributed build plugin
 #
-# Copyright (C) 2012, 2014  Codethink Limited
+# Copyright (C) 2012, 2014-2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,9 +51,8 @@ from worker_build_scheduler import (WorkerBuildQueuer,
                                     WorkerBuildFailed,
                                     WorkerBuildStepStarted)
 from build_controller import (BuildController, BuildFailed, BuildProgress,
-                              BuildSteps, BuildStepStarted,
-                              BuildStepAlreadyStarted, BuildOutput,
-                              BuildStepFinished, BuildStepFailed,
+                              BuildStepStarted, BuildStepAlreadyStarted,
+                              BuildOutput, BuildStepFinished, BuildStepFailed,
                               BuildFinished, BuildCancel,
                               build_step_name, map_build_graph)
 from initiator import Initiator

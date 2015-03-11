@@ -1,6 +1,6 @@
 # distbuild/protocol.py -- abstractions for the JSON messages
 #
-# Copyright (C) 2012, 2014 - 2015  Codethink Limited
+# Copyright (C) 2012, 2014-2015  Codethink Limited
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,10 +37,6 @@ _required_fields = {
     'build-progress': [
         'id',
         'message',
-    ],
-    'build-steps': [
-        'id',
-        'steps',
     ],
     'step-started': [
         'id',
