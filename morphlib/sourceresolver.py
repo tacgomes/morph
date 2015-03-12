@@ -31,7 +31,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
-not_supported_versions = []
+supported_versions = [0, 1]
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -354,13 +354,17 @@ class SourceResolver(object):
         if version_file is None:
             return
 
-        try:
-            version = yaml.safe_load(version_file)['version']
-        except (yaml.error.YAMLError, KeyError, TypeError):
-            version = 0
+        version = None
+        yaml_obj = yaml.safe_load(version_file)
+        if yaml_obj is not None:
+            if type(yaml_obj) is dict:
+                if 'version' in yaml_obj.keys():
+                    if type(yaml_obj['version']) is int:
+                        version = yaml_obj['version']
 
-        if version in not_supported_versions:
-            raise UnknownVersionError(version)
+        if version is not None:
+            if version not in supported_versions:
+                raise UnknownVersionError(version)
 
     def _process_definitions_with_children(self, system_filenames,
                                            definitions_repo,
