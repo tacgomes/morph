@@ -706,7 +706,7 @@ class GitDirectory(object):
         # this ensures it will fail if the branch already exists
         try:
             return self._update_ref((ref, sha1, '0' * 40), message)
-        except Exception, e:
+        except Exception as e:
             raise RefAddError(self, ref, sha1, e)
 
     def update_ref(self, ref, sha1, old_sha1, message=None):
@@ -726,7 +726,7 @@ class GitDirectory(object):
         self._check_is_sha1(old_sha1)
         try:
             return self._update_ref((ref, sha1, old_sha1), message)
-        except Exception, e:
+        except Exception as e:
             raise RefUpdateError(self, ref, old_sha1, sha1, e)
 
     def delete_ref(self, ref, old_sha1, message=None):
@@ -744,7 +744,7 @@ class GitDirectory(object):
         self._check_is_sha1(old_sha1)
         try:
             return self._update_ref(('-d', ref, old_sha1), message)
-        except Exception, e:
+        except Exception as e:
             raise RefDeleteError(self, ref, old_sha1, e)
 
     def describe(self):

@@ -74,7 +74,7 @@ if sys.version_info < (2, 7, 3): # pragma: no cover
                 else:
                      if sys.platform != "os2emx":
                         os.chown(targetpath, u, g)
-            except EnvironmentError, e:
+            except EnvironmentError as e:
                 raise ExtractError("could not change owner")
     tarfile.TarFile.chown = fixed_chown
 
@@ -186,7 +186,7 @@ def unpack_binary_from_file(f, dirname):  # pragma: no cover
             prepare_extract(tarinfo, targetpath)
             try:
                 ret = real(tarinfo, targetpath)
-            except (IOError, OSError), e:
+            except (IOError, OSError) as e:
                 if e.errno != errno.EEXIST:
                     if e.filename is None:
                         e.filename = targetpath

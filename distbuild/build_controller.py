@@ -303,7 +303,7 @@ class BuildController(distbuild.StateMachine):
             text = self._artifact_data.peek()
             try:
                 artifact = distbuild.deserialise_artifact(text)
-            except ValueError, e:
+            except ValueError as e:
                 logging.error(traceback.format_exc())
                 self.fail('Failed to compute build graph: %s' % e)
                 return

@@ -162,7 +162,7 @@ class VersionGuesser(object):
                 version = guesser.guess_version(repo, ref, tree)
                 if version:
                     break
-        except cliapp.AppException, err:
+        except cliapp.AppException as err:
             self.app.status(msg='%(repo)s: Failed to list files in %(ref)s',
                             repo=repo, ref=ref, chatty=True)
         return version

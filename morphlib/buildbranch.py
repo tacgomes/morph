@@ -292,7 +292,7 @@ class BuildBranch(object):
             func, args, kwargs = self._cleanup.pop()
             try:
                 func(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 exceptions.append(e)
         if exceptions:
             raise BuildBranchCleanupError(self, exceptions)

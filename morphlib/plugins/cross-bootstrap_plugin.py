@@ -65,7 +65,7 @@ class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
                     self.unpack_sources(fs_root)
                     self.write_build_script(fs_root)
                     self.create_tarball(handle, fs_root, system_name)
-                except BaseException, e:
+                except BaseException as e:
                     logging.error(traceback.format_exc())
                     self.app.status(msg='Error while building bootstrap image',
                                     error=True)
@@ -84,7 +84,7 @@ class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
                 with cache.get(chunk_artifact) as chunk_file:
                     try:
                         morphlib.bins.unpack_binary_from_file(chunk_file, dest)
-                    except BaseException, e:
+                    except BaseException as e:
                         self.app.status(
                             msg='Error unpacking binary chunk %(name)s',
                             name=chunk_artifact.name,

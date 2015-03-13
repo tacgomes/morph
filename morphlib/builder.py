@@ -289,7 +289,7 @@ class ChunkBuilder(BuilderBase):
                 self.create_devices(destdir)
 
                 os.rename(temppath, logpath)
-            except BaseException, e:
+            except BaseException as e:
                 logging.error('Caught exception: %s' % str(e))
                 logging.info('Cleaning up staging area')
                 self.staging_area.chroot_close()
@@ -375,7 +375,7 @@ class ChunkBuilder(BuilderBase):
 
                         if stdout:
                             stdout.flush()
-                    except cliapp.AppException, e:
+                    except cliapp.AppException as e:
                         if not stdout:
                             with open(logfilepath, 'r') as log:
                                 self.app.output.write("%s failed\n" % step)
@@ -656,7 +656,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                     msg = error_message_for_containerised_commandline(
                         argv, err, container_config)
                     raise cliapp.AppException(msg)
-        except BaseException, e:
+        except BaseException as e:
             self.app.status(
                     msg='Error while running system integration commands',
                     error=True)

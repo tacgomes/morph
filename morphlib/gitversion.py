@@ -33,7 +33,7 @@ try:
     commit = pkgutil.get_data('morphlib', 'commit')
     tree = pkgutil.get_data('morphlib', 'tree')
     ref = pkgutil.get_data('morphlib', 'ref')
-except IOError, e:
+except IOError as e:
     from os.path import dirname
     def run_git(*args):
         command = ['git'] + list(args)
