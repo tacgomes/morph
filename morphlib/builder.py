@@ -406,7 +406,7 @@ class ChunkBuilder(BuilderBase):
                     with morphlib.savefile.SaveFile(script_path, 'w') as f:
                         f.write("#!/bin/sh\nset -xeu\n")
                         f.write(script)
-                    os.chmod(script_path, 0555)
+                    os.chmod(script_path, 0o555)
 
                     rel_script_path = os.path.join(SYSTEM_INTEGRATION_PATH,
                                                    script_name)
@@ -624,7 +624,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             f.write('SUPPORT_URL="http://wiki.baserock.org/mailinglist"\n')
             f.write('BUG_REPORT_URL="http://wiki.baserock.org/mailinglist"\n')
 
-        os.chmod(os_release_file, 0644)
+        os.chmod(os_release_file, 0o644)
 
     def run_system_integration_commands(self, rootdir):  # pragma: no cover
         ''' Run the system integration commands '''
