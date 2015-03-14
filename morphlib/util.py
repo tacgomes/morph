@@ -644,3 +644,35 @@ def error_message_for_containerised_commandline(
            'Containerisation settings: %s\n' \
            'Error output:\n%s' \
            % (argv_string, container_kwargs, err)
+
+
+def write_from_dict(filepath, d, validate=lambda x, y: True): #pragma: no cover
+    '''Takes a dictionary and appends the contents to a file
+
+    An optional validation callback can be passed to perform validation on
+    each value in the dictionary.
+
+    e.g.
+
+        def validation_callback(dictionary_key, dictionary_value):
+            if not dictionary_value.isdigit():
+                raise Exception('value contains non-digit character(s)')
+
+    Any callback supplied to this function should raise an exception
+    if validation fails.
+    '''
+
+    # Sort items asciibetically
+    # the output of the deployment should not depend
+    # on the locale of the machine running the deployment
+    items = sorted(d.iteritems(), key=lambda (k, v): [ord(c) for c in v])
+
+    for (k, v) in items:
+        validate(k, v)
+
+    with open(filepath, 'a') as f:
+        for (_, v) in items:
+            f.write('%s\n' % v)
+
+        os.fchown(f.fileno(), 0, 0)
+        os.fchmod(f.fileno(), 0644)
