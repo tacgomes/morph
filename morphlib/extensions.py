@@ -1,4 +1,4 @@
-# Copyright (C) 2014  Codethink Limited
+# Copyright (C) 2014-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -149,7 +149,7 @@ class get_extension_filename():
             fd, ext_filename = tempfile.mkstemp()
             os.write(fd, ext_contents)
             os.close(fd)
-            os.chmod(ext_filename, 0700)
+            os.chmod(ext_filename, 0o700)
             self.delete = True
 
         self.ext_filename = ext_filename

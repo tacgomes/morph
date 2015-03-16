@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2014  Codethink Limited
+# Copyright (C) 2013-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -111,7 +111,7 @@ class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
             chunk_script = os.path.join(path, 'src', 'build-%s' % name)
             with morphlib.savefile.SaveFile(chunk_script, 'w') as f:
                 self.write_chunk_build_script(s, f)
-            os.chmod(chunk_script, 0777)
+            os.chmod(chunk_script, 0o777)
 
     def write_build_script(self, path):
         '''Output a script to run build on the bootstrap target'''
@@ -136,7 +136,7 @@ class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
                 f.write('if [ -e /sbin/ldconfig ]; then /sbin/ldconfig; fi\n')
 
             f.write(driver_footer)
-        os.chmod(driver_script, 0777)
+        os.chmod(driver_script, 0o777)
 
     def write_chunk_build_script(self, source, f):
         m = source.morphology

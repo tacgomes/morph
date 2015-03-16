@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2014  Codethink Limited
+# Copyright (C) 2013-2015  Codethink Limited
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -115,7 +115,7 @@ class BuildBranch(object):
         for morphology in morphologies:
             loader.unset_defaults(morphology)
             sha1 = gd.store_blob(loader.save_to_string(morphology))
-            yield 0100644, sha1, morphology.filename
+            yield 0o100644, sha1, morphology.filename
 
     def inject_build_refs(self, loader, use_local_repos,
                           inject_cb=lambda **kwargs: None):
