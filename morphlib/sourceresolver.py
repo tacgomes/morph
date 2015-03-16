@@ -453,7 +453,8 @@ class SourceResolver(object):
 
         if chunk_key in self._resolved_buildsystems:
             logging.debug('Build system for %s is cached', str(chunk_key))
-            self.status(msg='Build system for %s is cached' % str(chunk_key),
+            self.status(msg='Build system for %(chunk)s is cached',
+                        chunk=str(chunk_key),
                         chatty=True)
             buildsystem = self._resolved_buildsystems[chunk_key]
 
