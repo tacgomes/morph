@@ -17,6 +17,7 @@
 #
 # See: <http://wiki.baserock.org/guides/release-process> for more information.
 
+from __future__ import print_function
 
 import cliapp
 import morphlib
@@ -68,7 +69,7 @@ class ListArtifactsPlugin(cliapp.Plugin):
             artifact_files.update(system_artifact_files)
 
         for artifact_file in sorted(artifact_files):
-            print artifact_file
+            print(artifact_file)
 
     def list_artifacts_for_system(self, repo, ref, system_filename):
         '''List all artifact files in the build graph of a single system.'''
