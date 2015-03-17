@@ -172,7 +172,7 @@ class LocalRepoCache(object):
             self._git(['config', 'remote.origin.mirror', 'true'], cwd=path)
             self._git(['config', 'remote.origin.fetch', '+refs/*:refs/*'],
                       cwd=path)
-        except BaseException, e:  # pragma: no cover
+        except BaseException as e:  # pragma: no cover
             if self.fs.exists(path):
                 self.fs.removedir(path, force=True)
             return False, 'Unable to extract tarball %s: %s' % (
@@ -192,7 +192,7 @@ class LocalRepoCache(object):
 
         try:
             return self.get_repo(reponame)
-        except NotCached, e:
+        except NotCached as e:
             pass
 
         repourl = self._resolver.pull_url(reponame)
@@ -213,7 +213,7 @@ class LocalRepoCache(object):
         try:
             self._git(['clone', '--mirror', '-n', repourl, target],
                       echo_stderr=self._app.settings['verbose'])
-        except cliapp.AppException, e:
+        except cliapp.AppException as e:
             errors.append('Unable to clone from %s to %s: %s' %
                           (repourl, target, e))
             if self.fs.exists(target):

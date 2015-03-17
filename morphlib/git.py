@@ -190,7 +190,7 @@ def get_user_name(runcmd):
     try:
         config = check_config_set(runcmd, keys={"user.name": "My Name"})
         return config['user.name']
-    except ConfigNotSetException, e:
+    except ConfigNotSetException as e:
         raise IdentityNotSetException(e.missing)
 
 
@@ -201,7 +201,7 @@ def get_user_email(runcmd):
     try:
         cfg = check_config_set(runcmd, keys={"user.email": "me@example.com"})
         return cfg['user.email']
-    except ConfigNotSetException, e:
+    except ConfigNotSetException as e:
         raise IdentityNotSetException(e.missing)
 
 def check_config_set(runcmd, keys, cwd='.'):

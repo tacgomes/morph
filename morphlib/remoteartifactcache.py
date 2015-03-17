@@ -71,14 +71,14 @@ class RemoteArtifactCache(object):
     def get(self, artifact, log=logging.error):
         try:
             return self._get_file(artifact.basename())
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             log(str(e))
             raise GetError(self, artifact)
 
     def get_artifact_metadata(self, artifact, name, log=logging.error):
         try:
             return self._get_file(artifact.metadata_basename(name))
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             log(str(e))
             raise GetArtifactMetadataError(self, artifact, name)
 

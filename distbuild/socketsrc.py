@@ -77,7 +77,7 @@ class ListeningSocketEventSource(EventSource):
         if self._accepting and self.sock.fileno() in r:
             try:
                 conn, addr = self.sock.accept()
-            except socket.error, e:
+            except socket.error as e:
                 return [SocketError(self.sock, e)]
             else:
                 logging.info(

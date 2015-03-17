@@ -165,7 +165,7 @@ class StagingArea(object):
             try:
                 morphlib.bins.unpack_binary_from_file(
                     handle, savedir + '/')
-            except BaseException, e: # pragma: no cover
+            except BaseException as e: # pragma: no cover
                 shutil.rmtree(savedir)
                 raise
             # TODO: This rename is not concurrency safe if two builds are

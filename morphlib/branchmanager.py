@@ -91,7 +91,7 @@ class LocalRefManager(object):
             op, args = d.pop()
             try:
                 op(*args)
-            except Exception, e:
+            except Exception as e:
                 exceptions.append((op, args, e))
         if exceptions:
             raise RefCleanupError(primary, exceptions)
@@ -200,7 +200,7 @@ class RemoteRefManager(object):
             remote, refspecs = d.pop()
             try:
                 remote.push(*refspecs)
-            except Exception, e:
+            except Exception as e:
                 exceptions.append((remote, refspecs, e))
         if exceptions:
             raise RefCleanupError(primary, exceptions)

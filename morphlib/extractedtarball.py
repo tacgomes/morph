@@ -41,7 +41,7 @@ class ExtractedTarball(object): # pragma: no cover
         self.tempdir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
         try:
             morphlib.bins.unpack_binary(self.tarball, self.tempdir)
-        except BaseException, e:
+        except BaseException as e:
             logging.error('Caught exception: %s' % str(e))
             logging.debug('Removing temporary directory %s' % self.tempdir)
             shutil.rmtree(self.tempdir)
@@ -53,7 +53,7 @@ class ExtractedTarball(object): # pragma: no cover
                         tarball=os.path.basename(self.tarball), chatty=True)
         try:
             shutil.rmtree(self.tempdir)
-        except BaseException, e:
+        except BaseException as e:
             logging.warning(
                 'Error when removing temporary directory %s: %s' %
                     (self.tempdir, str(e)))

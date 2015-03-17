@@ -45,7 +45,7 @@ class MountableImage(object): # pragma: no cover
                 infh = gzip.open(path, "rb")
                 morphlib.util.copyfileobj(infh, outfh)
                 infh.close()
-        except BaseException, e:
+        except BaseException as e:
             logging.error('Caught exception: %s' % str(e))
             logging.info('Removing temporary file %s' % self.temp_path)
             os.unlink(self.temp_path)
@@ -64,17 +64,17 @@ class MountableImage(object): # pragma: no cover
                         chatty=True)
         try:
             morphlib.fsutils.unmount(self.app.runcmd, mount_point)
-        except BaseException, e:
+        except BaseException as e:
             logging.info('Ignoring error when unmounting: %s' % str(e))
         try:
             morphlib.fsutils.undo_device_mapping(self.app.runcmd, path)
-        except BaseException, e:
+        except BaseException as e:
             logging.info(
                 'Ignoring error when undoing device mapping: %s' % str(e))
         try:
             os.rmdir(mount_point)
             os.unlink(path)
-        except BaseException, e:
+        except BaseException as e:
             logging.info(
                 'Ignoring error when removing temporary files: %s' % str(e))
 

@@ -105,7 +105,7 @@ class ConnectionMachine(distbuild.StateMachine):
         distbuild.set_nonblocking(self._socket)
         try:
             self._socket.connect((self._addr, self._port))
-        except socket.error, e:
+        except socket.error as e:
             if e.errno != errno.EINPROGRESS:
                 raise socket.error(
                     "%s (attempting connection to distbuild controller "
@@ -117,7 +117,7 @@ class ConnectionMachine(distbuild.StateMachine):
     def _connect(self, event_source, event):
         try:
             self._socket.connect((self._addr, self._port))
-        except socket.error, e:
+        except socket.error as e:
             logging.error(
                 'Failed to connect to %s:%s: %s' % 
                     (self._addr, self._port, str(e)))

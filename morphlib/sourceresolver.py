@@ -206,7 +206,7 @@ class SourceResolver(object):
                                 reponame=reponame,
                                 ref=ref,
                                 chatty=True)
-            except BaseException, e:
+            except BaseException as e:
                 logging.warning('Caught (and ignored) exception: %s' % str(e))
 
         if absref is None:

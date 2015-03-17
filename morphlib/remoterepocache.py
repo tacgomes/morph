@@ -54,7 +54,7 @@ class RemoteRepoCache(object):
         repo_url = self._resolver.pull_url(repo_name)
         try:
             return self._resolve_ref_for_repo_url(repo_url, ref)
-        except BaseException, e:
+        except BaseException as e:
             logging.error('Caught exception: %s' % str(e))
             raise ResolveRefError(repo_name, ref)
 
@@ -73,7 +73,7 @@ class RemoteRepoCache(object):
         try:
             info = json.loads(self._ls_tree_for_repo_url(repo_url, ref))
             return info['tree'].keys()
-        except BaseException, e:
+        except BaseException as e:
             logging.error('Caught exception: %s' % str(e))
             raise LsTreeError(repo_name, ref)
 
