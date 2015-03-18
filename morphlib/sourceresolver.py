@@ -346,6 +346,29 @@ class SourceResolver(object):
         loader.set_defaults(morph)
         return morph
 
+    def _parse_version_file(self, version_file): # pragma : no cover
+        '''Parse VERSION file and return the version of the format if:
+
+        VERSION is a YAML file
+        and it's a dict
+        and has the key 'version'
+        and the type stored in the 'version' key is an int
+        and that int is not in the supported format
+
+        otherwise returns None
+
+        '''
+        version = None
+
+        yaml_obj = yaml.safe_load(version_file)
+        if yaml_obj is not None:
+            if type(yaml_obj) is dict:
+                if 'version' in yaml_obj.keys():
+                    if type(yaml_obj['version']) is int:
+                        version = yaml_obj['version']
+
+        return version
+
     def _check_version_file(self,definitions_repo,
                             definitions_absref): # pragma: no cover
         version_file = self._get_file_contents(
@@ -354,14 +377,7 @@ class SourceResolver(object):
         if version_file is None:
             return
 
-        version = None
-        yaml_obj = yaml.safe_load(version_file)
-        if yaml_obj is not None:
-            if type(yaml_obj) is dict:
-                if 'version' in yaml_obj.keys():
-                    if type(yaml_obj['version']) is int:
-                        version = yaml_obj['version']
-
+        version = self._parse_version_file(version_file)
         if version is not None:
             if version not in supported_versions:
                 raise UnknownVersionError(version)
