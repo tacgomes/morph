@@ -145,6 +145,10 @@ class Morph(cliapp.Application):
                               'always push temporary build branches to the '
                               'remote repository',
                               group=group_build)
+        self.settings.boolean(['partial'],
+                              'only build up to a given chunk',
+                              default=False,
+                              group=group_build)
         self.settings.choice (['local-changes'],
                               ['include', 'ignore'],
                               'the `build` and `deploy` commands detect '

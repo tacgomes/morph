@@ -13,6 +13,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import collections
 import json
 import logging
 import os
@@ -24,7 +25,9 @@ import uuid
 import warnings
 
 import cliapp
+
 import morphlib
+from morphlib.artifactcachereference import ArtifactCacheReference
 
 
 def configuration_for_system(system_id, vars_from_commandline,
@@ -107,6 +110,15 @@ def deployment_type_and_location(system_id, config, is_upgrade):
         location = config['location']
 
     return deployment_type, location
+
+
+class NotYetBuiltError(morphlib.Error):
+
+    def __init__(self, artifact, rac):
+        self.msg = ('Deployment failed as %s is not present in the '
+                    'artifact cache.\nPlease ensure that %s is built '
+                    'before deployment, and the artifact-cache-server (%s) is '
+                    'the correct one.' % (artifact, artifact, rac))
 
 
 class DeployPlugin(cliapp.Plugin):
@@ -364,7 +376,7 @@ class DeployPlugin(cliapp.Plugin):
                     name=name, email=email, build_uuid=build_uuid,
                     status=self.app.status)
             with pbb as (repo, commit, original_ref):
-                self.deploy_cluster(build_command, cluster_morphology,
+                self.deploy_cluster(sb, build_command, cluster_morphology,
                                     root_repo_dir, repo, commit, env_vars,
                                     deployments)
         else:
@@ -372,11 +384,16 @@ class DeployPlugin(cliapp.Plugin):
             ref = sb.get_config('branch.name')
             commit = root_repo_dir.resolve_ref_to_commit(ref)
 
-            self.deploy_cluster(build_command, cluster_morphology,
+            self.deploy_cluster(sb, build_command, cluster_morphology,
                                 root_repo_dir, repo, commit, env_vars,
                                 deployments)
 
         self.app.status(msg='Finished deployment')
+        if self.app.settings['partial']:
+            self.app.status(msg='WARNING: This was a partial deployment. '
+                                'Configuration extensions have not been '
+                                'run. Applying the result to an existing '
+                                'system may not have reproducible results.')
 
     def validate_deployment_options(
             self, env_vars, all_deployments, all_subsystems):
@@ -394,21 +411,59 @@ class DeployPlugin(cliapp.Plugin):
                         'Variable referenced a non-existent deployment '
                         'name: %s' % var)
 
-    def deploy_cluster(self, build_command, cluster_morphology, root_repo_dir,
-                       repo, commit, env_vars, deployments):
+    def deploy_cluster(self, sb, build_command, cluster_morphology,
+                       root_repo_dir, repo, commit, env_vars, deployments):
         # Create a tempdir for this deployment to work in
         deploy_tempdir = tempfile.mkdtemp(
             dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
         try:
             for system in cluster_morphology['systems']:
-                self.deploy_system(build_command, deploy_tempdir,
+                self.deploy_system(sb, build_command, deploy_tempdir,
                                    root_repo_dir, repo, commit, system,
                                    env_vars, deployments,
                                    parent_location='')
         finally:
             shutil.rmtree(deploy_tempdir)
 
-    def deploy_system(self, build_command, deploy_tempdir,
+    def _sanitise_morphology_paths(self, paths, sb):
+        sanitised_paths = []
+        for path in paths:
+            path = morphlib.util.sanitise_morphology_path(path)
+            sanitised_paths.append(sb.relative_to_root_repo(path))
+        return sanitised_paths
+
+    def _find_artifacts(self, filenames, root_artifact):
+        found = collections.OrderedDict()
+        not_found = filenames
+        for a in root_artifact.walk():
+            if a.source.filename in filenames:
+                if a.source.name in found:
+                    found[a.source.name].append(a)
+                else:
+                    found[a.source.name] = [a]
+        for name, artifacts in found.iteritems():
+            if artifacts[0].source.filename in not_found:
+                not_found.remove(artifacts[0].source.filename)
+        return found, not_found
+
+    def _validate_partial_deployment(self, deployment_type,
+                                     artifact, component_names):
+        supported_types = ('tar', 'sysroot')
+        if deployment_type not in supported_types:
+            raise cliapp.AppException('Not deploying %s, --partial was '
+                                      'set and partial deployment only '
+                                      'supports %s deployments.' %
+                                      (artifact.source.name,
+                                       ', '.join(supported_types)))
+        components, not_found = self._find_artifacts(component_names,
+                                                     artifact)
+        if not_found:
+            raise cliapp.AppException('Components %s not found in system %s.' %
+                                      (', '.join(not_found),
+                                       artifact.source.name))
+        return components
+
+    def deploy_system(self, sb, build_command, deploy_tempdir,
                       root_repo_dir, build_repo, ref, system, env_vars,
                       deployment_filter, parent_location):
         sys_ids = set(system['deploy'].iterkeys())
@@ -443,6 +498,12 @@ class DeployPlugin(cliapp.Plugin):
                     deployment_type, location = deployment_type_and_location(
                         system_id, final_env, self.app.settings['upgrade'])
 
+                    components = self._sanitise_morphology_paths(
+                        deploy_params.get('partial-deploy-components', []), sb)
+                    if self.app.settings['partial']:
+                        components = self._validate_partial_deployment(
+                            deployment_type, artifact, components)
+
                     self.check_deploy(root_repo_dir, ref, deployment_type,
                                       location, final_env)
                     system_tree = self.setup_deploy(build_command,
@@ -450,9 +511,10 @@ class DeployPlugin(cliapp.Plugin):
                                                     root_repo_dir,
                                                     ref, artifact,
                                                     deployment_type,
-                                                    location, final_env)
+                                                    location, final_env,
+                                                    components=components)
                     for subsystem in system.get('subsystems', []):
-                        self.deploy_system(build_command, deploy_tempdir,
+                        self.deploy_system(sb, build_command, deploy_tempdir,
                                            root_repo_dir, build_repo,
                                            ref, subsystem, env_vars, [],
                                            parent_location=system_tree)
@@ -525,34 +587,140 @@ class DeployPlugin(cliapp.Plugin):
         except morphlib.extensions.ExtensionNotFoundError:
             pass
 
-    def setup_deploy(self, build_command, deploy_tempdir, root_repo_dir, ref,
-                     artifact, deployment_type, location, env):
-        # deployment_type, location and env are only used for saving metadata
+    def unpack_stratum(self, path, artifact, lac, rac, unpacked):
+        """Fetch the chunks in a stratum, then unpack them into `path`.
 
+        This reads a stratum artifact and fetches the chunks it contains from
+        the remote into the local artifact cache if they are not already
+        cached locally. Each of these chunks is then unpacked into `path`.
+
+        Also download the stratum metadata into the local cache, then place
+        it in the baserock subdirectory directory of `path`.
+
+        If any of the chunks have not been cached either locally or remotely,
+        a morphlib.remoteartifactcache.GetError is raised.
+
+        """
+        with lac.get(artifact) as stratum:
+            chunks = [ArtifactCacheReference(c) for c in json.load(stratum)]
+        morphlib.builder.download_depends(chunks, lac, rac)
+        for chunk in chunks:
+            if chunk.basename() in unpacked:
+                continue
+            self.app.status(msg='Unpacking chunk %(name)s.',
+                            name=chunk.basename(), chatty=True)
+            handle = lac.get(chunk)
+            tf = tarfile.open(fileobj=handle)
+            tf.extractall(path=path)
+            unpacked.add(chunk.basename())
+
+        metadata = os.path.join(path, 'baserock', '%s.meta' % artifact.name)
+        with lac.get_artifact_metadata(artifact, 'meta') as meta_src:
+            with morphlib.savefile.SaveFile(metadata, 'w') as meta_dst:
+                shutil.copyfileobj(meta_src, meta_dst)
+
+    def unpack_system(self, build_command, artifact, path):
+        """Unpack a system into `path`.
+
+        This unpacks the system artifact into the directory given by
+        `path`. If the system is not in the local cache, it is first fetched
+        from the remote cache.
+
+        Raises a NotYetBuiltError if the system artifact isn't cached either
+        locally or remotely.
+
+        """
+        # Unpack the artifact (tarball) to a temporary directory.
+        self.app.status(msg='Unpacking system for configuration')
+
+        if build_command.lac.has(artifact):
+            f = build_command.lac.get(artifact)
+        elif build_command.rac.has(artifact):
+            build_command.cache_artifacts_locally([artifact])
+            f = build_command.lac.get(artifact)
+        else:
+            raise NotYetBuiltError(artifact.name, build_command.rac)
+
+        tf = tarfile.open(fileobj=f)
+        tf.extractall(path=path)
+
+        self.app.status(
+            msg='System unpacked at %(system_tree)s',
+            system_tree=path)
+
+    def fix_chunk_build_mode(self, artifact):
+        """Give each chunk's in-memory morpholgy the correct build-mode.
+
+        Currently, our definitions define build-mode in the entries in the
+        chunk list in a given stratum. However, morph expects it to be in
+        the chunk morphology when loading, and sets the in-memory
+        build-mode to 'staging' by default.
+
+        """
+        # This should probably be fixed in morphloader, but I held off on
+        # doing that following a discussion on #baserock.
+        #
+        # https://irclogs.baserock.org/%23baserock.2015-04-21.log.html
+        # (at 9:02)
+        strata = set(a for a in artifact.walk()
+                     if a.source.morphology['kind'] == 'stratum')
+        chunks = set(a for a in artifact.walk()
+                     if a.source.morphology['kind'] == 'chunk')
+        for chunk in chunks:
+            for stratum in strata:
+                for spec in stratum.source.morphology['chunks']:
+                    if chunk.source.morphology['name'] == spec['name']:
+                        chunk.source.morphology['build-mode'] = \
+                            spec['build-mode']
+
+    def unpack_components(self, bc, components, path):
+        if not components:
+            raise cliapp.AppException('Deployment failed as no components '
+                                      'were specified for deployment and '
+                                      '--partial was set.')
+
+        self.app.status(msg='Unpacking components for deployment')
+        unpacked = set()
+        for name, artifacts in components.iteritems():
+            for artifact in artifacts:
+                if not (bc.lac.has(artifact) or bc.rac.has(artifact)):
+                    raise NotYetBuiltError(name, bc.rac)
+
+                for a in artifact.walk():
+                    if a.basename() in unpacked:
+                        continue
+                    if not bc.lac.has(a):
+                        if bc.rac.has(a):
+                            bc.cache_artifacts_locally([a])
+                        else:
+                            raise NotYetBuiltError(a.name, bc.rac)
+                    if a.source.morphology['kind'] == 'stratum':
+                        self.unpack_stratum(path, a, bc.lac, bc.rac, unpacked)
+                    elif a.source.morphology['kind'] == 'chunk':
+                        if a.source.morphology['build-mode'] == 'bootstrap':
+                            continue
+                        self.app.status(msg='Unpacking chunk %(name)s.',
+                                        name=a.basename(), chatty=True)
+                        handle = bc.lac.get(a)
+                        tf = tarfile.open(fileobj=handle)
+                        tf.extractall(path=path)
+                    unpacked.add(a.basename())
+
+        self.app.status(
+            msg='Components %(components)s unpacked at %(path)s',
+            components=', '.join(components), path=path)
+
+    def setup_deploy(self, build_command, deploy_tempdir, root_repo_dir, ref,
+                     artifact, deployment_type, location, env, components=[]):
         # Create a tempdir to extract the rootfs in
         system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
 
         try:
-            # Unpack the artifact (tarball) to a temporary directory.
-            self.app.status(msg='Unpacking system for configuration')
-
-            if build_command.lac.has(artifact):
-                f = build_command.lac.get(artifact)
-            elif build_command.rac.has(artifact):
-                build_command.cache_artifacts_locally([artifact])
-                f = build_command.lac.get(artifact)
+            self.fix_chunk_build_mode(artifact)
+            if self.app.settings['partial']:
+                self.unpack_components(build_command, components, system_tree)
             else:
-                raise cliapp.AppException(
-                    'Deployment failed as built system is not present in the '
-                    'artifact cache.\nPlease ensure the system is built '
-                    'before deployment, and the artifact-cache-server (%s) is '
-                    'the correct one.' % build_command.rac)
-            tf = tarfile.open(fileobj=f)
-            tf.extractall(path=system_tree)
-
-            self.app.status(
-                msg='System unpacked at %(system_tree)s',
-                system_tree=system_tree)
+                self.unpack_system(build_command, artifact, system_tree)
 
             self.app.status(
                 msg='Writing deployment metadata file')
@@ -577,15 +745,19 @@ class DeployPlugin(cliapp.Plugin):
 
         try:
             # Run configuration extensions.
-            self.app.status(msg='Configure system')
-            names = artifact.source.morphology['configuration-extensions']
-            for name in names:
-                self._run_extension(
-                    root_repo_dir,
-                    name,
-                    '.configure',
-                    [system_tree],
-                    env)
+            if not self.app.settings['partial']:
+                self.app.status(msg='Configure system')
+                names = artifact.source.morphology['configuration-extensions']
+                for name in names:
+                    self._run_extension(
+                        root_repo_dir,
+                        name,
+                        '.configure',
+                        [system_tree],
+                        env)
+            else:
+                self.app.status(msg='WARNING: Not running configuration '
+                                    'extensions as --partial is set!')
 
             # Run write extension.
             self.app.status(msg='Writing to device')
@@ -636,7 +808,7 @@ class DeployPlugin(cliapp.Plugin):
             raise cliapp.AppException(message)
 
     def create_metadata(self, system_artifact, root_repo_dir, deployment_type,
-                        location, env):
+                        location, env, components=[]):
         '''Deployment-specific metadata.
 
         The `build` and `deploy` operations must be from the same ref, so full
@@ -668,6 +840,9 @@ class DeployPlugin(cliapp.Plugin):
                 'commit': morphlib.gitversion.commit,
                 'version': morphlib.gitversion.version,
             },
+            'partial': self.app.settings['partial'],
         }
+        if self.app.settings['partial']:
+            meta['partial-components'] = components
 
         return meta
