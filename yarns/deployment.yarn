@@ -301,6 +301,28 @@ deployment.
     THEN morph failed
     FINALLY the git server is shut down
 
+Deploying only part of a system
+-------------------------------
+
+It is possible to only deploy one or more strata or chunks from a system
+when deploying to a tarball or sysroot.
+
+    SCENARIO partially deploying a system
+    GIVEN a workspace
+    AND a git server
+    WHEN the user checks out the system branch called master
+    AND the user builds the system systems/test-system.morph in branch master
+    AND the user attempts to partially deploy tar from cluster clusters/partial-test-cluster.morph in branch master
+    THEN morph succeeded
+    WHEN the user attempts to partially deploy sysroot from cluster clusters/partial-test-cluster.morph in branch master
+    THEN morph succeeded
+
+However, it is not possible to do this when the deployment type is
+something other than tarball or sysroot.
+
+    WHEN the user attempts to partially deploy rawdisk from cluster clusters/partial-test-cluster.morph in branch master
+    THEN morph failed
+
 Deploying branch-from-image produced systems
 ============================================
 

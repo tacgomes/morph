@@ -332,6 +332,29 @@ another to hold a chunk.
     - copy files
     EOF
 
+    install -m644 -D /dev/stdin << EOF "clusters/partial-test-cluster.morph"
+    name: partial-test-cluster
+    kind: cluster
+    systems:
+    - morph: systems/test-system.morph
+      deploy:
+        tar:
+          type: tar
+          location: test.tar
+          partial-deploy-components:
+          - strata/build-essential.morph
+        sysroot:
+          type: sysroot
+          location: test.sysroot
+          partial-deploy-components:
+          - strata/build-essential.morph
+        rawdisk:
+          type: rawdisk
+          location: test.img
+          partial-deploy-components:
+          - strata/build-essential.morph
+    EOF
+
     git add .
     git commit -m Initial.
     git tag -a "test-tag" -m "Tagging test-tag"
@@ -439,7 +462,6 @@ You need an architecture to build a system, we don't default to the host archite
 
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1."
-
 
 Implementation sections for system branch operations
 ----------------------------------------------------
@@ -823,6 +845,15 @@ them, so they can be added to the end of the implements section.
     systems=$(echo "$MATCH_2" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
     set -- "$@" $systems
     if [ "$MATCH_1" = "deploys" ]; then run_morph "$@"
+    else attempt_morph "$@"; fi
+
+    IMPLEMENTS WHEN the user (attempts to partially deploy|partially deploys) (.*) from cluster (\S+) in branch (\S+)
+    cd "$DATADIR/workspace/$MATCH_4/test/morphs"
+    set -- deploy "$MATCH_3"
+    systems=$(echo "$MATCH_2" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
+    echo "partial=True" >> "$DATADIR/morph.conf"
+    set -- "$@" $systems
+    if [ "$MATCH_1" = "partially deploys" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
     IMPLEMENTS WHEN the user (attempts to upgrade|upgrades) the (system|cluster) (\S+) in branch (\S+)( with options (.*))?
