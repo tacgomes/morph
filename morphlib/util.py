@@ -467,7 +467,7 @@ def get_host_architecture(): # pragma: no cover
         'armv8l': 'armv8l',
         'armv8b': 'armv8b',
         'aarch64': 'armv8l64',
-        'aarch64b': 'armv8b64',
+        'aarch64_be': 'armv8b64',
         'ppc64': 'ppc64'
     }
 
