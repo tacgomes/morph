@@ -60,7 +60,7 @@ class Morph(cliapp.Application):
                               'show no output unless there is an error')
 
         self.settings.boolean(['help', 'h'],
-                              'show this help message and exit') 
+                              'show this help message and exit')
         self.settings.boolean(['help-all'],
                               'show help message including hidden subcommands')
 
@@ -282,11 +282,13 @@ class Morph(cliapp.Application):
     def setup_plugin_manager(self):
         cliapp.Application.setup_plugin_manager(self)
 
-        self.pluginmgr.locations += os.path.join(
-            os.path.dirname(morphlib.__file__), 'plugins')
+        s = os.path.join(os.path.dirname(morphlib.__file__), 'plugins')
+        if not s in self.pluginmgr.locations:
+            self.pluginmgr.locations.append(s)
 
-        s = os.environ.get('MORPH_PLUGIN_PATH', '')
-        self.pluginmgr.locations += s.split(':')
+        s = os.environ.get('MORPH_PLUGIN_PATH', '').split(':')
+        for path in s:
+            self.pluginmgr.locations.append(path)
 
         self.hookmgr = cliapp.HookManager()
         self.hookmgr.new('new-build-command', cliapp.FilterHook())
@@ -321,7 +323,7 @@ class Morph(cliapp.Application):
         * ``error`` should be true when it is an error message
 
         All other keywords are ignored unless embedded in ``msg``.
-        
+
         The ``self.status_prefix`` string is prepended to the output.
         It is set to the empty string by default.
 
