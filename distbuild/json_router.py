@@ -47,7 +47,6 @@ class JsonRouter(distbuild.StateMachine):
 
     def setup(self):
         jm = distbuild.JsonMachine(self.conn)
-        jm.debug_json = True
         self.mainloop.add_state_machine(jm)
         
         spec = [
