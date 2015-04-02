@@ -149,8 +149,14 @@ class Jobs(object):
         return waiting.pop() if len(waiting) > 0 else None
 
     def __repr__(self):
-        return str([job.artifact.basename()
-            for (_, job) in self._jobs.iteritems()])
+        items = []
+        for job in self._jobs.itervalues():
+            if job.who is None:
+                state = 'queued'
+            else:
+                state = 'given to %s' % job.who
+            items.append('%s (%s)' % (job.artifact.basename(), state))
+        return str(items)
 
 
 class _BuildFinished(object):
@@ -411,6 +417,9 @@ class WorkerConnection(distbuild.StateMachine):
 
     def current_job(self):
         return self._current_job
+
+    def __str__(self):
+        return self.name()
 
     def setup(self):
         distbuild.crash_point()
