@@ -96,6 +96,11 @@ class UnknownVersionError(SourceResolverError): # pragma: no cover
             self, "Definitions format version %s is not supported" % version)
 
 
+class InvalidVersionFileError(SourceResolverError): #pragma: no cover
+    def __init__(self):
+        SourceResolverError.__init__(self, "invalid VERSION file")
+
+
 class SourceResolver(object):
     '''Provides a way of resolving the set of sources for a given system.
 
@@ -369,18 +374,23 @@ class SourceResolver(object):
 
         return version
 
-    def _check_version_file(self,definitions_repo,
+    def _check_version_file(self, definitions_repo,
                             definitions_absref): # pragma: no cover
         version_file = self._get_file_contents(
             definitions_repo, definitions_absref, 'VERSION')
 
-        if version_file is None:
-            return
+        if version_file == None:
+            return 0    # Assume version 0 if no version file
 
         version = self._parse_version_file(version_file)
-        if version is not None:
-            if version not in supported_versions:
-                raise UnknownVersionError(version)
+
+        if version == None:
+            raise InvalidVersionFileError()
+
+        if version not in supported_versions:
+            raise UnknownVersionError(version)
+
+        return version
 
     def _process_definitions_with_children(self, system_filenames,
                                            definitions_repo,
