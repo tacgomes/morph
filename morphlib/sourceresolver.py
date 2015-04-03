@@ -31,7 +31,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
-supported_versions = [0, 1]
+supported_versions = [0, 1, 2]
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -89,6 +89,15 @@ class MorphologyNotFoundError(SourceResolverError): # pragma: no cover
     def __init__(self, filename):
         SourceResolverError.__init__(
             self, "Couldn't find morphology: %s" % filename)
+
+
+class MorphologyReferenceNotFoundError(SourceResolverError): # pragma: no cover
+    def __init__(self, filename, reference_file):
+        SourceResolverError.__init__(self,
+                                     "Couldn't find morphology: %s "
+                                     "referenced in %s"
+                                     % (filename, reference_file))
+
 
 class UnknownVersionError(SourceResolverError): # pragma: no cover
     def __init__(self, version):
@@ -376,8 +385,8 @@ class SourceResolver(object):
 
     def _check_version_file(self, definitions_repo,
                             definitions_absref): # pragma: no cover
-        version_file = self._get_file_contents(
-            definitions_repo, definitions_absref, 'VERSION')
+        version_file = self._get_file_contents(definitions_repo,
+                                               definitions_absref, 'VERSION')
 
         if version_file == None:
             return 0    # Assume version 0 if no version file
@@ -401,7 +410,8 @@ class SourceResolver(object):
         definitions_queue = collections.deque(system_filenames)
         chunk_queue = set()
 
-        self._check_version_file(definitions_repo, definitions_absref)
+        definitions_version = self._check_version_file(definitions_repo,
+                                                       definitions_absref)
 
         while definitions_queue:
             filename = definitions_queue.popleft()
@@ -440,9 +450,27 @@ class SourceResolver(object):
                         # code path should be removed.
                         path = morphlib.util.sanitise_morphology_path(
                             c.get('morph', c['name']))
+
                         chunk_queue.add((c['repo'], c['ref'], path))
                     else:
-                        chunk_queue.add((c['repo'], c['ref'], c['morph']))
+                        # Now, does this path actually exist?
+                        path = c['morph']
+
+                        morphology = self._get_morphology(definitions_repo,
+                                                          definitions_absref,
+                                                          path)
+                        if morphology is None:
+                            if definitions_version > 1:
+                                raise MorphologyReferenceNotFoundError(
+                                    path, filename)
+                            else:
+                                self.status(
+                                    msg="Warning! `%(path)s' referenced in "
+                                        "`%(stratum)s' does not exist",
+                                    path=path,
+                                    stratum=filename)
+
+                        chunk_queue.add((c['repo'], c['ref'], path))
 
         return chunk_queue
 
