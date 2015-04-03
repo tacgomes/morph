@@ -367,21 +367,19 @@ class SourceResolver(object):
         and it's a dict
         and has the key 'version'
         and the type stored in the 'version' key is an int
-        and that int is not in the supported format
 
         otherwise returns None
 
         '''
-        version = None
 
         yaml_obj = yaml.safe_load(version_file)
-        if yaml_obj is not None:
-            if type(yaml_obj) is dict:
-                if 'version' in yaml_obj.keys():
-                    if type(yaml_obj['version']) is int:
-                        version = yaml_obj['version']
 
-        return version
+        return (yaml_obj['version'] if yaml_obj is not None
+                                    and isinstance(yaml_obj, dict)
+                                    and 'version' in yaml_obj
+                                    and isinstance(yaml_obj['version'], int)
+
+                                    else None)
 
     def _check_version_file(self, definitions_repo,
                             definitions_absref): # pragma: no cover
