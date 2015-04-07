@@ -12,15 +12,9 @@ an appliance Linux solution. Please see the website for overall information.
 Usage
 -----
 
-The Baserock builds are controlled by **morphology** files,
-which are build recipes. See below for their syntax. Everything
-in Baserock is built from git commits.
-Morphologies must be committed in git before building. The `morph` tool is
-used to actually run the build. The usual workflow is this:
-
-* put the morphology for an upstream project with its source code
-* put other morphologies in the `morphs` (note plural) repository
-* run `morph` to build stuff
+The Baserock builds are controlled by Baserock definitions files.
+See the documentation at <http://wiki.baserock.org/definitions/current>
+for information on the format.
 
 `morph --help` will provide some information, though a full guide is
 really required. Meanwhile a short usage to build a disk image:
@@ -29,7 +23,7 @@ really required. Meanwhile a short usage to build a disk image:
     cd workspace
     morph checkout baserock:baserock/definitions master
     cd master/baserock/baserock/definitions
-    morph build base-system-x86_64-generic
+    morph build systems/base-system-x86_64-generic.morph
 
 For deploying you need to create a cluster morphology. Here is an
 example to deploy to a raw disk image.
@@ -37,7 +31,7 @@ example to deploy to a raw disk image.
     name: foo
     kind: cluster
     systems:
-    - morph: base-system-x86_64-generic
+    - morph: systems/base-system-x86_64-generic.morph
       repo: baserock:baserock/definitions
       ref: master
       deploy:
@@ -49,7 +43,7 @@ example to deploy to a raw disk image.
 To deploy it, you only need to run `morph deploy` with the cluster morphology
 created:
 
-    morph deploy foo
+    morph deploy foo.morph
 
 You can write a configuration file to avoid having to write options on
 the command line every time. Put it in `~/.morph.conf` and make it look
@@ -62,177 +56,6 @@ something like this:
     trove-host = git.baserock.org
 
 All of the above settings apart from `log` are the defaults, so may be omitted.
-
-
-Morphology file syntax
-----------------------
-
-YAML is used for the morphology syntax. For example, to build a chunk:
-
-    name: foo
-    kind: chunk
-    configure-commands:
-    - ./configure --prefix="$PREFIX"
-    build-commands:
-    - make
-    test-commands:
-    - make check
-    install-commands:
-    - make DESTDIR="$DESTDIR" install
-
-For all morphologies, use the following fields:
-
-* `name`: the name of the morphology; it must currently match the filename
-  (without the `.morph` suffix); **required**
-* `kind`: the kind of thing being built; **required**
-
-For chunks, use the following fields:
-
-
-* `build-system`: if the program is built using a build system known to
-  `morph`, you can set this field and avoid having to set the various
-  `*-commands` fields; the commands that the build system specifies can
-  be overridden; the following build-systems are known:
-
-  - `autotools`
-  - `python-distutils`
-  - `cpan`
-  - `cmake`
-  - `qmake`
-
-  optional
-
-* `pre-configure-commands`: a list of shell commands to run at
-  the configuration phase of a build, before the list in `configure-commands`;
-  optional
-* `configure-commands`: a list of shell commands to run at the configuraiton
-  phase of a build; optional
-* `post-configure-commands`: a list of shell commands to run at
-  the configuration phase of a build, after the list in `configure-commands`;
-  optional
-
-* `pre-build-commands`: a list of shell commands to run at
-  the build phase of a build, before the list in `build-commands`;
-  optional
-* `build-commands`: a list of shell commands to run to build (compile) the
-  project; optional
-* `post-build-commands`: a list of shell commands to run at
-  the build phase of a build, after the list in `build-commands`;
-  optional
-
-* `pre-test-commands`: a list of shell commands to run at
-  the test phase of a build, before the list in `test-commands`;
-  optional
-* `test-commands`: a list of shell commands to run unit tests and other
-  non-interactive tests on the built but un-installed project; optional
-* `post-test-commands`: a list of shell commands to run at
-  the test phase of a build, after the list in `test-commands`;
-  optional
-
-* `pre-install-commands`: a list of shell commands to run at
-  the install phase of a build, before the list in `install-commands`;
-  optional
-* `install-commands`: a list of shell commands to install the built project;
-  the install should go into the directory named in the `DESTDIR` environment
-  variable, not the actual system; optional
-* `post-install-commands`: a list of shell commands to run at
-  the install phase of a build, after the list in `install-commands`;
-  optional
-
-* `max-jobs`: a string to be given to `make` as the argument to the `-j`
-  option to specify the maximum number of parallel jobs; the only sensible
-  value is `"1"` (including the quotes), to prevent parallel jobs to run
-  at all; parallel jobs are only used during the `build-commands` phase,
-  since the other phases are often not safe when run in parallel; `morph`
-  picks a default value based on the number of CPUs on the host system;
-  optional
-
-* `chunks`: a key/value map of lists of regular expressions;
-  the key is the name
-  of a binary chunk, the regexps match the pathnames that will be
-  included in that chunk; the patterns match the pathnames that get installed
-  by `install-commands` (the whole path below `DESTDIR`); every file must
-  be matched by at least one pattern; by default, a single chunk gets
-  created, named according to the morphology, and containing all files;
-  optional
-
-For strata, use the following fields:
-
-* `build-depends`: a list of strings, each of which refers to another
-  stratum that the current stratum depends on. This list may be omitted
-  or empty if the stratum does not depend on anything else.
-* `chunks`: a list of key/value mappings, where each mapping corresponds
-  to a chunk to be included in the stratum; the mappings may use the
-  following keys: `name` is the chunk's name (may be different from the
-  morphology name), `repo` is the repository in which to find (defaults to
-  chunk name), `ref` identifies the commit to use (typically a branch
-  name, but any tree-ish git accepts is ok), and `morph` is the name
-  of the morphology to use and is optional. In addition to these keys,
-  each of the sources MUST specify a list of build dependencies using the
-  `build-depends` field. This field may be omitted to make the source
-  depend on all other chunks that are listed earlier in the `chunks`
-  list. The field may be an empty list to indicate that the chunk does
-  not depend on anything else in the same stratum. To specify one or
-  more chunk dependencies, `build-depends` needs to be set to a list
-  that contains the names of chunks that the source depends on in the
-  same stratum. These names correspond to the values of the `name`
-  fields of the other chunks.
-
-For systems, use the following fields:
-
-* `strata`: a list of names of strata to be included in the system. Unlike
-  chunks, the stratum morphs must all be in the same Git repository as the
-  system morphology. The value of the `morph` field will be taken as the
-  artifact name; if this causes ambiguity then an `alias` may be specified as
-  well. **required**
-
-Example chunk (simplified commands):
-
-    name: eglibc
-    kind: chunk
-    configure-commands:
-    - mkdir o
-    - cd o && ../libc/configure --prefix=/usr
-    build-commands:
-    - cd o && make
-    install-commands:
-    - cd o && make install_root="$DESTDIR" install
-
-Example stratum:
-
-    name: foundation
-    kind: stratum
-    chunks:
-    - name: fhs-dirs
-      repo: upstream:fhs-dirs
-      ref: baserock/bootstrap
-      build-depends: []
-    - name: linux-api-headers
-      repo: upstream:linux
-      ref: baserock/morph
-      build-depends:
-      - fhs-dirs
-    - name: eglibc
-      repo: upstream:eglibc
-      ref: baserock/bootstrap
-      build-depends:
-      - linux-api-headers
-    - name: busybox
-      repo: upstream:busybox
-      ref: baserock/bootstrap
-      build-depends:
-      - fhs-dirs
-      - linux-api-headers
-
-Example system:
-
-    name: base
-    kind: system
-    strata:
-    - morph: foundation
-    - morph: linux-stratum
-
-Note that currently, unknown keys in morphologies are silently ignored.
 
 
 Build environment
