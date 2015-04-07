@@ -22,7 +22,7 @@ import distbuild
 
 class JsonRouter(distbuild.StateMachine):
 
-    '''Route JSON messages between clients and helpers.
+    '''Route JSON messages between controller, worker and worker helper(s).
     
     This state machine receives JSON messages from clients and helpers,
     and routes messages between them.

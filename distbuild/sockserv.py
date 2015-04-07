@@ -35,10 +35,10 @@ class ListenServer(StateMachine):
         
     def setup(self):
         src = ListeningSocketEventSource(self._addr, self._port)
+        _, self._port = src.sock.getsockname()
         if self._port_file:
-            host, port = src.sock.getsockname()
             with open(self._port_file, 'w') as f:
-                f.write('%s\n' % port)
+                f.write('%s\n' % self._port)
         self.mainloop.add_event_source(src)
 
         spec = [

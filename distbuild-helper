@@ -32,6 +32,20 @@ import urlparse
 import distbuild
 
 
+'''distbuild-helper
+
+This program exists to run other programs, and to make HTTP requests. It
+is used both by the distbuild controller (`morph controller-daemon` process)
+and the distbuild workers (`morph worker-daemon` processes).
+
+It communicates via JSON messages. For workers, it connects on the same port
+that the controller process connects. The controller has a special
+controller-helper-port which it uses for communication with its
+distbuild-helper process.
+
+'''
+
+
 class HelperMachine(distbuild.StateMachine):
 
     def __init__(self, conn):

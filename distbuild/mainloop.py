@@ -132,3 +132,68 @@ class MainLoop(object):
             event_source, event = self._events.pop(0)
 
             yield event_source, event
+
+
+class TestableMainLoop(MainLoop):
+    '''Special mainloop class with extra hooks for tests to use.
+
+    When writing a test, you often need to wait until a certain event has
+    happened, then examine that event. The run_until_event() and
+    run_until_new_state_machine() functions allow this.
+
+    '''
+    def __init__(self):
+        super(TestableMainLoop, self).__init__()
+
+        self._machines_added_this_cycle = []
+        self._events_sent_this_cycle = []
+
+    def add_state_machine(self, machine):
+        # Overriding the base class to monitor new state machines.
+        super(TestableMainLoop, self).add_state_machine(machine)
+        self._machines_added_this_cycle.append(machine)
+
+    def queue_event(self, event_source, event):
+        # Overriding the base class to monitor new events.
+        super(TestableMainLoop, self).queue_event(event_source, event)
+        self._events_sent_this_cycle.append((event_source, event))
+
+    def run_until_event(self, target_event_source, target_event_type):
+        '''Run the main loop continuously until a given event happens.
+
+        All queued messages will be processed before the loop exits.
+
+        '''
+        logging.debug('Running main loop until a %s event from %s.',
+                      target_event_type, target_event_source)
+        while self._machines:
+            self._events_sent_this_cycle = []
+
+            self._run_once()
+
+            for event_source, event in self._events_sent_this_cycle:
+                if target_event_source == event_source:
+                    if isinstance(event, target_event_type):
+                        logging.debug(
+                            'Received %s from %s, exiting loop.', event,
+                            event_source)
+                        return event
+
+    def run_until_new_state_machine(self, target_machine_type):
+        '''Run the main loop continuously until a new state machine appears.
+
+        All queued messages will be processed before the loop exits.
+
+        '''
+        logging.debug('Running main loop until a new %s appears.',
+                      target_machine_type)
+        while self._machines:
+            self._machines_added_this_cycle = []
+
+            self._run_once()
+
+            for machine in self._machines_added_this_cycle:
+                if type(machine) == target_machine_type:
+                    logging.debug(
+                        'Found new machine %s, exiting loop.', machine)
+                    return machine

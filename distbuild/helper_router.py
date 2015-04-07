@@ -40,7 +40,7 @@ class HelperResult(object):
 
 class HelperRouter(distbuild.StateMachine):
 
-    '''Route JSON messages between helpers and other state machines.
+    '''Route JSON messages between controller and its helper.
     
     This state machine relays and schedules access to one distbuild-helper
     process. The helper process connects to a socket, which causes an
@@ -51,7 +51,7 @@ class HelperRouter(distbuild.StateMachine):
     Other state machines in the same mainloop as HelperRouter can
     request work from the helper process by emitting an event:
     
-    * event source: the distbuild.HelperProcess class
+    * event source: the distbuild.HelperRouter class
     * event: distbuild.HelperRequest instance
 
     The HelperRequest event gets a message to be serialised as JSON.
