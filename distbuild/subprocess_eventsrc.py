@@ -16,6 +16,8 @@
 
 
 import logging
+import os
+import signal
 
 import distbuild
 
@@ -92,8 +94,8 @@ class SubprocessEventSource(distbuild.EventSource):
         logging.debug('SES: Killing all processes for %s', request_id)
         for id, process in self.procs:
             if id == request_id:
-                logging.debug('SES: killing %s', repr(process))
-                process.kill()
+                logging.debug('SES: killing process group of %r', process)
+                os.killpg(process.pid, signal.SIGKILL)
 
     def close(self):
         self.procs = []
