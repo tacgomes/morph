@@ -50,6 +50,7 @@ distbuild/proxy_event_source.py
 distbuild/sockbuf.py
 distbuild/socketsrc.py
 distbuild/sockserv.py
+distbuild/subprocess_eventsrc.py
 distbuild/timer_event_source.py
 distbuild/worker_build_scheduler.py
 # Not unit tested, since it needs a full system branch

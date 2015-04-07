@@ -62,4 +62,7 @@ from crashpoint import (crash_point, add_crash_condition, add_crash_conditions,
 
 from distbuild_socket import create_socket
 
+from subprocess_eventsrc import (FileReadable, FileWriteable,
+                                 SubprocessEventSource)
+
 __all__ = locals()
