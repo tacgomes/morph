@@ -109,20 +109,25 @@ class Job(object):
         self.failed = False
 
 
-class Jobs(object):
+class JobQueue(object):
+    '''Tracks worker build jobs that are queued, or in progress.'''
 
-    def __init__(self, idgen):
-        self._idgen = idgen
+    def __init__(self, owner):
+        self._owner = owner
         self._jobs = {}
 
     def get(self, artifact_basename):
         return (self._jobs[artifact_basename]
             if artifact_basename in self._jobs else None)
 
-    def create(self, artifact, initiator_id):
-        job = Job(self._idgen.next(), artifact, initiator_id)
-        self._jobs[job.artifact.basename()] = job
-        return job
+    def add(self, job):
+        artifact_basename = job.artifact.basename()
+        if artifact_basename in self._jobs:
+            logging.error(
+                "Duplicate job for %s added to %s job queue, ignoring.",
+                artifact_basename, self._owner)
+        else:
+            self._jobs[artifact_basename] = job
 
     def remove(self, job):
         if job.artifact.basename() in self._jobs:
@@ -215,9 +220,9 @@ class WorkerBuildQueuer(distbuild.StateMachine):
 
         logging.debug('WBQ: Setting up %s' % self)
         self._available_workers = []
-        self._jobs = Jobs(
-            distbuild.IdentifierGenerator('WorkerBuildQueuerJob'))
-        
+        self._jobs = JobQueue(owner='controller')
+        self._idgen = distbuild.IdentifierGenerator('WorkerBuildQueuerJob')
+
         spec = [
             # state, source, event_class, new_state, callback
             ('idle', WorkerBuildQueuer, WorkerBuildRequest, 'idle',
@@ -287,7 +292,8 @@ class WorkerBuildQueuer(distbuild.StateMachine):
             self.mainloop.queue_event(WorkerConnection, progress)
         else:
             logging.debug('WBQ: Creating job for: %s' % event.artifact.name)
-            job = self._jobs.create(event.artifact, event.initiator_id)
+            job = Job(self._idgen.next(), event.artifact, event.initiator_id)
+            self._jobs.add(job)
 
             if self._available_workers:
                 self._give_job(job)
