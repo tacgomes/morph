@@ -406,8 +406,6 @@ class WorkerConnection(distbuild.StateMachine):
         self._current_job_exec_response = None
         self._current_job_cache_request = None
 
-        self._debug_json = False
-
         addr, port = self._conn.getpeername()
         name = socket.getfqdn(addr)
         self._worker_name = '%s:%s' % (name, port)
@@ -521,10 +519,6 @@ class WorkerConnection(distbuild.StateMachine):
             stdin_contents=distbuild.serialise_artifact(job.artifact),
         )
         self._jm.send(msg)
-
-        if self._debug_json:
-            logging.debug('WC: sent to worker %s: %r'
-                % (self._worker_name, msg))
 
         started = WorkerBuildStepStarted(job.initiators,
             job.artifact.source.cache_key, self.name())
