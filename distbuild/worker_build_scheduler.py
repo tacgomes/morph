@@ -105,8 +105,26 @@ class Job(object):
         self.artifact = artifact
         self.initiators = [initiator_id]
         self.who = None  # we don't know who's going to do this yet
-        self.running = False
-        self.failed = False
+
+        self._state = 'queued'
+
+    def describe_state(self):
+        if self.who is not None:
+            return self._state + ', given to %s' % self.who
+        else:
+            return self._state
+
+    def running(self):
+        return self._state == 'running'
+
+    def failed(self):
+        return self._state == 'failed'
+
+    def set_state(self, state):
+        assert state in ['queued', 'running', 'complete', 'failed']
+        logging.debug('Setting job state for job %s with id %s to %s',
+                      self.artifact.basename(), self.id, state)
+        self._state = state
 
 
 class JobQueue(object):
@@ -156,11 +174,8 @@ class JobQueue(object):
     def __repr__(self):
         items = []
         for job in self._jobs.itervalues():
-            if job.who is None:
-                state = 'queued'
-            else:
-                state = 'given to %s' % job.who
-            items.append('%s (%s)' % (job.artifact.basename(), state))
+            items.append(
+                '%s (%s)' % (job.artifact.basename(), job.describe_state()))
         return str(items)
 
 
@@ -244,23 +259,13 @@ class WorkerBuildQueuer(distbuild.StateMachine):
         self.add_transitions(spec)
 
     def _set_job_started(self, event_source, event):
-        logging.debug('Setting job state for job %s with id %s: '
-                      'Job is running',
-                      event.job.artifact.basename(), event.job.id)
-
-        event.job.running = True
+        event.job.set_state('running')
 
     def _set_job_finished(self, event_source, event):
-        logging.debug('Setting job state for job %s with id %s: '
-                      'Job is NOT running',
-                      event.job.artifact.basename(), event.job.id)
-
-        event.job.running = False
+        event.job.set_state('complete')
 
     def _set_job_failed(self, event_source, event):
-        logging.debug('Job %s with id %s failed',
-                      event.job.artifact.basename(), event.job.id)
-        event.job.failed = True
+        event.job.set_state('failed')
 
     def _handle_request(self, event_source, event):
         distbuild.crash_point()
@@ -277,7 +282,11 @@ class WorkerBuildQueuer(distbuild.StateMachine):
             job = self._jobs.get(event.artifact.basename())
             job.initiators.append(event.initiator_id)
 
-            if job.running:
+            # Completed jobs are not tracked, so we can't tell here if the
+            # job was already built. It shouldn't happen, because the
+            # BuildController has already checked for cached builds when
+            # annotating the build graph.
+            if job.running():
                 logging.debug('Worker build step already started: %s' %
                     event.artifact.basename())
                 progress = WorkerBuildStepAlreadyStarted(event.initiator_id,
@@ -315,7 +324,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
                           name, job_id)
 
             if len(job.initiators) == 1:
-                if job.running or job.failed:
+                if job.running() or job.failed():
                     logging.debug('NOT removing running job %s with job id %s '
                                   '(WorkerConnection will cancel job)',
                                   name, job_id)
