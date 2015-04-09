@@ -486,7 +486,7 @@ class WorkerConnection(distbuild.StateMachine):
         distbuild.crash_point()
 
         logging.debug('WC: Disconnected from worker %s' % self.name())
-        self.mainloop.queue_event(InitiatorConnection, _Disconnected(self))
+        self.mainloop.queue_event(WorkerConnection, _Disconnected(self))
 
         self.mainloop.queue_event(self._cm, distbuild.Reconnect())
 
