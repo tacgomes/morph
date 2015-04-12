@@ -28,7 +28,7 @@ class FakeApplication(object):
 
     def __init__(self):
         self.settings = {
-            'verbose': True
+            'debug': True
         }
 
 

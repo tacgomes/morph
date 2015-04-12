@@ -249,7 +249,7 @@ class CachedRepo(object):
 
         try:
             self._gitdir.update_remotes(
-                echo_stderr=self.app.settings['verbose'])
+                echo_stderr=self.app.settings['debug'])
             self.already_updated = True
         except cliapp.AppException:
             raise UpdateError(self)

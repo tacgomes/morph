@@ -118,7 +118,7 @@ class LocalRepoCache(object):
         self._app.status(msg="Trying to fetch %(tarball)s to seed the cache",
                          tarball=url, chatty=True)
 
-        if self._app.settings['verbose']:
+        if self._app.settings['debug']:
             verbosity_flags = []
             kwargs = dict(stderr=sys.stderr)
         else:
@@ -212,7 +212,7 @@ class LocalRepoCache(object):
 
         try:
             self._git(['clone', '--mirror', '-n', repourl, target],
-                      echo_stderr=self._app.settings['verbose'])
+                      echo_stderr=self._app.settings['debug'])
         except cliapp.AppException as e:
             errors.append('Unable to clone from %s to %s: %s' %
                           (repourl, target, e))

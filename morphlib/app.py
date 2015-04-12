@@ -55,7 +55,7 @@ class Morph(cliapp.Application):
 
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'],
-                              'show what is happening in much detail')
+                              'write build log on stdout')
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
 
@@ -84,7 +84,11 @@ class Morph(cliapp.Application):
                               'automatically',
                               group=group_advanced)
         self.settings.boolean(['build-log-on-stdout'],
-                              'write build log on stdout',
+                              'internal option for use by distbuild to'
+                              'transfer logs from the worker to the'
+                              'initiator in real time')
+        self.settings.boolean(['debug', 'd'],
+                              'show what is happening in much detail',
                               group=group_advanced)
         self.settings.string_list(['repo-alias'],
                                   'list of URL prefix definitions, in the '
@@ -319,7 +323,7 @@ class Morph(cliapp.Application):
         * ``msg`` is the message text; it can use ``%(foo)s`` to embed the
           value of keyword argument ``foo``
         * ``chatty`` should be true when the message is only informative,
-          and only useful for users who want to know everything (--verbose)
+          and only useful for users who want to know everything (--debug)
         * ``error`` should be true when it is an error message
 
         All other keywords are ignored unless embedded in ``msg``.
@@ -335,7 +339,7 @@ class Morph(cliapp.Application):
         error = kwargs.get('error', False)
         chatty = kwargs.get('chatty', False)
         quiet = self.settings['quiet']
-        verbose = self.settings['verbose']
+        debug = self.settings['debug']
 
         if error:
             logging.error(text)
@@ -344,7 +348,7 @@ class Morph(cliapp.Application):
         else:
             logging.info(text)
 
-        ok = verbose or error or (not quiet and not chatty)
+        ok = debug or error or (not quiet and not chatty)
         if ok:
             self._write_status(text)
 
@@ -371,7 +375,7 @@ class Morph(cliapp.Application):
         else:
             print_command = True
 
-        if print_command and self.settings['verbose']:
+        if print_command and self.settings['debug']:
             # Don't call self.status() here, to avoid writing the message to
             # the log as well as to the console. The cliapp.runcmd() function
             # will also log the command, and it's messy having it logged twice.
