@@ -563,17 +563,33 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
         self.save_build_times()
         return self.source.artifacts.itervalues()
 
+    def load_stratum(self, stratum_artifact):
+        '''Load a stratum from the local artifact cache.
+
+        Returns a list of ArtifactCacheReference instances for the chunks
+        contained in the stratum.
+
+        '''
+        cache = self.local_artifact_cache
+        with cache.get(stratum_artifact) as stratum_file:
+            try:
+                artifact_list = json.load(stratum_file,
+                                          encoding='unicode-escape')
+            except ValueError as e:
+                raise cliapp.AppException(
+                    'Corruption detected: %s while loading %s' %
+                    (e, cache.artifact_filename(stratum_artifact)))
+        return [ArtifactCacheReference(a) for a in artifact_list]
+
     def unpack_one_stratum(self, stratum_artifact, target):
         '''Unpack a single stratum into a target directory'''
 
         cache = self.local_artifact_cache
-        with cache.get(stratum_artifact) as stratum_file:
-            artifact_list = json.load(stratum_file, encoding='unicode-escape')
-            for chunk in (ArtifactCacheReference(a) for a in artifact_list):
-                self.app.status(msg='Unpacking chunk %(basename)s',
-                                basename=chunk.basename(), chatty=True)
-                with cache.get(chunk) as chunk_file:
-                    morphlib.bins.unpack_binary_from_file(chunk_file, target)
+        for chunk in self.load_stratum(stratum_artifact):
+            self.app.status(msg='Unpacking chunk %(basename)s',
+                            basename=chunk.basename(), chatty=True)
+            with cache.get(chunk) as chunk_file:
+                morphlib.bins.unpack_binary_from_file(chunk_file, target)
 
         target_metadata = os.path.join(
                 target, 'baserock', '%s.meta' % stratum_artifact.name)
@@ -596,12 +612,10 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
 
                 # download the chunk artifacts if necessary
                 for stratum_artifact in self.source.dependencies:
-                    f = self.local_artifact_cache.get(stratum_artifact)
-                    chunks = [ArtifactCacheReference(c) for c in json.load(f)]
+                    chunks = self.load_stratum(stratum_artifact)
                     download_depends(chunks,
                                      self.local_artifact_cache,
                                      self.remote_artifact_cache)
-                    f.close()
 
                 # unpack it from the local artifact cache
                 for stratum_artifact in self.source.dependencies:
