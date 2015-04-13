@@ -21,6 +21,7 @@ import sys
 import tarfile
 import tempfile
 import uuid
+import warnings
 
 import cliapp
 import morphlib
@@ -59,6 +60,53 @@ def configuration_for_system(system_id, vars_from_commandline,
     morphlib.util.sanitize_environment(final_env)
 
     return final_env
+
+
+def deployment_type_and_location(system_id, config, is_upgrade):
+    '''Get method and location for deploying a given system.
+
+    The rules for this depend on whether the user is running `morph deploy`
+    (initial deployment) or `morph upgrade`. The latter honours 'upgrade-type'
+    and 'upgrade-location' if they are set, falling back to 'type' and
+    'location' if they are not. The former only honours 'type' and 'location'.
+
+    In the past, only the 'type' and 'location' fields existed. So `morph
+    upgrade` needs to handle the case where only these are set, to avoid
+    breaking existing cluster .morph files.
+
+    '''
+    if is_upgrade and ('upgrade-type' in config or 'upgrade-location' in \
+                       config):
+        if 'upgrade-type' not in config:
+            raise morphlib.Error(
+                '"upgrade-location" was set for system %s, but not '
+                '"upgrade-type"' % system_id)
+
+        if 'upgrade-location' not in config:
+            raise morphlib.Error(
+                '"upgrade-type" was set for system %s, but not '
+                '"upgrade-location"' % system_id)
+
+        deployment_type = config['upgrade-type']
+        location = config['upgrade-location']
+    else:
+        if 'type' not in config:
+            raise morphlib.Error(
+                '"type" is undefined for system "%s"' % system_id)
+
+        if 'location' not in config:
+            raise morphlib.Error(
+                '"location" is undefined for system "%s"' % system_id)
+
+        if is_upgrade:
+            warnings.warn(
+                '"upgrade-type" and "upgrade-location" were not specified for '
+                'system %s, using "type" and "location"\n' % system_id)
+
+        deployment_type = config['type']
+        location = config['location']
+
+    return deployment_type, location
 
 
 class DeployPlugin(cliapp.Plugin):
@@ -125,8 +173,10 @@ class DeployPlugin(cliapp.Plugin):
                  nfsboot) (see below).
                * **location**: where the deployed system should end up
                  at. The syntax depends on the deployment type (see below).
-                 Any additional item on the dictionary will be added to the
-                 environment as `KEY=VALUE`.
+             Optionally, it can specify **upgrade-type** and
+             **upgrade-location** as well for use with `morph upgrade`. Any
+             additional item on the dictionary will be added to the environment
+             as `KEY=VALUE`.
 
             * **deploy-defaults**: allows multiple deployments of the same
              system to share some settings, when they can. Default settings
@@ -142,6 +192,8 @@ class DeployPlugin(cliapp.Plugin):
                       cluster-foo-x86_64-1:
                           type: kvm
                           location: kvm+ssh://user@host/x86_64-1/x86_64-1.img
+                          upgrade-type: ssh-rsync
+                          upgrade-location: root@localhost
                           HOSTNAME: cluster-foo-x86_64-1
                           DISK_SIZE: 4G
                           RAM_SIZE: 4G
@@ -177,10 +229,6 @@ class DeployPlugin(cliapp.Plugin):
 
         * `nfsboot` where Morph creates a system to be booted over
           a network.
-
-        * `ssh-rsync` where Morph copies a binary delta over to the target
-          system and arranges for it to be bootable. This requires
-          `system-version-manager` from the tbdiff chunk
 
         * `initramfs`, where Morph turns the system into an initramfs image,
           suitable for being used as the early userland environment for a
@@ -340,7 +388,7 @@ class DeployPlugin(cliapp.Plugin):
         Any `KEY=VALUE` parameters given in `deploy` or `deploy-defaults`
         sections of the cluster morphology, or given through the command line
         are set as environment variables when either the configuration or the
-        write extension runs (except `type` and `location`).
+        write extension runs.
 
         Deployment configuration is stored in the deployed system as
         /baserock/deployment.meta. THIS CONTAINS ALL ENVIRONMENT VARIABLES SET
@@ -495,15 +543,8 @@ class DeployPlugin(cliapp.Plugin):
                                         else 'no')
                     final_env['UPGRADE'] = is_upgrade
 
-                    deployment_type = final_env.pop('type', None)
-                    if not deployment_type:
-                        raise morphlib.Error('"type" is undefined '
-                                             'for system "%s"' % system_id)
-
-                    location = final_env.pop('location', None)
-                    if not location:
-                        raise morphlib.Error('"location" is undefined '
-                                             'for system "%s"' % system_id)
+                    deployment_type, location = deployment_type_and_location(
+                        system_id, final_env, self.app.settings['upgrade'])
 
                     self.check_deploy(root_repo_dir, ref, deployment_type,
                                       location, final_env)
@@ -535,7 +576,32 @@ class DeployPlugin(cliapp.Plugin):
     def upgrade(self, args):
         '''Upgrade an existing set of instances using built images.
 
-        See `morph help deploy` for documentation.
+        This command is very similar to `morph deploy`. Please read `morph help
+        deploy` first for an introduction to deployment (cluster) .morph files.
+
+        To allow upgrading a system after the initial deployment, you need to
+        set two extra fields: **upgrade-type** and **upgrade-location**.
+
+        The most common .write extension for upgrades is the `ssh-rsync` write
+        extension. See `morph help ssh-rsync.write` to read its documentation
+
+        To deploy a development system that can then deploy upgrades to itself
+        using passwordless SSH access, adapt the following example cluster:
+
+            name: devel-system
+            kind: cluster
+            systems:
+                - morph: systems/devel-system-x86_64-generic.morph
+                  deploy:
+                      devel-system:
+                          type: kvm
+                          location: kvm+ssh://...
+
+                          upgrade-type: ssh-rsync
+                          upgrade-location: root@localhost
+
+                          HOSTNAME: my-devel-system
+                          ..
 
         '''
 
