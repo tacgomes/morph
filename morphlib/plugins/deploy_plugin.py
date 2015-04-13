@@ -170,9 +170,10 @@ class DeployPlugin(cliapp.Plugin):
              system and each system has at least the following keys:
 
                * **type**: identifies the type of development e.g. (kvm,
-                 nfsboot) (see below).
+                 pxeboot) (see below).
                * **location**: where the deployed system should end up
                  at. The syntax depends on the deployment type (see below).
+
              Optionally, it can specify **upgrade-type** and
              **upgrade-location** as well for use with `morph upgrade`. Any
              additional item on the dictionary will be added to the environment
@@ -200,8 +201,8 @@ class DeployPlugin(cliapp.Plugin):
                           VCPUS: 2
                 - morph: devel-system-armv7-highbank
                   deploy-defaults:
-                      type: nfsboot
-                      location: cluster-foo-nfsboot-server
+                      type: pxeboot
+                      location: cluster-foo-pxeboot-server
                   deploy:
                       cluster-foo-armv7-1:
                           HOSTNAME: cluster-foo-armv7-1
@@ -209,87 +210,24 @@ class DeployPlugin(cliapp.Plugin):
                           HOSTNAME: cluster-foo-armv7-2
 
         Each system defined in a cluster morphology can be deployed in
-        multiple ways (`type` in a cluster morphology). Morph provides
-        the following types of deployment:
+        multiple ways (`type` in a cluster morphology). These methods are
+        implemented by .write extensions. There are some built into Morph,
+        and you can also store them in a definitions.git repo.
 
-        * `tar` where Morph builds a tar archive of the root file system.
-
-        * `rawdisk` where Morph builds a raw disk image and sets up the
-          image with a bootloader and configuration so that it can be
-          booted. Disk size is set with `DISK_SIZE` (see below).
-
-        * `virtualbox-ssh` where Morph creates a VirtualBox disk image,
-          and creates a new virtual machine on a remote host, accessed
-          over ssh.  Disk and RAM size are set with `DISK_SIZE` and
-          `RAM_SIZE` (see below).
-
-        * `kvm`, which is similar to `virtualbox-ssh`, but uses libvirt
-          and KVM instead of VirtualBox.  Disk and RAM size are set with
-          `DISK_SIZE` and `RAM_SIZE` (see below).
-
-        * `nfsboot` where Morph creates a system to be booted over
-          a network.
-
-        * `initramfs`, where Morph turns the system into an initramfs image,
-          suitable for being used as the early userland environment for a
-          system to be able to locate more complicated storage for its root
-          file-system, or on its own for diskless deployments.
-
-        There are additional extensions that currently live in the Baserock
-        definitions repo (baserock:baserock/definitions). These include:
-
-        * `image-package` where Morph creates a tarball that includes scripts
-          that can be used to make disk images outside of a Baserock
-          environment. The example in definitions.git will create scripts for
-          generating disk images and installing to existing disks.
-
-        * `sdk` where Morph generates something resembing a BitBake SDK, which
-          provides a toolchain for building software to target a system built
-          by Baserock, from outside of a Baserock environment. This creates a
-          self-extracting shell archive which you pass a directory to extract
-          to, and inside that has a shell snippet called
-          environment-setup-$TARGET which can be used to set environment
-          variables to use the toolchain.
-
-        * `pxeboot` where Morph temporarily network-boots the system you are
-          deploying, so it can install a more permanent system onto local
-          storage.
+        See `morph help-extensions` for a full list of these extensions. If you
+        run this command in a system branch, it will list those that are
+        available in the definitions.git repo that is checked out as well as
+        those built-in to Morph. Each extension can provide its own
+        documentation. To see help for the 'tar' write extension, for example,
+        run `morph help tar.write`.
 
         In addition to the deployment type, the user must also give
         a value for `location`. Its syntax depends on the deployment
-        types. The deployment types provided by Morph use the
-        following syntaxes:
+        method. See the help file for the given write extension to find out
+        how to format the 'location' field.
 
-        * `tar`: pathname to the tar archive to be created; for
-          example, `/home/alice/testsystem.tar`
-
-        * `rawdisk`: pathname to the disk image to be created; for
-          example, `/home/alice/testsystem.img`
-
-        * `virtualbox-ssh` and `kvm`: a custom URL scheme that
-          provides the target host machine (the one that runs
-          VirtualBox or `kvm`), the name of the new virtual machine,
-          and the location on the target host of the virtual disk
-          file. The target host is accessed over ssh. For example,
-          `vbox+ssh://alice@192.168.122.1/testsys/home/alice/testsys.vdi`
-          or `kvm+ssh://alice@192.168.122.1/testsys/home/alice/testys.img`
-          where
-
-              * `alice@192.168.122.1` is the target as given to ssh,
-                **from within the development host** (which may be
-                different from the target host's normal address);
-
-              * `testsys` is the new VM's name;
-
-              * `/home/alice/testsys.vdi` and `/home/alice/testys.img` are
-                the pathnames of the disk image files on the target host.
-
-        * `nfsboot`: the address of the nfsboot server. (Note this is just
-          the _address_ of the trove, _not_ `user@...`, since `root@` will
-          automatically be prepended to the server address.)
-
-        In addition to the `location`parameter, deployments can take additional
-        `KEY=VALUE` parameters. These can be provided in the following ways:
+        Deployments take additional `KEY=VALUE` parameters as well. These can
+        be provided in the following ways:
 
         1. In the cluster definition file, e.g.
 
@@ -313,52 +251,8 @@ class DeployPlugin(cliapp.Plugin):
 
         -ve `no`, `0`, `false`;
 
-        The following `KEY=VALUE` parameters are supported for `rawdisk`,
-        `virtualbox-ssh` and `kvm` and deployment types:
-
-        * `DISK_SIZE=X` to set the size of the disk image. `X` should use a
-          suffix of `K`, `M`, or `G` (in upper or lower case) to indicate
-          kilo-, mega-, or gigabytes. For example, `DISK_SIZE=100G` would
-          create a 100 gigabyte disk image. **This parameter is mandatory**.
-
-        The `kvm` and `virtualbox-ssh` deployment types support an additional
-        parameter:
-
-        * `RAM_SIZE=X` to set the size of virtual RAM for the virtual
-          machine. `X` is interpreted in the same was as `DISK_SIZE`,
-          and defaults to `1G`.
-
-        * `AUTOSTART=<VALUE>` - allowed values are `yes` and `no`
-          (default)
-
-        For the `nfsboot` write extension,
-
-        * the following `KEY=VALUE` pairs are mandatory
-
-              * `NFSBOOT_CONFIGURE=yes` (or any non-empty value). This
-                enables the `nfsboot` configuration extension (see
-                below) which MUST be used when using the `nfsboot`
-                write extension.
-
-              * `HOSTNAME=<STRING>` a unique identifier for that system's
-                `nfs` root when it's deployed on the nfsboot server - the
-                extension creates a directory with that name for the `nfs`
-                root, and stores kernels by that name for the tftp server.
-
-        * the following `KEY=VALUE` pairs are optional
-
-              * `VERSION_LABEL=<STRING>` - set the name of the system
-                version being deployed, when upgrading. Defaults to
-                "factory".
-
-        Each deployment type is implemented by a **write extension**. The
-        ones provided by Morph are listed above, but users may also
-        create their own by adding them in the same git repository
-        and branch as the system morphology. A write extension is a
-        script that does whatever is needed for the deployment. A write
-        extension is passed two command line parameters: the name of an
-        unpacked directory tree that contains the system files (after
-        configuration, see below), and the `location` parameter.
+        Some extensions require certain parameters to be set, be sure to read
+        the documentation of the extension you are using.
 
         Regardless of the type of deployment, the image may be
         configured for a specific deployment by using **configuration
@@ -376,19 +270,22 @@ class DeployPlugin(cliapp.Plugin):
 
         Configuration extensions are scripts that get the unpacked
         directory tree of the system as their parameter, and do whatever
-        is needed to configure the tree.
-
-        Morph provides the following configuration extension built in:
-
-        * `set-hostname` sets the hostname of the system to the value
-          of the `HOSTNAME` variable.
-        * `nfsboot` configures the system for nfsbooting. This MUST
-          be used when deploying with the `nfsboot` write extension.
+        is needed to configure the tree. Available .configuration extensions
+        can be found with `morph help-extensions`, as with .write extensions.
 
         Any `KEY=VALUE` parameters given in `deploy` or `deploy-defaults`
         sections of the cluster morphology, or given through the command line
         are set as environment variables when either the configuration or the
         write extension runs.
+
+        You can write your own .write and .configure extensions, in any
+        format that Morph can execute at deploy-time. They must be committed
+        to your definitions.git repository for Morph to find them.
+        A .configure extension is passed one argument: the path to an unpacked
+        directory tree containing the system files. A write extension is passed
+        two command line parameters: the path to the unpacked system, and the
+        `location` parameter. The .configure and .write extensions have full
+        'root' access to the build machine, so write them carefully!
 
         Deployment configuration is stored in the deployed system as
         /baserock/deployment.meta. THIS CONTAINS ALL ENVIRONMENT VARIABLES SET
