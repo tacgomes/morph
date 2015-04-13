@@ -626,6 +626,8 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
     def write_metadata(self, instdir, artifact_name):
         BuilderBase.write_metadata(self, instdir, artifact_name)
 
+        # This code is here only for compatibility reasons
+        # Use the new install-essential-files configure extension instead
         os_release_file = os.path.join(instdir, 'etc', 'os-release')
         dirname = os.path.dirname(os_release_file)
         if not os.path.exists(dirname):
