@@ -707,6 +707,12 @@ class GitDirectory(object):
         args = ['branch', '--contains', ref]
         return self._gitcmd_output_list(*args)
 
+    def version_guess(self, ref): # pragma: no cover
+        self._check_ref_exists(ref)
+
+        args = ['describe', '--tags', '--always', ref]
+        return morphlib.git.gitcmd(self._runcmd, *args).strip()
+
     def _update_ref(self, ref_args, message):
         args = ['update-ref']
         # No test coverage, since while this functionality is useful,

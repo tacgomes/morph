@@ -143,6 +143,15 @@ class CachedRepo(object):
         '''
         return self._gitdir.branches_containing_sha1(ref)
 
+    def version_guess(self, ref): # pragma: no cover
+        '''Guess version number using `git describe --tags`
+
+        Raises a gitdir.InvalidRefError if the ref is not found in the
+        repository.
+
+        '''
+        return self._gitdir.version_guess(ref)
+
     def list_files(self, ref, recurse=True):  # pragma: no cover
         '''Return filenames found in the tree pointed to by the given ref.
 
