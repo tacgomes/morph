@@ -26,6 +26,41 @@ import cliapp
 import morphlib
 
 
+def configuration_for_system(system_id, vars_from_commandline,
+                             deploy_defaults, deploy_params):
+    '''Collect all configuration variables for deploying one system.
+
+    This function collects variables from the following places:
+
+      - the values specified in the 'deploy-defaults' section of the cluster
+        .morph file.
+      - values specified in the stanza for the system in the cluster.morph file
+      - environment variables of the running `morph deploy` process
+      - values specified on the `morph deploy` commandline, for example
+        `mysystem.HOSTNAME=foo`.
+
+    Later values override earlier ones, so 'deploy-defaults' has the lowest
+    precidence and the `morph deploy` commandline has highest precidence.
+
+    '''
+    commandline_vars_for_system = [
+        pair[len(system_id)+1:] for pair in vars_from_commandline
+        if pair.startswith(system_id)]
+
+    user_env = morphlib.util.parse_environment_pairs(
+        os.environ, commandline_vars_for_system)
+
+    # Order is important here: the second dict overrides the first, the third
+    # overrides the second.
+    final_env = dict(deploy_defaults.items() +
+                     deploy_params.items() +
+                     user_env.items())
+
+    morphlib.util.sanitize_environment(final_env)
+
+    return final_env
+
+
 class DeployPlugin(cliapp.Plugin):
 
     def enable(self):
@@ -453,15 +488,8 @@ class DeployPlugin(cliapp.Plugin):
                     system_status_prefix, system_id)
                 self.app.status_prefix = deployment_status_prefix
                 try:
-                    user_env = morphlib.util.parse_environment_pairs(
-                            os.environ,
-                            [pair[len(system_id)+1:]
-                            for pair in env_vars
-                            if pair.startswith(system_id)])
-
-                    final_env = dict(deploy_defaults.items() +
-                                     deploy_params.items() +
-                                     user_env.items())
+                    final_env = configuration_for_system(
+                        system_id, env_vars, deploy_defaults, deploy_params)
 
                     is_upgrade = ('yes' if self.app.settings['upgrade']
                                         else 'no')
@@ -477,7 +505,6 @@ class DeployPlugin(cliapp.Plugin):
                         raise morphlib.Error('"location" is undefined '
                                              'for system "%s"' % system_id)
 
-                    morphlib.util.sanitize_environment(final_env)
                     self.check_deploy(root_repo_dir, ref, deployment_type,
                                       location, final_env)
                     system_tree = self.setup_deploy(build_command,
