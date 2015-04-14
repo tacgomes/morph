@@ -67,7 +67,7 @@ class ListeningSocketEventSource(EventSource):
         self.sock.bind((addr, port))
         self.sock.listen(5)
         self._accepting = True
-        logging.info('Listening at %s' % self.sock.remotename())
+        logging.info('Listening at %s' % self.sock.localname())
 
     def get_select_params(self):
         r = [self.sock.fileno()] if self._accepting else []
