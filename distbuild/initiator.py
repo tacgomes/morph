@@ -70,10 +70,10 @@ class Initiator(distbuild.StateMachine):
         self._step_outputs = {}
         self.debug_transitions = False
 
-        if app.settings['initiator-step-output-dir'] == '':
-            self._step_output_dir = create_build_directory()
-        else:
-            self._step_output_dir = app.settings['initiator-step-output-dir']
+        # The build-log output dir is set up in _open_output() when we
+        # receive the first log message. Thus if we never get that far, we
+        # don't leave an empty build-00/ directory lying around.
+        self._step_output_dir = None
 
     def setup(self):
         distbuild.crash_point()
@@ -140,13 +140,21 @@ class Initiator(distbuild.StateMachine):
     def _handle_build_progress_message(self, msg):
         self._app.status(msg='Progress: %(msgtext)s', msgtext=msg['message'])
 
+    def _get_step_output_dir(self):
+        if self._step_output_dir is None:
+            configured_dir = self._app.settings['initiator-step-output-dir']
+            if configured_dir == '':
+                self._step_output_dir = create_build_directory()
+            else:
+                self._step_output_dir = configured_dir
+        return self._step_output_dir
+
     def _open_output(self, msg):
         assert msg['step_name'] not in self._step_outputs
-        if self._step_output_dir:
-            filename = os.path.join(self._step_output_dir,
-                                    'build-step-%s.log' % msg['step_name'])
-        else:
-            filename = '/dev/null'
+
+        path = self._get_step_output_dir()
+        filename = os.path.join(path,
+                               'build-step-%s.log' % msg['step_name'])
         f = open(filename, 'a')
         self._step_outputs[msg['step_name']] = f
 
