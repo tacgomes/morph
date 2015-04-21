@@ -33,13 +33,18 @@ class CertifyPlugin(cliapp.Plugin):
         pass
 
     def certify(self, args):
-        '''Certify that any given system definition is reproducable.
+        '''Certify that any given system definition is reproducible.
 
         Command line arguments:
 
         * `REPO` is a git repository URL.
         * `REF` is a branch or other commit reference in that repository.
         * `MORPH` is a system morphology name at that ref.
+
+        Example:
+
+            morph certify baserock:baserock/definitions master \
+                systems/devel-system-x86_64-generic.morph
 
         '''
 
