@@ -189,12 +189,13 @@ class BuildPlugin(cliapp.Plugin):
                 build-essential
 
         '''
-        # Raise an exception if there is not enough space
-        morphlib.util.check_disk_available(
-            self.app.settings['tempdir'],
-            self.app.settings['tempdir-min-space'],
-            self.app.settings['cachedir'],
-            self.app.settings['cachedir-min-space'])
+        if not self.use_distbuild:
+            # Raise an exception if there is not enough space
+            morphlib.util.check_disk_available(
+                self.app.settings['tempdir'],
+                self.app.settings['tempdir-min-space'],
+                self.app.settings['cachedir'],
+                self.app.settings['cachedir-min-space'])
 
         ws = morphlib.workspace.open('.')
         sb = morphlib.sysbranchdir.open_from_within('.')
