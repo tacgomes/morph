@@ -129,9 +129,20 @@ class LocalArtifactCache(object):
            returns a [(cache_key, set(artifacts), last_used)]
 
         '''
+        def is_artifact(filename):
+            # This is just enough to avoid crashes from random unpacked
+            # directory trees and temporary files in the cachedir. A
+            # better mechanism is needed. It's not simple to tell
+            # OSFS.walkfiles() to do a non-recursive walk, sadly.
+            return '.' in filename and '/' not in filename
+
         CacheInfo = collections.namedtuple('CacheInfo', ('artifacts', 'mtime'))
         contents = collections.defaultdict(lambda: CacheInfo(set(), 0))
         for filename in self.cachefs.walkfiles():
+            # filenames are returned with a preceeding /.
+            filename = filename[1:]
+            if not is_artifact(filename):  # pragma: no cover
+                continue
             cachekey = filename[:63]
             artifact = filename[65:]
             artifacts, max_mtime = contents[cachekey]
@@ -146,5 +157,5 @@ class LocalArtifactCache(object):
     def remove(self, cachekey):
         '''Remove all artifacts associated with the given cachekey.'''
         for filename in (x for x in self.cachefs.walkfiles()
-                         if x.startswith(cachekey)):
+                         if x[1:].startswith(cachekey)):
             self.cachefs.remove(filename)
