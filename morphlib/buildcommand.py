@@ -141,6 +141,12 @@ class BuildCommand(object):
         if host_arch == 'armv8b' and root_arch in ('armv7b', 'armv7bhf'):
             return
 
+        # Since the armv7 instruction set is nearly entirely armv5 compatible,
+        # and since the incompatibilities are appropriately trapped in the
+        # kernel, we can safely run any armv5 toolchain natively on armv7.
+        if host_arch in ('armv7l', 'armv7lhf') and root_arch in 'armv5l':
+            return
+
         raise morphlib.Error(
             'Are you trying to cross-build? Host architecture is %s but '
             'target is %s' % (host_arch, root_arch))
