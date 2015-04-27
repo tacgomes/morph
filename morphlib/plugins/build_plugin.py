@@ -288,7 +288,7 @@ class BuildPlugin(cliapp.Plugin):
         commit = definitions_repo.resolve_ref_to_commit(ref)
 
         self.start_build(root_repo_url, commit, build_command,
-                         system_filename, component_names)
+                         system_filename, component_names, original_ref=ref)
 
     def _find_artifacts(self, names, root_artifact):
         found = collections.OrderedDict()
@@ -315,7 +315,8 @@ class BuildPlugin(cliapp.Plugin):
             return
 
         self.app.status(msg='Deciding on task order')
-        srcpool = bc.create_source_pool(repo, commit, system_filename)
+        srcpool = bc.create_source_pool(repo, commit, system_filename,
+                                        original_ref)
         bc.validate_sources(srcpool)
         root = bc.resolve_artifacts(srcpool)
         if not component_names:
