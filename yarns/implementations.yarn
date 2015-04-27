@@ -690,7 +690,7 @@ Generating a manifest.
     run_in "$DATADIR" tar -c baserock > "$DATADIR/artifact.tar"
 
     IMPLEMENTS WHEN morph generates a manifest
-    run_morph generate-manifest "$DATADIR/artifact.tar" > "$DATADIR/manifest"
+    run_morph generate-manifest-genivi "$DATADIR/artifact.tar" > "$DATADIR/manifest"
 
     IMPLEMENTS THEN the manifest is generated
 

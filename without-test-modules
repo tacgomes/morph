@@ -34,6 +34,7 @@ morphlib/plugins/push_pull_plugin.py
 morphlib/plugins/distbuild_plugin.py
 morphlib/plugins/certify_plugin.py
 morphlib/plugins/get_repo_plugin.py
+morphlib/plugins/system_manifests_plugin.py
 distbuild/__init__.py
 distbuild/build_controller.py
 distbuild/connection_machine.py

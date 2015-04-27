@@ -256,7 +256,7 @@ class ManifestGenerator(object):
 class ArtifactInspectionPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('generate-manifest',
+        self.app.add_subcommand('generate-manifest-genivi',
                                 self.generate_manifest,
                                 arg_synopsis='SYSTEM-ARTIFACT')
 
@@ -289,7 +289,7 @@ class ArtifactInspectionPlugin(cliapp.Plugin):
 
         Example:
 
-            morph generate-manifest /src/cache/artifacts/foo-rootfs
+            morph generate-manifest-genivi /src/cache/artifacts/foo-rootfs
 
         '''
 
