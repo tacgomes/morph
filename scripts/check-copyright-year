@@ -28,7 +28,7 @@ class CheckCopyrightYear(cliapp.Application):
 
     pat = re.compile(r'^[ #/*]*Copyright\s+(\(C\)\s*)'
                      r'(?P<years>[0-9, -]+)')
-    ignore = ['COPYING']
+    ignore = ['COPYING', 'morphlib/licensecheck.pl']
 
     def add_settings(self):
         self.settings.boolean(['verbose', 'v'], 'be more verbose')
