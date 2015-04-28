@@ -118,7 +118,7 @@ class LocalRepoCache(object):
         self._app.status(msg="Trying to fetch %(tarball)s to seed the cache",
                          tarball=url, chatty=True)
 
-        if self._app.settings['debug']:
+        if self._app.settings['verbose']:
             verbosity_flags = []
             kwargs = dict(stderr=sys.stderr)
         else:
