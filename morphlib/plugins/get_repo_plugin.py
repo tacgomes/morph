@@ -14,7 +14,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import logging
 import os
+import shutil
 
 import cliapp
 
@@ -106,8 +108,13 @@ class GetRepoPlugin(cliapp.Plugin):
                 cached_repo = lrc.get_updated_repo(chunk_spec['repo'],
                                                    chunk_spec['ref'])
 
-                self._clone_repo(cached_repo, dirname,
-                                 ref or chunk_spec['ref'])
+                try:
+                    self._clone_repo(cached_repo, dirname,
+                                    ref or chunk_spec['ref'])
+                except BaseException as e:
+                    logging.debug('Removing %s due to %s', dirname, e)
+                    shutil.rmtree(dirname)
+                    raise
             else:
                 raise DirectoryAlreadyExistsError(chunk_spec['name'], dirname)
 
