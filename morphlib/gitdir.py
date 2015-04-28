@@ -651,11 +651,24 @@ class GitDirectory(object):
         with fileno() method.
 
         '''
-        if isinstance(blob_contents, basestring):
-            kwargs = {'feed_stdin': blob_contents}
+        return self._store_object(contents=blob_contents, type='blob')
+
+    def store_commit(self, commit_contents): # pragma: no cover
+        '''Hash `commit_contents`, store it in git and return the sha1.
+
+        `commit_contents` must either be a string or a value suitable to
+        pass to subprocess.Popen i.e. a file descriptor or file object
+        with fileno() method.
+
+        '''
+        return self._store_object(contents=commit_contents, type='commit')
+
+    def _store_object(self, contents, type):
+        if isinstance(contents, basestring):
+            kwargs = {'feed_stdin': contents}
         else:
-            kwargs = {'stdin': blob_contents}
-        return morphlib.git.gitcmd(self._runcmd, 'hash-object', '-t', 'blob',
+            kwargs = {'stdin': contents}
+        return morphlib.git.gitcmd(self._runcmd, 'hash-object', '-t', type,
                                    '-w', '--stdin', **kwargs).strip()
 
     def commit_tree(self, tree, parent, message, **kwargs):
