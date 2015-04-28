@@ -128,9 +128,10 @@ class PushFailureError(PushError):
         self.exit = exit
         self.results = results
         self.stderr = stderr
-        PushError.__init__(self, 'Push to remote "%(remote)s", '\
-                                 'push url %(push_url)s '\
-                                 'failed with exit code %(exit)s' % locals())
+        PushError.__init__(self, 'Push to remote "%(remote)s", '
+                                 'push url %(push_url)s '
+                                 'failed with exit code %(exit)s\n'
+                                 'stderr: %(stderr)s' % locals())
 
 
 class RefSpec(object):
