@@ -375,15 +375,16 @@ class BuildController(distbuild.StateMachine):
         self._artifact = event.artifact
         names = self._request['component_names']
         self._components = find_artifacts(names, self._artifact)
-        failed = False
-        for component in self._components:
-            if component.source.morphology['name'] not in names:
+        not_found = []
+        for component in names:
+            found_names = [c.source_name for c in self._components]
+            if component not in found_names:
                 logging.debug('Failed to find %s in build graph'
-                              % component.filename)
-                failed = True
-        if failed:
-            self.fail('Failed to find all components in %s'
-                      % self._artifact.name)
+                              % component)
+                not_found.append(component)
+        if not_found:
+            self.fail('Some of the requested components are not in %s: %s'
+                      % (self._artifact.name, ', '.join(not_found)))
         self._helper_id = self._idgen.next()
         artifact_names = []
 
