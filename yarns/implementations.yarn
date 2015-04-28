@@ -406,7 +406,9 @@ another to hold a chunk.
     repo-alias = test=git://127.0.0.1:$GIT_DAEMON_PORT/%s#git://127.0.0.1:$GIT_DAEMON_PORT/%s
     cachedir = $DATADIR/cache
     tempdir = $DATADIR/tmp
-    trove-host= []
+    trove-host = 127.0.0.1
+    trove-id = testtrove
+    build-ref-prefix = testtrove/builds
     EOF
 
     mkdir "$DATADIR/cache"
@@ -725,7 +727,7 @@ Implementations for temporary build branch handling
 ---------------------------------------------------
 
     IMPLEMENTS GIVEN the workspace contains no temporary build branches
-    build_ref_prefix=baserock/builds/
+    build_ref_prefix=testtrove/builds/
     cd "$DATADIR/workspace"
     # Want to use -execdir here, but busybox find doesn't support it
     find . -name .git -print | while read gitdir; do (
@@ -736,7 +738,7 @@ Implementations for temporary build branch handling
     ); done
 
     IMPLEMENTS GIVEN the git server contains no temporary build branches
-    build_ref_prefix=refs/heads/baserock/builds/
+    build_ref_prefix=refs/heads/testtrove/builds/
     cd "$DATADIR/gits"
     # Want to use -execdir here, but busybox find doesn't support it
     find . -name .git -print | while read gitdir; do (
@@ -764,26 +766,26 @@ Implementations for temporary build branch handling
     EOF
 
     IMPLEMENTS THEN the (\S+) repository in the workspace for (\S+) has temporary build branches
-    build_ref_prefix=refs/heads/baserock/builds/
+    build_ref_prefix=refs/heads/testtrove/builds/
     cd "$DATADIR/workspace/$MATCH_2/$(slashify_colons "test:$MATCH_1")"
     git for-each-ref | grep -F "$build_ref_prefix"
 
     IMPLEMENTS THEN the (\S+) repository in the workspace for (\S+) has no temporary build branches
-    build_ref_prefix=refs/heads/baserock/builds/
+    build_ref_prefix=refs/heads/testtrove/builds/
     cd "$DATADIR/workspace/$MATCH_2/$(slashify_colons "test:$MATCH_1")"
     if git for-each-ref | grep -F "$build_ref_prefix"; then
         die Did not expect repo to contain build branches
     fi
 
     IMPLEMENTS THEN no temporary build branches were pushed to the (\S+) repository
-    build_ref_prefix=refs/heads/baserock/builds/
+    build_ref_prefix=refs/heads/testtrove/builds/
     cd "$DATADIR/gits/$MATCH_1/.git"
     if test -e morph-pushed-branches && grep -F "$build_ref_prefix" morph-pushed-branches; then
         die Did not expect any pushed build branches
     fi
 
     IMPLEMENTS THEN temporary build branches were pushed to the (\S+) repository
-    build_ref_prefix=refs/heads/baserock/builds/
+    build_ref_prefix=refs/heads/testtrove/builds/
     cd "$DATADIR/gits/$MATCH_1/.git"
     test -e morph-pushed-branches && grep -F "$build_ref_prefix" morph-pushed-branches
 
