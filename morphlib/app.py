@@ -74,7 +74,9 @@ class Morph(cliapp.Application):
                              default=defaults['trove-host'])
         self.settings.string_list(['trove-id', 'trove-prefix'],
                                   'list of URL prefixes that should be '
-                                  'resolved to Trove',
+                                  'resolved to Trove. The first PREFIX '
+                                  'holds special significance, as the '
+                                  'primary working prefix.',
                                   metavar='PREFIX, ...',
                                   default=defaults['trove-id'])
 
