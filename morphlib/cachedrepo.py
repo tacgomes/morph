@@ -91,11 +91,11 @@ class CachedRepo(object):
         self.is_mirror = not url.startswith('file://')
         self.already_updated = False
 
-        self._gitdir = morphlib.gitdir.GitDirectory(path)
+        self.gitdir = morphlib.gitdir.GitDirectory(path)
 
     def ref_exists(self, ref):  # pragma: no cover
         '''Returns True if the given ref exists in the repo'''
-        return self._gitdir.ref_exists(ref)
+        return self.gitdir.ref_exists(ref)
 
     def resolve_ref_to_commit(self, ref):  # pragma: no cover
         '''Resolve a named ref to a commit SHA1.
@@ -103,7 +103,7 @@ class CachedRepo(object):
         Raises gitdir.InvalidRefError if the ref does not exist.
 
         '''
-        return self._gitdir.resolve_ref_to_commit(ref)
+        return self.gitdir.resolve_ref_to_commit(ref)
 
     def resolve_ref_to_tree(self, ref):  # pragma: no cover
         '''Resolve a named ref to a tree SHA1.
@@ -111,7 +111,7 @@ class CachedRepo(object):
         Raises gitdir.InvalidRefError if the ref does not exist.
 
         '''
-        return self._gitdir.resolve_ref_to_tree(ref)
+        return self.gitdir.resolve_ref_to_tree(ref)
 
     def read_file(self, filename, ref):  # pragma: no cover
         '''Attempts to read a file from a given ref.
@@ -121,7 +121,7 @@ class CachedRepo(object):
         the ref.
 
         '''
-        return self._gitdir.read_file(filename, ref)
+        return self.gitdir.read_file(filename, ref)
 
     def tags_containing_sha1(self, ref):  # pragma: no cover
         '''Check whether given sha1 is contained in any tags
@@ -131,7 +131,7 @@ class CachedRepo(object):
         a sha1.
 
         '''
-        return self._gitdir.tags_containing_sha1(ref)
+        return self.gitdir.tags_containing_sha1(ref)
 
     def branches_containing_sha1(self, ref):  # pragma: no cover
         '''Check whether given sha1 is contained in any branches
@@ -141,7 +141,7 @@ class CachedRepo(object):
         a sha1.
 
         '''
-        return self._gitdir.branches_containing_sha1(ref)
+        return self.gitdir.branches_containing_sha1(ref)
 
     def version_guess(self, ref): # pragma: no cover
         '''Guess version number using `git describe --tags`
@@ -159,7 +159,7 @@ class CachedRepo(object):
         repository.
 
         '''
-        return self._gitdir.list_files(ref, recurse)
+        return self.gitdir.list_files(ref, recurse)
 
     def clone_checkout(self, ref, target_dir):
         '''Clone from the cache into the target path and check out a given ref.
@@ -175,7 +175,7 @@ class CachedRepo(object):
         if os.path.exists(target_dir):
             raise CheckoutDirectoryExistsError(self, target_dir)
 
-        self._gitdir.resolve_ref_to_commit(ref)
+        self.gitdir.resolve_ref_to_commit(ref)
 
         self._clone_into(target_dir, ref)
 
@@ -217,7 +217,7 @@ class CachedRepo(object):
             os.makedirs(target_dir)
 
         with tempfile.NamedTemporaryFile() as index_file:
-            index = self._gitdir.get_index(index_file=index_file.name)
+            index = self.gitdir.get_index(index_file=index_file.name)
             index.set_to_tree(ref)
             index.checkout(working_tree=target_dir)
 
@@ -240,7 +240,7 @@ class CachedRepo(object):
         # Named refs that are valid SHA1s will confuse this code.
         ref_can_change = not morphlib.git.is_valid_sha1(ref)
 
-        if ref_can_change or not self._gitdir.ref_exists(ref):
+        if ref_can_change or not self.gitdir.ref_exists(ref):
             return True
         else:
             return False
@@ -257,7 +257,7 @@ class CachedRepo(object):
             return
 
         try:
-            self._gitdir.update_remotes(
+            self.gitdir.update_remotes(
                 echo_stderr=self.app.settings['debug'])
             self.already_updated = True
         except cliapp.AppException:
@@ -285,7 +285,7 @@ class CachedRepo(object):
 
     def _checkout_ref_in_clone(self, ref, clone_dir):  # pragma: no cover
         # This is a separate GitDirectory instance. Don't confuse it with the
-        # internal ._gitdir attribute!
+        # internal .gitdir attribute!
         working_gitdir = morphlib.gitdir.GitDirectory(clone_dir)
         try:
             working_gitdir.checkout(ref)

@@ -110,7 +110,7 @@ class CachedRepoTests(unittest.TestCase):
         self.assertEqual(self.repo.path, self.repo_path)
 
     def test_fail_clone_checkout_into_existing_directory(self):
-        self.repo._gitdir.checkout = self.checkout_ref
+        self.repo.gitdir.checkout = self.checkout_ref
         self.repo._clone_into = self.clone_into
 
         self.assertRaises(morphlib.cachedrepo.CheckoutDirectoryExistsError,
@@ -119,7 +119,7 @@ class CachedRepoTests(unittest.TestCase):
                           self.tempfs.root_path)
 
     def test_fail_checkout_due_to_clone_error(self):
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
         self.repo._clone_into = self.clone_into
 
         self.assertRaises(
@@ -128,7 +128,7 @@ class CachedRepoTests(unittest.TestCase):
             self.tempfs.getsyspath('failed-checkout'))
 
     def test_fail_checkout_due_to_copy_error(self):
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
         self.repo._copy_repository = self.copy_repository
 
         self.assertRaises(morphlib.cachedrepo.CopyError, self.repo.checkout,
@@ -136,7 +136,7 @@ class CachedRepoTests(unittest.TestCase):
                           self.tempfs.getsyspath('failed-checkout'))
 
     def test_fail_checkout_from_invalid_ref(self):
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
         self.repo._copy_repository = self.copy_repository
         self.repo._checkout_ref_in_clone = self.checkout_ref
 
@@ -146,7 +146,7 @@ class CachedRepoTests(unittest.TestCase):
             self.tempfs.getsyspath('checkout-from-invalid-ref'))
 
     def test_checkout_from_existing_ref_into_new_directory(self):
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
         self.repo._copy_repository = self.copy_repository
         self.repo._checkout_ref_in_clone = self.checkout_ref
 
@@ -159,7 +159,7 @@ class CachedRepoTests(unittest.TestCase):
         self.assertTrue(os.path.exists(morph_filename))
 
     def test_extract_commit_into_new_directory(self):
-        self.repo._gitdir.get_index = self.get_index
+        self.repo.gitdir.get_index = self.get_index
         unpack_dir = self.tempfs.getsyspath('unpack-dir')
         self.repo.extract_commit('e28a23812eadf2fce6583b8819b9c5dbd36b9fb9',
                                  unpack_dir)
@@ -169,25 +169,25 @@ class CachedRepoTests(unittest.TestCase):
         self.assertTrue(os.path.exists(morph_filename))
 
     def test_successful_update(self):
-        self.repo._gitdir.update_remotes = self.update_successfully
+        self.repo.gitdir.update_remotes = self.update_successfully
         self.repo.update()
 
     def test_failing_update(self):
-        self.repo._gitdir.update_remotes = self.update_with_failure
+        self.repo.gitdir.update_remotes = self.update_with_failure
         self.assertRaises(morphlib.cachedrepo.UpdateError, self.repo.update)
 
     def test_no_update_if_local(self):
         with morphlib.gitdir_tests.allow_nonexistant_git_repos():
             self.repo = morphlib.cachedrepo.CachedRepo(
                 object(), 'local:repo', 'file:///local/repo/', '/local/repo/')
-        self.repo._gitdir.update_remotes = self.update_with_failure
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir.update_remotes = self.update_with_failure
+        self.repo.gitdir._rev_parse = self.rev_parse
 
         self.assertFalse(self.repo.requires_update_for_ref(self.known_commit))
         self.repo.update()
 
     def test_clone_checkout(self):
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
         self.repo._clone_into = self.clone_into
 
         self.repo.clone_checkout('master', '/.DOES_NOT_EXIST')
@@ -198,14 +198,14 @@ class CachedRepoTests(unittest.TestCase):
         # If the SHA1 is present locally already there's no need to update.
         # If it's a named ref then it might have changed in the remote, so we
         # must still update.
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir._rev_parse = self.rev_parse
 
         self.assertFalse(self.repo.requires_update_for_ref(self.known_commit))
         self.assertTrue(self.repo.requires_update_for_ref('named_ref'))
 
     def test_no_need_to_update_repo_if_already_updated(self):
-        self.repo._gitdir.update_remotes = self.update_successfully
-        self.repo._gitdir._rev_parse = self.rev_parse
+        self.repo.gitdir.update_remotes = self.update_successfully
+        self.repo.gitdir._rev_parse = self.rev_parse
 
         self.assertTrue(self.repo.requires_update_for_ref('named_ref'))
         self.repo.update()
