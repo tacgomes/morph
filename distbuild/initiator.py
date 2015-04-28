@@ -298,7 +298,6 @@ class InitiatorStart(Initiator):
             'build-finished': self._handle_build_finished_message,
             'build-failed': self._handle_build_failed_message,
             'build-cancelled': self._handle_build_cancelled_message,
-            'build-progress': self._handle_build_progress_message,
         }
 
         msg_type = event.msg['type']
