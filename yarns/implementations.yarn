@@ -499,7 +499,7 @@ We can create a new branch, off master.
     IMPLEMENTS WHEN the user (attempts to create|creates) a system branch called (\S+)
     cd "$DATADIR/workspace"
     set branch test:morphs "$MATCH_2"
-    if [ $MATCH_1 == "creates"]; then run morph "$@"
+    if [ $MATCH_1 == "creates" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
 We can create a new branch, off another system branch.
