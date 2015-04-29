@@ -395,7 +395,9 @@ class MorphologyLoader(object):
         if not isinstance(obj, dict):
             raise NotADictionaryError(morph_filename)
 
-        return morphlib.morphology.Morphology(obj)
+        m = morphlib.morphology.Morphology(obj)
+        m.filename = morph_filename
+        return m
 
     def load_from_string(self, string,
                          filename='string'):  # pragma: no cover
@@ -409,7 +411,6 @@ class MorphologyLoader(object):
             return None
 
         m = self.parse_morphology_text(string, filename)
-        m.filename = filename
         self.validate(m)
         self.set_commands(m)
         self.set_defaults(m)
