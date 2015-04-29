@@ -23,6 +23,7 @@ import cliapp
 import fs.osfs
 
 import morphlib
+from morphlib.util import word_join_list as _word_join_list
 
 
 # urlparse.urljoin needs to know details of the URL scheme being used.
@@ -242,14 +243,13 @@ class LocalRepoCache(object):
                 return repo
         raise NotCached(reponame)
 
-    def get_updated_repo(self, repo_name, ref=None):  # pragma: no cover
+    def get_updated_repo(self, repo_name,
+                         ref=None, refs=None):  # pragma: no cover
         '''Return object representing cached repository.
 
-        If 'ref' is None, the repo will be updated unless
-        app.settings['no-git-update'] is set.
-
-        If 'ref' is set to a SHA1, the repo will only be updated if 'ref' isn't
-        already available locally.
+        If all the specified refs in 'ref' or 'refs' point to SHA1s that are
+        already in the repository, or --no-git-update is set, then the
+        repository won't be updated.
 
         '''
 
@@ -261,19 +261,30 @@ class LocalRepoCache(object):
                              repo_name=repo_name)
             return self.get_repo(repo_name)
 
+        if ref is not None and refs is None:
+            refs = (ref,)
+
         if self.has_repo(repo_name):
             repo = self.get_repo(repo_name)
-            if ref and morphlib.git.is_valid_sha1(ref):
-                try:
-                    repo.resolve_ref_to_commit(ref)
-                    self._app.status(msg='Not updating git repository '
-                                         '%(repo_name)s because it '
-                                         'already contains sha1 %(sha1)s',
-                                     chatty=True, repo_name=repo_name,
-                                     sha1=ref)
+            if refs:
+                required_refs = set(refs)
+                missing_refs = set()
+                for required_ref in required_refs:
+                    if morphlib.git.is_valid_sha1(required_ref):
+                        try:
+                            repo.resolve_ref_to_commit(required_ref)
+                            continue
+                        except morphlib.gitdir.InvalidRefError:
+                            pass
+                    missing_refs.add(required_ref)
+
+                if not missing_refs:
+                    self._app.status(
+                        msg='Not updating git repository %(repo_name)s '
+                            'because it already contains %(sha1s)s',
+                        chatty=True, repo_name=repo_name,
+                        sha1s=_word_join_list(tuple(required_refs)))
                     return repo
-                except morphlib.gitdir.InvalidRefError:
-                    pass
 
             self._app.status(msg='Updating %(repo_name)s',
                              repo_name=repo_name)
