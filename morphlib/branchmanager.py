@@ -17,6 +17,7 @@ import cliapp
 import collections
 
 import morphlib
+from morphlib.gitdir import PushFailureError as _PushFailureError
 
 
 class RefCleanupError(cliapp.AppException):
@@ -212,11 +213,36 @@ class RemoteRefManager(object):
         after the end of the block the with statement the RemoteRefManager
         is used in.
 
+        If any of the refspecs failed to push, then they are all rolled back.
+        The result includes ones that had succeeded, but if you want to re-try
+        some refspecs, you need to re-try the ones that succeeded as well as
+        the ones that failed.
+
         '''
 
         # Calculate the refspecs required to undo the pushed changes.
         delete_specs = tuple(rs.revert() for rs in refspecs)
-        result = remote.push(*refspecs)
+        try:
+            result = remote.push(*refspecs)
+        except _PushFailureError as e: # pragma: no cover
+            results = set(e.results)
+            e.results = results
+            # Skip deletes if we didn't fail because a ref update failed
+            if not results:
+                raise
+
+            undorefspecs = set()
+            for flag, sha1, target, summary, reason in results:
+                for rs in refspecs:
+                    if rs.target == target and rs.source == sha1:
+                        break
+                if flag != '!':
+                    undorefspecs.add(rs.revert())
+            # We may have nothing to undo because all our pushes failed
+            if undorefspecs:
+                remote.push(*undorefspecs)
+            raise
+
         # Register cleanup after pushing, so that if this push fails,
         # we don't try to undo it.
         self._cleanup.append((remote, delete_specs))
