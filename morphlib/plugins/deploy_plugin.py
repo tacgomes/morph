@@ -542,10 +542,11 @@ class DeployPlugin(cliapp.Plugin):
                 build_command.cache_artifacts_locally([artifact])
                 f = build_command.lac.get(artifact)
             else:
-                raise cliapp.AppException('Deployment failed as system is'
-                                          ' not yet built.\nPlease ensure'
-                                          ' the system is built before'
-                                          ' deployment.')
+                raise cliapp.AppException(
+                    'Deployment failed as built system is not present in the '
+                    'artifact cache.\nPlease ensure the system is built '
+                    'before deployment, and the artifact-cache-server (%s) is '
+                    'the correct one.' % build_command.rac)
             tf = tarfile.open(fileobj=f)
             tf.extractall(path=system_tree)
 
