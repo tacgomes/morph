@@ -220,20 +220,17 @@ without changing the morphologies in definitions.
     AND      a git server
     WHEN     the user creates a system branch called foo
     AND      the user gets the repo for chunk test-chunk in branch foo
-    THEN     morph succeeded
-    AND      the repo for chunk test-chunk was cloned into the system branch foo
+    THEN     the repo for chunk test-chunk was cloned into the system branch foo
 
 We can also specify the directory to clone the repo into.
 
     WHEN     the user gets the repo for chunk test-chunk from branch foo in directory foo
-    THEN     morph succeeded
-    AND      the repo for chunk test-chunk was cloned into the directory foo
+    THEN     the repo for chunk test-chunk was cloned into the directory foo
 
 A ref to checkout can also be specified.
 
     WHEN     the user gets the repo for chunk test-chunk from branch foo in directory bar at ref master
-    THEN     morph succeeded
-    AND      the repo for chunk test-chunk was cloned into the directory bar
+    THEN     the repo for chunk test-chunk was cloned into the directory bar
     AND      the repo in directory bar has HEAD master
 
 This should not work if the directory already exists.
