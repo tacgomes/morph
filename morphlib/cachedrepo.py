@@ -150,7 +150,7 @@ class CachedRepo(object):
         repository.
 
         '''
-        return self._gitdir.version_guess(ref)
+        return self.gitdir.version_guess(ref)
 
     def list_files(self, ref, recurse=True):  # pragma: no cover
         '''Return filenames found in the tree pointed to by the given ref.
