@@ -24,6 +24,7 @@ morphlib/plugins/expand_repo_plugin.py
 morphlib/plugins/deploy_plugin.py
 morphlib/plugins/__init__.py
 morphlib/writeexts.py
+morphlib/cmdline_parse_utils.py
 morphlib/plugins/list_artifacts_plugin.py
 morphlib/plugins/trovectl_plugin.py
 morphlib/plugins/get_chunk_details_plugin.py
