@@ -84,7 +84,8 @@ class BuildCommand(object):
         return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
                                                           arch)
 
-    def create_source_pool(self, repo_name, ref, filename, original_ref=None):
+    def create_source_pool(self, repo_name, ref, filename=None,
+                           original_ref=None, filenames=None):
         '''Find the source objects required for building a the given artifact
 
         The SourcePool will contain every stratum and chunk dependency of the
@@ -93,12 +94,14 @@ class BuildCommand(object):
 
         '''
         self.app.status(msg='Creating source pool', chatty=True)
+        if filenames is None and filename is not None:
+            filenames = (filename,)
         srcpool = morphlib.sourceresolver.create_source_pool(
-            self.lrc, self.rrc, repo_name, ref, filename,
+            self.lrc, self.rrc, repo_name, ref, filename=None,
             cachedir=self.app.settings['cachedir'],
             original_ref=original_ref,
             update_repos=not self.app.settings['no-git-update'],
-            status_cb=self.app.status)
+            status_cb=self.app.status, filenames=filenames)
         return srcpool
 
     def validate_sources(self, srcpool):

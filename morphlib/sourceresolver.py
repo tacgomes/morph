@@ -600,7 +600,7 @@ class SourceResolver(object):
 
 def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
                        original_ref=None, update_repos=True,
-                       status_cb=None): # pragma: no cover
+                       status_cb=None, filenames=None): # pragma: no cover
     '''Find all the sources involved in building a given system.
 
     Given a system morphology, this function will traverse the tree of stratum
@@ -616,6 +616,8 @@ def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
 
     '''
     pool = morphlib.sourcepool.SourcePool()
+    if filenames is None and filenames is not None:
+        filenames = (filename,)
 
     def add_to_pool(reponame, ref, filename, absref, tree, morphology):
         sources = morphlib.source.make_sources(reponame, ref,
@@ -634,7 +636,7 @@ def create_source_pool(lrc, rrc, repo, ref, filename, cachedir,
     resolver = SourceResolver(lrc, rrc, tree_cache_manager,
                               buildsystem_cache_manager, update_repos,
                               status_cb)
-    resolver.traverse_morphs(repo, ref, [filename],
+    resolver.traverse_morphs(repo, ref, filenames,
                              visit=add_to_pool,
                              definitions_original_ref=original_ref)
     return pool
