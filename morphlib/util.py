@@ -692,3 +692,13 @@ def write_from_dict(filepath, d, validate=lambda x, y: True): #pragma: no cover
 
         os.fchown(f.fileno(), 0, 0)
         os.fchmod(f.fileno(), 0644)
+
+
+def word_join_list(l): # pragma: no cover
+    if len(l) == 0:
+        return ''
+    elif len(l) == 1:
+        return l[0]
+    else:
+        commasep = ', '.join(l[:-1])
+        return ' and '.join((commasep, l[-1]))
