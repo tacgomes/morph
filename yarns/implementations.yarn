@@ -39,6 +39,9 @@ we can test it later in a THEN step.
         ;;
     esac
 
+    IMPLEMENTS THEN morph output (.*)
+    grep -q "$MATCH_1" "$DATADIR/out-latest"
+
 We need to check that a workspace creation worked. This requires the
 directory to exist, and its `.morph` subdirectory to exist, and nothing
 else.
@@ -723,6 +726,10 @@ Generating a manifest.
         die "Output isn't what we expect"
     fi
 
+    IMPLEMENTS WHEN the user commits all changes in system branch (\S+)
+    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
+    git commit -a --allow-empty -m 'Commit all changes'
+
 Implementations for temporary build branch handling
 ---------------------------------------------------
 
@@ -1052,6 +1059,11 @@ Altering morphologies in their source repositories
     git add "$MATCH_1"
     git commit -m "Make $MATCH_1 match $MATCH_2"
 
+    IMPLEMENTS WHEN chunk repository (\S+) is re-tagged as (\S+)
+    cd "$DATADIR/gits/$MATCH_1"
+    git commit --allow-empty -m "Prepare for $MATCH_2"
+    git tag -af -m "Release $MATCH_2" "$MATCH_2"
+
 Altering morphologies in the workspace
 --------------------------------------
 
@@ -1061,6 +1073,12 @@ Altering morphologies in the workspace
     cd "$DATADIR/workspace/$MATCH_2/test/morphs"
     "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
       "$MATCH_1" "$MATCH_3"
+
+    IMPLEMENTS WHEN chunk (\S+) in stratum (\S+) in system branch (\S+) is updated to use (\S+) from chunk repository (\S+)
+    cd "$DATADIR/workspace/$MATCH_3/test/morphs"
+    sha1=$(cd "$DATADIR/gits/$MATCH_5" && git rev-parse "$MATCH_4")
+    "$SRCDIR/scripts/edit-morph" update-stratum-chunk-ref \
+      "$MATCH_2" "$MATCH_1" "$sha1"
 
 ### Altering clusters ###
 
