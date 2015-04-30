@@ -55,6 +55,9 @@ class BuildPlugin(cliapp.Plugin):
         self.use_distbuild = False
         self.allow_detach = False
 
+    def _cmd_usage(self, cmd):
+        return 'usage: morph %s %s' % (cmd, self.app.cmd_synopsis[cmd])
+
     def distbuild_morphology(self, args):
         '''Distbuild a system, outside of a system branch.
 
@@ -70,16 +73,23 @@ class BuildPlugin(cliapp.Plugin):
 
         '''
 
+        MINARGS = 3
+
+        if len(args) < MINARGS:
+            raise cliapp.AppException(self._cmd_usage('distbuild-morphology'))
+
+        repo, ref, filename = args[0:MINARGS]
+
         addr = self.app.settings['controller-initiator-address']
         port = self.app.settings['controller-initiator-port']
 
         self.use_distbuild = True
         build_command = morphlib.buildcommand.InitiatorBuildCommand(
             self.app, addr, port)
-        repo, ref, filename = args[0:3]
+
         filename = morphlib.util.sanitise_morphology_path(filename)
         component_names = [morphlib.util.sanitise_morphology_path(name)
-                               for name in args[3:]]
+                               for name in args[MINARGS:]]
         self.start_build(repo, ref, build_command, filename,
                          component_names)
 
@@ -113,6 +123,11 @@ class BuildPlugin(cliapp.Plugin):
 
         '''
 
+        MINARGS = 1
+
+        if len(args) < MINARGS:
+            raise cliapp.AppException(self._cmd_usage('distbuild'))
+
         self.use_distbuild = True
         self.build(args)
 
@@ -130,6 +145,11 @@ class BuildPlugin(cliapp.Plugin):
         See `morph help distbuild` for more information and example usage.
 
         '''
+
+        MINARGS = 1
+
+        if len(args) < MINARGS:
+            raise cliapp.AppException(self._cmd_usage('distbuild-start'))
 
         self.use_distbuild = True
         self.allow_detach = True
@@ -168,6 +188,13 @@ class BuildPlugin(cliapp.Plugin):
 
         '''
 
+        MINARGS = 3
+
+        if len(args) < MINARGS:
+            raise cliapp.AppException(self._cmd_usage('build-morphology'))
+
+        repo, ref, filename = args[0:MINARGS]
+
         # Raise an exception if there is not enough space
         morphlib.util.check_disk_available(
             self.app.settings['tempdir'],
@@ -176,10 +203,10 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir-min-space'])
 
         build_command = morphlib.buildcommand.BuildCommand(self.app)
-        repo, ref, filename = args[0:3]
+
         filename = morphlib.util.sanitise_morphology_path(filename)
         component_names = [morphlib.util.sanitise_morphology_path(name)
-                               for name in args[3:]]
+                               for name in args[MINARGS:]]
         self.start_build(repo, ref, build_command, filename,
                          component_names)
 
@@ -218,6 +245,12 @@ class BuildPlugin(cliapp.Plugin):
                 build-essential
 
         '''
+
+        MINARGS = 1
+
+        if len(args) < MINARGS:
+            raise cliapp.AppException(self._cmd_usage('build'))
+
         if not self.use_distbuild:
             # Raise an exception if there is not enough space
             morphlib.util.check_disk_available(
@@ -231,7 +264,7 @@ class BuildPlugin(cliapp.Plugin):
 
         system_filename = morphlib.util.sanitise_morphology_path(args[0])
         system_filename = sb.relative_to_root_repo(system_filename)
-        component_names = args[1:]
+        component_names = args[MINARGS:]
 
         logging.debug('System branch is %s' % sb.root_directory)
 
