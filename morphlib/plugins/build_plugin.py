@@ -14,9 +14,7 @@
 
 
 import collections
-import contextlib
 import uuid
-import logging
 
 import cliapp
 
@@ -48,11 +46,9 @@ class BuildPlugin(cliapp.Plugin):
                                 arg_synopsis='SYSTEM [COMPONENT...]')
         self.app.add_subcommand('distbuild-start', self.distbuild_start,
                                 arg_synopsis='SYSTEM [COMPONENT...]')
-        self.use_distbuild = False
         self.allow_detach = False
 
     def disable(self):
-        self.use_distbuild = False
         self.allow_detach = False
 
     def _cmd_usage(self, cmd):
@@ -72,26 +68,16 @@ class BuildPlugin(cliapp.Plugin):
         See 'help distbuild' and 'help build-morphology' for more information.
 
         '''
-
         MINARGS = 3
 
         if len(args) < MINARGS:
             raise cliapp.AppException(self._cmd_usage('distbuild-morphology'))
 
         repo, ref, filename = args[0:MINARGS]
-
-        addr = self.app.settings['controller-initiator-address']
-        port = self.app.settings['controller-initiator-port']
-
-        self.use_distbuild = True
-        build_command = morphlib.buildcommand.InitiatorBuildCommand(
-            self.app, addr, port, self.allow_detach)
-
         filename = morphlib.util.sanitise_morphology_path(filename)
-        component_names = [morphlib.util.sanitise_morphology_path(name)
-                               for name in args[MINARGS:]]
-        self.start_build(repo, ref, build_command, filename,
-                         component_names)
+        component_names = args[MINARGS:]
+
+        self._distbuild(repo, ref, filename, component_names=component_names)
 
     def distbuild(self, args):
         '''Distbuild a system image in the current system branch
@@ -122,14 +108,40 @@ class BuildPlugin(cliapp.Plugin):
             morph distbuild devel-system-x86_64-generic.morph
 
         '''
-
         MINARGS = 1
 
         if len(args) < MINARGS:
             raise cliapp.AppException(self._cmd_usage('distbuild'))
 
-        self.use_distbuild = True
-        self.build(args)
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
+
+        filename = args[0]
+        filename = morphlib.util.sanitise_morphology_path(filename)
+        filename = definitions_repo.relative_path(filename, cwd='.')
+
+        component_names = args[MINARGS:]
+
+        if self.app.settings['local-changes'] == 'include':
+            # Create a temporary branch with any local changes, and push it to
+            # the shared Git server. This is a convenience for developers, who
+            # otherwise need to commit and push each change manually in order
+            # for distbuild to see it. It renders the build unreproducible, as
+            # the branch is deleted after being built, so this feature should
+            # only be used during development!
+            build_uuid = uuid.uuid4().hex
+            branch = definitions_repo.branch_with_local_changes(
+                build_uuid, push=True)
+            with branch as (repo_url, commit, original_ref):
+                self._distbuild(repo_url, commit, filename,
+                                original_ref=original_ref,
+                                component_names=component_names)
+        else:
+            ref = definitions_repo.HEAD
+            commit = definitions_repo.resolve_ref_to_commit(ref)
+            self._distbuild(definitions_repo.remote_url, commit, filename,
+                            original_ref=original_ref,
+                            component_names=component_names)
 
     def distbuild_start(self, args):
         '''Distbuild a system image without a lasting client-server connection.
@@ -151,9 +163,21 @@ class BuildPlugin(cliapp.Plugin):
         if len(args) < MINARGS:
             raise cliapp.AppException(self._cmd_usage('distbuild-start'))
 
-        self.use_distbuild = True
         self.allow_detach = True
-        self.build(args)
+        self.distbuild(args)
+
+    def _distbuild(self, repo_url, commit, filename, original_ref=None,
+                   component_names=[]):
+        '''Request a distributed build of a given system definition.'''
+
+        addr = self.app.settings['controller-initiator-address']
+        port = self.app.settings['controller-initiator-port']
+
+        build_command = morphlib.buildcommand.InitiatorBuildCommand(
+            self.app, addr, port, allow_detach=self.allow_detach)
+        build_command.build(
+            repo_url, commit, filename, original_ref=original_ref,
+            component_names=component_names)
 
     def build_morphology(self, args):
         '''Build a system, outside of a system branch.
@@ -187,13 +211,14 @@ class BuildPlugin(cliapp.Plugin):
                 build-essential
 
         '''
-
         MINARGS = 3
 
         if len(args) < MINARGS:
             raise cliapp.AppException(self._cmd_usage('build-morphology'))
 
         repo, ref, filename = args[0:MINARGS]
+        filename = morphlib.util.sanitise_morphology_path(filename)
+        component_names = args[MINARGS:]
 
         # Raise an exception if there is not enough space
         morphlib.util.check_disk_available(
@@ -203,15 +228,11 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir-min-space'])
 
         build_command = morphlib.buildcommand.BuildCommand(self.app)
-
-        filename = morphlib.util.sanitise_morphology_path(filename)
-        component_names = [morphlib.util.sanitise_morphology_path(name)
-                               for name in args[MINARGS:]]
-        self.start_build(repo, ref, build_command, filename,
-                         component_names)
+        srcpool = build_command.create_source_pool(repo, ref, [filename])
+        self._build(srcpool, filename, component_names=component_names)
 
     def build(self, args):
-        '''Build a system image in the current system branch
+        '''Build a system image in the current definitions repo.
 
         Command line arguments:
 
@@ -245,112 +266,32 @@ class BuildPlugin(cliapp.Plugin):
                 build-essential
 
         '''
-
         MINARGS = 1
 
         if len(args) < MINARGS:
             raise cliapp.AppException(self._cmd_usage('build'))
 
-        if not self.use_distbuild:
-            # Raise an exception if there is not enough space
-            morphlib.util.check_disk_available(
-                self.app.settings['tempdir'],
-                self.app.settings['tempdir-min-space'],
-                self.app.settings['cachedir'],
-                self.app.settings['cachedir-min-space'])
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
 
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
-
-        system_filename = morphlib.util.sanitise_morphology_path(args[0])
-        system_filename = sb.relative_to_root_repo(system_filename)
+        filename = args[0]
+        filename = morphlib.util.sanitise_morphology_path(filename)
+        filename = definitions_repo.relative_path(filename, cwd='.')
         component_names = args[MINARGS:]
 
-        logging.debug('System branch is %s' % sb.root_directory)
+        # Raise an exception if there is not enough space
+        morphlib.util.check_disk_available(
+            self.app.settings['tempdir'],
+            self.app.settings['tempdir-min-space'],
+            self.app.settings['cachedir'],
+            self.app.settings['cachedir-min-space'])
 
-        if self.use_distbuild:
-            addr = self.app.settings['controller-initiator-address']
-            port = self.app.settings['controller-initiator-port']
-
-            build_command = morphlib.buildcommand.InitiatorBuildCommand(
-                self.app, addr, port, self.allow_detach)
-        else:
-            build_command = morphlib.buildcommand.BuildCommand(self.app)
-
-        if self.app.settings['local-changes'] == 'include':
-            self._build_with_local_changes(build_command, sb, system_filename,
-                                           component_names)
-        else:
-            self._build_local_commit(build_command, sb, system_filename,
-                                     component_names)
-
-    def _build_with_local_changes(self, build_command, sb, system_filename,
-                                  component_names):
-        '''Construct a branch including user's local changes, and build that.
-
-        It is often a slow process to check all repos in the system branch for
-        local changes. However, when using a distributed build cluster, all
-        code being built must be pushed to the associated Trove, and it can be
-        helpful to have this automated as part of the `morph build` command.
-
-        '''
-        build_uuid = uuid.uuid4().hex
-
-        loader = morphlib.morphloader.MorphologyLoader()
-        push = self.app.settings['push-build-branches']
-        name = morphlib.git.get_user_name(self.app.runcmd)
-        email = morphlib.git.get_user_email(self.app.runcmd)
-        build_ref_prefix = self.app.settings['build-ref-prefix']
-
-        self.app.status(msg='Looking for uncommitted changes (pass '
-                            '--local-changes=ignore to skip)')
-
-        self.app.status(msg='Collecting morphologies involved in '
-                            'building %(system)s from %(branch)s',
-                            chatty=True,
-                            system=system_filename,
-                            branch=sb.system_branch_name)
-
-        bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
-        pbb = morphlib.buildbranch.pushed_build_branch(
-                bb, loader=loader, changes_need_pushing=push,
-                name=name, email=email, build_uuid=build_uuid,
-                status=self.app.status)
-        with pbb as (repo, commit, original_ref):
-            self.start_build(repo, commit, build_command, system_filename,
-                             component_names, original_ref=original_ref)
-
-    def _build_local_commit(self, build_command, sb, system_filename,
-                            component_names):
-        '''Build whatever commit the user has checked-out locally.
-
-        This ignores any uncommitted changes. Also, if the user has a commit
-        checked out locally that hasn't been pushed to the Trove that Morph is
-        configured to work with, the build will fail in this sort of way:
-
-            ERROR: Ref c55b853d92a52a5b5fe62edbfbf351169eb79c0a is an invalid
-            reference for repo
-            git://git.baserock.org/baserock/baserock/definitions
-
-        The build process doesn't use the checked-out definitions repo at all,
-        except to resolve the checked-out commit (HEAD). Instead, it uses the
-        cached version of the definitions repo, updating the cache if
-        necessary.
-
-        We don't detect and warn the user about any uncommitted changes because
-        doing so is slow when there are no changes (around 5 seconds on my
-        machine for Baserock's definitions.git).
-
-        '''
-        root_repo_url = sb.get_config('branch.root')
-        ref = sb.get_config('branch.name')
-
-        definitions_repo_path = sb.get_git_directory_name(root_repo_url)
-        definitions_repo = morphlib.gitdir.GitDirectory(definitions_repo_path)
-        commit = definitions_repo.resolve_ref_to_commit(ref)
-
-        self.start_build(root_repo_url, commit, build_command,
-                         system_filename, component_names, original_ref=ref)
+        local_changes = self.app.settings['local-changes']
+        source_pool_context = definitions_repo.source_pool(
+            definitions_repo.HEAD, filename,
+            include_local_changes=(local_changes == 'include'))
+        with source_pool_context as source_pool:
+            self._build(source_pool, filename, component_names=component_names)
 
     def _find_artifacts(self, names, root_artifact):
         found = collections.OrderedDict()
@@ -362,31 +303,21 @@ class BuildPlugin(cliapp.Plugin):
                 not_found.remove(name)
         return found, not_found
 
-    def start_build(self, repo, commit, bc, system_filename,
-                    component_names, original_ref=None):
-        '''Actually run the build.
+    def _build(self, source_pool, filename, component_names=None):
+        '''Perform a local build of a given system definition.
 
         If a set of components was given, only build those. Otherwise,
         build the whole system.
 
         '''
-        if self.use_distbuild:
-            bc.build(repo, commit, system_filename,
-                     original_ref=original_ref,
-                     component_names=component_names)
-            return
-
-        self.app.status(msg='Deciding on task order')
-        srcpool = bc.create_source_pool(repo, commit, [system_filename],
-                                        original_ref)
-        bc.validate_sources(srcpool)
-        root = bc.resolve_artifacts(srcpool)
+        bc = morphlib.buildcommand.BuildCommand(self.app)
+        bc.validate_sources(source_pool)
+        root = bc.resolve_artifacts(source_pool)
         if not component_names:
             component_names = [root.source.name]
         components, not_found = self._find_artifacts(component_names, root)
         if not_found:
-            raise ComponentNotInSystemError(not_found, system_filename)
-
+            raise ComponentNotInSystemError(not_found, filename)
         for name, component in components.iteritems():
             component.build_env = root.build_env
             bc.build_in_order(component)

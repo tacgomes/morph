@@ -618,6 +618,9 @@ class GitDirectory(object):
                 # ref wasn't a branch, can't have upstream
                 # treat it the same as no upstream for convenience
                 return None
+            elif 'No such branch' in emsg:
+                # Same as above
+                return None
             elif 'No upstream configured for branch' in emsg:
                 return None
             raise

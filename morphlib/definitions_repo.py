@@ -202,15 +202,15 @@ class DefinitionsRepo(gitdir.GitDirectory):
                 build_ref_prefix=build_ref_prefix, git_user_name=git_user_name,
                 git_user_email=git_user_email, status_cb=status_cb)
             with temporary_branch as (repo_url, commit, original_ref):
+                if status_cb:
+                    status_cb(msg='Deciding on task order')
+
                 yield morphlib.sourceresolver.create_source_pool(
                     lrc, rrc, repo_url, commit, [system_filename],
                     cachedir=cachedir, original_ref=original_ref,
                     update_repos=update_repos, status_cb=status_cb)
         else:
-            if self.system_branch:
-                repo_url = self.systembranch.root_repository
-            else:
-                repo_url = self.get_remote('origin')
+            repo_url = self.remote_url
             commit = self.resolve_ref_to_commit(ref)
 
             if status_cb:
