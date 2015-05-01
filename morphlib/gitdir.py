@@ -425,7 +425,7 @@ class GitDirectory(object):
 
     '''
 
-    def __init__(self, dirname, search_for_root=False):
+    def __init__(self, dirname, search_for_root=False, allow_missing=False):
         '''Set up a GitDirectory instance for the repository at 'dirname'.
 
         If 'search_for_root' is set to True, 'dirname' may point to a
@@ -440,7 +440,8 @@ class GitDirectory(object):
         self.dirname = dirname
         self.config = Config(config_file=None, runcmd=self._runcmd)
 
-        self._ensure_is_git_repo()
+        if not allow_missing:
+            self._ensure_is_git_repo()
 
     def __str__(self):
         return self.dirname

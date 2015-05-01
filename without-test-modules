@@ -61,3 +61,4 @@ distbuild/timer_event_source.py
 distbuild/worker_build_scheduler.py
 # Not unit tested, since it needs a full system branch
 morphlib/buildbranch.py
+morphlib/definitions_repo.py

@@ -46,11 +46,27 @@ class SystemBranchDirectory(object):
 
     def __init__(self,
         root_directory, root_repository_url, system_branch_name):
-        self.root_directory = os.path.abspath(root_directory)
-        self.root_repository_url = root_repository_url
         self.system_branch_name = system_branch_name
 
+        # The 'root repo' is the definitions repo. This attribute is named this
+        # way for historical reasons.
+        self.root_repository_url = root_repository_url
+        assert root_repository_url is not None
+
+        # The 'root directory' is the parent directory of all checked-out
+        # repos. For example, the root directory of branch 'sam/test' in
+        # workspace '/src/ws' would be '/src/ws/sam/test' (at the time it was
+        # created by `morph branch` or `morph checkout`, anyway).
+        self.root_directory = os.path.abspath(root_directory)
+
         self.config = morphlib.gitdir.Config(config_file=self._config_path)
+
+        # In order to handle newly-created system branch directories (and for
+        # the unit tests) we don't raise an error here if the definitions repo
+        # isn't cloned yet. Some methods won't work if it doesn't exist though.
+        definitions_repo_dir = self.get_git_directory_name(root_repository_url)
+        self.definitions_repo = morphlib.definitions_repo.DefinitionsRepo(
+            definitions_repo_dir, system_branch=self, allow_missing=True)
 
     @property
     def _magic_path(self):
@@ -106,9 +122,7 @@ class SystemBranchDirectory(object):
         return os.path.join(self.root_directory, relative)
 
     def relative_to_root_repo(self, path): # pragma: no cover
-        gitdirpath = self.get_git_directory_name(self.root_repository_url)
-
-        return os.path.relpath(os.path.abspath(path), gitdirpath)
+        return self.definitions_repo.relative_path(path)
 
     def get_git_directory_name(self, repo_url):
         '''Return directory pathname for a given git repository.
@@ -193,21 +207,8 @@ class SystemBranchDirectory(object):
                 for dirname in
                 morphlib.util.find_leaves(self.root_directory, '.git'))
 
-    # Not covered by unit tests, since testing the functionality spans
-    # multiple modules and only tests useful output with a full system
-    # branch, so it is instead covered by integration tests.
     def load_all_morphologies(self, loader): # pragma: no cover
-        gd_name = self.get_git_directory_name(self.root_repository_url)
-        gd = morphlib.gitdir.GitDirectory(gd_name)
-        mf = morphlib.morphologyfinder.MorphologyFinder(gd)
-        for filename in (f for f in mf.list_morphologies()
-                         if not gd.is_symlink(f)):
-            text = mf.read_morphology(filename)
-            m = loader.load_from_string(text, filename=filename)
-            m.repo_url = self.root_repository_url
-            m.ref = self.system_branch_name
-            yield m
-
+        return self.definitions_repo.load_all_morphologies(loader)
 
 
 def create(root_directory, root_repository_url, system_branch_name):

@@ -57,24 +57,70 @@ class BuildBranch(object):
     # would be better to not use local repositories and temporary refs,
     # so building from a workspace appears to be identical to using
     # `morph build-morphology`
-    def __init__(self, sb, build_ref_prefix):
-
-        self._sb = sb
+    def __init__(self, build_ref_prefix, build_uuid, system_branch=None,
+                 definitions_repo=None):
+        self._sb = system_branch
+        self._definitions_repo = definitions_repo
 
         self._cleanup = collections.deque()
         self._to_push = {}
         self._td = fs.tempfs.TempFS()
         self._register_cleanup(self._td.close)
 
-        self._branch_root = sb.get_config('branch.root')
-        branch_uuid = sb.get_config('branch.uuid')
+        if system_branch:
+            # Old-style Morph system branch which may involve multiple repos.
+            #
+            # Temporary refs will look like this:
+            #
+            #   $build-ref-prefix/$branch_uuid/$repo_uuid. For
+            #
+            # For example:
+            #
+            #   baserock/builds/f0b21fe240b244edb7e4142b6e201658/8df11f234ab...
+            self._to_push = self.collect_repos_for_system_branch(
+                system_branch, build_ref_prefix)
 
+            branch_root = system_branch.get_config('branch.root')
+            self._root = system_branch.definitions_repo
+            _, self._root_index = self._to_push[self._root]
+        else:
+            # Temporary branch of only a definitions.git repo.
+            #
+            # Temporary ref will look like this:
+            #
+            #   $build-ref-prefix/$HEAD/$build_uuid
+            #
+            # For example:
+            #
+            #   baserock/builds/master/f0b21fe240b244edb7e4142b6e201658
+            ref = definitions_repo.HEAD
+            build_ref = os.path.join(
+                'refs/heads', build_ref_prefix, ref, build_uuid)
+
+            index = definitions_repo.get_index(self._td.getsyspath('index'))
+            head_tree = definitions_repo.resolve_ref_to_tree(ref)
+            index.set_to_tree(head_tree)
+
+            self._to_push[definitions_repo] = (build_ref, index)
+            self._root, self._root_index = definitions_repo, index
+
+    def collect_repos_for_system_branch(self, sb, build_ref_prefix):
+        branch_uuid = sb.get_config('branch.uuid')
+        to_push = dict()
         for count, gd in enumerate(sb.list_git_directories()):
             try:
                 repo_uuid = gd.get_config('morph.uuid')
             except cliapp.AppException:
                 # Not a repository cloned by morph, ignore
                 continue
+
+            if gd.dirname == sb.definitions_repo.dirname:
+                # Avoid creating a new GitDirectory instance for the
+                # definitions repo, which we already have a DefinitionsRepo
+                # instance for. This means that to_push[sb.definitions_repo]
+                # returns the expected results.
+                gd = sb.definitions_repo
+
             build_ref = os.path.join('refs/heads', build_ref_prefix,
                                      branch_uuid, repo_uuid)
             # index is commit of workspace + uncommitted changes may want
@@ -82,15 +128,12 @@ class BuildBranch(object):
             # so they can add new files first
             index = gd.get_index(self._td.getsyspath(repo_uuid))
             index.set_to_tree(gd.resolve_ref_to_tree(gd.HEAD))
-            self._to_push[gd] = (build_ref, index)
+            to_push[gd] = (build_ref, index)
 
-        if len(self._to_push) == 0:
+        if len(to_push) == 0:
             raise NoReposError(self, count)
 
-        rootinfo, = ((gd, index) for gd, (build_ref, index)
-                     in self._to_push.iteritems()
-                     if gd.get_config('morph.repository') == self._branch_root)
-        self._root, self._root_index = rootinfo
+        return to_push
 
     def _register_cleanup(self, func, *args, **kwargs):
         self._cleanup.append((func, args, kwargs))
@@ -116,6 +159,12 @@ class BuildBranch(object):
             sha1 = gd.store_blob(loader.save_to_string(morphology))
             yield 0o100644, sha1, morphology.filename
 
+    def load_all_morphologies(self, loader):
+        if self._sb:
+            return self._sb.load_all_morphologies(loader)
+        else:
+            return self._root.load_all_morphologies(loader)
+
     def inject_build_refs(self, loader, use_local_repos,
                           inject_cb=lambda **kwargs: None):
         '''Update system and stratum morphologies to point to our branch.
@@ -128,15 +177,21 @@ class BuildBranch(object):
         files into their in-memory representations and back again.
 
         '''
-        root_repo = self._root.get_config('morph.repository')
+        root_repo = self._root.remote_url
         root_ref = self._root.HEAD
         morphs = morphlib.morphset.MorphologySet()
-        for morph in self._sb.load_all_morphologies(loader):
+
+        for morph in self.load_all_morphologies(loader):
             morphs.add_morphology(morph)
 
         sb_info = {}
         for gd, (build_ref, index) in self._to_push.iteritems():
-            repo, ref = gd.get_config('morph.repository'), gd.HEAD
+            if gd == self._root:
+                repo, ref = root_repo, root_ref
+            else:
+                # This branch can only run if we are in a Morph system branch
+                # checkout, because only there will we consider chunk repos.
+                repo, ref = gd.get_config('morph.repository'), gd.HEAD
             sb_info[repo, ref] = (gd, build_ref)
 
         def filter(m, kind, spec):
@@ -186,8 +241,10 @@ class BuildBranch(object):
         4.  commit message describing the current build using `uuid`
 
         '''
-        commit_message = 'Morph build %s\n\nSystem branch: %s\n' % \
-            (uuid, self._sb.system_branch_name)
+        commit_message = 'Morph build %s\n' % uuid
+        if self._sb:
+            commit_message += "\nSystem branch: %s\n'" % \
+                              self._sb.system_branch_name
         author_name = name
         committer_name = 'Morph (on behalf of %s)' % name
         author_email = committer_email = email
@@ -258,11 +315,17 @@ class BuildBranch(object):
     @property
     def root_repo_url(self):
         '''URI of the repository that systems may be found in.'''
-        return self._sb.get_config('branch.root')
+        if self._sb:
+            return self._sb.get_config('branch.root')
+        else:
+            return self._definitions_repo.remote_url
 
     @property
     def root_ref(self):
-        return self._sb.get_config('branch.name')
+        if self._sb:
+            return self._sb.get_config('branch.name')
+        else:
+            return self._definitions_repo.HEAD
 
     @property
     def root_commit(self):

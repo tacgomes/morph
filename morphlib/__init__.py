@@ -60,6 +60,7 @@ import builder
 import cachedrepo
 import cachekeycomputer
 import cmdline_parse_utils
+import definitions_repo
 import extensions
 import extractedtarball
 import fsutils
