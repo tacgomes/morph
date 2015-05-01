@@ -472,6 +472,137 @@ repositories referenced in the system branch.
     THEN        morph reports no outstanding changes in foo
     FINALLY     the git server is shut down
 
+Anchoring commits for reproducibility
+-------------------------------------
+
+For full reproducibility, we need to ensure we anchor the commits we use.
+`morph anchor` handles making this easier by pushing refs to the repositories
+we use.
+
+    SCENARIO morph anchors commits used by a release
+    GIVEN    a git server
+
+We don't strictly need a workspace to anchor commits, but we need to run morph
+from somewhere.
+
+    GIVEN    a workspace
+    WHEN     the user checks out the system branch called master
+
+The `morph anchor` command must be given a semantic name, to make the anchor
+refs less opaque to humans, and allow anchor ref cleanup by semantic name, such
+as when a given release is no longer supported.
+
+    WHEN     the user attempts to anchor systems/test-system.morph with semantic name foo-release in branch master
+    THEN     morph succeeded
+
+After the `morph anchor` command completes, there are branches on the git
+server in every repository used by the listed systems referring to the commits
+used.
+
+    AND      every commit used in master has anchor branches on the git server
+
+`morph anchor` needs to handle being told to create anchors when they already
+exist for that system, as we may have forgotten to anchor a system as part of a
+release, and systems likely share contents.
+
+    WHEN     the user attempts to anchor systems/test-system.morph with semantic name foo-release in branch master
+    THEN     morph succeeded
+    AND      every commit used in master has anchor branches on the git server
+
+`morph anchor` will roll back any pushes when it is unable to push, and report
+failure. To test this we need a new system to anchor.
+
+    GIVEN    a new system to build called expanded-system
+    AND      push access is denied to extra-chunk
+    WHEN     the user creates a system branch called two, based on master
+    AND      the user attempts to anchor systems/expanded-system.morph with semantic name foo-release in branch two
+    THEN     morph failed
+
+When this happens `morph anchor` must not remove anchors that already existed
+before attempting to anchor, as they may be from a different system that shares
+some components.
+
+    THEN     every commit used in master has anchor branches on the git server
+    FINALLY  the git server is shut down
+
+### Anchor implementations
+
+    IMPLEMENTS WHEN the user (attempts to )?(anchor) (.*) with semantic name (.*) in branch (.*)
+    cd "$DATADIR/workspace/$MATCH_5/test/morphs"
+    systems=$(echo "$MATCH_3" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
+    set "$MATCH_2" "$MATCH_4" file://$(pwd) HEAD $systems
+    if [ "$MATCH_1" != "attempts to " ]; then run_morph "$@"
+    else attempt_morph "$@"; fi
+
+    IMPLEMENTS THEN every commit used in (.*) has anchor branches on the git server
+    set +e
+    # extract sha1s from ref: fields
+    find "$DATADIR/workspace/$MATCH_1/test/morphs" -name '*.morph' \
+          -exec sed -rn '/[^-]ref:\s*[0-9a-f]{40}/s/^.*([0-9a-f]{40})/\1/p' {} + | sort -u >"$DATADIR/sha1s"
+    for sha1 in $(cat "$DATADIR/sha1s"); do
+        sha1found=false
+        # for each git repository
+        for gitdir in $(find "$DATADIR/gits" -name '.git' -prune -exec dirname {} ';'); do
+            # for each ref, check if the commit it points to is the sha1 we seek
+            eval "$(cd "$gitdir" && git for-each-ref 'refs/heads/*/anchors/**' --shell \
+                        --format='"$sha1found" || [ %(objectname) = "$sha1" ] && sha1found=true')"
+        done
+        if ! "$sha1found"; then
+            exit 1
+        fi
+    done
+
+    IMPLEMENTS GIVEN push access is denied to (.*)
+    install -m 755 /dev/stdin "$DATADIR/gits/$MATCH_1/.git/hooks/pre-receive" <<'EOF'
+    #!/bin/sh
+    touch "$GIT_DIR/hook-ever-run"
+    echo No push for you!
+    exit 1
+    EOF
+
+    IMPLEMENTS GIVEN a new system to build called (.*)
+    mkdir "$DATADIR/gits/extra-chunk"
+    cd "$DATADIR/gits/extra-chunk"
+    git init .
+    install -D -m644 /dev/stdin <<'EOF' usr/share/doc/extra-chunk/README
+    No other content here
+    EOF
+    git add .
+    git commit -m 'Extra chunk exists'
+
+    cd "$DATADIR/gits/morphs"
+
+    install -m644 -D /dev/stdin << EOF "strata/tools.morph"
+    name: tools
+    kind: stratum
+    build-depends:
+    - morph: strata/build-essential.morph
+    chunks:
+    -   name: extra-chunk
+        morph: strata/extra-chunk.morph
+        repo: test:extra-chunk
+        unpetrify-ref: master
+        ref: $(run_in "$DATADIR/gits/extra-chunk" git rev-parse master)
+        build-depends: []
+    EOF
+    git add strata/tools.morph
+
+    arch=$(run_morph print-architecture)
+    install -m644 -D /dev/stdin <<EOF "systems/$MATCH_1.morph"
+    name: $MATCH_1
+    kind: system
+    arch: $arch
+    strata:
+    - name: build-essential
+      morph: strata/build-essential.morph
+    - name: core
+      morph: strata/core.morph
+    - name: tools
+      morph: strata/tools.morph
+    EOF
+    git add "systems/$MATCH_1.morph"
+    git commit -m 'Add extended system'
+
 Manifests
 ---------
 
