@@ -82,6 +82,12 @@ class InitiatorConnection(distbuild.StateMachine):
                 'idle', self._send_build_failed_message),
             ('idle', distbuild.BuildController, distbuild.BuildProgress, 
                 'idle', self._send_build_progress_message),
+            ('idle', distbuild.BuildController, distbuild.GraphingStarted,
+                'idle', self._send_graphing_started_message),
+            ('idle', distbuild.BuildController, distbuild.GraphingFinished,
+                'idle', self._send_graphing_finished_message),
+            ('idle', distbuild.BuildController, distbuild.CacheState,
+                'idle', self._send_cache_state_message),
             ('idle', distbuild.BuildController, distbuild.BuildCancel,
                 'idle', self._send_build_cancelled_message),
             ('idle', distbuild.BuildController, distbuild.BuildStepStarted, 
@@ -283,6 +289,34 @@ class InitiatorConnection(distbuild.StateMachine):
 
         if event.id in self.our_ids:
             msg = distbuild.message('build-started', id=event.id)
+            self.jm.send(msg)
+            self._log_send(msg)
+
+    def _send_graphing_started_message(self, event_source, event):
+        logging.debug('InitiatorConnection: graphing_started: id=%s', event.id)
+
+        if event.id in self.our_ids:
+            msg = distbuild.message('graphing-started', id=event.id)
+            self.jm.send(msg)
+            self._log_send(msg)
+
+    def _send_graphing_finished_message(self, event_source, event):
+        logging.debug('InitiatorConnection: graphing_finished: id=%s',
+                      event.id)
+
+        if event.id in self.our_ids:
+            msg = distbuild.message('graphing-finished', id=event.id)
+            self.jm.send(msg)
+            self._log_send(msg)
+
+    def _send_cache_state_message(self, event_source, event):
+        logging.debug('InitiatorConnection: cache_state: id=%s', event.id)
+
+        if event.id in self.our_ids:
+            msg = distbuild.message('cache-state',
+                                    id=event.id,
+                                    unbuilt=event.unbuilt,
+                                    total=event.total)
             self.jm.send(msg)
             self._log_send(msg)
 

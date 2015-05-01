@@ -76,6 +76,26 @@ class BuildProgress(object):
         self.message_text = message_text
 
 
+class GraphingStarted(object):
+
+    def __init__(self, id):
+        self.id = id
+
+
+class GraphingFinished(object):
+
+    def __init__(self, id):
+        self.id = id
+
+
+class CacheState(object):
+
+    def __init__(self, id, unbuilt, total):
+        self.id = id
+        self.unbuilt = unbuilt
+        self.total = total
+
+
 class BuildStepStarted(object):
 
     def __init__(self, request_id, step_name, worker_name):
@@ -327,8 +347,8 @@ class BuildController(distbuild.StateMachine):
         self._helper_id = self._idgen.next()
         self._request_command_execution(argv, self._helper_id)
 
-        progress = BuildProgress(self._request['id'], 'Computing build graph')
-        self.mainloop.queue_event(BuildController, progress)
+        self.mainloop.queue_event(BuildController,
+                                  GraphingStarted(self._request['id']))
 
     def _maybe_collect_graph(self, event_source, event):
         distbuild.crash_point()
@@ -343,9 +363,8 @@ class BuildController(distbuild.StateMachine):
         def notify_success(artifact):
             logging.debug('Graph is finished')
 
-            progress = BuildProgress(
-                self._request['id'], 'Finished computing build graph')
-            self.mainloop.queue_event(BuildController, progress)
+            self.mainloop.queue_event(BuildController,
+                                      GraphingFinished(self._request['id']))
 
             self.mainloop.queue_event(self, _GotGraph(artifact))
 
@@ -442,10 +461,8 @@ class BuildController(distbuild.StateMachine):
             total.update([a for a in c.walk()])
         total = len(total) or len([a for _ in self._artifact.walk()])
 
-        progress = BuildProgress(
-            self._request['id'],
-            'Need to build %d artifacts, of %d total' % (unbuilt, total))
-        self.mainloop.queue_event(BuildController, progress)
+        cache_state_msg = CacheState(self._request['id'], unbuilt, total)
+        self.mainloop.queue_event(BuildController, cache_state_msg)
 
         if total == 0:
             logging.info('There seems to be nothing to build')

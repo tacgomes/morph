@@ -136,6 +136,9 @@ class Initiator(distbuild.StateMachine):
             'step-output': self._handle_step_output_message,
             'step-finished': self._handle_step_finished_message,
             'step-failed': self._handle_step_failed_message,
+            'graphing-started': self._handle_graphing_started_message,
+            'graphing-finished': self._handle_graphing_finished_message,
+            'cache-state': self._handle_cache_state_message
         }
 
         handler = handlers[event.msg['type']]
@@ -153,6 +156,17 @@ class Initiator(distbuild.StateMachine):
 
     def _handle_build_progress_message(self, msg):
         self._app.status(msg='Progress: %(msgtext)s', msgtext=msg['message'])
+
+    def _handle_graphing_started_message(self, msg):
+        self._app.status(msg='Computing build graph')
+
+    def _handle_graphing_finished_message(self, msg):
+        self._app.status(msg='Finished computing build graph')
+
+    def _handle_cache_state_message(self, msg):
+        self._app.status(
+            msg='Need to build %(unbuilt)d/%(total)d artifacts',
+            unbuilt=msg['unbuilt'], total=msg['total'])
 
     def _get_step_output_dir(self):
         if self._step_output_dir is None:
@@ -298,6 +312,9 @@ class InitiatorStart(Initiator):
             'build-finished': self._handle_build_finished_message,
             'build-failed': self._handle_build_failed_message,
             'build-cancelled': self._handle_build_cancelled_message,
+            'graphing-started': self._handle_graphing_started_message,
+            'graphing-finished': self._handle_graphing_finished_message,
+            'cache-state': self._handle_cache_state_message
         }
 
         msg_type = event.msg['type']

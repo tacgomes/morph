@@ -22,7 +22,7 @@
 # time a change is introduced that would break server/initiator compatibility
 
 
-VERSION = 3
+VERSION = 4
 
 
 _required_fields = {
@@ -107,6 +107,17 @@ _required_fields = {
         'id',
         'protocol_version',
     ],
+    'graphing-started': [
+        'id',
+    ],
+    'graphing-finished': [
+        'id'
+    ],
+    'cache-state': [
+        'id',
+        'unbuilt',
+        'total'
+    ]
 }
 
 
