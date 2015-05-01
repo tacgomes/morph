@@ -36,6 +36,7 @@ morphlib/plugins/certify_plugin.py
 morphlib/plugins/get_repo_plugin.py
 morphlib/plugins/system_manifests_plugin.py
 morphlib/plugins/show_build_log_plugin.py
+morphlib/plugins/anchor_plugin.py
 distbuild/__init__.py
 distbuild/build_controller.py
 distbuild/connection_machine.py
