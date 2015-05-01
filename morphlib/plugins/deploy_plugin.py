@@ -21,7 +21,6 @@ import shutil
 import sys
 import tarfile
 import tempfile
-import uuid
 import warnings
 
 import cliapp
@@ -335,25 +334,14 @@ class DeployPlugin(cliapp.Plugin):
             self.app.settings['tempdir-min-space'],
             '/', 0)
 
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
 
         cluster_filename = morphlib.util.sanitise_morphology_path(args[0])
-        cluster_filename = sb.relative_to_root_repo(cluster_filename)
+        cluster_filename = definitions_repo.relative_path(cluster_filename)
 
-        build_uuid = uuid.uuid4().hex
-
-        build_command = morphlib.buildcommand.BuildCommand(self.app)
-        build_command = self.app.hookmgr.call('new-build-command',
-                                              build_command)
         loader = morphlib.morphloader.MorphologyLoader()
-        name = morphlib.git.get_user_name(self.app.runcmd)
-        email = morphlib.git.get_user_email(self.app.runcmd)
-        build_ref_prefix = self.app.settings['build-ref-prefix']
-        root_repo_dir = morphlib.gitdir.GitDirectory(
-            sb.get_git_directory_name(sb.root_repository_url))
-
-        cluster_text = root_repo_dir.read_file(cluster_filename)
+        cluster_text = definitions_repo.read_file(cluster_filename)
         cluster_morphology = loader.load_from_string(cluster_text,
                                                      filename=cluster_filename)
 
@@ -378,24 +366,8 @@ class DeployPlugin(cliapp.Plugin):
         self.validate_deployment_options(
             env_vars, all_deployments, all_subsystems)
 
-        if self.app.settings['local-changes'] == 'include':
-            bb = morphlib.buildbranch.BuildBranch(sb, build_ref_prefix)
-            pbb = morphlib.buildbranch.pushed_build_branch(
-                    bb, loader=loader, changes_need_pushing=False,
-                    name=name, email=email, build_uuid=build_uuid,
-                    status=self.app.status)
-            with pbb as (repo, commit, original_ref):
-                self.deploy_cluster(sb, build_command, cluster_morphology,
-                                    root_repo_dir, repo, commit, env_vars,
-                                    deployments)
-        else:
-            repo = sb.get_config('branch.root')
-            ref = sb.get_config('branch.name')
-            commit = root_repo_dir.resolve_ref_to_commit(ref)
-
-            self.deploy_cluster(sb, build_command, cluster_morphology,
-                                root_repo_dir, repo, commit, env_vars,
-                                deployments)
+        self.deploy_cluster(definitions_repo, cluster_morphology,
+                            env_vars, deployments)
 
         self.app.status(msg='Finished deployment')
         if self.app.settings['partial']:
@@ -420,22 +392,22 @@ class DeployPlugin(cliapp.Plugin):
                         'Variable referenced a non-existent deployment '
                         'name: %s' % var)
 
-    def deploy_cluster(self, sb, build_command, cluster_morphology,
-                       root_repo_dir, repo, commit, env_vars, deployments):
+    def deploy_cluster(self, definitions_repo, cluster_morphology,
+                       env_vars, deployments):
         # Create a tempdir for this deployment to work in
         tmp_basedir = os.path.join(self.app.settings['tempdir'], 'deployments')
         with morphlib.util.temp_dir(dir=tmp_basedir) as deploy_tempdir:
             for system in cluster_morphology['systems']:
-                self.deploy_system(sb, build_command, deploy_tempdir,
-                                   root_repo_dir, repo, commit, system,
-                                   env_vars, deployments,
+                self.deploy_system(deploy_tempdir, definitions_repo,
+                                   system, env_vars, deployments,
                                    parent_location='')
 
-    def _sanitise_morphology_paths(self, paths, sb):
+    def _sanitise_morphology_paths(self, paths, definitions_repo):
         sanitised_paths = []
         for path in paths:
             path = morphlib.util.sanitise_morphology_path(path)
-            sanitised_paths.append(sb.relative_to_root_repo(path))
+            sanitised_paths.append(definitions_repo.relative_path(path))
+            sanitised_paths.append(path)
         return sanitised_paths
 
     def _find_artifacts(self, filenames, root_artifact):
@@ -469,23 +441,37 @@ class DeployPlugin(cliapp.Plugin):
                                        artifact.source.name))
         return components
 
-    def deploy_system(self, sb, build_command, deploy_tempdir,
-                      root_repo_dir, build_repo, ref, system, env_vars,
+    def deploy_system(self, deploy_tempdir, definitions_repo, system, env_vars,
                       deployment_filter, parent_location):
         sys_ids = set(system['deploy'].iterkeys())
         if deployment_filter and not \
                 any(sys_id in deployment_filter for sys_id in sys_ids):
             return
+
+        # FIXME: right now we create a new source pool and possibly a new
+        # temporary branch, for each system and subsystem being deployed.
+        # We could do a much better job if a source pool could contain
+        # multiple systems of different architectures.
+        include_local_changes = (self.app.settings['local-changes']=='include')
+        morph = morphlib.util.sanitise_morphology_path(system['morph'])
+
+        source_pool_context = definitions_repo.source_pool(
+            definitions_repo.HEAD, morph,
+            include_local_changes=include_local_changes)
+        with source_pool_context as source_pool:
+            self.deploy_system_with_source_pool(
+                deploy_tempdir, definitions_repo, source_pool, system,
+                env_vars, deployment_filter, parent_location)
+
+    def deploy_system_with_source_pool(self, deploy_tempdir, definitions_repo,
+                                       source_pool, system, env_vars,
+                                       deployment_filter, parent_location):
         old_status_prefix = self.app.status_prefix
         system_status_prefix = '%s[%s]' % (old_status_prefix, system['morph'])
         self.app.status_prefix = system_status_prefix
         try:
-            # Find the artifact to build
-            morph = morphlib.util.sanitise_morphology_path(system['morph'])
-            srcpool = build_command.create_source_pool(
-                build_repo, ref, [morph])
-
-            artifact = build_command.resolve_artifacts(srcpool)
+            build_command = morphlib.buildcommand.BuildCommand(self.app)
+            artifact = build_command.resolve_artifacts(source_pool)
 
             deploy_defaults = system.get('deploy-defaults', {})
             for system_id, deploy_params in system['deploy'].iteritems():
@@ -508,7 +494,7 @@ class DeployPlugin(cliapp.Plugin):
                         system_id, final_env, is_upgrade)
 
                     extensions_dir = os.path.join(
-                        root_repo_dir.dirname,
+                        definitions_repo.dirname,
                         os.path.dirname(deployment_type))
                     if 'PYTHONPATH' in final_env:
                         final_env['PYTHONPATH'] += ':%s' % extensions_dir
@@ -516,24 +502,24 @@ class DeployPlugin(cliapp.Plugin):
                         final_env['PYTHONPATH'] = extensions_dir
 
                     components = self._sanitise_morphology_paths(
-                        deploy_params.get('partial-deploy-components', []), sb)
+                        deploy_params.get('partial-deploy-components', []),
+                        definitions_repo)
                     if self.app.settings['partial']:
                         components = self._validate_partial_deployment(
                             deployment_type, artifact, components)
 
-                    self.check_deploy(root_repo_dir, ref, deployment_type,
+                    self.check_deploy(definitions_repo, deployment_type,
                                       location, final_env)
                     system_tree = self.setup_deploy(build_command,
                                                     deploy_tempdir,
-                                                    root_repo_dir,
-                                                    ref, artifact,
+                                                    definitions_repo,
+                                                    artifact,
                                                     deployment_type,
                                                     location, final_env,
                                                     components=components)
                     for subsystem in system.get('subsystems', []):
-                        self.deploy_system(sb, build_command, deploy_tempdir,
-                                           root_repo_dir, build_repo,
-                                           ref, subsystem, env_vars, [],
+                        self.deploy_system(deploy_tempdir, definitions_repo,
+                                           subsystem, env_vars, [],
                                            parent_location=system_tree)
                     if parent_location:
                         deploy_location = os.path.join(parent_location,
@@ -541,9 +527,9 @@ class DeployPlugin(cliapp.Plugin):
                     else:
                         deploy_location = location
                     self.run_deploy_commands(deploy_tempdir, final_env,
-                                             artifact, root_repo_dir,
-                                             ref, deployment_type,
-                                             system_tree, deploy_location)
+                                             artifact, definitions_repo,
+                                             deployment_type, system_tree,
+                                             deploy_location)
                 finally:
                     self.app.status_prefix = system_status_prefix
         finally:
@@ -589,13 +575,13 @@ class DeployPlugin(cliapp.Plugin):
         self.app.settings['upgrade'] = True
         self.deploy(args)
 
-    def check_deploy(self, root_repo_dir, ref, deployment_type, location, env):
+    def check_deploy(self, definitions_repo, deployment_type, location, env):
         # Run optional write check extension. These are separate from the write
         # extension because it may be several minutes before the write
         # extension itself has the chance to raise an error.
         try:
             self._run_extension(
-                root_repo_dir, deployment_type, '.check',
+                definitions_repo, deployment_type, '.check',
                 [location], env)
         except morphlib.extensions.ExtensionNotFoundError:
             pass
@@ -698,7 +684,7 @@ class DeployPlugin(cliapp.Plugin):
             msg='Components %(components)s unpacked at %(path)s',
             components=', '.join(components), path=path)
 
-    def setup_deploy(self, build_command, deploy_tempdir, root_repo_dir, ref,
+    def setup_deploy(self, build_command, deploy_tempdir, definitions_repo,
                      artifact, deployment_type, location, env, components=[]):
         # Create a tempdir to extract the rootfs in
         with morphlib.util.temp_dir(dir=deploy_tempdir,
@@ -713,7 +699,7 @@ class DeployPlugin(cliapp.Plugin):
             self.app.status(
                 msg='Writing deployment metadata file')
             metadata = self.create_metadata(
-                    artifact, root_repo_dir, deployment_type, location, env)
+                    artifact, definitions_repo, deployment_type, location, env)
             metadata_path = os.path.join(
                     system_tree, 'baserock', 'deployment.meta')
             with morphlib.savefile.SaveFile(metadata_path, 'w') as f:
@@ -721,8 +707,9 @@ class DeployPlugin(cliapp.Plugin):
                           sort_keys=True, encoding='unicode-escape')
             return system_tree
 
-    def run_deploy_commands(self, deploy_tempdir, env, artifact, root_repo_dir,
-                            ref, deployment_type, system_tree, location):
+    def run_deploy_commands(self, deploy_tempdir, env, artifact,
+                            definitions_repo, deployment_type, system_tree,
+                            location):
         # Extensions get a private tempdir so we can more easily clean
         # up any files an extension left behind
         with morphlib.util.temp_dir(dir=deploy_tempdir) \
@@ -734,7 +721,7 @@ class DeployPlugin(cliapp.Plugin):
                 names = artifact.source.morphology['configuration-extensions']
                 for name in names:
                     self._run_extension(
-                        root_repo_dir,
+                        definitions_repo,
                         name,
                         '.configure',
                         [system_tree],
@@ -746,7 +733,7 @@ class DeployPlugin(cliapp.Plugin):
             # Run write extension.
             self.app.status(msg='Writing to device')
             self._run_extension(
-                root_repo_dir,
+                definitions_repo,
                 deployment_type,
                 '.write',
                 [system_tree, location],
@@ -761,7 +748,7 @@ class DeployPlugin(cliapp.Plugin):
         return cb
     def _report_extension_logger(self, name, kind):
         return lambda line: logging.debug('%s%s: %s', name, kind, line)
-    def _run_extension(self, gd, name, kind, args, env):
+    def _run_extension(self, definitions_repo, name, kind, args, env):
         '''Run an extension.
 
         The ``kind`` should be either ``.configure`` or ``.write``,
@@ -772,13 +759,16 @@ class DeployPlugin(cliapp.Plugin):
 
         '''
         error_list = []
-        with morphlib.extensions.get_extension_filename(name, kind) as fn:
+        filename_context = morphlib.extensions.get_extension_filename(
+            definitions_repo, name, kind)
+        with filename_context as fn:
             ext = morphlib.extensions.ExtensionSubprocess(
                 report_stdout=self._report_extension_stdout,
                 report_stderr=self._report_extension_stderr(error_list),
                 report_logger=self._report_extension_logger(name, kind),
             )
-            returncode = ext.run(fn, args, env=env, cwd=gd.dirname)
+            returncode = ext.run(fn, args, env=env,
+                                 cwd=definitions_repo.dirname)
         if returncode == 0:
             logging.info('%s%s succeeded', name, kind)
         else:
@@ -786,8 +776,8 @@ class DeployPlugin(cliapp.Plugin):
                 name, kind, returncode, '\n'.join(error_list))
             raise cliapp.AppException(message)
 
-    def create_metadata(self, system_artifact, root_repo_dir, deployment_type,
-                        location, env, components=[]):
+    def create_metadata(self, system_artifact, definitions_repo,
+                        deployment_type, location, env, components=[]):
         '''Deployment-specific metadata.
 
         The `build` and `deploy` operations must be from the same ref, so full
@@ -811,7 +801,7 @@ class DeployPlugin(cliapp.Plugin):
             'deployment-type': deployment_type,
             'location': location,
             'definitions-version': {
-                'describe': root_repo_dir.describe(),
+                'describe': definitions_repo.describe(),
             },
             'morph-version': {
                 'ref': morphlib.gitversion.ref,

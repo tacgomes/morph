@@ -36,21 +36,13 @@ class ExtensionNotFoundError(ExtensionError):
 class ExtensionNotExecutableError(ExtensionError):
     pass
 
-def _get_root_repo():
-    workspace = morphlib.workspace.open('.')
-    system_branch = morphlib.sysbranchdir.open_from_within('.')
-    root_repo_dir = morphlib.gitdir.GitDirectory(
-            system_branch.get_git_directory_name(
-                system_branch.root_repository_url))
-    return root_repo_dir
 
 def _get_morph_extension_directory():
     code_dir = os.path.dirname(morphlib.__file__)
     return os.path.join(code_dir, 'exts')
 
-def _list_repo_extension_filenames(kind): #pragma: no cover
-    repo_dir = _get_root_repo()
-    files = repo_dir.list_files()
+def _list_repo_extension_filenames(definitions_repo, kind): #pragma: no cover
+    files = definitions_repo.list_files()
     return (f for f in files if os.path.splitext(f)[1] == kind)
 
 def _list_morph_extension_filenames(kind):
@@ -60,9 +52,8 @@ def _list_morph_extension_filenames(kind):
 def _get_extension_name(filename):
     return os.path.basename(filename)
 
-def _get_repo_extension_contents(name, kind):
-    repo_dir = _get_root_repo()
-    return repo_dir.read_file(name + kind)
+def _get_repo_extension_contents(definitions_repo, name, kind):
+    return definitions_repo.read_file(name + kind)
 
 def _get_morph_extension_filename(name, kind):
     return os.path.join(_get_morph_extension_directory(), name + kind)
@@ -75,10 +66,13 @@ def _is_executable(filename):
 def _list_extensions(kind):
     repo_extension_filenames = []
     try:
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True)
         repo_extension_filenames = \
-                _list_repo_extension_filenames(kind)
+                _list_repo_extension_filenames(definitions_repo, kind)
     except (morphlib.workspace.NotInWorkspace,
-            sysbranchdir.NotInSystemBranch):
+            sysbranchdir.NotInSystemBranch,
+            morphlib.definitions_repo.DefinitionsRepoNotFound):
         # Squash this and just return no system branch extensions
         pass
     morph_extension_filenames = _list_morph_extension_filenames(kind)
@@ -123,7 +117,8 @@ class get_extension_filename():
     If the extension is in the build repository then a temporary
     file will be created, which will be deleted on exting the with block.
     """
-    def __init__(self, name, kind, executable=True):
+    def __init__(self, definitions_repo, name, kind, executable=True):
+        self.definitions_repo = definitions_repo
         self.name = name
         self.kind = kind
         self.executable = executable
@@ -132,8 +127,8 @@ class get_extension_filename():
     def __enter__(self):
         ext_filename = None
         try:
-            ext_contents = _get_repo_extension_contents(self.name,
-                                                        self.kind)
+            ext_contents = _get_repo_extension_contents(
+                self.definitions_repo, self.name, self.kind)
         except (IOError, cliapp.AppException, sysbranchdir.NotInSystemBranch):
             # Not found: look for it in the Morph code.
             ext_filename = _get_morph_extension_filename(self.name, self.kind)
