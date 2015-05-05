@@ -90,6 +90,13 @@ class GitDirectoryTests(unittest.TestCase):
         gitdir.set_config('foo.bar', 'yoyo')
         self.assertEqual(gitdir.get_config('foo.bar'), 'yoyo')
 
+    def test_sets_and_gets_configuration_from_file(self):
+        gitdir = self.empty_git_directory()
+        config = morphlib.gitdir.Config(
+            config_file=os.path.join(gitdir.dirname, '.git', 'config'))
+        config['foo.bar'] = 'yoyo'
+        self.assertEqual(config['foo.bar'], 'yoyo')
+
     def test_gets_index(self):
         gitdir = self.empty_git_directory()
         self.assertIsInstance(gitdir.get_index(), morphlib.gitindex.GitIndex)

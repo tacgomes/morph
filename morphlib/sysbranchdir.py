@@ -50,6 +50,8 @@ class SystemBranchDirectory(object):
         self.root_repository_url = root_repository_url
         self.system_branch_name = system_branch_name
 
+        self.config = morphlib.gitdir.Config(config_file=self._config_path)
+
     @property
     def _magic_path(self):
         return os.path.join(self.root_directory, '.morph-system-branch')
@@ -60,14 +62,11 @@ class SystemBranchDirectory(object):
 
     def set_config(self, key, value):
         '''Set a configuration key/value pair.'''
-        morphlib.git.gitcmd(cliapp.runcmd, 'config', '-f',
-                            self._config_path, key, value)
+        self.config[key] = value
 
     def get_config(self, key):
         '''Get a configuration value for a given key.'''
-        value = morphlib.git.gitcmd(cliapp.runcmd, 'config', '-f',
-                                    self._config_path, key)
-        return value.strip()
+        return self.config[key]
 
     def _find_git_directory(self, repo_url):
         for gd in self.list_git_directories():
@@ -210,6 +209,7 @@ class SystemBranchDirectory(object):
             yield m
 
 
+
 def create(root_directory, root_repository_url, system_branch_name):
     '''Create a new system branch directory on disk.
 
@@ -242,10 +242,12 @@ def create(root_directory, root_repository_url, system_branch_name):
 def open(root_directory):
     '''Open an existing system branch directory.'''
 
-    # Ugly hack follows.
-    sb = SystemBranchDirectory(root_directory, None, None)
-    root_repository_url = sb.get_config('branch.root')
-    system_branch_name = sb.get_config('branch.name')
+    config_file_path = os.path.join(
+        root_directory, '.morph-system-branch', 'config')
+    config = morphlib.gitdir.Config(config_file=config_file_path)
+
+    root_repository_url = config['branch.root']
+    system_branch_name = config['branch.name']
 
     return SystemBranchDirectory(
         root_directory, root_repository_url, system_branch_name)

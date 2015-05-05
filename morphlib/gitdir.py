@@ -134,6 +134,60 @@ class PushFailureError(PushError):
                                  'stderr: %(stderr)s' % locals())
 
 
+class Config(object):
+    '''Class representing Git repo configuration.
+
+    The 'git config' format is reusable outside of Git repos, and this class
+    can be used for these files too.
+
+    This class doesn't take any notice of updates by other processes to the
+    config file, at present. Updates are cached in memory, so changes made from
+    outside the process may be ignored.
+
+    '''
+    def __init__(self, config_file, runcmd=None):
+        '''Creates a Config instance.
+
+        The 'filepath' parameter can be None if 'runcmd' is passed. Calls to
+        'git config' will be passed through 'runcmd', which can set the 'cwd'
+        parameter to a git repo.
+
+        '''
+        assert runcmd or config_file
+
+        if runcmd:
+            self.runcmd = runcmd
+            self.extra_args = []
+        else:
+            self.runcmd = cliapp.runcmd
+            self.extra_args = ['-f', config_file]
+
+        self.cache = dict()
+
+    def __setitem__(self, key, value):
+        '''Set a git repository configuration variable.
+
+        The key must have at least one period in it: foo.bar for example,
+        not just foo. The part before the first period is interpreted
+        by git as a section name.
+
+        '''
+        self.cache[key] = value
+        self.runcmd(['git', 'config'] + self.extra_args + [key, value])
+
+    def __getitem__(self, key):
+        '''Return value for a git repository configuration variable.
+
+        If the variable is unset, this will raise cliapp.AppException.
+
+        '''
+        if key not in self.cache:
+            value = self.runcmd(
+                ['git', 'config'] + self.extra_args + ['-z', key])
+            self.cache[key] = value.rstrip('\0')
+        return self.cache[key]
+
+
 class RefSpec(object):
     '''Class representing how to push or pull a ref.
 
@@ -384,7 +438,7 @@ class GitDirectory(object):
             dirname = morphlib.util.find_root(dirname, '.git')
 
         self.dirname = dirname
-        self._config = {}
+        self.config = Config(config_file=None, runcmd=self._runcmd)
 
         self._ensure_is_git_repo()
 
@@ -486,9 +540,7 @@ class GitDirectory(object):
         by git as a section name.
 
         '''
-
-        morphlib.git.gitcmd(self._runcmd, 'config', key, value)
-        self._config[key] = value
+        self.config[key] = value
 
     def get_config(self, key):
         '''Return value for a git repository configuration variable.
@@ -496,11 +548,7 @@ class GitDirectory(object):
         If the variable is unset, this will raise cliapp.AppException.
 
         '''
-
-        if key not in self._config:
-            value = morphlib.git.gitcmd(self._runcmd, 'config', '-z', key)
-            self._config[key] = value.rstrip('\0')
-        return self._config[key]
+        return self.config[key]
 
     def get_remote(self, *args, **kwargs):
         '''Get a remote for this Repository.
