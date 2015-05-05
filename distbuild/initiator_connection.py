@@ -100,7 +100,7 @@ class InitiatorConnection(distbuild.StateMachine):
             ('closing', self, _Close, None, self._close),
         ]
         self.add_transitions(spec)
-        
+
     def _handle_msg(self, event_source, event):
         '''Handle message from initiator.'''
 
@@ -114,25 +114,40 @@ class InitiatorConnection(distbuild.StateMachine):
             'build-status': self._handle_build_status,
         }
         try:
-            if event.msg.get('protocol_version') != distbuild.protocol.VERSION:
-                msg = distbuild.message('build-failed',
-                    # use build-failed as it is understood by older versions of
-                    # morph; if morph is old enough (protocol_version < 1) it
-                    # won't understand a new message and ignore it or cause the
-                    # request to hang
-                    id=event.msg['id'],
-                    reason=('Protocol version mismatch between server & '
-                            'initiator: distbuild network uses distbuild '
-                            'protocol version %i, but client uses version %i.'
-                            % (distbuild.protocol.VERSION,
-                            event.msg.get('protocol_version'))))
-                self.jm.send(msg)
-                self._log_send(msg)
-                return
-            msg_handler[event.msg['type']](event)
+            if event.msg.get('protocol_version') == distbuild.protocol.VERSION:
+                msg_handler[event.msg['type']](event)
+            else:
+                response = (
+                    'Protocol version mismatch between server & initiator: '
+                    'distbuild network uses distbuild protocol version %i, '
+                    'but client uses version %i.' %
+                    (distbuild.protocol.VERSION,
+                     event.msg.get('protocol_version')))
+                self._refuse_build_request(event.msg, response)
         except (KeyError, ValueError) as ex:
-            logging.error('Invalid message from initiator: %s: exception %s',
-                           event.msg, ex)
+            response = (
+                'Invalid build-request message. Check you are using a '
+                'supported version of Morph. This distbuild network uses '
+                'protocol version %i.' % distbuild.protocol.VERSION)
+            self._refuse_build_request(event.msg, response)
+            logging.info('Invalid message from initiator: %s: exception %r',
+                         event.msg, ex)
+
+    def _refuse_build_request(self, build_request_message, reason):
+        '''Send an error message back to the initiator.
+
+        In order for this to be understood by all versions of Morph, we use the
+        'build-failed' message. Morph initiators ignore any messages they don't
+        understand right now, so will hang forever without giving feedback if
+        we ignore the request without sending 'build-failed'.
+
+        '''
+        # If there was no 'id' in the incoming request, we send a fake one in
+        # the hope that initiator still does the right thing.
+        response_id = build_request_message.get('id', '000')
+        msg = distbuild.message('build-failed', id=response_id, reason=reason)
+        self.jm.send(msg)
+        self._log_send(msg)
 
     def _handle_build_request(self, event):
         new_id = self._idgen.next()
