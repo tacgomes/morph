@@ -388,6 +388,9 @@ class GitDirectory(object):
 
         self._ensure_is_git_repo()
 
+    def __str__(self):
+        return self.dirname
+
     def _runcmd(self, argv, **kwargs):
         '''Run a command at the root of the git directory.
 
