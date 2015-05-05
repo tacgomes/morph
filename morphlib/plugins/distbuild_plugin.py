@@ -171,17 +171,18 @@ class DistbuildListJobsPlugin(cliapp.Plugin):
         loop.run()
 
 
-class SerialiseArtifactPlugin(cliapp.Plugin):
+class CalculateBuildGraphPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('serialise-artifact', self.serialise_artifact,
+        self.app.add_subcommand('calculate-build-graph',
+                                self.calculate_build_graph,
                                 arg_synopsis='REPO REF MORPHOLOGY [REF_NAME]')
 
     def disable(self):
         pass
 
-    def serialise_artifact(self, args):
-        '''Internal use only: Serialise Artifact build graph as JSON.'''
+    def calculate_build_graph(self, args):
+        '''Internal use only: Encode Artifact build graph as JSON.'''
         
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
         
@@ -202,9 +203,9 @@ class SerialiseArtifactPlugin(cliapp.Plugin):
         srcpool = build_command.create_source_pool(
             repo_name, ref, filename, original_ref=original_ref)
         artifact = build_command.resolve_artifacts(srcpool)
-        self.app.output.write(distbuild.serialise_artifact(artifact,
-                                                           repo_name,
-                                                           ref))
+        self.app.output.write(distbuild.encode_artifact(artifact,
+                                                        repo_name,
+                                                        ref))
         self.app.output.write('\n')
 
 
@@ -227,8 +228,8 @@ class WorkerBuild(cliapp.Plugin):
         
         distbuild.add_crash_conditions(self.app.settings['crash-condition'])
 
-        serialized = sys.stdin.readline()
-        artifact_reference = distbuild.deserialise_artifact(serialized)
+        text = sys.stdin.readline()
+        artifact_reference = distbuild.decode_artifact_reference(text)
 
         bc = morphlib.buildcommand.BuildCommand(self.app)
         source_pool = bc.create_source_pool(artifact_reference.repo,

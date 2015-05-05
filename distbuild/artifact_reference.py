@@ -1,7 +1,7 @@
-# distbuild/serialise.py -- (de)serialise Artifact object graphs
+# distbuild/artifact_reference.py -- Decode/encode ArtifactReference objects
 #
 # Copyright (C) 2012, 2014-2015  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
@@ -59,27 +59,27 @@ class ArtifactReference(object): # pragma: no cover
         return list(depth_first(self))
 
 
-def serialise_artifact(artifact, repo, ref):
-    '''Serialise an Artifact object and its dependencies into string form.'''
+def encode_artifact(artifact, repo, ref):
+    '''Encode part of an Artifact object and dependencies into string form.'''
 
-    def encode_source(source):
-        s_dict = {
+    def get_source_dict(source):
+        source_dict = {
             'filename': source.filename,
             'kind': source.morphology['kind'],
             'source_name': source.name,
             'source_repo': source.repo_name,
             'source_ref': source.original_ref,
             'source_sha1': source.sha1,
-            'source_artifacts': [],
+            'source_artifact_names': [],
             'dependencies': []
         }
-        for dep in source.dependencies:
-            s_dict['dependencies'].append(dep.basename())
-        for sa in source.artifacts:
-            s_dict['source_artifacts'].append(sa)
-        return s_dict
+        for dependency in source.dependencies:
+            source_dict['dependencies'].append(dependency.basename())
+        for source_artifact_name in source.artifacts:
+            source_dict['source_artifact_names'].append(source_artifact_name)
+        return source_dict
 
-    def encode_artifact(a):
+    def get_artifact_dict(a):
         if artifact.source.morphology['kind'] == 'system': # pragma: no cover
             arch = artifact.source.morphology['arch']
         else:
@@ -94,44 +94,14 @@ def serialise_artifact(artifact, repo, ref):
         }
         return a_dict
 
-    def encode_artifact_reference(a): # pragma: no cover
-        a_dict = {
-            'arch': a.arch,
-            'cache_key': a.cache_key,
-            'name': a.name,
-            'repo': a.repo,
-            'ref': a.ref
-        }
-        s_dict = {
-            'filename': a.filename,
-            'kind': a.kind,
-            'source_name': a.source_name,
-            'source_repo': a.source_repo,
-            'source_ref': a.source_ref,
-            'source_sha1': a.source_sha1,
-            'source_artifacts': [],
-            'dependencies': []
-        }
-        for dep in a.dependencies:
-            s_dict['dependencies'].append(dep.basename())
-        for sa in a.source_artifacts:
-            s_dict['source_artifacts'].append(sa)
-        return a_dict, s_dict
-
     encoded_artifacts = {}
     encoded_sources = {}
 
-    if isinstance(artifact, ArtifactReference): # pragma: no cover
-        root_filename = artifact.root_filename
-        a_dict, s_dict = encode_artifact_reference(artifact)
-        encoded_artifacts[artifact.basename()] = a_dict
-        encoded_sources[artifact.cache_key] = s_dict
-    else:
-        root_filename = artifact.source.filename
-        for a in artifact.walk():
-            if a.basename() not in encoded_artifacts: # pragma: no cover
-                encoded_artifacts[a.basename()] = encode_artifact(a)
-                encoded_sources[a.source.cache_key] = encode_source(a.source)
+    root_filename = artifact.source.filename
+    for a in artifact.walk():
+        if a.basename() not in encoded_artifacts: # pragma: no cover
+            encoded_artifacts[a.basename()] = get_artifact_dict(a)
+            encoded_sources[a.source.cache_key] = get_source_dict(a.source)
 
     content = {
         'root-artifact': artifact.basename(),
@@ -143,14 +113,57 @@ def serialise_artifact(artifact, repo, ref):
     return json.dumps(yaml.dump(content))
 
 
-def deserialise_artifact(encoded):
-    '''Re-construct the Artifact object (and dependencies).
-    
-    The argument should be a string returned by ``serialise_artifact``.
-    The reconstructed Artifact objects will be sufficiently like the
-    originals that they can be used as a build graph, and other such
-    purposes, by Morph.
-    
+def encode_artifact_reference(artifact): # pragma: no cover
+    '''Encode an ArtifactReference object into string form.
+
+    The ArtifactReference object is encoded such that it can be recreated by
+    ``decode_artifact_reference``.
+
+    '''
+    artifact_dict = {
+        'arch': artifact.arch,
+        'cache_key': artifact.cache_key,
+        'name': artifact.name,
+        'repo': artifact.repo,
+        'ref': artifact.ref
+    }
+    source_dict = {
+        'filename': artifact.filename,
+        'kind': artifact.kind,
+        'source_name': artifact.source_name,
+        'source_repo': artifact.source_repo,
+        'source_ref': artifact.source_ref,
+        'source_sha1': artifact.source_sha1,
+        'source_artifact_names': [],
+        'dependencies': []
+    }
+
+    for dependency in artifact.dependencies:
+        source_dict['dependencies'].append(dependency.basename())
+
+    for source_artifact_name in artifact.source_artifact_names:
+        source_dict['source_artifact_names'].append(source_artifact_name)
+
+    content = {
+        'root-artifact': artifact.basename(),
+        'root-filename': artifact.root_filename,
+        'artifacts': {artifact.basename(): artifact_dict},
+        'sources': {artifact.cache_key: source_dict}
+    }
+
+    return json.dumps(yaml.dump(content))
+
+
+def decode_artifact_reference(encoded):
+    '''Decode an ArtifactReference object from `encoded`.
+
+    The argument should be a string returned by ``encode_artifact``
+    or ``encode_artifact_reference``. The decoded ArtifactReference
+    object will be sufficient to represent a build graph and contain
+    enough information to allow `morph worker-build` to calculate a
+    build graph and find the original Artifact object it needs to
+    build.
+
     '''
     content = yaml.load(json.loads(encoded))
     root = content['root-artifact']

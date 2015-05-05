@@ -27,7 +27,9 @@ from mainloop import MainLoop
 from sockserv import ListenServer
 from jm import JsonMachine, JsonNewMessage, JsonEof
 
-from serialise import serialise_artifact, deserialise_artifact
+from artifact_reference import (encode_artifact,
+                                encode_artifact_reference,
+                                decode_artifact_reference)
 from idgen import IdentifierGenerator
 from route_map import RouteMap
 from timer_event_source import TimerEventSource, Timer

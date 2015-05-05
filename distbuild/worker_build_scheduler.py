@@ -527,9 +527,7 @@ class WorkerConnection(distbuild.StateMachine):
         msg = distbuild.message('exec-request',
             id=job.artifact.basename(),
             argv=argv,
-            stdin_contents=distbuild.serialise_artifact(job.artifact,
-                                                        job.artifact.repo,
-                                                        job.artifact.ref),
+            stdin_contents=distbuild.encode_artifact_reference(job.artifact),
         )
         self._jm.send(msg)
 
@@ -610,9 +608,9 @@ class WorkerConnection(distbuild.StateMachine):
         kind = job.artifact.kind
 
         if kind == 'chunk':
-            source_artifacts = job.artifact.source_artifacts
+            artifact_names = job.artifact.source_artifact_names
 
-            suffixes = ['%s.%s' % (kind, name) for name in source_artifacts]
+            suffixes = ['%s.%s' % (kind, name) for name in artifact_names]
             suffixes.append('build-log')
         else:
             filename = '%s.%s' % (kind, job.artifact.name)

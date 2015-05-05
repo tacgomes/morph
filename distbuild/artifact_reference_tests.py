@@ -1,7 +1,7 @@
-# distbuild/serialise_tests.py -- unit tests for Artifact serialisation
+# distbuild/artifact_reference_tests.py -- unit tests for Artifact encoding
 #
 # Copyright (C) 2012, 2014-2015  Codethink Limited
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
@@ -59,7 +59,7 @@ class MockArtifact(object):
 
     def walk(self): # pragma: no cover
         done = set()
-        
+
         def depth_first(a):
             if a not in done:
                 done.add(a)
@@ -71,7 +71,7 @@ class MockArtifact(object):
         return list(depth_first(self))
 
 
-class SerialisationTests(unittest.TestCase):
+class ArtifactReferenceTests(unittest.TestCase):
 
     def setUp(self):
         self.art1 = MockArtifact('name1', 'stratum')
@@ -80,12 +80,12 @@ class SerialisationTests(unittest.TestCase):
         self.art4 = MockArtifact('name4', 'chunk')
 
     def verify_round_trip(self, artifact):
-        encoded = distbuild.serialise_artifact(artifact,
-                                               artifact.source.repo_name,
-                                               artifact.source.sha1)
-        decoded = distbuild.deserialise_artifact(encoded)
+        encoded = distbuild.encode_artifact(artifact,
+                                            artifact.source.repo_name,
+                                            artifact.source.sha1)
+        decoded = distbuild.decode_artifact_reference(encoded)
         self.assertEqual(artifact.basename(), decoded.basename())
-        
+
         objs = {}
         queue = [decoded]
         while queue:
@@ -98,9 +98,9 @@ class SerialisationTests(unittest.TestCase):
             queue.extend(obj.dependencies)
 
     def test_returns_string(self):
-        encoded = distbuild.serialise_artifact(self.art1,
-                                               self.art1.source.repo_name,
-                                               self.art1.source.sha1)
+        encoded = distbuild.encode_artifact(self.art1,
+                                            self.art1.source.repo_name,
+                                            self.art1.source.sha1)
         self.assertEqual(type(encoded), str)
 
     def test_works_without_dependencies(self):
