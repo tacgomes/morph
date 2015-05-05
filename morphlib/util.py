@@ -702,3 +702,31 @@ def word_join_list(l): # pragma: no cover
     else:
         commasep = ', '.join(l[:-1])
         return ' and '.join((commasep, l[-1]))
+
+
+def fix_chunk_build_mode(system_artifact): # pragma: no cover
+    """Give each chunk's in-memory morphology the correct build-mode.
+
+    This function gives each chunk contained in `system_artifact` the
+    correct build-mode, rather than having them all be 'staging'.
+
+    Currently, our definitions define build-mode in the entries in the
+    chunk list in a given stratum. However, morph expects it to be in
+    the chunk morphology when loading, and sets the in-memory
+    build-mode to 'staging' by default.
+
+    """
+    # This should probably be fixed in morphloader, but I held off on
+    # doing that following a discussion on #baserock.
+    #
+    # https://irclogs.baserock.org/%23baserock.2015-04-21.log.html
+    # (at 9:02)
+    strata = set(a for a in system_artifact.walk()
+                 if a.source.morphology['kind'] == 'stratum')
+    chunks = set(a for a in system_artifact.walk()
+                 if a.source.morphology['kind'] == 'chunk')
+    for chunk, stratum in itertools.product(chunks, strata):
+        for spec in stratum.source.morphology['chunks']:
+            if chunk.source.morphology['name'] == spec['name']:
+                chunk.source.morphology['build-mode'] = \
+                    spec['build-mode']

@@ -90,31 +90,6 @@ class SystemManifestsPlugin(cliapp.Plugin):
         for system_filename in system_filenames:
             self.system_manifest(repo, ref, system_filename)
 
-    def fix_chunk_build_mode(self, system_artifact):
-        """Give each chunk's in-memory morpholgy the correct build-mode.
-
-        Currently, our definitions define build-mode in the entries in the
-        chunk list in a given stratum. However, morph expects it to be in
-        the chunk morphology when loading, and sets the in-memory
-        build-mode to 'staging' by default.
-
-        """
-        # This should probably be fixed in morphloader, but I held off on
-        # doing that following a discussion on #baserock.
-        #
-        # https://irclogs.baserock.org/%23baserock.2015-04-21.log.html
-        # (at 9:02)
-        strata = set(a for a in system_artifact.walk()
-                     if a.source.morphology['kind'] == 'stratum')
-        chunks = set(a for a in system_artifact.walk()
-                     if a.source.morphology['kind'] == 'chunk')
-        for chunk in chunks:
-            for stratum in strata:
-                for spec in stratum.source.morphology['chunks']:
-                    if chunk.source.morphology['name'] == spec['name']:
-                        chunk.source.morphology['build-mode'] = \
-                            spec['build-mode']
-
     @staticmethod
     def find_artifact_by_name(artifacts_list, filename):
         for a in artifacts_list:
@@ -148,7 +123,9 @@ class SystemManifestsPlugin(cliapp.Plugin):
         build_env = morphlib.buildenvironment.BuildEnvironment(
             self.app.settings, system_artifact.source.morphology['arch'])
         ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-        self.fix_chunk_build_mode(system_artifact)
+
+        # FIXME: This should be fixed in morphloader.
+        morphlib.util.fix_chunk_build_mode(system_artifact)
 
         aliases = self.app.settings['repo-alias']
         resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)

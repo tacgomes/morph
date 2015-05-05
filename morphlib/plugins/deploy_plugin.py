@@ -648,31 +648,6 @@ class DeployPlugin(cliapp.Plugin):
             msg='System unpacked at %(system_tree)s',
             system_tree=path)
 
-    def fix_chunk_build_mode(self, artifact):
-        """Give each chunk's in-memory morpholgy the correct build-mode.
-
-        Currently, our definitions define build-mode in the entries in the
-        chunk list in a given stratum. However, morph expects it to be in
-        the chunk morphology when loading, and sets the in-memory
-        build-mode to 'staging' by default.
-
-        """
-        # This should probably be fixed in morphloader, but I held off on
-        # doing that following a discussion on #baserock.
-        #
-        # https://irclogs.baserock.org/%23baserock.2015-04-21.log.html
-        # (at 9:02)
-        strata = set(a for a in artifact.walk()
-                     if a.source.morphology['kind'] == 'stratum')
-        chunks = set(a for a in artifact.walk()
-                     if a.source.morphology['kind'] == 'chunk')
-        for chunk in chunks:
-            for stratum in strata:
-                for spec in stratum.source.morphology['chunks']:
-                    if chunk.source.morphology['name'] == spec['name']:
-                        chunk.source.morphology['build-mode'] = \
-                            spec['build-mode']
-
     def unpack_components(self, bc, components, path):
         if not components:
             raise cliapp.AppException('Deployment failed as no components '
@@ -716,7 +691,8 @@ class DeployPlugin(cliapp.Plugin):
         system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
 
         try:
-            self.fix_chunk_build_mode(artifact)
+            # FIXME: This should be fixed in morphloader.
+            morphlib.util.fix_chunk_build_mode(artifact)
             if self.app.settings['partial']:
                 self.unpack_components(build_command, components, system_tree)
             else:
