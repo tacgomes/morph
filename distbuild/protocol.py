@@ -22,7 +22,7 @@
 # time a change is introduced that would break server/initiator compatibility
 
 
-VERSION = 2
+VERSION = 3
 
 
 _required_fields = {
