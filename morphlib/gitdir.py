@@ -249,7 +249,7 @@ class Remote(object):
         if self.name is not None:
             morphlib.git.gitcmd(self.gd._runcmd, 'remote', 'set-url',
                                 self.name, url)
-        if self.push_url is None:
+        if self.name is None and self.push_url is None:
             self.set_push_url(url)
 
     def set_push_url(self, url):
@@ -257,7 +257,7 @@ class Remote(object):
         if self.name is not None:
             morphlib.git.gitcmd(self.gd._runcmd, 'remote', 'set-url',
                                 '--push', self.name, url)
-        if self.fetch_url is None:
+        if self.name is None and self.fetch_url is None:
             self.set_fetch_url(url)
 
     def _get_remote_url(self, remote_name, kind):
