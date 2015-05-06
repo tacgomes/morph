@@ -88,8 +88,6 @@ class CacheKeyComputerTests(unittest.TestCase):
                                                    'tree', morph)
             for source in sources:
                 self.source_pool.add(source)
-            # FIXME: This should use MorphologyFactory
-            m = source.morphology
         self.build_env = DummyBuildEnvironment({
             "LOGNAME": "foouser",
             "MORPH_ARCH": "dummy",
