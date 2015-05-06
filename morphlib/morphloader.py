@@ -195,6 +195,14 @@ class EmptySystemError(MorphologyValidationError):
             self, 'System %(system_name)s has no strata.' % locals())
 
 
+class DependsOnSelfError(MorphologyValidationError):
+
+    def __init__(self, name, filename):
+        msg = ("Stratum %(name)s build-depends on itself (%(filename)s)"
+               % locals())
+        MorphologyValidationError.__init__(self, msg)
+
+
 class MultipleValidationErrors(MorphologyValidationError):
 
     def __init__(self, name, errors):
@@ -536,6 +544,9 @@ class MorphologyLoader(object):
                 raise InvalidTypeError(
                     'build-depends', list, type(morph['build-depends']),
                     morph['name'])
+            for dep in morph['build-depends']:
+                if dep['morph'] == morph.filename:
+                    raise DependsOnSelfError(morph['name'], morph.filename)
         else:
             for spec in morph['chunks']:
                 if spec.get('build-mode') in ['bootstrap', 'test']:

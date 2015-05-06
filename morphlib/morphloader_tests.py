@@ -225,6 +225,20 @@ build-system: dummy
                 morphlib.morphloader.EmptyRefError):
             self.loader.validate(m)
 
+    def test_fails_to_validate_stratum_which_build_depends_on_self(self):
+        text = '''\
+name: bad-stratum
+kind: stratum
+build-depends:
+- morph: strata/bad-stratum.morph
+chunks:
+- name: chunk
+  repo: test:repo
+  ref: foo'''
+        self.assertRaises(
+            morphlib.morphloader.DependsOnSelfError,
+            self.loader.load_from_string, text, 'strata/bad-stratum.morph')
+
     def test_fails_to_validate_system_with_obsolete_system_kind_field(self):
         m = morphlib.morphology.Morphology({
             'kind': 'system',
