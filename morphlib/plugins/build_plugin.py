@@ -85,7 +85,7 @@ class BuildPlugin(cliapp.Plugin):
 
         self.use_distbuild = True
         build_command = morphlib.buildcommand.InitiatorBuildCommand(
-            self.app, addr, port)
+            self.app, addr, port, self.allow_detach)
 
         filename = morphlib.util.sanitise_morphology_path(filename)
         component_names = [morphlib.util.sanitise_morphology_path(name)
