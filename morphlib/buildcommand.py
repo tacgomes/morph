@@ -572,4 +572,9 @@ class InitiatorBuildCommand(BuildCommand):
             # Python exceptions.
             logging.info('Received KeyboardInterrupt, aborting.')
             for initiator in loop.state_machines_of_type(distbuild.Initiator):
+                connection_id = initiator.connection_id or 'ID'
+                self.app.status(msg='Stopping initiator process. To cancel '
+                                    'the build use `morph distbuild-cancel '
+                                    '%(initiator_connection)s`.',
+                                initiator_connection=connection_id)
                 initiator.handle_cancel()

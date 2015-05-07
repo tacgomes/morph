@@ -252,7 +252,7 @@ class BuildController(distbuild.StateMachine):
                 'annotating', self._maybe_handle_cache_response),
             ('annotating', self, BuildFailed, None, None),
             ('annotating', self, _Annotated, 'building', 
-                self._queue_worker_builds),
+                self._start_building),
             ('annotating', distbuild.InitiatorConnection,
                 distbuild.CancelRequest, 'annotating',
                 self._maybe_notify_build_cancelled),
@@ -478,23 +478,32 @@ class BuildController(distbuild.StateMachine):
                                        self._components)
         return [a for a in artifacts if is_ready_to_build(a)]
 
-    def _queue_worker_builds(self, event_source, event):
-        distbuild.crash_point()
-
+    def _build_complete(self):
         if not self._components:
             if self._artifact.state == BUILT:
                 logging.info('Requested artifact is built')
                 self.mainloop.queue_event(self, _Built())
-                return
-
+                return True
         else:
             if not any(c.state != BUILT for c in self._components):
                 logging.info('Requested components are built')
                 self.mainloop.queue_event(self, _Built())
-                return
+                return True
+        return False
+
+    def _start_building(self, event_source, event):
+        if self._build_complete():
+            return
 
         self.mainloop.queue_event(BuildController,
                                   BuildStarted(self._request['id']))
+        self._queue_worker_builds(event_source, event)
+
+    def _queue_worker_builds(self, event_source, event):
+        distbuild.crash_point()
+
+        if self._build_complete():
+            return
 
         logging.debug('Queuing more worker-builds to run')
         if self.debug_graph_state:

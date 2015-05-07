@@ -75,6 +75,7 @@ class Initiator(distbuild.StateMachine):
         self._step_outputs = {}
         self.debug_transitions = False
         self.allow_detach = False
+        self.connection_id = None
 
         # The build-log output dir is set up in _open_output() when we
         # receive the first log message. Thus if we never get that far, we
@@ -126,7 +127,7 @@ class Initiator(distbuild.StateMachine):
         logging.debug('Initiator: from controller: %s' % repr(event.msg))
 
         handlers = {
-            'build-started': lambda msg: None,
+            'build-started': self._handle_build_started_message,
             'build-finished': self._handle_build_finished_message,
             'build-failed': self._handle_build_failed_message,
             'build-cancelled': self._handle_build_cancelled_message,
@@ -144,6 +145,15 @@ class Initiator(distbuild.StateMachine):
         handler = handlers[event.msg['type']]
         handler(event.msg)
 
+    def _handle_build_started_message(self, msg):
+        self._app.status(msg='Distbuild started with build request '
+                             'ID: %(id)s. To cancel, use `morph '
+                             'distbuild-cancel %(id)s`.',
+                         id=msg['id'])
+        if self.allow_detach:
+            self.mainloop.queue_event(self._cm, distbuild.StopConnecting())
+            self._jm.close()
+
     def _handle_build_finished_message(self, msg):
         self.mainloop.queue_event(self, _Finished(msg))
 
@@ -158,6 +168,7 @@ class Initiator(distbuild.StateMachine):
         self._app.status(msg='Progress: %(msgtext)s', msgtext=msg['message'])
 
     def _handle_graphing_started_message(self, msg):
+        self.connection_id = msg['id']
         self._app.status(msg='Computing build graph')
 
     def _handle_graphing_finished_message(self, msg):
@@ -322,14 +333,6 @@ class InitiatorStart(Initiator):
         if msg_type in handlers:
             handler = handlers[msg_type]
             handler(event.msg)
-
-    def _handle_build_started_message(self, msg):
-        self._app.status(msg='Detaching distbuild from controller (build'
-                             ' will continue on the distbuild network): '
-                             'build request ID: %s' % msg['id'])
-
-        self.mainloop.queue_event(self._cm, distbuild.StopConnecting())
-        self._jm.close()
 
 class InitiatorCancel(distbuild.StateMachine):
 
