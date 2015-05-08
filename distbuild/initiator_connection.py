@@ -246,35 +246,26 @@ class InitiatorConnection(distbuild.StateMachine):
         logging.debug(
             'InitiatorConnection: sent to %s: %r', self.initiator_name, msg)
 
-    def _send_build_finished_message(self, event_source, event):
+    def _send_build_termination_event_msg(self, event, msg_type, **kwargs):
         if event.id in self.our_ids:
-            msg = distbuild.message('build-finished',
-                id=self._route_map.get_incoming_id(event.id),
-                urls=event.urls)
+            msg= distbuild.message(msg_type,
+                                id=self._route_map.get_incoming_id(event.id),
+                                **kwargs)
             self._route_map.remove(event.id)
             self.our_ids.remove(event.id)
             self.jm.send(msg)
             self._log_send(msg)
+
+    def _send_build_finished_message(self, event_source, event):
+        self._send_build_termination_event_msg(event, 'build-finished',
+                                               urls=event.urls)
 
     def _send_build_cancelled_message(self, event_source, event):
-        if event.id in self.our_ids:
-            msg = distbuild.message('build-cancelled',
-                                id=self._route_map.get_incoming_id(event.id))
-
-            self._route_map.remove(event.id)
-            self.our_ids.remove(event.id)
-            self.jm.send(msg)
-            self._log_send(msg)
+        self._send_build_termination_event_msg(event, 'build-cancelled')
 
     def _send_build_failed_message(self, event_source, event):
-        if event.id in self.our_ids:
-            msg = distbuild.message('build-failed',
-                id=self._route_map.get_incoming_id(event.id),
-                reason=event.reason)
-            self._route_map.remove(event.id)
-            self.our_ids.remove(event.id)
-            self.jm.send(msg)
-            self._log_send(msg)
+        self._send_build_termination_event_msg(event, 'build-failed',
+                                               reason=event.reason)
 
     def _send_build_progress_message(self, event_source, event):
         if event.id in self.our_ids:
