@@ -606,7 +606,6 @@ class WorkerConnection(distbuild.StateMachine):
 
         logging.debug('Requesting shared artifact cache to get artifacts')
 
-        job = self._current_job
         job = event.job
         kind = job.artifact.kind
 
