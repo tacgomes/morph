@@ -501,6 +501,14 @@ class WorkerConnection(distbuild.StateMachine):
 
         msg = distbuild.message('exec-cancel', id=job.id)
         self._jm.send(msg)
+        # NOTE: We need to set job's state to 'failed' as soon as possible.
+        # The exec-response message may take a while to arrive, and if we
+        # wait for that then it is possible that another build-request for
+        # the same artifact could be made, which would result in the build
+        # not being started since the cancelled job would still be 'running'.
+        # The new build will then fail when the exec-response for the old
+        # build finally arrives.
+        job.set_state('failed')
         self.mainloop.queue_event(self, _BuildCancelled())
 
     def _disconnected(self, event_source, event):
