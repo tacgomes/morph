@@ -325,7 +325,7 @@ another to hold a chunk.
     EOF
 
     install -m644 -D /dev/stdin << 'EOF' "stage2-chunk.morph"
-    name: test-chunk
+    name: stage2-chunk
     kind: chunk
     build-system: manual
     install-commands:
