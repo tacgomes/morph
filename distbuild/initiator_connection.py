@@ -19,6 +19,11 @@ import logging
 
 import distbuild
 
+PROTOCOL_VERSION_MISMATCH_RESPONSE = (
+    'Protocol version mismatch between server and initiator: '
+    'distbuild network uses distbuild protocol version %s, '
+    'but client uses version %s.'
+)
 
 class InitiatorDisconnect(object):
 
@@ -50,7 +55,7 @@ class InitiatorConnection(distbuild.StateMachine):
     state machines, and vice versa.
 
     '''
-    
+
     _idgen = distbuild.IdentifierGenerator('InitiatorConnection')
     _route_map = distbuild.RouteMap()
 
@@ -122,25 +127,28 @@ class InitiatorConnection(distbuild.StateMachine):
             'build-cancel': self._handle_build_cancel,
             'build-status': self._handle_build_status,
         }
-        try:
-            if event.msg.get('protocol_version') == distbuild.protocol.VERSION:
-                msg_handler[event.msg['type']](event)
-            else:
-                response = (
-                    'Protocol version mismatch between server & initiator: '
-                    'distbuild network uses distbuild protocol version %s, '
-                    'but client uses version %s.' %
-                    (distbuild.protocol.VERSION,
-                     event.msg.get('protocol_version')))
-                self._refuse_build_request(event.msg, response)
-        except (KeyError, ValueError) as ex:
-            response = (
-                'Invalid build-request message. Check you are using a '
-                'supported version of Morph. This distbuild network uses '
-                'protocol version %i.' % distbuild.protocol.VERSION)
+
+        protocol_version = event.msg.get('protocol_version')
+        msg_type = event.msg.get('type')
+
+        if (protocol_version == distbuild.protocol.VERSION
+            and msg_type in msg_handler
+            and distbuild.protocol.is_valid_message(event.msg)):
+            try:
+                msg_handler[msg_type](event)
+            except Exception:
+                logging.exception('Error handling msg: %s', event.msg)
+        else:
+            response = 'Bad request'
+
+            if (protocol_version is not None
+                and protocol_version != distbuild.protocol.VERSION):
+                # Provide hint to possible cause of bad request
+                response += ('\n' + PROTOCOL_VERSION_MISMATCH_RESPONSE %
+                                (distbuild.protocol.VERSION, protocol_version))
+
+            logging.info('Invalid message from initiator: %s', event.msg)
             self._refuse_build_request(event.msg, response)
-            logging.info('Invalid message from initiator: %s: exception %r',
-                         event.msg, ex)
 
     def _refuse_build_request(self, build_request_message, reason):
         '''Send an error message back to the initiator.

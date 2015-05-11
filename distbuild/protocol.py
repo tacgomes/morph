@@ -129,12 +129,12 @@ _optional_fields = {
 }
 
 
-def message(message_type, **kwargs):
-    known_types = _required_fields.keys()
-    assert message_type in known_types
-
+def _validate(message_type, **kwargs):
     required_fields = _required_fields[message_type]
     optional_fields = _optional_fields.get(message_type, [])
+
+    known_types = _required_fields.keys()
+    assert message_type in known_types
 
     for name in required_fields:
         assert name in kwargs, 'field %s is required' % name
@@ -143,7 +143,25 @@ def message(message_type, **kwargs):
         assert (name in required_fields or name in optional_fields), \
               'field %s is not allowed' % name
 
+def message(message_type, **kwargs):
+    _validate(message_type, **kwargs)
+
     msg = dict(kwargs)
     msg['type'] = message_type
     return msg
 
+def is_valid_message(msg):
+
+    if 'type' not in msg:
+        return False
+
+    msg_type = msg['type']
+    del msg['type']
+
+    try:
+        _validate(msg_type, **msg)
+        return True
+    except AssertionError:
+        return False
+    finally:
+        msg['type'] = msg_type
