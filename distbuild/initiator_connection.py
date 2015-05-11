@@ -276,7 +276,7 @@ class InitiatorConnection(distbuild.StateMachine):
             self._log_send(msg)
 
     def _send_build_started_message(self, event_source, event):
-        logging.debug('InitiatorConnection: build_started: id=%s' % event.id)
+        logging.debug('InitiatorConnection: build_started: id=%s', event.id)
 
         if event.id in self.our_ids:
             msg = distbuild.message('build-started', id=event.id)
