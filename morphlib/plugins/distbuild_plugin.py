@@ -201,7 +201,7 @@ class CalculateBuildGraphPlugin(cliapp.Plugin):
         filename = morphlib.util.sanitise_morphology_path(morph_name)
         build_command = morphlib.buildcommand.BuildCommand(self.app)
         srcpool = build_command.create_source_pool(
-            repo_name, ref, filename, original_ref=original_ref)
+            repo_name, ref, [filename], original_ref=original_ref)
         artifact = build_command.resolve_artifacts(srcpool)
         self.app.output.write(distbuild.encode_artifact(artifact,
                                                         repo_name,
@@ -234,7 +234,7 @@ class WorkerBuild(cliapp.Plugin):
         bc = morphlib.buildcommand.BuildCommand(self.app)
         source_pool = bc.create_source_pool(artifact_reference.repo,
                                             artifact_reference.ref,
-                                            artifact_reference.root_filename)
+                                            [artifact_reference.root_filename])
 
         root = bc.resolve_artifacts(source_pool)
 

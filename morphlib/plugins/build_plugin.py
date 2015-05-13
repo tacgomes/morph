@@ -377,7 +377,7 @@ class BuildPlugin(cliapp.Plugin):
             return
 
         self.app.status(msg='Deciding on task order')
-        srcpool = bc.create_source_pool(repo, commit, system_filename,
+        srcpool = bc.create_source_pool(repo, commit, [system_filename],
                                         original_ref)
         bc.validate_sources(srcpool)
         root = bc.resolve_artifacts(srcpool)

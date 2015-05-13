@@ -255,7 +255,8 @@ class CrossBootstrapPlugin(cliapp.Plugin):
         build_command = morphlib.buildcommand.BuildCommand(self.app, build_env)
 
         morph_name = morphlib.util.sanitise_morphology_path(system_name)
-        srcpool = build_command.create_source_pool(root_repo, ref, morph_name)
+        srcpool = build_command.create_source_pool(
+            root_repo, ref, [morph_name])
 
         # FIXME: this is a quick fix in order to get it working for
         # Baserock 13 release, it is not a reasonable fix

@@ -476,7 +476,8 @@ class DeployPlugin(cliapp.Plugin):
         try:
             # Find the artifact to build
             morph = morphlib.util.sanitise_morphology_path(system['morph'])
-            srcpool = build_command.create_source_pool(build_repo, ref, morph)
+            srcpool = build_command.create_source_pool(
+                build_repo, ref, [morph])
 
             artifact = build_command.resolve_artifacts(srcpool)
 

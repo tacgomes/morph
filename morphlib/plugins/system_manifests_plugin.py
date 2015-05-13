@@ -104,7 +104,7 @@ class SystemManifestsPlugin(cliapp.Plugin):
             msg='Creating source pool for %(system)s',
             system=system_filename, chatty=True)
         source_pool = morphlib.sourceresolver.create_source_pool(
-            self.lrc, self.rrc, repo, ref, system_filename,
+            self.lrc, self.rrc, repo, ref, [system_filename],
             cachedir=self.app.settings['cachedir'],
             update_repos = not self.app.settings['no-git-update'],
             status_cb=self.app.status)

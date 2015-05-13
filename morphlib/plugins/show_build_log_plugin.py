@@ -63,7 +63,7 @@ class ShowBuildLog(cliapp.Plugin):
 
         build_command = morphlib.buildcommand.BuildCommand(self.app, None)
         srcpool = build_command.create_source_pool(definitions_repo_path, ref,
-                                                   system)
+                                                   [system])
         root = build_command.resolve_artifacts(srcpool)
 
         arch = root.source.morphology['arch']

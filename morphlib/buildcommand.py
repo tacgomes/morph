@@ -58,7 +58,7 @@ class BuildCommand(object):
 
         self.app.status(msg='Deciding on task order')
         srcpool = self.create_source_pool(
-            repo_name, ref, filename, original_ref)
+            repo_name, ref, [filename], original_ref)
         self.validate_sources(srcpool)
         root_artifact = self.resolve_artifacts(srcpool)
         self.build_in_order(root_artifact)
@@ -84,8 +84,8 @@ class BuildCommand(object):
         return morphlib.buildenvironment.BuildEnvironment(self.app.settings,
                                                           arch)
 
-    def create_source_pool(self, repo_name, ref, filename=None,
-                           original_ref=None, filenames=None):
+    def create_source_pool(self, repo_name, ref, filenames,
+                           original_ref=None):
         '''Find the source objects required for building a the given artifact
 
         The SourcePool will contain every stratum and chunk dependency of the
@@ -94,14 +94,12 @@ class BuildCommand(object):
 
         '''
         self.app.status(msg='Creating source pool', chatty=True)
-        if filenames is None and filename is not None:
-            filenames = (filename,)
         srcpool = morphlib.sourceresolver.create_source_pool(
-            self.lrc, self.rrc, repo_name, ref, filename=None,
+            self.lrc, self.rrc, repo_name, ref, filenames,
             cachedir=self.app.settings['cachedir'],
             original_ref=original_ref,
             update_repos=not self.app.settings['no-git-update'],
-            status_cb=self.app.status, filenames=filenames)
+            status_cb=self.app.status)
         return srcpool
 
     def validate_sources(self, srcpool):

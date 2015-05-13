@@ -128,7 +128,7 @@ class AnchorPlugin(cliapp.Plugin):
             for system in systems:
                 bc = BuildCommand(self.app)
                 srcpool = bc.create_source_pool(branch_repo, branch_ref,
-                                                system)
+                                                [system])
                 artifact = bc.resolve_artifacts(srcpool)
                 sources = set(a.source for a in artifact.walk())
                 for source in sources:

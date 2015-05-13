@@ -68,7 +68,7 @@ class ShowDependenciesPlugin(cliapp.Plugin):
             self.app.output.write('dependency graph for %s|%s|%s:\n' %
                                   (repo, ref, morph))
 
-            srcpool = build_command.create_source_pool(repo, ref, filename)
+            srcpool = build_command.create_source_pool(repo, ref, [filename])
             root_artifact = build_command.resolve_artifacts(srcpool)
 
             for artifact in reversed(root_artifact.walk()):

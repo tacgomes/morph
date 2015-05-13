@@ -64,7 +64,7 @@ class GraphingPlugin(cliapp.Plugin):
                                 '%(repo_name)s %(ref)s %(filename)s',
                             repo_name=repo_name, ref=ref, filename=filename)
             builder = morphlib.buildcommand.BuildCommand(self.app)
-            srcpool = builder.create_source_pool(repo_name, ref, filename)
+            srcpool = builder.create_source_pool(repo_name, ref, [filename])
             root_artifact = builder.resolve_artifacts(srcpool)
 
             basename, ext = os.path.splitext(filename)
