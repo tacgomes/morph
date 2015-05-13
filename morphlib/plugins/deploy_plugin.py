@@ -118,7 +118,8 @@ class NotYetBuiltError(morphlib.Error):
         self.msg = ('Deployment failed as %s is not present in the '
                     'artifact cache.\nPlease ensure that %s is built '
                     'before deployment, and the artifact-cache-server (%s) is '
-                    'the correct one.' % (artifact, artifact, rac))
+                    'the correct one.' % (artifact.basename(), artifact.name,
+                                          rac))
 
 
 class DeployPlugin(cliapp.Plugin):
@@ -640,7 +641,7 @@ class DeployPlugin(cliapp.Plugin):
             build_command.cache_artifacts_locally([artifact])
             f = build_command.lac.get(artifact)
         else:
-            raise NotYetBuiltError(artifact.name, build_command.rac)
+            raise NotYetBuiltError(artifact, build_command.rac)
 
         tf = tarfile.open(fileobj=f)
         tf.extractall(path=path)
