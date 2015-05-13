@@ -125,8 +125,8 @@ class InitiatorConnection(distbuild.StateMachine):
             else:
                 response = (
                     'Protocol version mismatch between server & initiator: '
-                    'distbuild network uses distbuild protocol version %i, '
-                    'but client uses version %i.' %
+                    'distbuild network uses distbuild protocol version %s, '
+                    'but client uses version %s.' %
                     (distbuild.protocol.VERSION,
                      event.msg.get('protocol_version')))
                 self._refuse_build_request(event.msg, response)
