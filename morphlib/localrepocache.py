@@ -316,5 +316,5 @@ class LocalRepoCache(object):
             cached_repo = self.get_updated_repo(url, ref=ref)
 
             for submod in submodules_for_repo(cached_repo.path, ref):
-                if (submod.url, submod.commit) not in done:
-                    subs_to_process.add((submod.url, submod.commit))
+                if submod not in done:
+                    subs_to_process.append(submod)
