@@ -27,6 +27,7 @@ run_unit_tests=false
 run_cmdtests=false
 run_slow_cmdtests=false
 run_yarns=false
+snapshot=''
 if [ "$#" -eq 0 ]; then
     run_style=true
     run_unit_tests=true
@@ -73,6 +74,12 @@ do
         ;;
     --no-yarns)
         run_yarns=false
+        ;;
+    --snapshot)
+        snapshot='--snapshot'
+        ;;
+    --no-snapshot)
+        snapshot=''
         ;;
     *) echo "ERROR: Unknown argument $1." 1>&2; exit 1 ;;
     esac
@@ -131,7 +138,8 @@ fi
 
 if "$run_yarns" && command -v yarn > /dev/null
 then
-    yarn --env "PYTHONPATH=$PYTHONPATH" -s yarns/morph.shell-lib yarns/*.yarn
+    yarn --env "PYTHONPATH=$PYTHONPATH" $snapshot -s yarns/morph.shell-lib \
+        yarns/*.yarn
 fi
 
 # cmdtest tests.
