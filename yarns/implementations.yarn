@@ -739,6 +739,12 @@ Generating a manifest.
     cd "$DATADIR/workspace/$MATCH_1/test/morphs"
     git commit -a --allow-empty -m 'Commit all changes'
 
+Implementations for `morph certify`
+-----------------------------------
+
+    IMPLEMENTS WHEN the user certifies the system (\S+) at ref (\S+) in repository (\S+)
+    attempt_morph certify "$MATCH_3" "$MATCH_2" "$MATCH_1"
+
 Implementations for temporary build branch handling
 ---------------------------------------------------
 

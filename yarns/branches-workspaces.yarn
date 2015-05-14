@@ -644,3 +644,16 @@ Definition diffing
     IMPLEMENTS WHEN the user requests a definition diff on all systems on branches (\S+) and (\S+) in system branch (\S+)
     repo="$DATADIR/workspace/$MATCH_3/test/morphs"
     attempt_morph diff "$repo" "$MATCH_1" - "$repo" "$MATCH_2" -
+
+Certify
+-------
+
+`morph certify` can be used to get an indication whether or not building
+a system is likely to have a reproducible result.
+
+    SCENARIO using morph certify
+    GIVEN    a git server
+
+    WHEN     the user certifies the system systems/test-system.morph at ref HEAD in repository test:morphs
+    THEN     morph succeeded
+    AND      morph output Reproducibility certification PASSED
