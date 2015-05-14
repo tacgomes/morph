@@ -15,7 +15,7 @@ Morph Cross-Building Tests
 Morph Cross-Bootstrap Tests
 ===========================
 
-    SCENARIO cross-bootstraping a system for a different architecture
+    SCENARIO cross-bootstrapping a system for a different architecture
     GIVEN a workspace
     AND a git server
     AND a system called base-system-testarch.morph for the test architecture in the git server
