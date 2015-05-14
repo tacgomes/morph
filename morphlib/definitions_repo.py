@@ -216,10 +216,17 @@ class DefinitionsRepo(gitdir.GitDirectory):
             if status_cb:
                 status_cb(msg='Deciding on task order')
 
-            yield morphlib.sourceresolver.create_source_pool(
-                lrc, rrc, repo_url, commit, [system_filename],
-                cachedir=cachedir, original_ref=ref, update_repos=update_repos,
-                status_cb=status_cb)
+            try:
+                yield morphlib.sourceresolver.create_source_pool(
+                    lrc, rrc, repo_url, commit, [system_filename],
+                    cachedir=cachedir, original_ref=ref,
+                    update_repos=update_repos, status_cb=status_cb)
+            except morphlib.sourceresolver.InvalidDefinitionsRefError as e:
+                raise cliapp.AppException(
+                    'Commit %s wasn\'t found in the "origin" remote %s. '
+                    'You either need to push your local commits on branch %s '
+                    'to "origin", or use the --local-changes=include feature '
+                    'of Morph.' % (e.ref, e.repo_url, ref))
 
     def load_all_morphologies(self, loader):
         mf = morphlib.morphologyfinder.MorphologyFinder(self)

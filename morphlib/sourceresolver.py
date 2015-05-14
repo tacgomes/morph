@@ -122,6 +122,18 @@ class InvalidVersionFileError(SourceResolverError): #pragma: no cover
         SourceResolverError.__init__(self, "invalid VERSION file")
 
 
+# Callers may want to give the user a special error message if we hit an
+# InvalidRefError in the definitions.git repo. Currently a separate exception
+# type seems the easiest way to do that, but adding enough detail to the
+# gitdir.InvalidRefError class may make this class redundant in future.
+class InvalidDefinitionsRefError(SourceResolverError):  # pragma: no cover
+    def __init__(self, repo_url, ref):
+        self.repo_url = repo_url
+        self.ref = ref
+        super(InvalidDefinitionsRefError, self).__init__(
+            "Ref %s was not found in repo %s." % (ref, repo_url))
+
+
 class SourceResolver(object):
     '''Provides a way of resolving the set of sources for a given system.
 
@@ -580,8 +592,12 @@ class SourceResolver(object):
              self.buildsystem_cache_manager.open() as resolved_buildsystems:
 
             # Resolve the repo, ref pair for definitions repo, cache result
-            definitions_absref, definitions_tree = self._resolve_ref(
-                resolved_trees, definitions_repo, definitions_ref)
+            try:
+                definitions_absref, definitions_tree = self._resolve_ref(
+                    resolved_trees, definitions_repo, definitions_ref)
+            except morphlib.gitdir.InvalidRefError as e:
+                raise InvalidDefinitionsRefError(
+                    definitions_repo, definitions_ref)
 
             if definitions_original_ref:
                 definitions_ref = definitions_original_ref
