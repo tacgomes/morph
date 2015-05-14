@@ -243,21 +243,32 @@ def get_upstream_address(chunk_url, lorries, status):
         return 'UNKNOWN'
 
 def get_lorry_repos(tempdir, lrc, status, trove_id, trove_host):
-    baserock_lorry_repo = 'baserock:local-config/lorries'
-    lorrydir = os.path.join(tempdir, 'baserock-lorries')
-    baserock_lorrydir = checkout_repo(lrc, baserock_lorry_repo, lorrydir)
-    lorries = load_lorries(lorrydir)
+    lorries = []
+    try:
+        baserock_lorry_repo = 'baserock:local-config/lorries'
+        lorrydir = os.path.join(tempdir, 'baserock-lorries')
+        baserock_lorrydir = checkout_repo(lrc, baserock_lorry_repo, lorrydir)
+        lorries.extend(load_lorries(lorrydir))
+    except morphlib.localrepocache.NoRemote as e:
+        status(msg="WARNING: Could not find lorries from git.baserock.org, "
+                   "expected to find them on %(trove)s at %(reponame)s",
+               trove=trove_host, reponame = e.reponame)
 
     if trove_id:
-        trove_lorry_repo =  ('http://%s/git/%s/local-config/lorries' %
-                             (trove_host, trove_id))
-        lorrydir = os.path.join(tempdir, '%s-lorries' % trove_id)
-        trove_lorrydir = checkout_repo(lrc, trove_lorry_repo, lorrydir)
+        try:
+            trove_lorry_repo =  ('http://%s/git/%s/local-config/lorries' %
+                                 (trove_host, trove_id))
+            lorrydir = os.path.join(tempdir, '%s-lorries' % trove_id)
+            trove_lorrydir = checkout_repo(lrc, trove_lorry_repo, lorrydir)
+            lorries.extend(load_lorries(lorrydir))
+        except morphlib.localrepocache.NoRemote as e:
+            status(msg="WARNING: Could not find lorries repo on %(trove)s "
+                       "at %(reponame)s",
+                   trove=trove_host, reponame=e.reponame)
     else:
         status(msg="WARNING: Not looking in %(trove)s's local-config/lorries "
                    "repo as trove-id was not configured.", trove=trove_host)
 
-    lorries.extend(load_lorries(lorrydir))
     return lorries
 
 
