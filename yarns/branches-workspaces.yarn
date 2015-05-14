@@ -614,6 +614,15 @@ Generating a manifest works
     WHEN        morph generates a manifest
     THEN        the manifest is generated
 
+A CSV manifest can also be generated.
+
+    SCENARIO morph generates a csv manifest
+    GIVEN    a git server
+
+    WHEN     morph generates a manifest for system systems/test-system.morph at ref HEAD in repository test:morphs
+    THEN     morph succeeded
+    AND      the csv manifest is generated
+
 Definition diffing
 ------------------
 

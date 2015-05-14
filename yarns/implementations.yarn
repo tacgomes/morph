@@ -719,12 +719,21 @@ Generating a manifest.
     IMPLEMENTS WHEN morph generates a manifest
     run_morph generate-manifest-genivi "$DATADIR/artifact.tar" > "$DATADIR/manifest"
 
-    IMPLEMENTS THEN the manifest is generated
+    IMPLEMENTS WHEN morph generates a manifest for system (\S+) at ref (\S+) in repository (\S+)
+    cd "$DATADIR"
+    attempt_morph generate-manifest-csv --check-license=single-file "$MATCH_3" "$MATCH_2" "$MATCH_1"
 
+    IMPLEMENTS THEN the manifest is generated
     # Generated manifest should contain the name of the repository
     if ! grep -q hello_world "$DATADIR/manifest"; then
         die "Output isn't what we expect"
     fi
+
+    IMPLEMENTS THEN the csv manifest is generated
+    if [ -e "$DATADIR"/*-manifest.csv ]; then
+        exit 0
+    fi
+    die "Expected CSV manifest not found"
 
     IMPLEMENTS WHEN the user commits all changes in system branch (\S+)
     cd "$DATADIR/workspace/$MATCH_1/test/morphs"
