@@ -60,6 +60,7 @@ class InitiatorConnection(distbuild.StateMachine):
         self.artifact_cache_server = artifact_cache_server
         self.morph_instance = morph_instance
         self.initiator_name = conn.remotename()
+        self._debug_build_output = False
 
     def __repr__(self):
         return '<InitiatorConnection at 0x%x: remote %s>' % (id(self),
@@ -339,9 +340,11 @@ class InitiatorConnection(distbuild.StateMachine):
             self._log_send(msg)
 
     def _send_build_output_message(self, event_source, event):
-        logging.debug('InitiatorConnection: build_output: '
-            'id=%s stdout=%s stderr=%s' % 
-            (repr(event.id), repr(event.stdout), repr(event.stderr)))
+        if self._debug_build_output:
+            logging.debug('InitiatorConnection: build_output: '
+                          'id=%s stdout=%s stderr=%s' %
+                          (repr(event.id), repr(event.stdout),
+                           repr(event.stderr)))
         if event.id in self.our_ids:
             msg = distbuild.message('step-output',
                 id=self._route_map.get_incoming_id(event.id),

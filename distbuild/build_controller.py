@@ -202,6 +202,7 @@ class BuildController(distbuild.StateMachine):
         self._helper_id = None
         self.debug_transitions = False
         self.debug_graph_state = False
+        self._debug_build_output = False
         self.allow_detach = build_request_message['allow_detach']
         self.build_info = {
             'id': build_request_message['id'],
@@ -632,7 +633,9 @@ class BuildController(distbuild.StateMachine):
         if self._request['id'] not in event.msg['ids']:
             return # not for us
 
-        logging.debug('BC: got output: %s' % repr(event.msg))
+        if self._debug_build_output:
+            logging.debug('BC: got output: %s' % repr(event.msg))
+
         artifact = self._find_artifact(event.artifact_cache_key)
         logging.debug('BC: got artifact: %s' % repr(artifact))
         if artifact is None:
@@ -643,7 +646,9 @@ class BuildController(distbuild.StateMachine):
             self._request['id'], build_step_name(artifact),
             event.msg['stdout'], event.msg['stderr'])
         self.mainloop.queue_event(BuildController, output)
-        logging.debug('BC: queued %s' % repr(output))
+
+        if self._debug_build_output:
+            logging.debug('BC: queued %s' % repr(output))
 
     def _maybe_relay_build_caching(self, event_source, event):
         distbuild.crash_point()
