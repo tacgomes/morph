@@ -420,6 +420,7 @@ class WorkerConnection(distbuild.StateMachine):
         self._writeable_cache_server = writeable_cache_server
         self._worker_cache_server_port = worker_cache_server_port
         self._morph_instance = morph_instance
+        self._debug_exec_output = False
 
         addr, port = self._conn.getpeername()
         name = socket.getfqdn(addr)
@@ -594,7 +595,8 @@ class WorkerConnection(distbuild.StateMachine):
         new = dict(msg)
         new['ids'] = job.initiators
 
-        logging.debug('WC: emitting: %s', repr(new))
+        if self._debug_exec_output:
+            logging.debug('WC: emitting: %s', repr(new))
         self.mainloop.queue_event(
             WorkerConnection,
             WorkerBuildOutput(new, job.artifact.cache_key))
