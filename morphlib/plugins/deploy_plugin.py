@@ -65,8 +65,10 @@ def configuration_for_system(system_id, vars_from_commandline,
     return final_env
 
 
-def determine_if_upgrade(deploy_env, upgrade_config):
+def determine_if_upgrade(deploy_env, upgrade_config, is_subsystem):
     if 'UPGRADE' not in deploy_env:
+        if is_subsystem:
+            return False
         return upgrade_config
     return deploy_env['UPGRADE'].lower() in ('1', 'true', 'yes')
 
@@ -501,7 +503,8 @@ class DeployPlugin(cliapp.Plugin):
 
                     is_upgrade = determine_if_upgrade(
                             deploy_env=final_env,
-                            upgrade_config=self.app.settings['upgrade'])
+                            upgrade_config=self.app.settings['upgrade'],
+                            is_subsystem=(parent_location != ''))
                     final_env['UPGRADE'] = ('yes' if is_upgrade else 'no')
 
                     deployment_type, location = deployment_type_and_location(
