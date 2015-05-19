@@ -65,6 +65,12 @@ def configuration_for_system(system_id, vars_from_commandline,
     return final_env
 
 
+def determine_if_upgrade(deploy_env, upgrade_config):
+    if 'UPGRADE' not in deploy_env:
+        return upgrade_config
+    return deploy_env['UPGRADE'].lower() in ('1', 'true', 'yes')
+
+
 def deployment_type_and_location(system_id, config, is_upgrade):
     '''Get method and location for deploying a given system.
 
@@ -493,12 +499,13 @@ class DeployPlugin(cliapp.Plugin):
                     final_env = configuration_for_system(
                         system_id, env_vars, deploy_defaults, deploy_params)
 
-                    is_upgrade = ('yes' if self.app.settings['upgrade']
-                                        else 'no')
-                    final_env['UPGRADE'] = is_upgrade
+                    is_upgrade = determine_if_upgrade(
+                            deploy_env=final_env,
+                            upgrade_config=self.app.settings['upgrade'])
+                    final_env['UPGRADE'] = ('yes' if is_upgrade else 'no')
 
                     deployment_type, location = deployment_type_and_location(
-                        system_id, final_env, self.app.settings['upgrade'])
+                        system_id, final_env, is_upgrade)
 
                     components = self._sanitise_morphology_paths(
                         deploy_params.get('partial-deploy-components', []), sb)
