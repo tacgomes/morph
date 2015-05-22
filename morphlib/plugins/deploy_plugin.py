@@ -571,10 +571,6 @@ class DeployPlugin(cliapp.Plugin):
                 'Too few arguments to upgrade command (see `morph help '
                 'deploy`)')
 
-        if self.app.settings['upgrade']:
-            raise cliapp.AppException(
-                'Running `morph upgrade --upgrade` does not make sense.')
-
         self.app.settings['upgrade'] = True
         self.deploy(args)
 
