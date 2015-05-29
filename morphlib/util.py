@@ -498,7 +498,7 @@ def get_host_architecture(): # pragma: no cover
 
 def sanitize_environment(env):
     for k in env:
-        env[k] = str(env[k])
+        env[k] = '' if env[k] is None else str(env[k])
 
 def iter_trickle(iterable, limit):
     '''Split an iterable up into `limit` length chunks.'''
