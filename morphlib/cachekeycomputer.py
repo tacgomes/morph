@@ -115,6 +115,9 @@ class CacheKeyComputer(object):
             # Disregard all fields of a morphology that aren't important
             ignored_fields = (
                 'description', # purely cosmetic, doesn't change builds
+                # Configuration extensions don't run at build time, therefore
+                # they don't have to be included in the cache key.
+                'configuration-extensions',
                 # The following are used to determine dependencies,
                 # so are already handled by the 'kids' field.
                 'strata', 'build-depends', 'chunks',
