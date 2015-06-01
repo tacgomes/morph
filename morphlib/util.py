@@ -17,8 +17,10 @@ import itertools
 import os
 import pipes
 import re
+import shutil
 import subprocess
 import textwrap
+import tempfile
 import sys
 
 import fs.osfs
@@ -730,3 +732,17 @@ def fix_chunk_build_mode(system_artifact): # pragma: no cover
             if chunk.source.morphology['name'] == spec['name']:
                 chunk.source.morphology['build-mode'] = \
                     spec['build-mode']
+
+
+@contextlib.contextmanager
+def temp_dir(*args, **kwargs): #pragma: no cover
+    cleanup_on_success = kwargs.pop('cleanup_on_success', True)
+    td = tempfile.mkdtemp(*args, **kwargs)
+    try:
+        yield td
+    except BaseException as e:
+        shutil.rmtree(td, ignore_errors=True)
+        raise
+    else:
+        if cleanup_on_success:
+            shutil.rmtree(td, ignore_errors=True)
