@@ -202,7 +202,7 @@ class ExtensionSubprocess(object):
         self._report_stderr = report_stderr
         self._report_logger = report_logger
 
-    def run(self, filename, args, cwd, env):
+    def run(self, filename, args, cwd, env, separate_mount_namespace=True):
         '''Run an extension.
 
         Anything written by the extension to stdout is passed to status(), thus
@@ -223,8 +223,14 @@ class ExtensionSubprocess(object):
             # need to inherit
             def close_read_end():
                 os.close(log_read_fd)
+
+            cmdline = [filename] + list(args)
+
+            if separate_mount_namespace:
+                cmdline = morphlib.util.unshared_cmdline(cmdline)
+
             p = subprocess.Popen(
-                morphlib.util.unshared_cmdline([filename] + list(args)),
+                cmdline,
                 cwd=cwd, env=new_env,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 preexec_fn=close_read_end)
