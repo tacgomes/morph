@@ -14,6 +14,7 @@
 
 
 import collections
+import contextlib
 import cPickle
 import logging
 import os
@@ -79,6 +80,16 @@ class PickleCacheManager(object): # pragma: no cover
                 cPickle.dump(data, f)
         except (IOError, cPickle.PickleError) as e:
             logging.warning('Failed to save cache to %s: %s', self.filename, e)
+
+    @contextlib.contextmanager
+    def open(self):
+        cache = self.load_cache()
+        try:
+            yield cache
+        except BaseException as e:
+            raise
+        else:
+            self.save_cache(cache)
 
 
 class SourceResolverError(cliapp.AppException):
@@ -551,10 +562,6 @@ class SourceResolver(object):
                         system_filenames,
                         visit=lambda rn, rf, fn, arf, m: None,
                         definitions_original_ref=None): # pragma: no cover
-        self._resolved_trees = self.tree_cache_manager.load_cache()
-        self._resolved_buildsystems = \
-            self.buildsystem_cache_manager.load_cache()
-
         # Resolve the (repo, ref) pair for the definitions repo, cache result.
         definitions_absref, definitions_tree = self._resolve_ref(
             definitions_repo, definitions_ref)
@@ -562,10 +569,13 @@ class SourceResolver(object):
         if definitions_original_ref:
             definitions_ref = definitions_original_ref
 
-        self._definitions_checkout_dir = tempfile.mkdtemp()
-
-        try:
+        with morphlib.util.temp_dir() as definitions_checkout_dir, \
+             self.tree_cache_manager.open() as resolved_trees, \
+             self.buildsystem_cache_manager.open() as resolved_buildsystems:
             # FIXME: not an ideal way of passing this info across
+            self._definitions_checkout_dir = definitions_checkout_dir
+            self._resolved_trees = resolved_trees
+            self._resolved_buildsystems = resolved_buildsystems
             self._definitions_repo = definitions_repo
             self._definitions_absref = definitions_absref
             try:
@@ -587,16 +597,6 @@ class SourceResolver(object):
             for repo, ref, filename in chunk_queue:
                 self.process_chunk(definitions_repo, definitions_absref, repo,
                                    ref, filename, visit)
-        finally:
-            shutil.rmtree(self._definitions_checkout_dir)
-            self._definitions_checkout_dir = None
-
-            logging.debug('Saving contents of resolved tree cache')
-            self.tree_cache_manager.save_cache(self._resolved_trees)
-
-            logging.debug('Saving contents of build systems cache')
-            self.buildsystem_cache_manager.save_cache(
-                self._resolved_buildsystems)
 
 
 def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
