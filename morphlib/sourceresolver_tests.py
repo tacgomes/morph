@@ -142,6 +142,9 @@ class FakeLocalRepoCache(object):
     def cache_repo(self, reponame):
         return self.lr
 
+    def get_updated_repo(self, reponame, ref=None):
+        return self.lr
+
 
 class SourceResolverTests(unittest.TestCase):
 

@@ -179,18 +179,6 @@ class SourceResolver(object):
 
         self._definitions_checkout_dir = None
 
-    def cache_repo_locally(self, reponame):
-        if self.update:
-            self.status(msg='Caching git repository %(reponame)s',
-                        reponame=reponame)
-            repo = self.lrc.cache_repo(reponame)
-        else:  # pragma: no cover
-            # This is likely to raise a morphlib.localrepocache.NotCached
-            # exception, because the caller should have checked if the
-            # localrepocache already had the repo. But we may as well try.
-            repo = self.lrc.get_repo(reponame)
-        return repo
-
     def _resolve_ref(self, reponame, ref): # pragma: no cover
         '''Resolves commit and tree sha1s of the ref in a repo and returns it.
 
@@ -235,7 +223,7 @@ class SourceResolver(object):
                 logging.warning('Caught (and ignored) exception: %s' % str(e))
 
         if absref is None:
-            repo = self.cache_repo_locally(reponame)
+            repo = self.lrc.get_updated_repo(reponame, ref)
             absref = repo.resolve_ref_to_commit(ref)
             tree = repo.resolve_ref_to_tree(absref)
 
@@ -273,7 +261,7 @@ class SourceResolver(object):
             except morphlib.remoterepocache.CatFileError:
                 text = None
         else:  # pragma: no cover
-            repo = self.cache_repo_locally(reponame)
+            repo = self.lrc.get_updated_repo(reponame, sha1)
             text = repo.read_file(filename, sha1)
 
         return text
@@ -346,7 +334,7 @@ class SourceResolver(object):
                 pass
 
         if not file_list:
-            repo = self.cache_repo_locally(reponame)
+            repo = self.lrc.get_updated_repo(reponame, sha1)
             file_list = repo.list_files(ref=sha1, recurse=False)
 
         buildsystem = morphlib.buildsystem.detect_build_system(file_list)
@@ -578,11 +566,9 @@ class SourceResolver(object):
             self._resolved_buildsystems = resolved_buildsystems
             self._definitions_repo = definitions_repo
             self._definitions_absref = definitions_absref
-            try:
-                definitions_cached_repo = self.lrc.get_repo(definitions_repo)
-            except morphlib.localrepocache.NotCached:
-                definitions_cached_repo = self.cache_repo_locally(
-                    definitions_repo)
+
+            definitions_cached_repo = self.lrc.get_updated_repo(
+                    repo_name=definitions_repo, ref=definitions_absref)
             definitions_cached_repo.extract_commit(
                 definitions_absref, self._definitions_checkout_dir)
 
