@@ -134,34 +134,33 @@ class SystemManifestsPlugin(cliapp.Plugin):
             trove_id = self.app.settings['trove-id'][0]
         except IndexError:
             trove_id = None
-        tempdir = tempfile.mkdtemp(dir=self.app.settings['tempdir'])
-        lorries = get_lorry_repos(tempdir, self.lrc, self.app.status,
-                                  trove_id, self.app.settings['trove-host'])
-        manifest = Manifest(system_artifact.name, tempdir, self.app.status,
-                            self.lrc)
+        with morphlib.util.temp_dir(dir=self.app.settings['tempdir']) as td:
+            lorries = get_lorry_repos(td, self.lrc, self.app.status, trove_id,
+                                      self.app.settings['trove-host'])
+            manifest = Manifest(system_artifact.name, td, self.app.status,
+                                self.lrc)
 
-        old_prefix = self.app.status_prefix
-        sources = set(a.source for a in system_artifact.walk()
-                      if a.source.morphology['kind'] == 'chunk'
-                      and a.source.morphology['build-mode'] != 'bootstrap')
-        for i, source in enumerate(sources, start=1):
-            source.cache_key = ckc.compute_key(source)
-            source.cache_id = ckc.get_cache_id(source)
-            name = source.morphology['name']
-            ref = source.original_ref
+            old_prefix = self.app.status_prefix
+            sources = set(a.source for a in system_artifact.walk()
+                          if a.source.morphology['kind'] == 'chunk'
+                          and a.source.morphology['build-mode'] != 'bootstrap')
+            for i, source in enumerate(sources, start=1):
+                source.cache_key = ckc.compute_key(source)
+                source.cache_id = ckc.get_cache_id(source)
+                name = source.morphology['name']
+                ref = source.original_ref
 
-            # Ensure we have a cache of the repo
-            if not self.lrc.has_repo(source.repo_name):
-                self.lrc.cache_repo(source.repo_name)
+                # Ensure we have a cache of the repo
+                if not self.lrc.has_repo(source.repo_name):
+                    self.lrc.cache_repo(source.repo_name)
 
-            cached = self.lrc.get_repo(source.repo_name)
+                cached = self.lrc.get_repo(source.repo_name)
 
-            new_prefix = '[%d/%d][%s] ' % (i, len(sources), name)
-            self.app.status_prefix = old_prefix + new_prefix
-            manifest.add_chunk(self.app, name, source.repo_name, ref, cached,
-                               resolver, lorries)
-        self.app.status_prefix = old_prefix
-        shutil.rmtree(tempdir)
+                new_prefix = '[%d/%d][%s] ' % (i, len(sources), name)
+                self.app.status_prefix = old_prefix + new_prefix
+                manifest.add_chunk(self.app, name, source.repo_name, ref,
+                                   cached, resolver, lorries)
+            self.app.status_prefix = old_prefix
 
 
 def run_licensecheck(filename):

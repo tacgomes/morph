@@ -423,16 +423,13 @@ class DeployPlugin(cliapp.Plugin):
     def deploy_cluster(self, sb, build_command, cluster_morphology,
                        root_repo_dir, repo, commit, env_vars, deployments):
         # Create a tempdir for this deployment to work in
-        deploy_tempdir = tempfile.mkdtemp(
-            dir=os.path.join(self.app.settings['tempdir'], 'deployments'))
-        try:
+        tmp_basedir = os.path.join(self.app.settings['tempdir'], 'deployments')
+        with morphlib.util.temp_dir(dir=tmp_basedir) as deploy_tempdir:
             for system in cluster_morphology['systems']:
                 self.deploy_system(sb, build_command, deploy_tempdir,
                                    root_repo_dir, repo, commit, system,
                                    env_vars, deployments,
                                    parent_location='')
-        finally:
-            shutil.rmtree(deploy_tempdir)
 
     def _sanitise_morphology_paths(self, paths, sb):
         sanitised_paths = []
@@ -696,9 +693,8 @@ class DeployPlugin(cliapp.Plugin):
     def setup_deploy(self, build_command, deploy_tempdir, root_repo_dir, ref,
                      artifact, deployment_type, location, env, components=[]):
         # Create a tempdir to extract the rootfs in
-        system_tree = tempfile.mkdtemp(dir=deploy_tempdir)
-
-        try:
+        with morphlib.util.temp_dir(dir=deploy_tempdir,
+                                    cleanup_on_success=False) as system_tree:
             # FIXME: This should be fixed in morphloader.
             morphlib.util.fix_chunk_build_mode(artifact)
             if self.app.settings['partial']:
@@ -716,18 +712,14 @@ class DeployPlugin(cliapp.Plugin):
                 json.dump(metadata, f, indent=4,
                           sort_keys=True, encoding='unicode-escape')
             return system_tree
-        except Exception:
-            shutil.rmtree(system_tree)
-            raise
 
     def run_deploy_commands(self, deploy_tempdir, env, artifact, root_repo_dir,
                             ref, deployment_type, system_tree, location):
         # Extensions get a private tempdir so we can more easily clean
         # up any files an extension left behind
-        deploy_private_tempdir = tempfile.mkdtemp(dir=deploy_tempdir)
-        env['TMPDIR'] = deploy_private_tempdir
-
-        try:
+        with morphlib.util.temp_dir(dir=deploy_tempdir) \
+             as deploy_private_tempdir:
+            env['TMPDIR'] = deploy_private_tempdir
             # Run configuration extensions.
             if not self.app.settings['partial']:
                 self.app.status(msg='Configure system')
@@ -751,11 +743,6 @@ class DeployPlugin(cliapp.Plugin):
                 '.write',
                 [system_tree, location],
                 env)
-
-        finally:
-            # Cleanup.
-            self.app.status(msg='Cleaning up')
-            shutil.rmtree(deploy_private_tempdir)
 
     def _report_extension_stdout(self, line):
         self.app.status(msg=line.replace('%', '%%'))

@@ -161,13 +161,10 @@ class StagingArea(object):
             self._app.status(
                 msg='Unpacking chunk from cache %(filename)s',
                 filename=os.path.basename(handle.name))
-            savedir = tempfile.mkdtemp(dir=chunk_cache_dir)
-            try:
+            with morphlib.util.temp_dir(dir=chunk_cache_dir,
+                                        cleanup_on_success=False) as savedir:
                 morphlib.bins.unpack_binary_from_file(
                     handle, savedir + '/')
-            except BaseException as e: # pragma: no cover
-                shutil.rmtree(savedir)
-                raise
             # TODO: This rename is not concurrency safe if two builds are
             #       extracting the same chunk, one build will fail because
             #       the other renamed its tempdir here first.

@@ -20,8 +20,6 @@ import os
 import re
 import contextlib
 
-import fs.tempfs
-
 import morphlib
 
 from morphlib.bins import call_in_artifact_directory
@@ -111,16 +109,16 @@ class AutotoolsVersionGuesser(ProjectVersionGuesser):
         return None
 
     def _check_autoconf_package_version(self, repo, ref, filename, data):
-        with contextlib.closing(fs.tempfs.TempFS(
-                temp_dir=self.app.settings['tempdir'])) as tempdir:
-            with open(tempdir.getsyspath(filename), 'w') as f:
+        with morphlib.util.temp_dir(
+                dir=self.app.settings['tempdir']) as tempdir:
+            with open(os.path.join(tempdir, filename), 'w') as f:
                 f.write(data)
             exit_code, output, errors = self.app.runcmd_unchecked(
                 ['autoconf', filename],
                 ['grep', '^PACKAGE_VERSION='],
                 ['cut', '-d=', '-f2'],
                 ['sed', "s/'//g"],
-                cwd=tempdir.root_path)
+                cwd=tempdir)
             version = None
             if output:
                 output = output.strip()
