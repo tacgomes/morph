@@ -26,6 +26,7 @@ import yaml
 import cliapp
 
 import morphlib
+from morphlib.util import sanitise_morphology_path
 
 tree_cache_size = 10000
 tree_cache_filename = 'trees.cache.pickle'
@@ -426,12 +427,12 @@ class SourceResolver(object):
                     "Cannot build a morphology of type 'cluster'.")
             elif morphology['kind'] == 'system':
                 definitions_queue.extend(
-                    morphlib.util.sanitise_morphology_path(s['morph'])
+                    sanitise_morphology_path(s['morph'])
                     for s in morphology['strata'])
             elif morphology['kind'] == 'stratum':
                 if morphology['build-depends']:
                     definitions_queue.extend(
-                        morphlib.util.sanitise_morphology_path(s['morph'])
+                        sanitise_morphology_path(s['morph'])
                         for s in morphology['build-depends'])
                 for c in morphology['chunks']:
                     if 'morph' not in c:
@@ -444,7 +445,7 @@ class SourceResolver(object):
                         # All users should be specifying a full path to the
                         # chunk morph file, using the 'morph' field, and this
                         # code path should be removed.
-                        path = morphlib.util.sanitise_morphology_path(
+                        path = sanitise_morphology_path(
                             c.get('morph', c['name']))
 
                         chunk_queue.add((c['repo'], c['ref'], path))
