@@ -235,26 +235,26 @@ class SourceResolverTests(unittest.TestCase):
     def test_autodetects_local_morphology(self):
         self.lr.read_file = self.nolocalmorph
         self.lr.list_files = self.autotoolsbuildsystem
-        name = self.sr._detect_build_system('reponame', 'sha1',
-                                            'assumed-local.morph')
-        self.assertEqual('autotools', name)
+        bs = self.sr._detect_build_system('reponame', 'sha1',
+                                          'assumed-local.morph')
+        self.assertEqual('autotools', bs.name)
 
     def test_cache_repo_if_not_in_either_cache(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.lr.read_file = self.nolocalmorph
         self.lr.list_files = self.autotoolsbuildsystem
         self.rrc.ls_tree = self.noremoterepo
-        name = self.sr._detect_build_system('reponame', 'sha1',
-                                            'assumed-local.morph')
-        self.assertEqual('autotools', name)
+        bs = self.sr._detect_build_system('reponame', 'sha1',
+                                          'assumed-local.morph')
+        self.assertEqual('autotools', bs.name)
 
     def test_autodetects_remote_morphology(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.rrc.cat_file = self.noremotemorph
         self.rrc.ls_tree = self.autotoolsbuildsystem
-        name = self.sr._detect_build_system('reponame', 'sha1',
-                                            'assumed-remote.morph')
-        self.assertEqual('autotools', name)
+        bs = self.sr._detect_build_system('reponame', 'sha1',
+                                          'assumed-remote.morph')
+        self.assertEqual('autotools', bs.name)
 
     def test_returns_none_when_no_local_morph(self):
         self.lr.read_file = self.nolocalfile
@@ -293,9 +293,9 @@ class SourceResolverTests(unittest.TestCase):
     def test_autodetects_locally_with_no_remote(self):
         self.lr.read_file = self.nolocalmorph
         self.lr.list_files = self.autotoolsbuildsystem
-        name = self.sr._detect_build_system('reponame', 'sha1',
-                                            'assumed-local.morph')
-        self.assertEqual('autotools', name)
+        bs = self.sr._detect_build_system('reponame', 'sha1',
+                                          'assumed-local.morph')
+        self.assertEqual('autotools', bs.name)
 
     def test_succeeds_when_local_not_cached_and_no_remote(self):
         self.lrc.has_repo = self.doesnothaverepo

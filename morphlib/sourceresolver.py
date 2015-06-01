@@ -348,13 +348,12 @@ class SourceResolver(object):
             # error.
             raise MorphologyNotFoundError(expected_filename)
 
-        return buildsystem.name
+        return buildsystem
 
-    def _create_morphology_for_build_system(self, buildsystem_name,
+    def _create_morphology_for_build_system(self, buildsystem,
                                             morph_name): # pragma: no cover
-        bs = morphlib.buildsystem.lookup_build_system(buildsystem_name)
         loader = morphlib.morphloader.MorphologyLoader()
-        morph = bs.get_morphology(morph_name)
+        morph = buildsystem.get_morphology(morph_name)
         loader.validate(morph)
         loader.set_commands(morph)
         loader.set_defaults(morph)
@@ -478,7 +477,7 @@ class SourceResolver(object):
                                               morph_name): # pragma: no cover
         logging.debug('Caching build system for chunk with key %s', chunk_key)
 
-        self._resolved_buildsystems[chunk_key] = buildsystem
+        self._resolved_buildsystems[chunk_key] = buildsystem.name
 
         morphology = self._create_morphology_for_build_system(buildsystem,
                                                               morph_name)
@@ -511,7 +510,9 @@ class SourceResolver(object):
             self.status(msg='Build system for %(chunk)s is cached',
                         chunk=str(chunk_key),
                         chatty=True)
-            buildsystem = self._resolved_buildsystems[chunk_key]
+            buildsystem_name = self._resolved_buildsystems[chunk_key]
+            buildsystem = morphlib.buildsystem.lookup_build_system(
+                buildsystem_name)
 
             # If the build system for this chunk is cached then:
             #   * the chunk does not have a chunk morph
