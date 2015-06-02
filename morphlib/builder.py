@@ -336,15 +336,20 @@ class ChunkBuilder(BuilderBase):
             ('pre-install', False),
             ('install', False),
             ('post-install', False),
+            ('pre-strip', False),
+            ('strip', False),
+            ('post-strip', False),
         ]
         for step, in_parallel in steps:
             with self.build_watch(step):
                 key = '%s-commands' % step
-                cmds = m[key]
-                if cmds:
-                    with open(logfilepath, 'a') as log:
-                        self.app.status(msg='Running %(key)s', key=key)
-                        log.write('# %s\n' % step)
+                cmds = m.get(key)
+                if not cmds:
+                    continue
+
+                with open(logfilepath, 'a') as log:
+                    self.app.status(msg='Running %(key)s', key=key)
+                    log.write('# %s\n' % step)
 
                 for cmd in cmds:
                     if in_parallel:

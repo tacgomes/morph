@@ -106,7 +106,8 @@ class CacheKeyComputer(object):
             # include {pre-,,post-}{configure,build,test,install}-commands
             # in morphology key
             for prefix in ('pre-', '', 'post-'):
-                for cmdtype in ('configure', 'build', 'test', 'install'):
+                for cmdtype in ('configure', 'build', 'test',
+                                'install', 'strip'):
                     cmd_field = prefix + cmdtype + '-commands'
                     if cmd_field in morphology:
                         keys[cmd_field] = morphology[cmd_field]
