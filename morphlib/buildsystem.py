@@ -18,6 +18,23 @@ import os
 import morphlib
 
 
+# TODO: Make idempotent when files are hardlinks
+_STRIP_COMMAND = r'''find "$DESTDIR" -type f \
+  '(' -perm -111 -o -name '*.so*' -o -name '*.cmxs' -o -name '*.node' ')' \
+  -exec sh -ec \
+  'read -n4 hdr <"$1" # check for elf header
+   if [ "$hdr" != "$(printf \\x7fELF)" ]; then
+       exit 0
+   fi
+   debugfile="$DESTDIR$PREFIX/lib/debug/$(basename "$1")"
+   mkdir -p "$(dirname "$debugfile")"
+   objcopy --only-keep-debug "$1" "$debugfile"
+   chmod 644 "$debugfile"
+   strip --remove-section=.comment --remove-section=.note --strip-unneeded "$1"
+   objcopy --add-gnu-debuglink "$debugfile" "$1"' - {} ';'
+'''
+
+
 class BuildSystem(object):
 
     '''An abstraction of an upstream build system.
@@ -45,6 +62,9 @@ class BuildSystem(object):
         self.pre_install_commands = []
         self.install_commands = []
         self.post_install_commands = []
+        self.pre_strip_commands = []
+        self.strip_commands = [_STRIP_COMMAND]
+        self.post_strip_commands = []
 
     def __getitem__(self, key):
         key = '_'.join(key.split('-'))
@@ -91,6 +111,7 @@ class DummyBuildSystem(BuildSystem):
         self.build_commands = ['echo dummy build']
         self.test_commands = ['echo dummy test']
         self.install_commands = ['echo dummy install']
+        self.strip_commands = ['echo dummy strip']
 
     def used_by_project(self, file_list):
         return False
