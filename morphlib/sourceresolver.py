@@ -593,7 +593,8 @@ class SourceResolver(object):
 
             definitions_version = self._check_version_file(
                     definitions_checkout_dir)
-            morph_loader = morphlib.morphloader.MorphologyLoader()
+            morph_loader = morphlib.morphloader.MorphologyLoader(
+                    definitions_version=definitions_version)
 
             # First, process the system and its stratum morphologies. These
             # will all live in the same Git repository, and will point to
