@@ -773,24 +773,24 @@ class MorphologyLoader(object):
             morph['max-jobs'] = int(morph['max-jobs'])
 
     def _unset_chunk_defaults(self, morph): # pragma: no cover
+        default_bs = self._static_defaults['chunk']['build-system']
+        bs = morphlib.buildsystem.lookup_build_system(
+            morph.get('build-system', default_bs))
         for key in self._static_defaults['chunk']:
             if key not in morph: continue
             if 'commands' not in key: continue
             attr = key.replace('-', '_')
-            default_bs = self._static_defaults['chunk']['build-system']
-            bs = morphlib.buildsystem.lookup_build_system(
-                morph.get('build-system', default_bs))
             default_value = getattr(bs, attr)
             if morph[key] == default_value:
                 del morph[key]
 
     def set_commands(self, morph):
+        default = self._static_defaults['chunk']['build-system']
+        bs = morphlib.buildsystem.lookup_build_system(
+            morph.get('build-system', default))
         if morph['kind'] == 'chunk':
             for key in self._static_defaults['chunk']:
                 if 'commands' not in key: continue
                 if key not in morph:
                     attr = '_'.join(key.split('-'))
-                    default = self._static_defaults['chunk']['build-system']
-                    bs = morphlib.buildsystem.lookup_build_system(
-                        morph.get('build-system', default))
                     morph[key] = getattr(bs, attr)
