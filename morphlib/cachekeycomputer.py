@@ -108,7 +108,8 @@ class CacheKeyComputer(object):
             for prefix in ('pre-', '', 'post-'):
                 for cmdtype in ('configure', 'build', 'test', 'install'):
                     cmd_field = prefix + cmdtype + '-commands'
-                    keys[cmd_field] = morphology[cmd_field]
+                    if cmd_field in morphology:
+                        keys[cmd_field] = morphology[cmd_field]
         elif kind in ('system', 'stratum'):
             morph_dict = dict((k, morphology[k]) for k in morphology.keys())
 
