@@ -16,6 +16,7 @@
 
 
 import collections
+import copy
 import logging
 import warnings
 import yaml
@@ -376,6 +377,14 @@ class MorphologyLoader(object):
             'description': '',
         },
     }
+
+    def __init__(self, definitions_version=0):
+        if definitions_version >= 5: # pragma: no cover
+            self._static_defaults = copy.deepcopy(self._static_defaults)
+            self._static_defaults['chunk'].update({
+                        'pre-strip-commands': None,
+                        'strip-commands': None,
+                        'post-strip-commands': None})
 
     def parse_morphology_text(self, text, morph_filename):
         '''Parse a textual morphology.
