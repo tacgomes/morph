@@ -507,6 +507,14 @@ class DeployPlugin(cliapp.Plugin):
                     deployment_type, location = deployment_type_and_location(
                         system_id, final_env, is_upgrade)
 
+                    extensions_dir = os.path.join(
+                        root_repo_dir.dirname,
+                        os.path.dirname(deployment_type))
+                    if 'PYTHONPATH' in final_env:
+                        final_env['PYTHONPATH'] += ':%s' % extensions_dir
+                    else:
+                        final_env['PYTHONPATH'] = extensions_dir
+
                     components = self._sanitise_morphology_paths(
                         deploy_params.get('partial-deploy-components', []), sb)
                     if self.app.settings['partial']:
