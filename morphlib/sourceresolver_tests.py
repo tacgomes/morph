@@ -174,9 +174,6 @@ class SourceResolverTests(unittest.TestCase):
         self.lsr = SourceResolver(self.lrc, None, tree_cache_manager,
                                   buildsystem_cache_manager, True, status)
 
-        self.sr._definitions_repo = None
-        self.lsr._definitions_repo = None
-
     def tearDown(self):
         shutil.rmtree(self.cachedir)
 
@@ -216,23 +213,31 @@ class SourceResolverTests(unittest.TestCase):
 
     def test_gets_morph_from_local_repo(self):
         self.lr.list_files = self.localmorph
-        morph = self.sr._get_morphology('reponame', 'sha1',
-                                       'chunk.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'chunk.morph')
         self.assertEqual('chunk', morph['name'])
 
     def test_gets_morph_from_cache(self):
         self.lr.list_files = self.localmorph
-        morph_from_repo = self.sr._get_morphology('reponame', 'sha1',
-                                                  'chunk.morph')
-        morph_from_cache = self.sr._get_morphology('reponame', 'sha1',
-                                                   'chunk.morph')
+        morph_from_repo = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'chunk.morph')
+        morph_from_cache = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'chunk.morph')
         self.assertEqual(morph_from_repo, morph_from_cache)
 
     def test_gets_morph_from_remote_repo(self):
         self.rrc.ls_tree = self.remotemorph
         self.lrc.has_repo = self.doesnothaverepo
-        morph = self.sr._get_morphology('reponame', 'sha1',
-                                       'remote-chunk.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'remote-chunk.morph')
         self.assertEqual('remote-chunk', morph['name'])
 
     def test_autodetects_local_morphology(self):
@@ -261,13 +266,19 @@ class SourceResolverTests(unittest.TestCase):
 
     def test_returns_none_when_no_local_morph(self):
         self.lr.read_file = self.nolocalfile
-        morph = self.sr._get_morphology('reponame', 'sha1', 'unreached.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'unreached.morph')
         self.assertEqual(morph, None)
 
     def test_returns_none_when_fails_no_remote_morph(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.rrc.cat_file = self.noremotefile
-        morph = self.sr._get_morphology('reponame', 'sha1', 'unreached.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'unreached.morph')
         self.assertEqual(morph, None)
 
     def test_raises_error_when_repo_does_not_exist(self):
@@ -284,13 +295,16 @@ class SourceResolverTests(unittest.TestCase):
                           'reponame', 'sha1', 'undetected.morph')
 
     def test_raises_error_when_name_mismatches(self):
-        self.assertRaises(morphlib.Error, self.sr._get_morphology,
-                          'reponame', 'sha1', 'name-mismatch.morph')
+        self.assertRaises(morphlib.Error, self.sr._get_morphology, {},
+                None, None, None, morphlib.morphloader.MorphologyLoader(),
+                'reponame', 'sha1', 'name-mismatch.morph')
 
     def test_looks_locally_with_no_remote(self):
         self.lr.list_files = self.localmorph
-        morph = self.lsr._get_morphology('reponame', 'sha1',
-                                         'chunk.morph')
+        morph = self.lsr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'chunk.morph')
         self.assertEqual('chunk', morph['name'])
 
     def test_autodetects_locally_with_no_remote(self):
@@ -303,37 +317,47 @@ class SourceResolverTests(unittest.TestCase):
     def test_succeeds_when_local_not_cached_and_no_remote(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.lr.list_files = self.localmorph
-        morph = self.sr._get_morphology('reponame', 'sha1',
-                                       'chunk.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'chunk.morph')
         self.assertEqual('chunk', morph['name'])
 
     def test_arch_is_validated(self):
         self.lr.arch = 'unknown'
-        self.assertRaises(morphlib.Error, self.sr._get_morphology,
-                          'reponame', 'sha1', 'system.morph')
+        self.assertRaises(morphlib.Error, self.sr._get_morphology, {},
+                None, None, None, morphlib.morphloader.MorphologyLoader(),
+                'reponame', 'sha1', 'system.morph')
 
     def test_arch_arm_defaults_to_le(self):
         self.lr.arch = 'armv7'
-        morph = self.sr._get_morphology('reponame', 'sha1', 'system.morph')
+        morph = self.sr._get_morphology(
+                {}, None, None, None,
+                morphlib.morphloader.MorphologyLoader(), 'reponame',
+                'sha1', 'system.morph')
         self.assertEqual(morph['arch'], 'armv7l')
 
     def test_fails_on_parse_error(self):
-        self.assertRaises(morphlib.Error, self.sr._get_morphology,
-                          'reponame', 'sha1', 'parse-error.morph')
+        self.assertRaises(morphlib.Error, self.sr._get_morphology, {},
+                None, None, None, morphlib.morphloader.MorphologyLoader(),
+                'reponame', 'sha1', 'parse-error.morph')
 
     def test_fails_on_no_bdeps_or_bootstrap(self):
         self.assertRaises(
             morphlib.morphloader.NoStratumBuildDependenciesError,
-            self.sr._get_morphology, 'reponame', 'sha1',
+            self.sr._get_morphology, {}, None, None, None,
+            morphlib.morphloader.MorphologyLoader(), 'reponame', 'sha1',
             'stratum-no-bdeps-no-bootstrap.morph')
 
     def test_succeeds_on_bdeps_no_bootstrap(self):
-        self.sr._get_morphology(
-            'reponame', 'sha1',
+        self.sr._get_morphology({}, None, None, None,
+            morphlib.morphloader.MorphologyLoader(), 'reponame', 'sha1',
             'stratum-bdeps-no-bootstrap.morph')
 
     def test_fails_on_empty_stratum(self):
         self.assertRaises(
             morphlib.morphloader.EmptyStratumError,
-            self.sr._get_morphology, 'reponame', 'sha1', 'stratum-empty.morph')
+            self.sr._get_morphology, {}, None, None, None,
+            morphlib.morphloader.MorphologyLoader(), 'reponame', 'sha1',
+            'stratum-empty.morph')
 
