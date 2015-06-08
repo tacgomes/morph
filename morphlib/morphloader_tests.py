@@ -980,3 +980,13 @@ build-system: dummy
             description='\x92',
         )
         s = self.loader.save_to_string(m)
+
+    def test_smoketest_strip_commands(self):
+        dummy_buildsystem = morphlib.buildsystem.DummyBuildSystem()
+        loader = morphlib.morphloader.MorphologyLoader(
+            definitions_version=5,
+            lookup_build_system=lambda x: dummy_buildsystem)
+        m = morphlib.morphology.Morphology(
+            {'name': 'test', 'kind': 'chunk', 'build-system': 'dummy'})
+        loader.set_commands(m)
+        self.assertEqual(m['strip-commands'], dummy_buildsystem.strip_commands)
