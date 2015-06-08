@@ -281,80 +281,6 @@ class SourceResolver(object):
 
         return text
 
-    def _get_morphology(self, resolved_morphologies, definitions_checkout_dir,
-                        definitions_repo, definitions_absref, morph_loader,
-                        reponame, sha1, filename):  # pragma: no cover
-        '''Read the morphology at the specified location.
-
-        Returns None if the file does not exist in the specified commit.
-
-        '''
-        key = (reponame, sha1, filename)
-        if key in resolved_morphologies:
-            return resolved_morphologies[key]
-
-        text = self._get_file_contents(definitions_checkout_dir,
-                                       definitions_repo, definitions_absref,
-                                       reponame, sha1, filename)
-        morph = morph_loader.load_from_string(text, filename)
-
-        if morph is not None:
-            resolved_morphologies[key] = morph
-
-        return morph
-
-    def _detect_build_system(self, reponame, sha1, expected_filename):
-        '''Attempt to detect buildsystem of the given commit.
-
-        Returns None if no known build system was detected.
-
-        '''
-        self.status(msg="File %s doesn't exist: attempting to infer "
-                        "chunk morph from repo's build system" %
-                    expected_filename, chatty=True)
-
-        file_list = None
-
-        if self.lrc.has_repo(reponame):
-            repo = self.lrc.get_repo(reponame)
-            try:
-                file_list = repo.list_files(ref=sha1, recurse=False)
-            except morphlib.gitdir.InvalidRefError:  # pragma: no cover
-                pass
-        elif self.rrc is not None:
-            try:
-                # This may or may not succeed; if the is repo not
-                # hosted on the same Git server as the cache server then
-                # it'll definitely fail.
-                file_list = self.rrc.ls_tree(reponame, sha1)
-            except morphlib.remoterepocache.LsTreeError:
-                pass
-
-        if not file_list:
-            repo = self.lrc.get_updated_repo(reponame, sha1)
-            file_list = repo.list_files(ref=sha1, recurse=False)
-
-        buildsystem = morphlib.buildsystem.detect_build_system(file_list)
-
-        if buildsystem is None:
-            # It might surprise you to discover that if we can't autodetect a
-            # build system, we raise MorphologyNotFoundError. Users are
-            # required to provide a morphology for any chunk where Morph can't
-            # infer the build instructions automatically, so this is the right
-            # error.
-            raise MorphologyNotFoundError(expected_filename)
-
-        return buildsystem
-
-    @staticmethod
-    def _create_morphology_for_build_system(morph_loader, buildsystem,
-                                            morph_name): # pragma: no cover
-        morph = buildsystem.get_morphology(morph_name)
-        morph_loader.validate(morph)
-        morph_loader.set_commands(morph)
-        morph_loader.set_defaults(morph)
-        return morph
-
     @staticmethod
     def _parse_version_file(version_file): # pragma : no cover
         '''Parse VERSION file and return the version of the format if:
@@ -393,6 +319,28 @@ class SourceResolver(object):
             raise UnknownVersionError(version)
 
         return version
+
+    def _get_morphology(self, resolved_morphologies, definitions_checkout_dir,
+                        definitions_repo, definitions_absref, morph_loader,
+                        reponame, sha1, filename):  # pragma: no cover
+        '''Read the morphology at the specified location.
+
+        Returns None if the file does not exist in the specified commit.
+
+        '''
+        key = (reponame, sha1, filename)
+        if key in resolved_morphologies:
+            return resolved_morphologies[key]
+
+        text = self._get_file_contents(definitions_checkout_dir,
+                                       definitions_repo, definitions_absref,
+                                       reponame, sha1, filename)
+        morph = morph_loader.load_from_string(text, filename)
+
+        if morph is not None:
+            resolved_morphologies[key] = morph
+
+        return morph
 
     def _process_definitions_with_children(self,
                                            resolved_morphologies,
@@ -475,6 +423,15 @@ class SourceResolver(object):
 
         return chunk_queue
 
+    @staticmethod
+    def _create_morphology_for_build_system(morph_loader, buildsystem,
+                                            morph_name): # pragma: no cover
+        morph = buildsystem.get_morphology(morph_name)
+        morph_loader.validate(morph)
+        morph_loader.set_commands(morph)
+        morph_loader.set_defaults(morph)
+        return morph
+
     @classmethod
     def _generate_morph_and_cache_buildsystem(cls, resolved_morphologies,
                                               resolved_buildsystems,
@@ -490,6 +447,49 @@ class SourceResolver(object):
                 morph_loader, buildsystem, morph_name)
         resolved_morphologies[definition_key] = morphology
         return morphology
+
+    def _detect_build_system(self, reponame, sha1, expected_filename):
+        '''Attempt to detect buildsystem of the given commit.
+
+        Returns None if no known build system was detected.
+
+        '''
+        self.status(msg="File %s doesn't exist: attempting to infer "
+                        "chunk morph from repo's build system" %
+                    expected_filename, chatty=True)
+
+        file_list = None
+
+        if self.lrc.has_repo(reponame):
+            repo = self.lrc.get_repo(reponame)
+            try:
+                file_list = repo.list_files(ref=sha1, recurse=False)
+            except morphlib.gitdir.InvalidRefError:  # pragma: no cover
+                pass
+        elif self.rrc is not None:
+            try:
+                # This may or may not succeed; if the is repo not
+                # hosted on the same Git server as the cache server then
+                # it'll definitely fail.
+                file_list = self.rrc.ls_tree(reponame, sha1)
+            except morphlib.remoterepocache.LsTreeError:
+                pass
+
+        if not file_list:
+            repo = self.lrc.get_updated_repo(reponame, sha1)
+            file_list = repo.list_files(ref=sha1, recurse=False)
+
+        buildsystem = morphlib.buildsystem.detect_build_system(file_list)
+
+        if buildsystem is None:
+            # It might surprise you to discover that if we can't autodetect a
+            # build system, we raise MorphologyNotFoundError. Users are
+            # required to provide a morphology for any chunk where Morph can't
+            # infer the build instructions automatically, so this is the right
+            # error.
+            raise MorphologyNotFoundError(expected_filename)
+
+        return buildsystem
 
     def process_chunk(self, resolved_morphologies, resolved_trees,
                       resolved_buildsystems, definitions_checkout_dir,
