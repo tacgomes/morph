@@ -378,13 +378,15 @@ class MorphologyLoader(object):
         },
     }
 
-    def __init__(self, definitions_version=0):
+    def __init__(self, definitions_version=0,
+                 lookup_build_system=morphlib.buildsystem.lookup_build_system):
         if definitions_version >= 5: # pragma: no cover
             self._static_defaults = copy.deepcopy(self._static_defaults)
             self._static_defaults['chunk'].update({
                         'pre-strip-commands': None,
                         'strip-commands': None,
                         'post-strip-commands': None})
+        self._lookup_build_system = lookup_build_system
 
     def parse_morphology_text(self, text, morph_filename):
         '''Parse a textual morphology.
@@ -783,7 +785,7 @@ class MorphologyLoader(object):
 
     def _unset_chunk_defaults(self, morph): # pragma: no cover
         default_bs = self._static_defaults['chunk']['build-system']
-        bs = morphlib.buildsystem.lookup_build_system(
+        bs = self._lookup_build_system(
             morph.get('build-system', default_bs))
         for key in self._static_defaults['chunk']:
             if key not in morph: continue
@@ -795,7 +797,7 @@ class MorphologyLoader(object):
 
     def set_commands(self, morph):
         default = self._static_defaults['chunk']['build-system']
-        bs = morphlib.buildsystem.lookup_build_system(
+        bs = self._lookup_build_system(
             morph.get('build-system', default))
         if morph['kind'] == 'chunk':
             for key in self._static_defaults['chunk']:
