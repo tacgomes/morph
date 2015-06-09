@@ -20,6 +20,7 @@ import datetime
 import os
 import shutil
 import tempfile
+import time
 import unittest
 
 import morphlib
@@ -270,14 +271,15 @@ class GitDirectoryContentsTests(unittest.TestCase):
         cname = 'Committer Name'
         cemail = 'committer@email'
         pseudo_now = datetime.datetime.fromtimestamp(683074800)
+        timezone = time.strftime('%z')
 
         now_str = "683074800"
         message= 'MESSAGE'
         expected = [
             "tree %(tree)s",
             "parent %(parent)s",
-            "author %(aname)s <%(aemail)s> %(now_str)s +0000",
-            "committer %(cname)s <%(cemail)s> %(now_str)s +0000",
+            "author %(aname)s <%(aemail)s> %(now_str)s %(timezone)s",
+            "committer %(cname)s <%(cemail)s> %(now_str)s %(timezone)s",
             "",
             "%(message)s",
             "",
