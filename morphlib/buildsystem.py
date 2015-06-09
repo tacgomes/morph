@@ -117,6 +117,8 @@ class AutotoolsBuildSystem(BuildSystem):
             'export NOCONFIGURE=1; ' +
             'if [ -e autogen ]; then ./autogen; ' +
             'elif [ -e autogen.sh ]; then ./autogen.sh; ' +
+            'elif [ -e bootstrap ]; then ./bootstrap; ' +
+            'elif [ -e bootstrap.sh ]; then ./bootstrap.sh; ' +
             'elif [ ! -e ./configure ]; then autoreconf -ivf; fi',
             './configure --prefix="$PREFIX"',
         ]
