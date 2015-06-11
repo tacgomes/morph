@@ -411,14 +411,14 @@ another to hold a chunk.
     [config]
     repo-alias = test=git://127.0.0.1:$GIT_DAEMON_PORT/%s#git://127.0.0.1:$GIT_DAEMON_PORT/%s
     cachedir = $DATADIR/cache
-    tempdir = $DATADIR/tmp
+    tempdir = $TMPDIR
     trove-host = 127.0.0.1
     trove-id = testtrove
     build-ref-prefix = testtrove/builds
     EOF
 
     mkdir "$DATADIR/cache"
-    mkdir "$DATADIR/tmp"
+    mkdir -p "$TMPDIR"
 
 Some resources are cleaned up by yarn, forked processes aren't one of
 these, so need to shut down the git daemon after we finish.

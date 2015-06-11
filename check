@@ -86,6 +86,31 @@ do
     shift
 done
 
+# Find and set tempdir from morph.conf or use /tmp if it does not
+# exist. Since the config file can be quite complicated, we use the
+# Python ConfigParser module to find TMPDIR. We append a folder called
+# testSuite to this so any existing files are not removed.
+
+TMPDIR=$(
+    morph --dump-config | python -c '
+import sys, ConfigParser
+cp = ConfigParser.RawConfigParser()
+cp.readfp(sys.stdin)
+try:
+    print cp.get("config", "tempdir")
+except ConfigParser.NoOptionError:
+    print "/tmp"'
+)
+
+if [ "$TMPDIR" == "None" ]; then
+    TMPDIR="/tmp"
+fi
+
+TMPDIR="$TMPDIR/testSuite"
+
+mkdir -p "$TMPDIR"
+TMPDIR=$(mktemp -d -p "$TMPDIR")
+export TMPDIR
 
 # Set PYTHONPATH to start with the current directory so that we always
 # find the right version of it for the test suite.
@@ -138,7 +163,8 @@ fi
 
 if "$run_yarns" && command -v yarn > /dev/null
 then
-    yarn --env "PYTHONPATH=$PYTHONPATH" $snapshot -s yarns/morph.shell-lib \
+    yarn --env "PYTHONPATH=$PYTHONPATH" --env "TMPDIR=$TMPDIR" $snapshot \
+    --tempdir "$TMPDIR" -s yarns/morph.shell-lib \
         yarns/*.yarn
 fi
 
