@@ -19,6 +19,13 @@ import morphlib
 
 
 # TODO: Make idempotent when files are hardlinks
+# Strip all ELF binary files that are executable or named like a library.
+# .so files for C, .cmxs for OCaml and .node for Node.
+# The file name and permissions checks are done with the `find` command before
+# the ELF header is checked with the shell command, because it is a lot cheaper
+# to check the mode and file name first, because it is a metadata check, rather
+# than a subprocess and a file read.
+# `file` is not used, to keep the dependency requirements down.
 _STRIP_COMMAND = r'''find "$DESTDIR" -type f \
   '(' -perm -111 -o -name '*.so*' -o -name '*.cmxs' -o -name '*.node' ')' \
   -exec sh -ec \
