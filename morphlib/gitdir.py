@@ -475,6 +475,12 @@ class GitDirectory(object):
             self.fat_init()
             self.fat_pull()
 
+    def reset_workdir(self): # pragma: no cover
+        '''Removes any differences between the current commit
+           and the status of the working directory '''
+
+        morphlib.git.reset_workdir(cliapp.runcmd, self.dirname)
+
     def branch(self, new_branch_name, base_ref): # pragma: no cover
         '''Create a git branch based on an existing ref.
 
