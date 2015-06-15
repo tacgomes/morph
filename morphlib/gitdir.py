@@ -67,7 +67,7 @@ class RefAddError(RefChangeError):
         self.original_exception = original_exception
         RefChangeError.__init__(self, 'Adding ref %(ref)s '\
             'with commit %(sha1)s failed in git repository '\
-            'located at %(dirname)s: %(original_exception)r' % locals())
+            'located at %(dirname)s: %(original_exception)s' % locals())
 
 
 class RefUpdateError(RefChangeError):
