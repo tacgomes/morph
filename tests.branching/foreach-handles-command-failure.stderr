@@ -1,1 +1,0 @@
-ERROR: Command failed at repo test:hello: git remote update non-existant-remote
