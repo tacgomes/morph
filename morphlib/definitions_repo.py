@@ -252,7 +252,7 @@ class DefinitionsRepo(gitdir.GitDirectory):
         def path_is_outside_repo(path):
             return path.split(os.sep, 1)[0] == '..'
 
-        absolute_path = os.path.abspath(path)
+        absolute_path = os.path.join(cwd, os.path.abspath(path))
         repo_relative_path = os.path.relpath(absolute_path, self.dirname)
 
         if path_is_outside_repo(repo_relative_path):
