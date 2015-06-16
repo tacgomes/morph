@@ -11,11 +11,10 @@ we use.
     SCENARIO morph anchors commits used by a release
     GIVEN    a git server
 
-We don't strictly need a workspace to anchor commits, but we need to run morph
-from somewhere.
+Note that we only require a definitions repo here to allow us to obtain
+a list of shas so we can verify each sha has been anchored.
 
-    GIVEN    a workspace
-    WHEN     the user checks out the system branch called master
+    GIVEN    a definitions repo
 
 The `morph anchor` command must be given a semantic name, to make the anchor
 refs less opaque to humans, and allow anchor ref cleanup by semantic name, such
@@ -41,9 +40,11 @@ release, and systems likely share contents.
 `morph anchor` will roll back any pushes when it is unable to push, and report
 failure. To test this we need a new system to anchor.
 
-    GIVEN    a new system to build called expanded-system
+    GIVEN    a chunk called extra-chunk
     AND      push access is denied to extra-chunk
-    WHEN     the user creates a system branch called two, based on master
+    WHEN     the user creates a new definitions branch two, based on master
+    AND      the user checks out definitions branch two
+    AND      the user adds a new system to build called expanded-system that uses chunk extra-chunk
     AND      the user attempts to anchor systems/expanded-system.morph with semantic name foo-release in branch two
     THEN     morph failed
 
@@ -56,17 +57,18 @@ some components.
 
 ### Anchor implementations
 
-    IMPLEMENTS WHEN the user (attempts to )?(anchor) (.*) with semantic name (.*) in branch (.*)
-    cd "$DATADIR/workspace/$MATCH_5/test/morphs"
+    IMPLEMENTS WHEN the user (attempts to )?(anchor) (.*) with semantic name (.*) in branch (\S+)
+
     systems=$(echo "$MATCH_3" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
-    set "$MATCH_2" "$MATCH_4" file://$(pwd) HEAD $systems
+    set "$MATCH_2" "$MATCH_4" "file://$DATADIR/definitions" "$MATCH_5" $systems
     if [ "$MATCH_1" != "attempts to " ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
     IMPLEMENTS THEN every commit used in (.*) has anchor branches on the git server
     set +e
+    run_in "$DATADIR/definitions" git checkout "$MATCH_1"
     # extract sha1s from ref: fields
-    find "$DATADIR/workspace/$MATCH_1/test/morphs" -name '*.morph' \
+    find "$DATADIR/definitions" -name '*.morph' \
           -exec sed -rn '/[^-]ref:\s*[0-9a-f]{40}/s/^.*([0-9a-f]{40})/\1/p' {} + | sort -u >"$DATADIR/sha1s"
     for sha1 in $(cat "$DATADIR/sha1s"); do
         sha1found=false
@@ -89,19 +91,20 @@ some components.
     exit 1
     EOF
 
-    IMPLEMENTS GIVEN a new system to build called (.*)
-    mkdir "$DATADIR/gits/extra-chunk"
-    cd "$DATADIR/gits/extra-chunk"
+    IMPLEMENTS GIVEN a chunk called (.*)
+    mkdir "$DATADIR/gits/$MATCH_1"
+    cd "$DATADIR/gits/$MATCH_1"
     git init .
-    install -D -m644 /dev/stdin <<'EOF' usr/share/doc/extra-chunk/README
+    install -D -m644 /dev/stdin <<'EOF' "usr/share/doc/$MATCH_1/README"
     No other content here
     EOF
     git add .
-    git commit -m 'Extra chunk exists'
+    git commit -m "$MATCH_1 exists"
 
-    cd "$DATADIR/gits/morphs"
+    IMPLEMENTS WHEN the user adds a new system to build called (.*) that uses chunk (.*)
+    cd "$DATADIR/definitions"
 
-    install -m644 -D /dev/stdin << EOF "strata/tools/extra-chunk.morph"
+    install -m644 -D /dev/stdin << EOF "strata/tools/$MATCH_2.morph"
     name: extra-chunk
     kind: chunk
     build-system: manual
@@ -114,11 +117,11 @@ some components.
     build-depends:
     - morph: strata/build-essential.morph
     chunks:
-    -   name: extra-chunk
+    -   name: "$MATCH_2"
         morph: strata/tools/extra-chunk.morph
         repo: test:extra-chunk
         unpetrify-ref: master
-        ref: $(run_in "$DATADIR/gits/extra-chunk" git rev-parse master)
+        ref: $(run_in "$DATADIR/gits/$MATCH_2" git rev-parse master)
         build-depends: []
     EOF
     git add strata/tools.morph

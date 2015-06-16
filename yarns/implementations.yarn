@@ -1,6 +1,18 @@
 IMPLEMENTS implementations
 ==========================
 
+Implementation sections for definitions repo
+---------------------------------------------
+
+    IMPLEMENTS GIVEN a definitions repo
+    git clone "$(cat $DATADIR/definitions-repo-url)" "$DATADIR/definitions"
+
+    IMPLEMENTS WHEN the user creates a new definitions branch (\S+), based on (\S+)
+    run_in "$DATADIR/definitions" git branch "$MATCH_1" "$MATCH_2"
+
+    IMPLEMENTS WHEN the user checks out definitions branch (\S+)
+    run_in "$DATADIR/definitions" git checkout "$MATCH_1"
+
 Implementation sections for workspaces
 --------------------------------------
 
@@ -403,6 +415,8 @@ another to hold a chunk.
         --export-all --verbose --base-path="$DATADIR/gits" \
         --enable=receive-pack #allow push
     GIT_DAEMON_PORT="$(cat "$port_file")"
+
+    echo "git://127.0.0.1:$GIT_DAEMON_PORT/morphs" > "$DATADIR/definitions-repo-url"
 
     # Create the Morph configuration file so we can access the repos
     # using test:foo URL aliases.
