@@ -35,8 +35,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         self.app.add_subcommand(
             'branch', self.branch, arg_synopsis='REPO NEW [OLD]')
         self.app.add_subcommand(
-            'edit', self.edit, arg_synopsis='CHUNK')
-        self.app.add_subcommand(
             'show-system-branch', self.show_system_branch, arg_synopsis='')
         self.app.add_subcommand(
             'show-branch-root', self.show_branch_root, arg_synopsis='')
@@ -273,98 +271,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
         except cliapp.AppException:
             text = gd.get_file_from_ref('origin/%s' % ref, filename)
         return loader.load_from_string(text, filename)
-
-    def edit(self, args):
-        '''Edit or checkout a component in a system branch.
-
-        Command line arguments:
-
-        * `CHUNK` is the name of a chunk
-
-        This makes a local checkout of CHUNK in the current system branch
-        and edits any stratum morphology file(s) containing the chunk
-
-        '''
-
-        if len(args) != 1:
-            raise cliapp.AppException('morph edit needs a chunk '
-                                      'as parameter')
-
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
-        loader = morphlib.morphloader.MorphologyLoader()
-        morphs = self._load_all_sysbranch_morphologies(sb, loader)
-
-        def edit_chunk(morph, chunk_name):
-            chunk_url, chunk_ref, chunk_morph = (
-                morphs.get_chunk_triplet(morph, chunk_name))
-
-            chunk_dirname = sb.get_git_directory_name(chunk_url)
-
-            if not os.path.exists(chunk_dirname):
-                lrc, rrc = morphlib.util.new_repo_caches(self.app)
-                cached_repo = lrc.get_updated_repo(chunk_url)
-
-                gd = sb.clone_cached_repo(cached_repo, chunk_ref)
-                system_branch_ref = gd.disambiguate_ref(sb.system_branch_name)
-                sha1 = gd.resolve_ref_to_commit(chunk_ref)
-
-                try:
-                    old_sha1 = gd.resolve_ref_to_commit(system_branch_ref)
-                except morphlib.gitdir.InvalidRefError as e:
-                    pass
-                else:
-                    gd.delete_ref(system_branch_ref, old_sha1)
-                gd.branch(sb.system_branch_name, sha1)
-                gd.checkout(sb.system_branch_name)
-                gd.update_submodules(self.app)
-                gd.update_remotes()
-                if gd.has_fat():
-                    gd.fat_init()
-                    gd.fat_pull()
-
-            # Change the refs to the chunk.
-            if chunk_ref != sb.system_branch_name:
-                morphs.change_ref(
-                    chunk_url, chunk_ref,
-                    chunk_morph,
-                    sb.system_branch_name)
-
-            return chunk_dirname
-
-        chunk_name = args[0]
-        dirs = set()
-        found = 0
-
-        for morph in morphs.morphologies:
-            if morph['kind'] == 'stratum':
-                for chunk in morph['chunks']:
-                    if chunk['name'] == chunk_name:
-                        self.app.status(
-                            msg='Editing %(chunk)s in %(stratum)s stratum',
-                            chunk=chunk_name, stratum=morph['name'])
-                        chunk_dirname = edit_chunk(morph, chunk_name)
-                        dirs.add(chunk_dirname)
-                        found = found + 1
-
-        # Save any modified strata.
-
-        self._save_dirty_morphologies(loader, sb, morphs.morphologies)
-
-        if found == 0:
-            self.app.status(
-                msg="No chunk %(chunk)s found. If you want to create one, add "
-                "an entry to a stratum morph file.", chunk=chunk_name)
-
-        if found >= 1:
-            dirs_list = ', '.join(sorted(dirs))
-            self.app.status(
-                msg="Chunk %(chunk)s source is available at %(dirs)s",
-                chunk=chunk_name, dirs=dirs_list)
-
-        if found > 1:
-            self.app.status(
-                msg="Notice that this chunk appears in more than one stratum")
 
     def show_system_branch(self, args):
         '''Show the name of the current system branch.'''

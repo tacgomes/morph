@@ -1,8 +1,0 @@
-morph.repository in branch root repository:
-test:morphs
-
-morph.repository in branch root repository of a checkout:
-test:morphs
-
-morph.repository of an edited repository:
-test:hello
