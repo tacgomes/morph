@@ -352,6 +352,9 @@ class ChunkBuilder(BuilderBase):
                     log.write('# %s\n' % step)
 
                 for cmd in cmds:
+                    if cmd is False: cmd = "false"
+                    elif cmd is True: cmd = "true"
+
                     if in_parallel:
                         max_jobs = self.source.morphology['max-jobs']
                         if max_jobs is None:
