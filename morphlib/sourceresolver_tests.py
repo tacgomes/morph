@@ -273,15 +273,6 @@ class SourceResolverTests(unittest.TestCase):
                 'sha1', 'unreached.morph')
         self.assertEqual(morph, None)
 
-    def test_returns_none_when_fails_no_remote_morph(self):
-        self.lrc.has_repo = self.doesnothaverepo
-        self.rrc.cat_file = self.noremotefile
-        morph = self.sr._get_morphology(
-                {}, None, None, None,
-                morphlib.morphloader.MorphologyLoader(), 'reponame',
-                'sha1', 'unreached.morph')
-        self.assertEqual(morph, None)
-
     def test_raises_error_when_repo_does_not_exist(self):
         self.lrc.has_repo = self.doesnothaverepo
         self.assertRaises(MorphologyNotFoundError,
