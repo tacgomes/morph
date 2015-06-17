@@ -222,7 +222,10 @@ class LocalRepoCache(object):
             raise NoRemote(reponame, errors)
 
         self.fs.rename(target, path)
-        return self.get_repo(reponame)
+
+        repo = self.get_repo(reponame)
+        repo.already_updated = True
+        return repo
 
     def _new_cached_repo_instance(self, reponame, repourl,
                                   path):  # pragma: no cover
