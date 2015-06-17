@@ -572,6 +572,13 @@ some components.
 
     cd "$DATADIR/gits/morphs"
 
+    install -m644 -D /dev/stdin << EOF "strata/tools/extra-chunk.morph"
+    name: extra-chunk
+    kind: chunk
+    build-system: manual
+    EOF
+    git add strata/tools/extra-chunk.morph
+
     install -m644 -D /dev/stdin << EOF "strata/tools.morph"
     name: tools
     kind: stratum
@@ -579,7 +586,7 @@ some components.
     - morph: strata/build-essential.morph
     chunks:
     -   name: extra-chunk
-        morph: strata/extra-chunk.morph
+        morph: strata/tools/extra-chunk.morph
         repo: test:extra-chunk
         unpetrify-ref: master
         ref: $(run_in "$DATADIR/gits/extra-chunk" git rev-parse master)
