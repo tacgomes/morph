@@ -116,7 +116,8 @@ class FakeLocalRepo(object):
             }
             return self.morphologies[filename] % values
         elif filename.endswith('.morph'):
-            return '''name: %s
+            return '''
+                name: %s
                 kind: chunk
                 build-system: dummy''' % filename[:-len('.morph')]
         return 'text'
