@@ -48,10 +48,6 @@ class ShowBuildLog(cliapp.Plugin):
             raise cliapp.AppException('show-build-log expects system filename '
                                       'and chunk as input.')
 
-        artifact_cache_server = (
-            self.app.settings['artifact-cache-server'] or
-            self.app.settings['cache-server'])
-
         system = args[0]
         chunk = args[1]
 
@@ -61,45 +57,49 @@ class ShowBuildLog(cliapp.Plugin):
             pass
         morphlib.buildcommand.BuildCommand._validate_architecture = validate
 
-        sb = morphlib.sysbranchdir.open_from_within('.')
-        root_repo_url = sb.get_config('branch.root')
-        ref = sb.get_config('branch.name')
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
+        source_pool_context = definitions_repo.source_pool(
+            ref=definitions_repo.HEAD, system_filename=system)
+        with source_pool_context as source_pool:
+            build_command = morphlib.buildcommand.BuildCommand(self.app, None)
+            root = build_command.resolve_artifacts(source_pool)
 
-        definitions_repo_path = sb.get_git_directory_name(root_repo_url)
+            arch = root.source.morphology['arch']
+            build_env = build_command.new_build_env(arch)
 
-        build_command = morphlib.buildcommand.BuildCommand(self.app, None)
-        srcpool = build_command.create_source_pool(definitions_repo_path, ref,
-                                                   [system])
-        root = build_command.resolve_artifacts(srcpool)
+            ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
 
-        arch = root.source.morphology['arch']
-        build_env = build_command.new_build_env(arch)
+            cache_key = None
+            for source in set(a.source for a in root.walk()):
+                if source.name == chunk:
+                    cache_key = ckc.compute_key(source)
+                    break
 
-        ckc = morphlib.cachekeycomputer.CacheKeyComputer(build_env)
-
-        cache_key = None
-        for source in set(a.source for a in root.walk()):
-            if source.name == chunk:
-                cache_key = ckc.compute_key(source)
-                break
-
-        if cache_key:
-            url = urlparse.urljoin(artifact_cache_server,
-                '/1.0/artifacts?filename=%s.build-log' % source.cache_key)
-            response = urllib.urlopen(url)
-            if response.getcode() == 200:
-                build_output = []
-                for line in response:
-                    build_output.append(str(line))
-                self.app.output.write(''.join(build_output))
-            elif response.getcode() == 404:
-                raise cliapp.AppException(
-                    'No build log for artifact %s found on cache server %s' %
-                    (source.cache_key, artifact_cache_server))
+            if cache_key:
+                self.show_build_log_for_artifact(cache_key)
             else:
-                raise cliapp.AppException(
-                    'Error connecting to cache server %s: %s' %
-                    (artifact_cache_server, response.getcode()))
+                raise cliapp.AppException('Component not found in the given '
+                                          'system.')
+
+    def show_build_log_for_artifact(self, cache_key):
+        artifact_cache_server = (
+            self.app.settings['artifact-cache-server'] or
+            self.app.settings['cache-server'])
+
+        url = urlparse.urljoin(artifact_cache_server,
+            '/1.0/artifacts?filename=%s.build-log' % cache_key)
+        response = urllib.urlopen(url)
+        if response.getcode() == 200:
+            build_output = []
+            for line in response:
+                build_output.append(str(line))
+            self.app.output.write(''.join(build_output))
+        elif response.getcode() == 404:
+            raise cliapp.AppException(
+                'No build log for artifact %s found on cache server %s' %
+                (cache_key, artifact_cache_server))
         else:
-            raise cliapp.AppException('Component not found in the given '
-                                      'system.')
+            raise cliapp.AppException(
+                'Error connecting to cache server %s: %s' %
+                (artifact_cache_server, response.getcode()))

@@ -60,11 +60,11 @@ class GetRepoPlugin(cliapp.Plugin):
         gd.update_submodules(self.app)
         gd.update_remotes()
 
-    def _get_chunk_dirname(self, path, sb, spec):
+    def _get_chunk_dirname(self, path, definitions_repo, spec):
         if path:
             return path
         else:
-            return sb.get_git_directory_name(spec['repo'])
+            return definitions_repo.relative_path_to_chunk(spec['repo'])
 
     def get_repo(self, args):
         '''Checkout a component repository.
@@ -92,12 +92,9 @@ class GetRepoPlugin(cliapp.Plugin):
             path = os.path.abspath(args[1])
         ref = self.app.settings['ref']
 
-        ws = morphlib.workspace.open('.')
-        sb = morphlib.sysbranchdir.open_from_within('.')
-        loader = morphlib.morphloader.MorphologyLoader()
-
         def checkout_chunk(morph, chunk_spec):
-            dirname = self._get_chunk_dirname(path, sb, chunk_spec)
+            dirname = self._get_chunk_dirname(path, definitions_repo,
+                                              chunk_spec)
             if not os.path.exists(dirname):
                 self.app.status(
                     msg='Checking out ref %(ref)s of %(chunk)s in '
@@ -123,8 +120,12 @@ class GetRepoPlugin(cliapp.Plugin):
         strata = set()
         found = 0
 
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
+        loader = morphlib.morphloader.MorphologyLoader()
+
         self.app.status(msg='Loading in all morphologies')
-        for morph in sb.load_all_morphologies(loader):
+        for morph in definitions_repo.load_all_morphologies(loader):
             if morph['kind'] == 'stratum':
                 for chunk in morph['chunks']:
                     if chunk['name'] == chunk_name:

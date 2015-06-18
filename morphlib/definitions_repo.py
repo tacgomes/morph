@@ -267,24 +267,16 @@ class DefinitionsRepo(gitdir.GitDirectory):
         repo, with its name based on 'repo_url'.
 
         '''
-        # This is copied from systembranch._fabricate_git_directory_name().
-
         # Parse the URL. If the path component is absolute, we assume
         # it's a real URL; otherwise, an aliased URL.
         parts = urlparse.urlparse(repo_url)
 
-        if os.path.isabs(parts.path):
-            # Remove .git suffix, if any.
-            path = parts.path
-            if path.endswith('.git'):
-                path = path[:-len('.git')]
+        # Remove .git suffix, if any.
+        path = parts.path
+        if path.endswith('.git'):
+            path = path[:-len('.git')]
 
-            # Add the domain name etc (netloc). Ignore any other parts.
-            # Note that we _know_ the path starts with a slash, so we avoid
-            # adding one here.
-            relative = '%s%s' % (parts.netloc, path)
-        else:
-            relative = repo_url
+        relative = os.path.basename(parts.path)
 
         # Replace colons with slashes.
         relative = '/'.join(relative.split(':'))

@@ -47,14 +47,15 @@ class GetChunkDetailsPlugin(cliapp.Plugin):
                 'Wrong number of arguments to get-chunk-details command '
                 '(see help)')
 
-        sb = morphlib.sysbranchdir.open_from_within('.')
+        definitions_repo = morphlib.definitions_repo.open(
+            '.', search_for_root=True, search_workspace=True, app=self.app)
         loader = morphlib.morphloader.MorphologyLoader()
 
         aliases = self.app.settings['repo-alias']
         self.resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
 
         found = 0
-        for morph in sb.load_all_morphologies(loader):
+        for morph in definitions_repo.load_all_morphologies(loader):
             if morph['kind'] == 'stratum':
                 if (stratum_name == None or
                         morph['name'] == stratum_name):
