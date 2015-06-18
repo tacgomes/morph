@@ -86,11 +86,20 @@ class ShowBuildLog(cliapp.Plugin):
         if cache_key:
             url = urlparse.urljoin(artifact_cache_server,
                 '/1.0/artifacts?filename=%s.build-log' % source.cache_key)
-            build_log = urllib.urlopen(url)
-            build_output = []
-            for line in build_log:
-                build_output.append(str(line))
-            self.app.output.write(''.join(build_output))
+            response = urllib.urlopen(url)
+            if response.getcode() == 200:
+                build_output = []
+                for line in response:
+                    build_output.append(str(line))
+                self.app.output.write(''.join(build_output))
+            elif response.getcode() == 404:
+                raise cliapp.AppException(
+                    'No build log for artifact %s found on cache server %s' %
+                    (source.cache_key, artifact_cache_server))
+            else:
+                raise cliapp.AppException(
+                    'Error connecting to cache server %s: %s' %
+                    (artifact_cache_server, response.getcode()))
         else:
             raise cliapp.AppException('Component not found in the given '
                                       'system.')
