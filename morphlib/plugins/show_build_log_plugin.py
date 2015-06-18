@@ -55,6 +55,12 @@ class ShowBuildLog(cliapp.Plugin):
         system = args[0]
         chunk = args[1]
 
+        # Hack to allow getting build log of chunks for a different
+        # architecture
+        def validate(self, root_artifact):
+            pass
+        morphlib.buildcommand.BuildCommand._validate_architecture = validate
+
         sb = morphlib.sysbranchdir.open_from_within('.')
         root_repo_url = sb.get_config('branch.root')
         ref = sb.get_config('branch.name')
