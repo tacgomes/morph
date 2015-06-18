@@ -286,10 +286,8 @@ class BuildPlugin(cliapp.Plugin):
             self.app.settings['cachedir'],
             self.app.settings['cachedir-min-space'])
 
-        local_changes = self.app.settings['local-changes']
         source_pool_context = definitions_repo.source_pool(
-            definitions_repo.HEAD, filename,
-            include_local_changes=(local_changes == 'include'))
+            definitions_repo.HEAD, filename)
         with source_pool_context as source_pool:
             self._build(source_pool, filename, component_names=component_names)
 

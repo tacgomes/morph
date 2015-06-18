@@ -325,14 +325,14 @@ class DefinitionsRepoWithApp(DefinitionsRepo):
             git_user_email=self._git_user_email,
             status_cb=self.app.status,)
 
-    def source_pool(self, ref, system_filename,
-                    include_local_changes=False):
+    def source_pool(self, ref, system_filename):
         '''Equivalent to DefinitionsRepo.source_pool().'''
 
+        local_changes = self.app.settings['local-changes']
         return DefinitionsRepo.source_pool(
             self, self._lrc, self._rrc, self.app.settings['cachedir'],
             ref, system_filename,
-            include_local_changes=include_local_changes,
+            include_local_changes=(local_changes == 'include'),
             push_local_changes=self.app.settings['push-build-branches'],
             build_ref_prefix=self.app.settings['build-ref-prefix'],
             git_user_name=self._git_user_name,

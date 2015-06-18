@@ -452,12 +452,10 @@ class DeployPlugin(cliapp.Plugin):
         # temporary branch, for each system and subsystem being deployed.
         # We could do a much better job if a source pool could contain
         # multiple systems of different architectures.
-        include_local_changes = (self.app.settings['local-changes']=='include')
         morph = morphlib.util.sanitise_morphology_path(system['morph'])
 
         source_pool_context = definitions_repo.source_pool(
-            definitions_repo.HEAD, morph,
-            include_local_changes=include_local_changes)
+            definitions_repo.HEAD, morph)
         with source_pool_context as source_pool:
             self.deploy_system_with_source_pool(
                 deploy_tempdir, definitions_repo, source_pool, system,
