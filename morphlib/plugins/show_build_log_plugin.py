@@ -14,6 +14,7 @@
 
 
 import cliapp
+import logging
 import os
 import urllib
 import urlparse
@@ -77,29 +78,40 @@ class ShowBuildLog(cliapp.Plugin):
                     break
 
             if cache_key:
-                self.show_build_log_for_artifact(cache_key)
+                f = self.get_build_log_for_artifact(cache_key)
+                build_output = []
+                for line in f:
+                    build_output.append(str(line))
+                self.app.output.write(''.join(build_output))
             else:
                 raise cliapp.AppException('Component not found in the given '
                                           'system.')
 
-    def show_build_log_for_artifact(self, cache_key):
-        artifact_cache_server = (
-            self.app.settings['artifact-cache-server'] or
-            self.app.settings['cache-server'])
+    def get_build_log_for_artifact(self, cache_key):
+        lac, rac = morphlib.util.new_artifact_caches(self.app.settings)
 
-        url = urlparse.urljoin(artifact_cache_server,
-            '/1.0/artifacts?filename=%s.build-log' % cache_key)
-        response = urllib.urlopen(url)
-        if response.getcode() == 200:
-            build_output = []
-            for line in response:
-                build_output.append(str(line))
-            self.app.output.write(''.join(build_output))
-        elif response.getcode() == 404:
-            raise cliapp.AppException(
-                'No build log for artifact %s found on cache server %s' %
-                (cache_key, artifact_cache_server))
+        if lac.has_source_metadata(None, cache_key, 'build-log'):
+            logging.info('Found build log for %s in local cache.', cache_key)
+            f = lac.get_source_metadata(None, cache_key, 'build-log')
         else:
-            raise cliapp.AppException(
-                'Error connecting to cache server %s: %s' %
-                (artifact_cache_server, response.getcode()))
+            artifact_cache_server = (
+                self.app.settings['artifact-cache-server'] or
+                self.app.settings['cache-server'])
+
+            url = urlparse.urljoin(artifact_cache_server,
+                '/1.0/artifacts?filename=%s.build-log' % cache_key)
+            response = urllib.urlopen(url)
+            if response.getcode() == 200:
+                logging.info('Found build log for %s in remote cache %s.',
+                             cache_key, artifact_cache_server)
+                f = response
+            elif response.getcode() == 404:
+                raise cliapp.AppException(
+                    'No build log for artifact %s found on cache server %s' %
+                    (cache_key, artifact_cache_server))
+            else:
+                raise cliapp.AppException(
+                    'Error connecting to cache server %s: %s' %
+                    (artifact_cache_server, response.getcode()))
+
+        return f
