@@ -140,7 +140,7 @@ class BuildPlugin(cliapp.Plugin):
             ref = definitions_repo.HEAD
             commit = definitions_repo.resolve_ref_to_commit(ref)
             self._distbuild(definitions_repo.remote_url, commit, filename,
-                            original_ref=original_ref,
+                            original_ref=ref,
                             component_names=component_names)
 
     def distbuild_start(self, args):
