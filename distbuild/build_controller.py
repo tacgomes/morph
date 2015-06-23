@@ -305,6 +305,7 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(self, _Start())
 
     def fail(self, reason):
+        '''Broadcast messages to report that the build failed.'''
         logging.error(reason)
         message = BuildFailed(self._request['id'], reason)
 
@@ -317,6 +318,7 @@ class BuildController(distbuild.StateMachine):
 
     def _request_command_execution(self, argv, request_id):
         '''Tell the controller's distbuild-helper to run a command.'''
+
         hrs = self.mainloop.state_machines_of_type(distbuild.HelperRouter)
         if len(hrs) == 0:
             self.fail('No distbuild-helper process running on controller!')
@@ -329,6 +331,11 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(distbuild.HelperRouter, req)
 
     def _start_graphing(self, event_source, event):
+        '''Run `morph calculate-build-graph` on a worker.
+
+        The request sent by this function is identified by self._helper_id.
+
+        '''
         distbuild.crash_point()
 
         logging.info('Start constructing build graph')
@@ -352,6 +359,12 @@ class BuildController(distbuild.StateMachine):
                                   GraphingStarted(self._request['id']))
 
     def _maybe_collect_graph(self, event_source, event):
+        '''Collect output from a running `morph calculate-build-graph`.
+
+        This is called for all distbuild.HelperOutput messages, so it must
+        check that the ID of the response matches self._helper_id.
+
+        '''
         distbuild.crash_point()
 
         if event.msg['id'] == self._helper_id:
@@ -359,6 +372,16 @@ class BuildController(distbuild.StateMachine):
             self._artifact_error.add(event.msg['stderr'])
 
     def _maybe_finish_graph(self, event_source, event):
+        '''Handle completion of the `morph calculate-build-graph` command.
+
+        This sends a _GotGraph message with an ArtifactReference representing
+        the root artifact and all its dependencies. It also broadcasts the
+        GraphingFinished status message.
+
+        This is called for all distbuild.HelperResult messages, so it must
+        check that the ID of the response matches self._helper_id.
+
+        '''
         distbuild.crash_point()
 
         def notify_success(artifact):
@@ -378,7 +401,7 @@ class BuildController(distbuild.StateMachine):
 
             if event.msg['exit'] != 0:
                 return
-            
+
             text = self._artifact_data.peek()
             try:
                 artifact = distbuild.decode_artifact_reference(text)
@@ -390,6 +413,11 @@ class BuildController(distbuild.StateMachine):
             notify_success(artifact)
 
     def _start_annotating(self, event_source, event):
+        '''Ask the shared artifact cache which artifacts are already built.
+
+        The request sent by this function is identified by self._helper_id.
+
+        '''
         distbuild.crash_point()
 
         self._artifact = event.artifact
@@ -430,6 +458,18 @@ class BuildController(distbuild.StateMachine):
             '(helper id: %s)' % self._helper_id)
 
     def _maybe_handle_cache_response(self, event_source, event):
+        '''Handle result from the shared artifact cache.
+
+        The result tells us which artifacts are built and which are not. This
+        information is saved in 'state' attribute of the ArtifactReference
+        objects, in the tree linked from self._artifact.  This function sends
+        an _Annotated message to indicate completion, and also broadcasts the
+        CacheState status message.
+
+        This is called for all distbuild.HelperResult messages so we need to
+        filter by self._helper_id.
+
+        '''
         def set_status(artifact):
             is_in_cache = cache_state[artifact.basename()]
             artifact.state = BUILT if is_in_cache else UNBUILT
@@ -470,6 +510,16 @@ class BuildController(distbuild.StateMachine):
             self.mainloop.queue_event(self, _Built())
 
     def _find_artifacts_that_are_ready_to_build(self):
+        '''Return unbuilt artifacts whose dependencies are all built.
+
+        This uses the information kept in self._artifacts. Note that this
+        is NOT checked against the actual state of the cache at any time
+        after the build starts. So it's entirely possible that this function
+        will tell the BuildController to build things that appeared in the
+        cache since the 'annotating' stage completed, or believe that things
+        which have been deleted from the cache are still there.
+
+        '''
         def is_ready_to_build(artifact):
             return (artifact.state == UNBUILT and
                     all(a.state == BUILT
@@ -480,6 +530,13 @@ class BuildController(distbuild.StateMachine):
         return [a for a in artifacts if is_ready_to_build(a)]
 
     def _build_complete(self):
+        '''Return True if everything is built.
+
+        In the case of a partial distbuild, self._components tracks which
+        components of self._artifact the user wants. If that isn't set, we are
+        doing a full build of self._artifact.
+
+        '''
         if not self._components:
             if self._artifact.state == BUILT:
                 logging.info('Requested artifact is built')
@@ -493,6 +550,12 @@ class BuildController(distbuild.StateMachine):
         return False
 
     def _start_building(self, event_source, event):
+        '''Send an initial set of chunks to the WorkerBuildQueuer class.
+
+        This function is called once, after the 'annotating' stage completes.
+        It also broadcasts the BuildStarted status message.
+
+        '''
         if self._build_complete():
             return
 
@@ -501,6 +564,8 @@ class BuildController(distbuild.StateMachine):
         self._queue_worker_builds(event_source, event)
 
     def _queue_worker_builds(self, event_source, event):
+        '''Send a set of chunks to the WorkerBuildQueuer class.'''
+
         distbuild.crash_point()
 
         if self._build_complete():
@@ -674,8 +739,17 @@ class BuildController(distbuild.StateMachine):
             return wanted[0]
         else:
             return None
-            
+
     def _maybe_check_result_and_queue_more_builds(self, event_source, event):
+        '''Handle completion of a build, from the WorkerBuildQueuer.
+
+        This function is called for all WorkerBuildFinished messages, so it
+        must check that the artifact is one that it cares about.
+
+        It updates the state of the artifact in self._components and sends
+        more builds to the WorkerBuildQueuer, if there are any more.
+
+        '''
         distbuild.crash_point()
         if self._request['id'] not in event.msg['ids']:
             return # not for us
@@ -709,6 +783,18 @@ class BuildController(distbuild.StateMachine):
         self._queue_worker_builds(None, event)
 
     def _maybe_notify_build_failed(self, event_source, event):
+        '''Handle failure of a build, from the WorkerBuildQueuer.
+
+        This function is called for all WorkerBuildFinished messages, so it
+        must check that the artifact is one that it cares about.
+
+        If a component fails to build, we give up completely. This involves
+        cancelling any builds we sent to the WorkerBuildQueuer, broadcasting
+        the BuildCancel status message, and sending the internal _Abort
+        message.
+
+        '''
+
         distbuild.crash_point()
 
         if self._request['id'] not in event.msg['ids']:
@@ -752,6 +838,14 @@ class BuildController(distbuild.StateMachine):
         self.mainloop.queue_event(self, _Abort())
 
     def _notify_build_done(self, event_source, event):
+        '''Handle completion of all components.
+
+        We send a BuildFinished status message, with URLs pointing into the
+        shared artifact cache for the artifact that was requested, or (in the
+        case of partial distbuild) for the components of it that were
+        requested.
+
+        '''
         distbuild.crash_point()
 
         logging.debug('Notifying initiator of successful build')
