@@ -30,6 +30,12 @@ class ArtifactReference(object): # pragma: no cover
         self._basename = basename
         self._dict = encoded
 
+    def __str__(self):
+        return self._basename
+
+    def __repr__(self):
+        return '<ArtifactReference: %s>' % self._basename
+
     def __getattr__(self, name):
         if not name.startswith('_'):
             return self._dict[name]
