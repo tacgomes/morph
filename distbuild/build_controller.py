@@ -745,7 +745,10 @@ class BuildController(distbuild.StateMachine):
             logging.debug('BC: got output: %s' % repr(event.msg))
 
         artifact = self._find_artifact(event.artifact_cache_key)
-        logging.debug('BC: got artifact: %s' % repr(artifact))
+
+        if self._debug_build_output:
+            logging.debug('BC: got artifact: %s' % repr(artifact))
+
         if artifact is None:
             # This is not the event you are looking for.
             return
