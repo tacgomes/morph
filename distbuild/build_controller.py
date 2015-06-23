@@ -172,7 +172,7 @@ def map_build_graph(artifact, callback, components=[]):
 def find_artifacts(components, artifact):
     found = []
     for a in artifact.walk():
-        if a.name in components:
+        if a.source_name in components or a.name in components:
             found.append(a)
     return found
 
