@@ -390,7 +390,7 @@ class WorkerBuildQueuer(distbuild.StateMachine):
 
         self.mainloop.queue_event(worker.who, _HaveAJob(job))
 
-    def _handle_worker_disconnected(self, event):
+    def _handle_worker_disconnected(self, event_source, event):
         self._remove_worker(self, event.who)
 
     def _remove_worker(self, worker):
