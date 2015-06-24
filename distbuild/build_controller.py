@@ -604,7 +604,8 @@ class BuildController(distbuild.StateMachine):
         '''Send 'Need to build xx/yy artifacts' message.'''
 
         if len(self._components) == 0:
-            unbuilt = {a.cache_key for a in self._artifact.walk()}
+            unbuilt = {a.cache_key for a in self._artifact.walk()
+                       if a.state == UNBUILT}
         else:
             # Partial distbuild
             unbuilt = set()
@@ -619,7 +620,7 @@ class BuildController(distbuild.StateMachine):
             total = set()
             for c in self._components:
                 total.update(
-                    {a.cache_key for a in c.walk() if a.state == UNBUILT})
+                    {a.cache_key for a in c.walk()})
 
         cache_state_msg = CacheState(
             self._request['id'], len(unbuilt), len(total))
