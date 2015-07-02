@@ -457,6 +457,32 @@ class SourceResolver(object):
                                    repo, ref, filename, buildsystem, visit,
                                    predefined_split_rules)
 
+class DuplicateChunkError(morphlib.Error):
+
+    def _make_msg(self, (name, sources)): # pragma: no cover
+        return ("Multiple `%s' chunks detected:\n\t%s"
+                % (name, '\n\t'.join((str(s) for s in sources))))
+
+    def __init__(self, duplicate_chunks): # pragma: no cover
+        msgs = (self._make_msg(dup) for dup in duplicate_chunks.iteritems())
+        msg = '\n'.join(msgs)
+
+        super(DuplicateChunkError, self).__init__(msg)
+
+def _find_duplicate_chunks(sourcepool): #pragma: no cover
+    ''' Searches the sourcepool for duplicate chunks
+        returns a dictionary of any duplicates keyed on chunk source name,
+        the value of each item is a list of duplicate chunk sources
+    '''
+
+    chunk_sources = ((s.name, s) for s in sourcepool
+                        if s.morphology['kind'] == 'chunk')
+
+    chunk_sources_by_name = collections.defaultdict(list)
+    for (name, source) in chunk_sources:
+        chunk_sources_by_name[name].append(source)
+
+    return {k: v for (k, v) in chunk_sources_by_name.iteritems() if len(v) > 1}
 
 def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
                        original_ref=None, update_repos=True,
@@ -493,4 +519,10 @@ def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
     resolver.traverse_morphs(repo, ref, filenames,
                              visit=add_to_pool,
                              definitions_original_ref=original_ref)
+
+    # No two chunks may have the same name
+    duplicate_chunks = _find_duplicate_chunks(pool)
+    if duplicate_chunks:
+        raise DuplicateChunkError(duplicate_chunks)
+
     return pool
