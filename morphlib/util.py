@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2011-2015  Codethink Limited
+# Copyright © 2015  Richard Ipsum
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -731,3 +733,45 @@ def temp_dir(*args, **kwargs): #pragma: no cover
     else:
         if cleanup_on_success:
             shutil.rmtree(td, ignore_errors=True)
+
+def copyfileobj(fsrc, fdst, length=16*1024,
+                callback=lambda x: None): #pragma: no cover
+    ''' This is similar to shutil.copyfileobj
+        except this can be passed a callback to monitor copy progress
+    '''
+
+    count = 0
+
+    while True:
+        buf = fsrc.read(length)
+        if buf == '':
+            break
+
+        fdst.write(buf)
+        count += len(buf)
+        callback(count)
+
+
+class ProgressBar(object):
+    ''' A very simple progress bar '''
+
+    TEMPLATE = '%s[%s%s] %.1f/%.1f %s\r'
+
+    def __init__(self, label, expected_size, unit, width=30,
+                 progress_char='#', empty_char=' '): #pragma: no cover
+        self._label = label
+        self._expected_size = expected_size
+        self._width = width
+        self._unit = unit
+        self._block_width = expected_size / float(width);
+        self._progress_char = progress_char
+        self._empty_char = empty_char
+
+    def show(self, progress): #pragma: no cover
+        blocks = int(progress / self._block_width);
+
+        s = self.TEMPLATE % (self._label, self._progress_char * blocks,
+                             self._empty_char * (self._width - blocks),
+                             progress, self._expected_size, self._unit)
+        sys.stderr.write(s)
+        sys.stderr.flush()

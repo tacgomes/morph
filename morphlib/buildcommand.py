@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 # Copyright (C) 2011-2015  Codethink Limited
+# Copyright © 2015  Richard Ipsum
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -400,16 +402,42 @@ class BuildCommand(object):
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
 
-        def fetch_files(to_fetch):
+        def do_fetch(name, remote, local):
+            meta = remote.info()
+            content_len = int(meta.getheaders('Content-Length')[0])
+            logging.debug('Artifact content length: %s', content_len)
+
+            if content_len < 1024:
+                report_progress = lambda count: bar.show(count)
+                expected_size = content_len
+                unit = 'bytes'
+            elif content_len >= 1024 and content_len < 1024 ** 2:
+                report_progress = lambda count: bar.show(count / float(1024))
+                expected_size = content_len / float(1024)
+                unit = 'KB'
+            else:
+                report_progress = lambda count: bar.show(count
+                                                          / float((1024 ** 2)))
+                expected_size = content_len / float((1024 ** 2))
+                unit = 'MB'
+
+            bar = morphlib.util.ProgressBar(name,
+                                            expected_size, unit)
+
+            morphlib.util.copyfileobj(remote, local,
+                                      callback=report_progress)
+
+        def fetch_files(name, to_fetch):
             '''Fetch a set of files atomically.
 
             If an error occurs during the transfer of any files, all downloaded
             data is deleted, to ensure integrity of the local cache.
 
             '''
+
             try:
                 for remote, local in to_fetch:
-                    shutil.copyfileobj(remote, local)
+                    do_fetch(name, remote, local)
             except BaseException:
                 for remote, local in to_fetch:
                     local.abort()
@@ -439,7 +467,7 @@ class BuildCommand(object):
                 self.app.status(
                     msg='Fetching to local cache: artifact %(name)s',
                     name=artifact.name)
-                fetch_files(to_fetch)
+                fetch_files(artifact.name, to_fetch)
 
     def create_staging_area(self, source, build_env, use_chroot=True,
                             extra_env={}, extra_path=[]):
