@@ -45,6 +45,9 @@ defaults = {
         ('github='
             'git://github.com/%s#'
             'ssh://git@github.com/%s'),
+        ('bitbucket='
+            'https://bitbucket.org/%s#'
+            'ssh://git@bitbucket.org/%s'),
     ],
     'cachedir': os.path.expanduser('~/.cache/morph'),
     'max-jobs': morphlib.util.make_concurrency()
