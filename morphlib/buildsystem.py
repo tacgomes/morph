@@ -190,7 +190,7 @@ class PythonDistutilsBuildSystem(BuildSystem):
         return any(x in file_list for x in indicators)
 
 
-class CPANBuildSystem(BuildSystem):
+class ExtUtilsMakeMakerBuildSystem(BuildSystem):
 
     '''The Perl cpan build system.'''
 
@@ -286,7 +286,7 @@ build_systems = [
     ManualBuildSystem(),
     AutotoolsBuildSystem(),
     PythonDistutilsBuildSystem(),
-    CPANBuildSystem(),
+    ExtUtilsMakeMakerBuildSystem(),
     CMakeBuildSystem(),
     QMakeBuildSystem(),
     DummyBuildSystem(),
