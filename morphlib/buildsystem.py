@@ -192,7 +192,7 @@ class PythonDistutilsBuildSystem(BuildSystem):
 
 class ExtUtilsMakeMakerBuildSystem(BuildSystem):
 
-    '''The Perl cpan build system.
+    '''The ExtUtils::MakeMaker build system.
 
     To install perl distributions into the correct location in our chroot
     we need to set PREFIX to <destdir>/<prefix> in the configure-commands.
@@ -205,6 +205,8 @@ class ExtUtilsMakeMakerBuildSystem(BuildSystem):
 
     '''
 
+    # This is called the 'cpan' build system for historical reasons,
+    # back when morph only supported one of the perl build systems.
     name = 'cpan'
 
     def __init__(self):
@@ -232,6 +234,44 @@ class ExtUtilsMakeMakerBuildSystem(BuildSystem):
         ]
 
         return any(x in file_list for x in indicators)
+
+
+class ModuleBuildBuildSystem(BuildSystem):
+
+    '''The Module::Build build system'''
+
+    name = 'module-build'
+
+    def __init__(self):
+        super(ModuleBuildBuildSystem, self).__init__()
+
+        self.configure_commands = [
+            # See the comment in ExtUtilsMakeMakerBuildSystem
+            # to see why --prefix is set to $DESTDIR$PREFIX here,
+            # (--prefix in Module::Build has the same meaning
+            #  as PREFIX in ExtUtils::MakeMaker)
+            'perl Build.PL --prefix "$DESTDIR$PREFIX"'
+        ]
+
+        self.build_commands = [
+            './Build'
+        ]
+
+        self.test_commands = [
+            './Build test'
+        ]
+
+        self.install_commands =  [
+            './Build install'
+        ]
+
+    def used_by_project(self, file_list):
+        indicators = [
+            'Build.PL'
+        ]
+
+        return any(x in file_list for x in indicators)
+
 
 class CMakeBuildSystem(BuildSystem):
 
@@ -296,6 +336,7 @@ build_systems = [
     AutotoolsBuildSystem(),
     PythonDistutilsBuildSystem(),
     ExtUtilsMakeMakerBuildSystem(),
+    ModuleBuildBuildSystem(),
     CMakeBuildSystem(),
     QMakeBuildSystem(),
     DummyBuildSystem(),
