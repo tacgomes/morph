@@ -192,28 +192,37 @@ class PythonDistutilsBuildSystem(BuildSystem):
 
 class ExtUtilsMakeMakerBuildSystem(BuildSystem):
 
-    '''The Perl cpan build system.'''
+    '''The Perl cpan build system.
+
+    To install perl distributions into the correct location in our chroot
+    we need to set PREFIX to <destdir>/<prefix> in the configure-commands.
+
+    The mapping between PREFIX and the final installation
+    directories is complex and depends upon the configuration of perl
+    see,
+    https://metacpan.org/pod/distribution/perl/INSTALL#Installation-Directories
+    and ExtUtil::MakeMaker's documentation for more details.
+
+    '''
 
     name = 'cpan'
 
     def __init__(self):
         BuildSystem.__init__(self)
+
         self.configure_commands = [
-            'perl Makefile.PL INSTALLDIRS=perl '
-            'INSTALLARCHLIB="$PREFIX/lib/perl" '
-            'INSTALLPRIVLIB="$PREFIX/lib/perl" '
-            'INSTALLBIN="$PREFIX/bin" '
-            'INSTALLSCRIPT="$PREFIX/bin" '
-            'INSTALLMAN1DIR="$PREFIX/share/man/man1" '
-            'INSTALLMAN3DIR="$PREFIX/share/man/man3"',
+            'perl Makefile.PL PREFIX=$DESTDIR$PREFIX',
         ]
         self.build_commands = [
             'make',
         ]
         self.test_commands = [
+            # FIXME: we ought to run tests by default,
+            # and use chunk morphs to disable for special cases
+            # 'make test',
         ]
         self.install_commands = [
-            'make DESTDIR="$DESTDIR" install',
+            'make install',
         ]
         self.strip_commands = [_STRIP_COMMAND]
 
@@ -279,7 +288,7 @@ class QMakeBuildSystem(BuildSystem):
         for x in file_list:
             if x.endswith(indicator):
                 return True
-            
+
         return False
 
 build_systems = [
