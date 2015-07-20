@@ -130,7 +130,7 @@ class LocalRepoCache(object):
             return ['wget'] + verbosity_flags + ['-O-', url]
 
         self._app.runcmd(wget_command(),
-                         ['tar', 'xf', '-'],
+                         ['tar', '--no-same-owner', '-xf', '-'],
                          cwd=path, **kwargs)
 
     def _mkdtemp(self, dirname):  # pragma: no cover
