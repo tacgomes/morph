@@ -24,13 +24,7 @@ set -eu
 
 parent="$DATADIR/parent-repo"
 mkdir "$parent"
-cat <<EOF > "$parent/parent.morph"
-name: parent
-kind: chunk
-build-system: manual
-build-commands:
-  - test -f le-sub/README
-EOF
+echo "No real content here" > "$parent/dummy"
 
 "$SRCDIR/scripts/run-git-in" "$parent" init --quiet
 "$SRCDIR/scripts/run-git-in" "$parent" add .
@@ -42,6 +36,14 @@ EOF
 # Modify the stratum to refer to the parent, not the submodule.
 
 morphs="$DATADIR/morphs-repo"
+cat <<EOF > "$morphs/parent.morph"
+name: parent
+kind: chunk
+build-system: manual
+build-commands:
+  - test -f le-sub/README
+EOF
+
 cat <<EOF > "$morphs/hello-stratum.morph"
 name: hello-stratum
 kind: stratum
@@ -49,10 +51,11 @@ chunks:
   - name: parent
     repo: test:parent-repo
     ref: master
+    morph: parent.morph
     build-depends: []
     build-mode: test
 EOF
-"$SRCDIR/scripts/run-git-in" "$morphs" add hello-stratum.morph
+"$SRCDIR/scripts/run-git-in" "$morphs" add hello-stratum.morph parent.morph
 "$SRCDIR/scripts/run-git-in" "$morphs" commit --quiet -m 'foo'
 
 

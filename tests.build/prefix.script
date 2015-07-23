@@ -19,9 +19,10 @@
 
 set -eu
 
-# Create two chunks which print out PATH and PREFIX from their environment.
-cd "$DATADIR/chunk-repo"
+cd "$DATADIR/morphs-repo"
 git checkout -q master
+
+# Create two chunks which print out PATH and PREFIX from their environment.
 cat <<\EOF > xyzzy.morph
 name: xyzzy
 kind: chunk
@@ -41,10 +42,8 @@ EOF
 
 git add xyzzy.morph
 git add plugh.morph
-git commit -q -m "Add chunks"
 
 # Change stratum to include those two chunks, and use a custom install prefix
-cd "$DATADIR/morphs-repo"
 cat <<EOF > hello-stratum.morph
 name: hello-stratum
 kind: stratum
@@ -52,18 +51,20 @@ chunks:
   - name: xyzzy
     repo: test:chunk-repo
     ref: master
+    morph: xyzzy.morph
     build-depends: []
     build-mode: test
     prefix: /plover
   - name: plugh
     repo: test:chunk-repo
     ref: master
+    morph: plugh.morph
     build-mode: test
     build-depends:
       - xyzzy
 EOF
 git add hello-stratum.morph
-git commit -q -m "Update stratum"
+git commit -q -m "Update build definitions"
 
 "$SRCDIR/scripts/test-morph" build-morphology \
     test:morphs-repo master hello-system

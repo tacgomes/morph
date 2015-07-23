@@ -20,13 +20,13 @@
 set -eu
 
 # Make 'hello' chunk fail to build
-chunkrepo="$DATADIR/chunk-repo"
-cd "$chunkrepo"
-git checkout --quiet farrokh
+morphsrepo="$DATADIR/morphs-repo"
+cd "$morphsrepo"
 cat <<EOF >hello.morph
 name: hello
 kind: chunk
-build-system: dummy
+configure-commands:
+  - echo dummy configure
 build-commands:
   - echo The next command will fail
   - "false"

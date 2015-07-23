@@ -292,11 +292,13 @@ class ArtifactResolverTests(unittest.TestCase):
                     - name: chunk1
                       repo: repo
                       ref: original/ref
+                      build-system: manual
                       build-depends:
                           - chunk2
                     - name: chunk2
                       repo: repo
                       ref: original/ref
+                      build-system: manual
                       build-depends: []
             ''')
         sources = morphlib.source.make_sources('repo', 'original/ref',

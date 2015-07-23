@@ -55,19 +55,6 @@ int main(void)
 EOF
 git add hello.c
 
-cat <<EOF > hello.morph
-name: hello
-kind: chunk
-build-system: dummy
-build-commands:
-  - gcc -o hello hello.c
-install-commands:
-  - install -d "\$DESTDIR"/etc
-  - install -d "\$DESTDIR"/bin
-  - install hello "\$DESTDIR"/bin/hello
-EOF
-git add hello.morph
-
 git commit --quiet -m "add a hello world program and morph"
 
 git checkout --quiet master
@@ -81,8 +68,20 @@ mkdir "$morphsrepo"
 cd "$morphsrepo"
 git init --quiet
 
-echo 'version: 5' > VERSION
+echo 'version: 6' > VERSION
 git add VERSION
+
+cat <<EOF > hello.morph
+name: hello
+kind: chunk
+build-commands:
+  - gcc -o hello hello.c
+install-commands:
+  - install -d "\$DESTDIR"/etc
+  - install -d "\$DESTDIR"/bin
+  - install hello "\$DESTDIR"/bin/hello
+EOF
+git add hello.morph
 
 cat <<EOF > hello-stratum.morph
 name: hello-stratum
@@ -91,6 +90,7 @@ chunks:
   - name: hello
     repo: test:chunk-repo
     ref: farrokh
+    morph: hello.morph
     build-mode: test
     build-depends: []
 EOF

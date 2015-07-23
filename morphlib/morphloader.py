@@ -16,8 +16,6 @@
 
 
 import collections
-import copy
-import logging
 import warnings
 import yaml
 
@@ -378,6 +376,9 @@ class MorphologyLoader(object):
             'pre-install-commands': None,
             'install-commands': None,
             'post-install-commands': None,
+            'pre-strip-commands': None,
+            'strip-commands': None,
+            'post-strip-commands': None,
             'devices': [],
             'products': [],
             'max-jobs': None,
@@ -402,16 +403,8 @@ class MorphologyLoader(object):
         },
     }
 
-    def __init__(self, definitions_version=0,
+    def __init__(self,
                  lookup_build_system=morphlib.buildsystem.lookup_build_system):
-        if definitions_version >= 5: # pragma: no cover
-            self._static_defaults = copy.deepcopy(self._static_defaults)
-            self._static_defaults['chunk'].update({
-                        'pre-strip-commands': None,
-                        'strip-commands': None,
-                        'post-strip-commands': None})
-
-        self._definitions_version = definitions_version
         self._lookup_build_system = lookup_build_system
 
     def parse_morphology_text(self, text, morph_filename):
@@ -609,15 +602,13 @@ class MorphologyLoader(object):
                         '%s.build-depends' % chunk_name, list,
                         type(spec['build-depends']), morph['name'])
 
-            if self._definitions_version >= 6:
-                # Either 'morph' or 'build-system' must be specified.
-                if 'morph' in spec and 'build-system' in spec:
-                    raise ChunkSpecConflictingFieldsError(
-                        ['morph', 'build-system'], chunk_name, morph.filename)
-                if 'morph' not in spec and 'build-system' not in spec:
-                    raise ChunkSpecNoBuildInstructionsError(
-                        chunk_name, morph.filename)
-
+            # Either 'morph' or 'build-system' must be specified.
+            if 'morph' in spec and 'build-system' in spec:
+                raise ChunkSpecConflictingFieldsError(
+                    ['morph', 'build-system'], chunk_name, morph.filename)
+            if 'morph' not in spec and 'build-system' not in spec:
+                raise ChunkSpecNoBuildInstructionsError(
+                    chunk_name, morph.filename)
 
     @classmethod
     def _validate_chunk(cls, morphology):

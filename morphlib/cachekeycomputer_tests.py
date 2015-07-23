@@ -55,6 +55,7 @@ class CacheKeyComputerTests(unittest.TestCase):
                 build-depends: []
                 chunks:
                     - name: chunk
+                      morph: chunk.morph
                       repo: repo
                       ref: original/ref
                       build-depends: []
@@ -65,10 +66,12 @@ class CacheKeyComputerTests(unittest.TestCase):
                 build-depends: []
                 chunks:
                     - name: chunk2
+                      morph: chunk2.morph
                       repo: repo
                       ref: original/ref
                       build-depends: []
                     - name: chunk3
+                      morph: chunk3.morph
                       repo: repo
                       ref: original/ref
                       build-depends: []

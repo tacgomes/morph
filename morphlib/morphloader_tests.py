@@ -49,8 +49,7 @@ def stratum_template(name):
 class MorphologyLoaderTests(unittest.TestCase):
 
     def setUp(self):
-        self.loader = morphlib.morphloader.MorphologyLoader(
-            definitions_version=6)
+        self.loader = morphlib.morphloader.MorphologyLoader()
         self.tempdir = tempfile.mkdtemp()
         self.filename = os.path.join(self.tempdir, 'foo.morph')
 
@@ -970,7 +969,6 @@ build-system: dummy
     def test_smoketest_strip_commands(self):
         dummy_buildsystem = morphlib.buildsystem.DummyBuildSystem()
         loader = morphlib.morphloader.MorphologyLoader(
-            definitions_version=5,
             lookup_build_system=lambda x: dummy_buildsystem)
         m = morphlib.morphology.Morphology(
             {'name': 'test', 'kind': 'chunk', 'build-system': 'dummy'})

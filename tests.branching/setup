@@ -64,7 +64,9 @@ chunks:
   ref: master
   build-depends: []
   build-mode: bootstrap
+  build-system: manual
 EOF
+
 
 scripts/run-git-in "$DATADIR/morphs" init
 scripts/run-git-in "$DATADIR/morphs" add .
@@ -78,15 +80,10 @@ scripts/run-git-in "$DATADIR/morphs" add this.is.alfred
 scripts/run-git-in "$DATADIR/morphs" commit --quiet -m 'mark as alfred'
 scripts/run-git-in "$DATADIR/morphs" checkout master
 
-
 # Create a dummy chunk repository
 mkdir "$DATADIR/hello"
 
-cat <<EOF > "$DATADIR/hello/hello.morph"
-name: hello
-kind: chunk
-build-system: dummy
-EOF
+echo 'Chunk repo is empty' > "$DATADIR"/hello/dummy
 
 scripts/run-git-in "$DATADIR/hello" init
 scripts/run-git-in "$DATADIR/hello" add .

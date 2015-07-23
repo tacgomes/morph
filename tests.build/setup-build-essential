@@ -26,6 +26,15 @@ echo "I'm a compiler!"
 EOF
 chmod +x morph-test-cc
 
+git init -q
+git add morph-test-cc
+git commit -q -m "Create compiler chunk"
+
+cd "$DATADIR/morphs-repo"
+
+# Require 'cc' in hello-chunk. We should have the second version available
+# but *not* the first one.
+
 cat <<EOF > "stage1-cc.morph"
 name: stage1-cc
 kind: chunk
@@ -44,14 +53,6 @@ install-commands:
   - install -m 755 morph-test-cc "\$DESTDIR\$PREFIX/bin/morph-test-cc"
 EOF
 
-git init -q
-git add morph-test-cc cc.morph stage1-cc.morph
-git commit -q -m "Create compiler chunk"
-
-# Require 'cc' in hello-chunk. We should have the second version available
-# but *not* the first one.
-cd "$DATADIR/chunk-repo"
-git checkout -q farrokh
 cat <<EOF > "hello.morph"
 name: hello
 kind: chunk
@@ -64,13 +65,12 @@ install-commands:
   - install -d "\$DESTDIR\$PREFIX/bin"
   - install hello "\$DESTDIR\$PREFIX/bin/hello"
 EOF
-git add hello.morph
-git commit -q -m "Make 'hello' require our mock compiler"
+git add hello.morph stage1-cc.morph cc.morph
 
 # Add 'build-essential' stratum and make hello-stratum depend upon it. Only
 # the *second* 'cc' chunk should make it into the build-essential stratum
 # artifact, and neither should make it into the system.
-cd "$DATADIR/morphs-repo"
+
 cat <<EOF > "build-essential.morph"
 name: build-essential
 kind: stratum
@@ -78,12 +78,14 @@ chunks:
   - name: stage1-cc
     repo: test:cc-repo
     ref: master
+    morph: stage1-cc.morph
     build-depends: []
     build-mode: bootstrap
     prefix: /tools
   - name: cc
     repo: test:cc-repo
     ref: master
+    morph: cc.morph
     build-depends:
       - stage1-cc
     build-mode: test
@@ -98,6 +100,7 @@ chunks:
   - name: hello
     repo: test:chunk-repo
     ref: farrokh
+    morph: hello.morph
     build-depends: []
     build-mode: test
 EOF

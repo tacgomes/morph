@@ -33,6 +33,7 @@ with open("hello-stratum.morph", "r") as f:
     stratum = yaml.load(f)
 stratum["chunks"].append({
     "build-depends": [],
+    "build-system": "manual",
     "name": "goodbye",
     "ref": "master",
     "repo": "test:goodbye",

@@ -24,7 +24,7 @@ import yaml
 import morphlib
 
 
-SUPPORTED_VERSIONS = [3, 4, 5, 6]
+SUPPORTED_VERSIONS = [6]
 
 
 class DefinitionsVersionError(cliapp.AppException):
@@ -38,8 +38,9 @@ class UnknownVersionError(DefinitionsVersionError):  # pragma: no cover
 
 
 class InvalidVersionFileError(DefinitionsVersionError):  # pragma: no cover
-    def __init__(self):
-        DefinitionsVersionError.__init__(self, "invalid VERSION file")
+    def __init__(self, text):
+        DefinitionsVersionError.__init__(
+            self, "invalid VERSION file: '%s'" % text)
 
 
 def parse_version_file(version_text):
@@ -72,7 +73,7 @@ def check_version_file(version_text):  # pragma: no cover
     version = morphlib.definitions_version.parse_version_file(version_text)
 
     if version == None:
-        raise InvalidVersionFileError()
+        raise InvalidVersionFileError(version_text)
 
     if version not in SUPPORTED_VERSIONS:
         raise UnknownVersionError(version)

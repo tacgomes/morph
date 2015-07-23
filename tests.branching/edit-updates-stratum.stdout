@@ -1,8 +1,8 @@
 diff --git a/hello-stratum.morph b/hello-stratum.morph
-index f335879..7bf9d37 100644
+index 159854f..0036ee3 100644
 --- a/hello-stratum.morph
 +++ b/hello-stratum.morph
-@@ -3,6 +3,7 @@ kind: stratum
+@@ -3,7 +3,8 @@ kind: stratum
  chunks:
  - name: hello
    repo: test:hello
@@ -11,3 +11,4 @@ index f335879..7bf9d37 100644
 +  unpetrify-ref: master
    build-depends: []
    build-mode: bootstrap
+   build-system: manual
