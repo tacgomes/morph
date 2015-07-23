@@ -24,16 +24,9 @@ mkdir "$repo"
 cd "$repo"
 git init --quiet
 
-# Add a single source file to simulate compiling
-cat <<EOF > hello.c
-#include <stdio.h>
-int main(void)
-{
-    puts("hello, world");
-    return 0;
-}
-EOF
-git add hello.c
+echo 'version: 5' > VERSION
+git add VERSION
+git commit --quiet -m "add VERSION file"
 
 # Define a couple of chunk morphologies for the GTK stack
 gtkcomponents=(freetype fontconfig cairo pango glib gdk-pixbuf gtk 
@@ -52,7 +45,7 @@ install-commands:
 EOF
     git add $component.morph
 done
-git commit --quiet -m "add .c source file and GTK chunk morphologies" 
+git commit --quiet -m "add GTK chunk morphologies"
 
 # Define a stratum for the GTK stack
 cat <<EOF > gtk-stack.morph
@@ -113,17 +106,6 @@ chunks:
 EOF
 git add gtk-stack.morph
 git commit --quiet -m "add gtk-stack.morph stratum"
-
-# Add a single source file to simulate compiling
-cat <<EOF > hello.c
-#include <stdio.h>
-int main(void)
-{
-    puts("hello, world");
-    return 0;
-}
-EOF
-git add hello.c
 
 # Define a couple of chunk morphologies for the GTK stack
 xfcecomponents=(xfce4-dev-tools libxfce4util libxfce4ui exo xfconf garcon 

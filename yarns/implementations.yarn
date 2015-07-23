@@ -238,6 +238,8 @@ another to hold a chunk.
     mkdir "$DATADIR/gits/morphs"
     cd "$DATADIR/gits/morphs"
     git init .
+    echo 'version: 5' > VERSION
+
     arch=$(run_morph print-architecture)
     install -m644 -D /dev/stdin << EOF "systems/test-system.morph"
     name: test-system

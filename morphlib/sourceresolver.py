@@ -33,7 +33,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
-supported_versions = [0, 1, 2, 3, 4, 5]
+supported_versions = [3, 4, 5]
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -320,7 +320,7 @@ class SourceResolver(object):
                 definitions_checkout_dir, 'VERSION')
 
         if version_file == None:
-            return 0    # Assume version 0 if no version file
+            raise InvalidVersionFileError()
 
         version = self._parse_version_file(version_file)
 
@@ -421,15 +421,8 @@ class SourceResolver(object):
                                                     definitions_absref,
                                                     path)
                         if morphology is None:
-                            if definitions_version > 1:
-                                raise MorphologyReferenceNotFoundError(
-                                    path, filename)
-                            else:
-                                self.status(
-                                    msg="Warning! `%(path)s' referenced in "
-                                        "`%(stratum)s' does not exist",
-                                    path=path,
-                                    stratum=filename)
+                            raise MorphologyReferenceNotFoundError(
+                                path, filename)
 
                         chunk_queue.add((c['repo'], c['ref'], path))
 

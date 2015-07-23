@@ -81,6 +81,9 @@ mkdir "$morphsrepo"
 cd "$morphsrepo"
 git init --quiet
 
+echo 'version: 5' > VERSION
+git add VERSION
+
 cat <<EOF > hello-stratum.morph
 name: hello-stratum
 kind: stratum
