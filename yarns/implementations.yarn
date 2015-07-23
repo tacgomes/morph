@@ -238,7 +238,7 @@ another to hold a chunk.
     mkdir "$DATADIR/gits/morphs"
     cd "$DATADIR/gits/morphs"
     git init .
-    echo 'version: 5' > VERSION
+    echo 'version: 6' > VERSION
 
     arch=$(run_morph print-architecture)
     install -m644 -D /dev/stdin << EOF "systems/test-system.morph"
@@ -274,6 +274,7 @@ another to hold a chunk.
         ref: $(run_in "$DATADIR/gits/bootstrap-chunk" git rev-parse bootstrap)
         unpetrify-ref: nootstrap
         build-mode: bootstrap
+        build-system: autotools
         build-depends: []
     -   name: stage2-chunk
         morph: stage2-chunk.morph

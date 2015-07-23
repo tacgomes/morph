@@ -33,7 +33,7 @@ tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
-supported_versions = [3, 4, 5]
+supported_versions = [3, 4, 5, 6]
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -399,6 +399,9 @@ class SourceResolver(object):
                         sanitise_morphology_path(s['morph'])
                         for s in morphology['build-depends'])
                 for c in morphology['chunks']:
+                    # This field is only valid in strata from definitions
+                    # version 6 onwards. Validation is done in morphloader.py.
+                    buildsystem = c.get('build-system')
                     if 'morph' not in c:
                         # Autodetect a path if one is not given. This is to
                         # support the deprecated approach of putting the chunk
@@ -412,7 +415,8 @@ class SourceResolver(object):
                         path = sanitise_morphology_path(
                             c.get('morph', c['name']))
 
-                        chunk_queue.add((c['repo'], c['ref'], path))
+                        chunk_queue.add((c['repo'], c['ref'], path,
+                                         buildsystem))
                     else:
                         # Now, does this path actually exist?
                         path = c['morph']
@@ -424,7 +428,8 @@ class SourceResolver(object):
                             raise MorphologyReferenceNotFoundError(
                                 path, filename)
 
-                        chunk_queue.add((c['repo'], c['ref'], path))
+                        chunk_queue.add((c['repo'], c['ref'], path,
+                                         buildsystem))
 
         return chunk_queue
 
@@ -498,9 +503,9 @@ class SourceResolver(object):
 
     def process_chunk(self, resolved_morphologies, resolved_trees,
                       resolved_buildsystems, definitions_checkout_dir,
-                      definitions_repo, definitions_absref, morph_loader,
-                      chunk_repo, chunk_ref, filename,
-                      visit): # pragma: no cover
+                      definitions_repo, definitions_absref,
+                      definitions_version, morph_loader, chunk_repo, chunk_ref,
+                      filename, chunk_buildsystem, visit):  # pragma: no cover
         absref = None
         tree = None
         chunk_key = None
@@ -532,7 +537,26 @@ class SourceResolver(object):
                     resolved_morphologies, resolved_buildsystems, morph_loader,
                     definition_key, chunk_key, buildsystem, morph_name)
 
-        if chunk_key in resolved_buildsystems:
+        if definitions_version >= 6:
+            # All build-system information is specified in the definitions from
+            # version 6 onwards. Either 'morph' or 'build-system' should be
+            # specified for each chunk.
+            if chunk_buildsystem is None:
+                # The validation done in 'morphloader' should mean that this
+                # never happens.
+                raise SourceResolverError(
+                    'Please specify either "build-system" or "morph" for %s.' %
+                    chunk_key)
+
+            buildsystem = morphlib.buildsystem.lookup_build_system(
+                chunk_buildsystem)
+
+            if definition_key in resolved_morphologies:
+                morphology = resolved_morphologies[definition_key]
+            else:
+                morphology = generate_morph_and_cache_buildsystem(buildsystem)
+
+        elif chunk_key in resolved_buildsystems:
             logging.debug('Build system for %s is cached', str(chunk_key))
             self.status(msg='Build system for %(chunk)s is cached',
                         chunk=str(chunk_key),
@@ -615,13 +639,13 @@ class SourceResolver(object):
                     system_filenames, visit)
 
             # Now process all the chunks involved in the build.
-            for repo, ref, filename in chunk_queue:
+            for repo, ref, filename, buildsystem in chunk_queue:
                 self.process_chunk(resolved_morphologies, resolved_trees,
                                    resolved_buildsystems,
                                    definitions_checkout_dir,
                                    definitions_repo, definitions_absref,
-                                   morph_loader, repo, ref, filename,
-                                   visit)
+                                   definitions_version, morph_loader, repo,
+                                   ref, filename, buildsystem, visit)
 
 
 def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,

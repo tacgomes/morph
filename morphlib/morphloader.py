@@ -158,6 +158,30 @@ class ChunkSpecRefNotStringError(MorphologyValidationError):
                   'in stratum %(stratum_name)s is not a string' % locals())
 
 
+class ChunkSpecConflictingFieldsError(MorphologyValidationError):
+
+    def __init__(self, fields, chunk_name, stratum_name):
+        self.chunk_name = chunk_name
+        self.stratum_name = stratum_name
+        self.fields = fields
+        MorphologyValidationError.__init__(
+            self, 'Conflicting fields "%s" for %s in stratum %s.' % (
+                ', and '.join(fields), chunk_name, stratum_name))
+
+
+class ChunkSpecNoBuildInstructionsError(MorphologyValidationError):
+
+    def __init__(self, chunk_name, stratum_name):
+        self.chunk_name = chunk_name
+        self.stratum_name = stratum_name
+        self.msg = (
+            'Chunk %(chunk_name)s in stratum %(stratum_name)s has no '
+            'build-system defined, and no chunk .morph file referenced '
+            'either. Please specify how to build the chunk, either by setting '
+            '"build-system: " in the stratum, or adding a chunk .morph file '
+            'and setting "morph: " in the stratum.' % locals())
+
+
 class SystemStrataNotListError(MorphologyValidationError):
 
     def __init__(self, system_name, strata_type):
@@ -386,6 +410,8 @@ class MorphologyLoader(object):
                         'pre-strip-commands': None,
                         'strip-commands': None,
                         'post-strip-commands': None})
+
+        self._definitions_version = definitions_version
         self._lookup_build_system = lookup_build_system
 
     def parse_morphology_text(self, text, morph_filename):
@@ -533,25 +559,6 @@ class MorphologyLoader(object):
         if len(morph.get('chunks', [])) == 0:
             raise EmptyStratumError(morph['name'], morph.filename)
 
-        # All chunk names must be unique within a stratum.
-        names = set()
-        for spec in morph['chunks']:
-            name = spec.get('alias', spec['name'])
-            if name in names:
-                raise DuplicateChunkError(morph['name'], name)
-            names.add(name)
-
-        # All chunk refs must be strings.
-        for spec in morph['chunks']:
-            if 'ref' in spec:
-                ref = spec['ref']
-                if ref == None:
-                    raise EmptyRefError(
-                        spec.get('alias', spec['name']), morph.filename)
-                elif not isinstance(ref, basestring):
-                    raise ChunkSpecRefNotStringError(
-                        ref, spec.get('alias', spec['name']), morph.filename)
-
         # Require build-dependencies for the stratum itself, unless
         # it has chunks built in bootstrap mode.
         if 'build-depends' in morph:
@@ -573,14 +580,44 @@ class MorphologyLoader(object):
         # Validate build-dependencies if specified
         self._validate_stratum_specs_fields(morph, 'build-depends')
 
-        # Check build-dependencies for each chunk.
+        # All chunk names must be unique within a stratum.
+        names = set()
+        for spec in morph['chunks']:
+            name = spec.get('alias', spec['name'])
+            if name in names:
+                raise DuplicateChunkError(morph['name'], name)
+            names.add(name)
+
+        # Check each reference to a chunk.
         for spec in morph['chunks']:
             chunk_name = spec.get('alias', spec['name'])
+
+            # All chunk refs must be strings.
+            if 'ref' in spec:
+                ref = spec['ref']
+                if ref == None:
+                    raise EmptyRefError(
+                        spec.get('alias', spec['name']), morph.filename)
+                elif not isinstance(ref, basestring):
+                    raise ChunkSpecRefNotStringError(
+                        ref, spec.get('alias', spec['name']), morph.filename)
+
+            # The build-depends field must be a list.
             if 'build-depends' in spec:
                 if not isinstance(spec['build-depends'], list):
                     raise InvalidTypeError(
                         '%s.build-depends' % chunk_name, list,
                         type(spec['build-depends']), morph['name'])
+
+            if self._definitions_version >= 6:
+                # Either 'morph' or 'build-system' must be specified.
+                if 'morph' in spec and 'build-system' in spec:
+                    raise ChunkSpecConflictingFieldsError(
+                        ['morph', 'build-system'], chunk_name, morph.filename)
+                if 'morph' not in spec and 'build-system' not in spec:
+                    raise ChunkSpecNoBuildInstructionsError(
+                        chunk_name, morph.filename)
+
 
     @classmethod
     def _validate_chunk(cls, morphology):

@@ -353,3 +353,5 @@ class SourceResolverTests(unittest.TestCase):
             morphlib.morphloader.MorphologyLoader(), 'reponame', 'sha1',
             'stratum-empty.morph')
 
+    def test_parses_version_file(self):
+        self.assertEqual(self.sr._parse_version_file('version: 6\n'), 6)

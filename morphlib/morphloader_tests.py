@@ -26,10 +26,31 @@ import morphlib
 from morphlib.morphloader import MorphologyObsoleteFieldWarning
 
 
+def stratum_template(name):
+    '''Returns a valid example stratum, with one chunk reference.'''
+    m = morphlib.morphology.Morphology({
+        "name": name,
+        "kind": "stratum",
+        "build-depends": [
+            { "morph": "foo" },
+        ],
+        "chunks": [
+            {
+                "name": "chunk",
+                "repo": "test:repo",
+                "ref": "sha1",
+                "build-system": "manual",
+            }
+        ]
+    })
+    return m
+
+
 class MorphologyLoaderTests(unittest.TestCase):
 
     def setUp(self):
-        self.loader = morphlib.morphloader.MorphologyLoader()
+        self.loader = morphlib.morphloader.MorphologyLoader(
+            definitions_version=6)
         self.tempdir = tempfile.mkdtemp()
         self.filename = os.path.join(self.tempdir, 'foo.morph')
 
@@ -318,6 +339,9 @@ chunks:
             {
                 "kind": "stratum",
                 "name": "foo",
+                "build-depends": [
+                    {"morph": "bar"},
+                ],
                 "chunks": [
                     {
                         "name": "chunk",
@@ -358,93 +382,49 @@ chunks:
         self.assertEqual(m['arch'], 'armv7l')
 
     def test_validate_requires_build_deps_or_bootstrap_mode_for_strata(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "stratum-no-bdeps-no-bootstrap",
-                "kind": "stratum",
-                "chunks": [
-                    {
-                        "name": "chunk",
-                        "repo": "test:repo",
-                        "ref": "sha1",
-                        "build-depends": []
-                    }
-                ]
-            })
+        m = stratum_template("stratum-no-bdeps-no-bootstrap")
 
+        self.loader.validate(m)
+
+        del m['build-depends']
         self.assertRaises(
             morphlib.morphloader.NoStratumBuildDependenciesError,
             self.loader.validate, m)
 
-        m['build-depends'] = [
-            {
-                "morph": "foo",
-            },
-        ]
-        self.loader.validate(m)
-
-        del m['build-depends']
         m['chunks'][0]['build-mode'] = 'bootstrap'
         self.loader.validate(m)
 
     def test_validate_stratum_build_deps_are_list(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "stratum-invalid-bdeps",
-                "kind": "stratum",
-                "build-depends": 0.1,
-                "chunks": [
-                    {
-                        "name": "chunk",
-                        "repo": "test:repo",
-                        "ref": "sha1",
-                        "build-depends": []
-                    }
-                ]
-            })
-
+        m = stratum_template("stratum-invalid-bdeps")
+        m['build-depends'] = 0.1
         self.assertRaises(
             morphlib.morphloader.InvalidTypeError,
             self.loader.validate, m)
 
     def test_validate_chunk_build_deps_are_list(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "stratum-invalid-bdeps",
-                "kind": "stratum",
-                "build-depends": [
-                    { "morph": "foo" },
-                ],
-                "chunks": [
-                    {
-                        "name": "chunk",
-                        "repo": "test:repo",
-                        "ref": "sha1",
-                        "build-depends": 0.1
-                    }
-                ]
-            })
-
+        m = stratum_template("stratum-invalid-bdeps")
+        m['chunks'][0]['build-depends'] = 0.1
         self.assertRaises(
             morphlib.morphloader.InvalidTypeError,
             self.loader.validate, m)
 
-    def test_validate_requires_chunks_in_strata(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "stratum",
-                "kind": "stratum",
-                "chunks": [
-                ],
-                "build-depends": [
-                    {
-                        "repo": "foo",
-                        "ref": "foo",
-                        "morph": "foo",
-                    },
-                ],
-            })
+    def test_validate_chunk_has_build_instructions(self):
+        m = stratum_template("stratum-no-build-instructions")
+        del m['chunks'][0]['build-system']
+        self.assertRaises(
+            morphlib.morphloader.ChunkSpecNoBuildInstructionsError,
+            self.loader.validate, m)
 
+    def test_validate_chunk_conflicting_build_instructions(self):
+        m = stratum_template("stratum-conflicting-build-instructions")
+        m['chunks'][0]['morph'] = 'conflicting-information'
+        self.assertRaises(
+            morphlib.morphloader.ChunkSpecConflictingFieldsError,
+            self.loader.validate, m)
+
+    def test_validate_requires_chunks_in_strata(self):
+        m = stratum_template("stratum-no-chunks")
+        del m['chunks']
         self.assertRaises(
             morphlib.morphloader.EmptyStratumError,
             self.loader.validate, m)
@@ -621,6 +601,10 @@ build-system: dummy
                 'install-commands': None,
                 'pre-install-commands': None,
                 'post-install-commands': None,
+
+                'strip-commands': None,
+                'pre-strip-commands': None,
+                'post-strip-commands': None,
 
                 'products': [],
                 'system-integration': [],
@@ -803,6 +787,7 @@ build-system: dummy
                     {
                         "name": "le-chunk",
                         "ref": "ref",
+                        "build-system": "manual",
                         "build-depends": [],
                     }
                 ]
@@ -823,6 +808,7 @@ build-system: dummy
                         "repo": "le-chunk",
                         "morph": "le-chunk",
                         "ref": "ref",
+                        "build-system": "manual",
                         "build-depends": [],
                     }
                 ]
