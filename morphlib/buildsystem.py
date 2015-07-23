@@ -70,7 +70,7 @@ class BuildSystem(object):
         self.install_commands = []
         self.post_install_commands = []
         self.pre_strip_commands = []
-        self.strip_commands = [_STRIP_COMMAND]
+        self.strip_commands = []
         self.post_strip_commands = []
 
     def __getitem__(self, key):
@@ -147,6 +147,7 @@ class AutotoolsBuildSystem(BuildSystem):
         self.install_commands = [
             'make DESTDIR="$DESTDIR" install',
         ]
+        self.strip_commands = [_STRIP_COMMAND]
 
     def used_by_project(self, file_list):
         indicators = [
@@ -179,6 +180,7 @@ class PythonDistutilsBuildSystem(BuildSystem):
         self.install_commands = [
             'python setup.py install --prefix "$PREFIX" --root "$DESTDIR"',
         ]
+        self.strip_commands = [_STRIP_COMMAND]
 
     def used_by_project(self, file_list):
         indicators = [
@@ -213,6 +215,7 @@ class CPANBuildSystem(BuildSystem):
         self.install_commands = [
             'make DESTDIR="$DESTDIR" install',
         ]
+        self.strip_commands = [_STRIP_COMMAND]
 
     def used_by_project(self, file_list):
         indicators = [
@@ -240,6 +243,7 @@ class CMakeBuildSystem(BuildSystem):
         self.install_commands = [
             'make DESTDIR="$DESTDIR" install',
         ]
+        self.strip_commands = [_STRIP_COMMAND]
 
     def used_by_project(self, file_list):
         indicators = [
@@ -267,6 +271,7 @@ class QMakeBuildSystem(BuildSystem):
         self.install_commands = [
             'make INSTALL_ROOT="$DESTDIR" install',
         ]
+        self.strip_commands = [_STRIP_COMMAND]
 
     def used_by_project(self, file_list):
         indicator = '.pro'
