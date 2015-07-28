@@ -229,7 +229,7 @@ class Morph(cliapp.Application):
 
         def pretty_warnings(message, category, filename, lineno,
                             file=None, line=None):
-            return 'WARNING: %s' % (message)
+            return 'WARNING: %s\n' % (message)
 
         warnings.formatwarning = pretty_warnings
 
