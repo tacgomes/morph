@@ -24,6 +24,7 @@ set -eu
 
 parent="$DATADIR/parent-repo"
 mkdir "$parent"
+
 echo "No real content here" > "$parent/dummy"
 
 "$SRCDIR/scripts/run-git-in" "$parent" init --quiet
@@ -49,6 +50,7 @@ name: hello-stratum
 kind: stratum
 chunks:
   - name: parent
+    morph: parent.morph
     repo: test:parent-repo
     ref: master
     morph: parent.morph

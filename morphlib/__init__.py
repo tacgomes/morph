@@ -60,6 +60,7 @@ import builder
 import cachedrepo
 import cachekeycomputer
 import cmdline_parse_utils
+import defaults
 import definitions_repo
 import definitions_version
 import extensions

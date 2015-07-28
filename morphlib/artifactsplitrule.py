@@ -189,10 +189,6 @@ class SplitRules(collections.Iterable):
             for artifact, rule in  self._rules)
 
 
-# TODO: Work out a good way to feed new defaults in. This is good for
-#       the usual Linux userspace, but we may find issues and need a
-#       migration path to a more useful set, or develop a system with
-#       a different layout, like Android.
 DEFAULT_CHUNK_RULES = [
     ('-bins', [ r"(usr/)?s?bin/.*" ]),
     ('-libs', [
@@ -229,6 +225,14 @@ DEFAULT_STRATUM_RULES = [
 ]
 
 
+# A 'no-op' set of split rules. An empty list would cause everything to be
+# ignored, which is unlikely to ever be what a user wants, and breaks some
+# internal bits of Morph.
+EMPTY_RULES = [
+    ('', [r'.*'])
+]
+
+
 def unify_chunk_matches(morphology, default_rules=DEFAULT_CHUNK_RULES):
     '''Create split rules including defaults and per-chunk rules.
 
@@ -237,6 +241,8 @@ def unify_chunk_matches(morphology, default_rules=DEFAULT_CHUNK_RULES):
     by building the chunk to the chunk artifact they should be put in.
 
     '''
+    if default_rules is None or len(default_rules) == 0:
+        default_rules = EMPTY_RULES
 
     split_rules = SplitRules()
 
@@ -265,6 +271,8 @@ def unify_stratum_matches(morphology, default_rules=DEFAULT_STRATUM_RULES):
     strata to the stratum artifact they should be put in.
 
     '''
+    if default_rules is None or len(default_rules) == 0:
+        default_rules = EMPTY_RULES
 
     assignment_split_rules = SplitRules()
     for spec in morphology['chunks']:
@@ -296,7 +304,7 @@ def unify_stratum_matches(morphology, default_rules=DEFAULT_STRATUM_RULES):
                                       match_split_rules))
 
 
-def unify_system_matches(morphology):
+def unify_system_matches(morphology, default_rules=[]):
     '''Create split rules including defaults and per-chunk rules.
 
     With rules specified in the morphology's 'products' field and the

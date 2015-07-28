@@ -43,6 +43,15 @@ class BuildSystemTests(unittest.TestCase):
         morph = self.bs.get_morphology('foobar')
         self.assertTrue(morph.__class__.__name__ == 'Morphology')
 
+    def test_construct_from_dict(self):
+        '''Test parsing a dict of information from a DEFAULTS file.'''
+
+        commands_dict = {
+             'configure-commands': 'foo'
+        }
+        self.bs.from_dict('test', commands_dict)
+        self.assertEqual(self.bs.configure_commands, 'foo')
+
 
 class LookupBuildSystemTests(unittest.TestCase):
 

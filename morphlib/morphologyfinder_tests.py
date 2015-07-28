@@ -103,6 +103,10 @@ class MorphologyFinderTests(unittest.TestCase):
         mf = morphlib.morphologyfinder.MorphologyFinder(gd)
         self.assertEqual(mf.read_file('foo.morph'),
                          "altered morphology text")
+        with self.assertRaises(IOError):
+            mf.read_file('missing')
+        self.assertEqual(mf.read_file('missing', allow_missing=True),
+                         None)
 
     def test_read_morph_raises_no_worktree_no_ref(self):
         gd = morphlib.gitdir.GitDirectory(self.mirror)

@@ -44,11 +44,10 @@ _STRIP_COMMAND = r'''find "$DESTDIR" -type f \
 
 class BuildSystem(object):
 
-    '''Predefined commands for common build systems.
+    '''Predefined command sequences for a given build system.
 
-    Some build systems are well known: autotools, for example. We provide
-    pre-defined build commands for these so that they don't need to be copied
-    and pasted many times in the build instructions.
+    For example, you can have an 'autotools' build system, which runs
+    'configure', 'make' and 'make install'.
 
     '''
 
@@ -68,6 +67,14 @@ class BuildSystem(object):
         self.pre_strip_commands = []
         self.strip_commands = []
         self.post_strip_commands = []
+
+    def from_dict(self, name, commands):
+        self.name = name
+
+        self.configure_commands = commands.get('configure-commands', [])
+        self.build_commands = commands.get('build-commands', [])
+        self.install_commands = commands.get('install-commands', [])
+        self.strip_commands = commands.get('strip-commands', [])
 
     def __getitem__(self, key):
         key = '_'.join(key.split('-'))

@@ -23,6 +23,7 @@ import logging
 import os
 import urlparse
 import uuid
+import warnings
 
 import morphlib
 import gitdir
@@ -236,9 +237,25 @@ class DefinitionsRepo(gitdir.GitDirectory):
         mf = morphlib.morphologyfinder.MorphologyFinder(self)
 
         version_text = mf.read_file('VERSION')
-        morphlib.definitions_version.check_version_file(version_text)
+        version = morphlib.definitions_version.check_version_file(version_text)
 
-        loader = morphlib.morphloader.MorphologyLoader()
+        defaults_text = mf.read_file('DEFAULTS', allow_missing=True)
+
+        if version < 7:
+            if defaults_text is not None:
+                warnings.warn(
+                    "Ignoring DEFAULTS file, because these definitions are "
+                    "version %i" % version)
+                defaults_text = None
+        else:
+            if defaults_text is None:
+                warnings.warn("No DEFAULTS file found.")
+
+        defaults = morphlib.defaults.Defaults(version,
+                                              text=defaults_text)
+
+        loader = morphlib.morphloader.MorphologyLoader(
+            predefined_build_systems=defaults.build_systems())
 
         return loader
 

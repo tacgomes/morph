@@ -19,6 +19,9 @@
 ## instead of 'git rev-parse --verify': show-ref returns a list of partial
 ## matches sorted alphabetically, so any code using it may resolve refs
 
+## The 'autotools' build system is defined in the DEFAULTS file created
+## by the 'setup' script.
+
 set -eu
 
 # Create a ref that will show up in 'git show-ref' before the real master ref

@@ -59,17 +59,17 @@ source it depended on.
     GIVEN    a workspace
     AND      a git server
     AND      system systems/test-system.morph uses core-runtime from core
-    AND      stratum strata/core.morph has match rules: [{artifact: core-runtime, include: [.*-(bins|libs|locale)]}, {artifact: core-devel, include: [.*-(devel|doc|misc)]}]
+    AND      stratum strata/core.morph has match rules: [{artifact: core-runtime, include: [.*-devel]}, {artifact: core-devel, include: [.*-runtime]}]
     WHEN     the user checks out the system branch called master
     GIVEN    a cluster called test-cluster.morph in system branch master
     AND      a system in cluster test-cluster.morph in branch master called test-system
     AND      system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND      system test-system in cluster test-cluster.morph in branch master has deployment type: tar
     WHEN     the user builds the system systems/test-system.morph in branch master
-    GIVEN    stratum strata/core.morph in system branch master has match rules: [{artifact: core-runtime, include: [.*-(bins|libs|misc)]}, {artifact: core-devel, include: [.*-(devel|doc|locale)]}]
+    GIVEN    stratum strata/core.morph in system branch master has match rules: [{artifact: core-runtime, include: [.*-runtime]}, {artifact: core-devel, include: [.*-devel]}]
     WHEN     the user builds the system systems/test-system.morph in branch master
     AND      the user deploys the cluster test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"
-    THEN     tarball test.tar contains baserock/test-chunk-misc.meta
+    THEN     tarball test.tar contains baserock/test-chunk-runtime.meta
     FINALLY  the git server is shut down
 
 

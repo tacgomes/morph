@@ -109,6 +109,13 @@ class UnknownArchitectureError(MorphologyValidationError):
                     % (arch, morph_filename))
 
 
+class UnknownBuildSystemError(MorphologyValidationError):
+
+    def __init__(self, build_system, morph_filename):
+        self.msg = ('Undefined build system %s in morphology %s'
+                    % (build_system, morph_filename))
+
+
 class NoStratumBuildDependenciesError(MorphologyValidationError):
 
     def __init__(self, stratum_name, morph_filename):
@@ -404,8 +411,12 @@ class MorphologyLoader(object):
     }
 
     def __init__(self,
-                 lookup_build_system=morphlib.buildsystem.lookup_build_system):
-        self._lookup_build_system = lookup_build_system
+                 predefined_build_systems={}):
+        self._predefined_build_systems = predefined_build_systems.copy()
+
+        if 'manual' not in self._predefined_build_systems:
+            self._predefined_build_systems['manual'] = \
+                morphlib.buildsystem.ManualBuildSystem()
 
     def parse_morphology_text(self, text, morph_filename):
         '''Parse a textual morphology.
@@ -811,10 +822,12 @@ class MorphologyLoader(object):
         if morph['max-jobs'] is not None:
             morph['max-jobs'] = int(morph['max-jobs'])
 
-    def _unset_chunk_defaults(self, morph): # pragma: no cover
+    def _unset_chunk_defaults(self, morph):  # pragma: no cover
+        # This is only used by the deprecated branch-and-merge plugin, and
+        # probably doesn't work correctly for definitions V7 and newer.
         default_bs = self._static_defaults['chunk']['build-system']
-        bs = self._lookup_build_system(
-            morph.get('build-system', default_bs))
+        bs_name = morph.get('build-system', default_bs)
+        bs = self.lookup_build_system(bs_name)
         for key in self._static_defaults['chunk']:
             if key not in morph: continue
             if 'commands' not in key: continue
@@ -823,11 +836,19 @@ class MorphologyLoader(object):
             if morph[key] == default_value:
                 del morph[key]
 
+    def lookup_build_system(self, name):
+        return self._predefined_build_systems[name]
+
     def set_commands(self, morph):
-        default = self._static_defaults['chunk']['build-system']
-        bs = self._lookup_build_system(
-            morph.get('build-system', default))
         if morph['kind'] == 'chunk':
+            default = self._static_defaults['chunk']['build-system']
+            bs_name = morph.get('build-system', default)
+
+            try:
+                bs = self.lookup_build_system(bs_name)
+            except KeyError:
+                raise UnknownBuildSystemError(bs_name, morph['name'])
+
             for key in self._static_defaults['chunk']:
                 if 'commands' not in key: continue
                 if key not in morph:

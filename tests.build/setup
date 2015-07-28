@@ -55,8 +55,7 @@ int main(void)
 EOF
 git add hello.c
 
-git commit --quiet -m "add a hello world program and morph"
-
+git commit --quiet -m "add a hello world program"
 git checkout --quiet master
 
 
@@ -68,11 +67,28 @@ mkdir "$morphsrepo"
 cd "$morphsrepo"
 git init --quiet
 
-echo 'version: 6' > VERSION
+echo 'version: 7' > VERSION
 git add VERSION
 
+cat <<'EOF' > DEFAULTS
+# This is a deliberately minimal DEFAULTS file.
+
+# There are no splitting rules defined, because it's important that Morph
+# still works correctly when the user didn't define any.
+
+build-systems:
+  autotools:
+    configure-commands:
+      - ./configure
+    build-commands:
+      - make
+    install-commands:
+      - make DESTDIR="$DESTDIR" install
+EOF
+git add DEFAULTS
+
 cat <<EOF > hello.morph
-name: hello
+name: hello-chunk
 kind: chunk
 build-commands:
   - gcc -o hello hello.c
@@ -88,6 +104,7 @@ name: hello-stratum
 kind: stratum
 chunks:
   - name: hello
+    morph: hello.morph
     repo: test:chunk-repo
     ref: farrokh
     morph: hello.morph

@@ -28,6 +28,12 @@ class DummyBuildEnvironment:
         self.env = env
 
 
+default_split_rules = {
+    'chunk': morphlib.artifactsplitrule.DEFAULT_CHUNK_RULES,
+    'stratum': morphlib.artifactsplitrule.DEFAULT_STRATUM_RULES,
+}
+
+
 class CacheKeyComputerTests(unittest.TestCase):
 
     def setUp(self):
@@ -86,9 +92,9 @@ class CacheKeyComputerTests(unittest.TestCase):
             ''',
         }.iteritems():
             morph = loader.load_from_string(text)
-            sources = morphlib.source.make_sources('repo', 'original/ref',
-                                                   name, 'sha1',
-                                                   'tree', morph)
+            sources = morphlib.source.make_sources(
+                'repo', 'original/ref', name, 'sha1', 'tree', morph,
+                default_split_rules=default_split_rules)
             for source in sources:
                 self.source_pool.add(source)
         self.build_env = DummyBuildEnvironment({

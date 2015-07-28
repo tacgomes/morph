@@ -20,6 +20,12 @@ import yaml
 import morphlib
 
 
+default_split_rules = {
+    'chunk': morphlib.artifactsplitrule.DEFAULT_CHUNK_RULES,
+    'stratum': morphlib.artifactsplitrule.DEFAULT_STRATUM_RULES,
+}
+
+
 def get_chunk_morphology(name, artifact_names=[]):
     assert(isinstance(artifact_names, list))
 
@@ -88,9 +94,9 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
 
         morph = get_chunk_morphology('chunk')
-        sources = morphlib.source.make_sources('repo', 'ref',
-                                               'chunk.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'ref', 'chunk.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for source in sources:
             pool.add(source)
 
@@ -109,9 +115,9 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
 
         morph = get_chunk_morphology('chunk', ['chunk-foobar'])
-        sources = morphlib.source.make_sources('repo', 'ref',
-                                               'chunk.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'ref', 'chunk.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for source in sources:
             pool.add(source)
 
@@ -129,9 +135,9 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
 
         morph = get_chunk_morphology('chunk', ['chunk-baz', 'chunk-qux'])
-        sources = morphlib.source.make_sources('repo', 'ref',
-                                               'chunk.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'ref', 'chunk.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for source in sources:
             pool.add(source)
 
@@ -151,18 +157,18 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
 
         morph = get_chunk_morphology('chunk')
-        sources = morphlib.source.make_sources('repo', 'ref',
-                                               'chunk.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'ref', 'chunk.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for chunk in sources:
             pool.add(chunk)
 
         morph = get_stratum_morphology(
             'stratum', chunks=[('chunk', 'chunk', 'repo', 'ref')])
-        stratum_sources = set(morphlib.source.make_sources('repo', 'ref',
-                                                           'stratum.morph',
-                                                           'sha1', 'tree',
-                                                           morph))
+        stratum_sources = set(
+            morphlib.source.make_sources(
+                'repo', 'ref', 'stratum.morph', 'sha1', 'tree', morph,
+                default_split_rules=default_split_rules))
         for stratum in stratum_sources:
             pool.add(stratum)
 
@@ -197,9 +203,9 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
 
         morph = get_chunk_morphology('chunk', ['chunk-foo', 'chunk-bar'])
-        sources = morphlib.source.make_sources('repo', 'ref',
-                                               'chunk.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'ref', 'chunk.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for chunk in sources:
             pool.add(chunk)
 
@@ -208,10 +214,10 @@ class ArtifactResolverTests(unittest.TestCase):
             chunks=[
                 ('chunk', 'chunk', 'repo', 'ref'),
             ])
-        stratum_sources = set(morphlib.source.make_sources('repo', 'ref',
-                                                           'stratum.morph',
-                                                           'sha1', 'tree',
-                                                           morph))
+        stratum_sources = set(
+            morphlib.source.make_sources(
+                'repo', 'ref', 'stratum.morph', 'sha1', 'tree', morph,
+                default_split_rules=default_split_rules))
         for stratum in stratum_sources:
             pool.add(stratum)
 
@@ -246,7 +252,8 @@ class ArtifactResolverTests(unittest.TestCase):
 
         chunk = get_chunk_morphology('chunk1')
         chunk1, = morphlib.source.make_sources(
-            'repo', 'original/ref', 'chunk1.morph', 'sha1', 'tree', chunk)
+            'repo', 'original/ref', 'chunk1.morph', 'sha1', 'tree', chunk,
+            default_split_rules=default_split_rules)
         pool.add(chunk1)
 
         morph = get_stratum_morphology(
@@ -254,15 +261,16 @@ class ArtifactResolverTests(unittest.TestCase):
             chunks=[(loader.save_to_string(chunk), 'chunk1.morph',
                      'repo', 'original/ref')],
             build_depends=['stratum2'])
-        sources = morphlib.source.make_sources('repo', 'original/ref',
-                                               'stratum1.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'stratum1.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for stratum1 in sources:
             pool.add(stratum1)
 
         chunk = get_chunk_morphology('chunk2')
         chunk2, = morphlib.source.make_sources(
-            'repo', 'original/ref', 'chunk2.morph', 'sha1', 'tree', chunk)
+            'repo', 'original/ref', 'chunk2.morph', 'sha1', 'tree', chunk,
+            default_split_rules=default_split_rules)
         pool.add(chunk2)
 
         morph = get_stratum_morphology(
@@ -270,9 +278,9 @@ class ArtifactResolverTests(unittest.TestCase):
             chunks=[(loader.save_to_string(chunk), 'chunk2.morph',
                      'repo', 'original/ref')],
             build_depends=['stratum1'])
-        sources = morphlib.source.make_sources('repo', 'original/ref',
-                                               'stratum2.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'stratum2.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for stratum2 in sources:
             pool.add(stratum2)
 
@@ -301,23 +309,23 @@ class ArtifactResolverTests(unittest.TestCase):
                       build-system: manual
                       build-depends: []
             ''')
-        sources = morphlib.source.make_sources('repo', 'original/ref',
-                                               'stratum.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'stratum.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for stratum in sources:
             pool.add(stratum)
 
         morph = get_chunk_morphology('chunk1')
-        sources = morphlib.source.make_sources('repo', 'original/ref',
-                                               'chunk1.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'chunk1.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for chunk1 in sources:
             pool.add(chunk1)
 
         morph = get_chunk_morphology('chunk2')
-        sources = morphlib.source.make_sources('repo', 'original/ref',
-                                               'chunk2.morph', 'sha1',
-                                               'tree', morph)
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'chunk2.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
         for chunk2 in sources:
             pool.add(chunk2)
 

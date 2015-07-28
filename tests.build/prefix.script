@@ -49,6 +49,7 @@ name: hello-stratum
 kind: stratum
 chunks:
   - name: xyzzy
+    morph: xyzzy.morph
     repo: test:chunk-repo
     ref: master
     morph: xyzzy.morph
@@ -56,6 +57,7 @@ chunks:
     build-mode: test
     prefix: /plover
   - name: plugh
+    morph: plugh.morph
     repo: test:chunk-repo
     ref: master
     morph: plugh.morph
@@ -70,6 +72,6 @@ git commit -q -m "Update build definitions"
     test:morphs-repo master hello-system
 
 cd "$DATADIR/cache/artifacts"
-first_chunk=$(ls -1 *.chunk.xyzzy-* | head -n1 | cut -c -64)
-second_chunk=$(ls -1 *.chunk.plugh-* | head -n1 | cut -c -64)
+first_chunk=$(ls -1 *.chunk.xyzzy* | head -n1 | cut -c -64)
+second_chunk=$(ls -1 *.chunk.plugh* | head -n1 | cut -c -64)
 cat $first_chunk.build-log $second_chunk.build-log

@@ -734,6 +734,7 @@ def temp_dir(*args, **kwargs): #pragma: no cover
         if cleanup_on_success:
             shutil.rmtree(td, ignore_errors=True)
 
+
 def copyfileobj(fsrc, fdst, length=16*1024,
                 callback=lambda x: None): #pragma: no cover
     ''' This is similar to shutil.copyfileobj
@@ -775,3 +776,9 @@ class ProgressBar(object):
                              progress, self._expected_size, self._unit)
         sys.stderr.write(s)
         sys.stderr.flush()
+
+
+def schemas_directory():  # pragma: no cover
+    '''Returns a path to the schemas/ subdirectory of the 'morphlib' module.'''
+    code_dir = os.path.dirname(morphlib.__file__)
+    return os.path.join(code_dir, 'schemas')

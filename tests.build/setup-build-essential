@@ -17,6 +17,7 @@
 # Set up a stratum which resembles Baserock's 'build-essential' slightly. Used
 # for testing 'morph cross-bootstrap' and the 'bootstrap' build mode.
 
+# Add a mock compiler chunk.
 mkdir -p "$DATADIR/cc-repo"
 cd "$DATADIR/cc-repo"
 
@@ -31,9 +32,6 @@ git add morph-test-cc
 git commit -q -m "Create compiler chunk"
 
 cd "$DATADIR/morphs-repo"
-
-# Require 'cc' in hello-chunk. We should have the second version available
-# but *not* the first one.
 
 cat <<EOF > "stage1-cc.morph"
 name: stage1-cc
@@ -53,6 +51,11 @@ install-commands:
   - install -m 755 morph-test-cc "\$DESTDIR\$PREFIX/bin/morph-test-cc"
 EOF
 
+git add cc.morph stage1-cc.morph
+git commit -q -m "Add build instructions for mock compiler."
+
+# Require 'cc' in hello-chunk. We should have the second version available
+# but *not* the first one.
 cat <<EOF > "hello.morph"
 name: hello
 kind: chunk
@@ -76,6 +79,7 @@ name: build-essential
 kind: stratum
 chunks:
   - name: stage1-cc
+    morph: stage1-cc.morph
     repo: test:cc-repo
     ref: master
     morph: stage1-cc.morph
@@ -83,6 +87,7 @@ chunks:
     build-mode: bootstrap
     prefix: /tools
   - name: cc
+    morph: cc.morph
     repo: test:cc-repo
     ref: master
     morph: cc.morph
@@ -98,6 +103,7 @@ build-depends:
   - morph: build-essential
 chunks:
   - name: hello
+    morph: hello.morph
     repo: test:chunk-repo
     ref: farrokh
     morph: hello.morph

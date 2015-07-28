@@ -19,7 +19,7 @@ import cPickle
 import logging
 import os
 import pylru
-import yaml
+import warnings
 
 import cliapp
 
@@ -259,6 +259,36 @@ class SourceResolver(object):
 
         return morphlib.definitions_version.check_version_file(version_text)
 
+    def _get_defaults(self, definitions_checkout_dir,
+                      definitions_version=7):  # pragma: no cover
+        '''Return the default build system commands, and default split rules.
+
+        This function returns a tuple with two dicts.
+
+        The defaults are read from a file named DEFAULTS in the definitions
+        directory, if the definitions follow format version 7 or later. If the
+        definitions follow version 6 or earlier, hardcoded defaults are used.
+
+        '''
+        # Read default build systems and split rules from DEFAULTS file.
+        defaults_text = self._get_file_contents_from_definitions(
+            definitions_checkout_dir, 'DEFAULTS')
+
+        if definitions_version < 7:
+            if defaults_text is not None:
+                warnings.warn(
+                    "Ignoring DEFAULTS file, because these definitions are "
+                    "version %i" % definitions_version)
+                defaults_text = None
+        else:
+            if defaults_text is None:
+                warnings.warn("No DEFAULTS file found.")
+
+        defaults = morphlib.defaults.Defaults(definitions_version,
+                                              text=defaults_text)
+
+        return defaults.build_systems(), defaults.split_rules()
+
     def _get_morphology(self, resolved_morphologies, definitions_checkout_dir,
                         morph_loader, filename):
         '''Read the morphology at the specified location.
@@ -287,7 +317,8 @@ class SourceResolver(object):
                                            definitions_tree,
                                            morph_loader,
                                            system_filenames,
-                                           visit):
+                                           visit,
+                                           predefined_split_rules):
         definitions_queue = collections.deque(system_filenames)
         chunk_queue = set()
 
@@ -304,7 +335,8 @@ class SourceResolver(object):
                 raise MorphologyNotFoundError(filename)
 
             visit(definitions_repo, definitions_ref, filename,
-                  definitions_absref, definitions_tree, morphology)
+                  definitions_absref, definitions_tree, morphology,
+                  predefined_split_rules)
 
             if morphology['kind'] == 'cluster':
                 raise cliapp.AppException(
@@ -349,8 +381,8 @@ class SourceResolver(object):
 
     def process_chunk(self, resolved_morphologies, resolved_trees,
                       definitions_checkout_dir, morph_loader, chunk_repo,
-                      chunk_ref, filename, chunk_buildsystem,
-                      visit):
+                      chunk_ref, filename, chunk_buildsystem, visit,
+                      predefined_split_rules):
         absref, tree = self._resolve_ref(resolved_trees, chunk_repo, chunk_ref)
 
         if chunk_buildsystem is None:
@@ -370,7 +402,8 @@ class SourceResolver(object):
             morphology = self._create_morphology_for_build_system(
                 morph_loader, buildsystem, filename)
 
-        visit(chunk_repo, chunk_ref, filename, absref, tree, morphology)
+        visit(chunk_repo, chunk_ref, filename, absref, tree, morphology,
+              predefined_split_rules)
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
                         system_filenames,
@@ -400,7 +433,13 @@ class SourceResolver(object):
 
             definitions_version = self._check_version_file(
                 definitions_checkout_dir)
-            morph_loader = morphlib.morphloader.MorphologyLoader()
+
+            predefined_build_systems, predefined_split_rules = \
+                self._get_defaults(
+                    definitions_checkout_dir, definitions_version)
+
+            morph_loader = morphlib.morphloader.MorphologyLoader(
+                predefined_build_systems=predefined_build_systems)
 
             # First, process the system and its stratum morphologies. These
             # will all live in the same Git repository, and will point to
@@ -408,14 +447,15 @@ class SourceResolver(object):
             chunk_queue = self._process_definitions_with_children(
                     resolved_morphologies, definitions_checkout_dir,
                     definitions_repo, definitions_ref, definitions_absref,
-                    definitions_tree, morph_loader,
-                    system_filenames, visit)
+                    definitions_tree, morph_loader, system_filenames, visit,
+                    predefined_split_rules)
 
             # Now process all the chunks involved in the build.
             for repo, ref, filename, buildsystem in chunk_queue:
                 self.process_chunk(resolved_morphologies, resolved_trees,
                                    definitions_checkout_dir, morph_loader,
-                                   repo, ref, filename, buildsystem, visit)
+                                   repo, ref, filename, buildsystem, visit,
+                                   predefined_split_rules)
 
 
 def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
@@ -437,10 +477,11 @@ def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
     '''
     pool = morphlib.sourcepool.SourcePool()
 
-    def add_to_pool(reponame, ref, filename, absref, tree, morphology):
-        sources = morphlib.source.make_sources(reponame, ref,
-                                               filename, absref,
-                                               tree, morphology)
+    def add_to_pool(reponame, ref, filename, absref, tree, morphology,
+                    predefined_split_rules):
+        sources = morphlib.source.make_sources(
+            reponame, ref, filename, absref, tree, morphology,
+            predefined_split_rules)
         for source in sources:
             pool.add(source)
 

@@ -15,9 +15,7 @@
 # =*= License: GPL-2 =*=
 
 
-import cliapp
-
-import morphlib
+import errno
 
 
 class MorphologyFinder(object):
@@ -33,9 +31,15 @@ class MorphologyFinder(object):
         self.gitdir = gitdir
         self.ref = ref
 
-    def read_file(self, filename):
+    def read_file(self, filename, allow_missing=False):
         '''Return the text of a file inside the Git repo.'''
-        return self.gitdir.read_file(filename, self.ref)
+        try:
+            return self.gitdir.read_file(filename, self.ref)
+        except IOError as e:
+            if allow_missing and e.errno == errno.ENOENT:
+                return None
+            else:
+                raise
 
     def list_morphologies(self):
         '''Return the filenames of all morphologies in the (repo, ref).

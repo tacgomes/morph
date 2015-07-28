@@ -62,3 +62,4 @@ distbuild/worker_build_scheduler.py
 morphlib/buildbranch.py
 morphlib/definitions_repo.py
 morphlib/sourceresolver.py
+morphlib/defaults.py

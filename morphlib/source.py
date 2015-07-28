@@ -77,12 +77,14 @@ class Source(object):
         return artifact in self.dependencies
 
 
-def make_sources(reponame, ref, filename, absref, tree, morphology):
+def make_sources(reponame, ref, filename, absref, tree, morphology,
+                 default_split_rules={}):
     kind = morphology['kind']
     if kind in ('system', 'chunk'):
         unifier = getattr(morphlib.artifactsplitrule,
                           'unify_%s_matches' % kind)
-        split_rules = unifier(morphology)
+        split_rules = unifier(morphology,
+                              default_rules=default_split_rules.get(kind, {}))
         # chunk and system sources are named after the morphology
         source_name = morphology['name']
         source = morphlib.source.Source(source_name, reponame, ref,
@@ -93,7 +95,8 @@ def make_sources(reponame, ref, filename, absref, tree, morphology):
         yield source
     elif kind == 'stratum': # pragma: no cover
         unifier = morphlib.artifactsplitrule.unify_stratum_matches
-        split_rules = unifier(morphology)
+        split_rules = unifier(morphology,
+                              default_rules=default_split_rules.get(kind, {}))
         for name in split_rules.artifacts:
             source = morphlib.source.Source(
                 name, # stratum source name is artifact name

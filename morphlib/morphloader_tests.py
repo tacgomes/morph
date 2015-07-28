@@ -60,12 +60,12 @@ class MorphologyLoaderTests(unittest.TestCase):
         string = '''\
 name: foo
 kind: chunk
-build-system: dummy
+build-system: manual
 '''
         morph = self.loader.parse_morphology_text(string, 'test')
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
-        self.assertEqual(morph['build-system'], 'dummy')
+        self.assertEqual(morph['build-system'], 'manual')
 
     def test_fails_to_parse_utter_garbage(self):
         self.assertRaises(
@@ -494,43 +494,43 @@ chunks:
         string = '''\
 name: foo
 kind: chunk
-build-system: dummy
+build-system: manual
 '''
         morph = self.loader.load_from_string(string)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
-        self.assertEqual(morph['build-system'], 'dummy')
+        self.assertEqual(morph['build-system'], 'manual')
 
     def test_loads_json_from_string(self):
         string = '''\
 {
     "name": "foo",
     "kind": "chunk",
-    "build-system": "dummy"
+    "build-system": "manual"
 }
 '''
         morph = self.loader.load_from_string(string)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
-        self.assertEqual(morph['build-system'], 'dummy')
+        self.assertEqual(morph['build-system'], 'manual')
 
     def test_loads_from_file(self):
         with open(self.filename, 'w') as f:
             f.write('''\
 name: foo
 kind: chunk
-build-system: dummy
+build-system: manual
 ''')
         morph = self.loader.load_from_file(self.filename)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
-        self.assertEqual(morph['build-system'], 'dummy')
+        self.assertEqual(morph['build-system'], 'manual')
 
     def test_saves_to_string(self):
         morph = morphlib.morphology.Morphology({
             'name': 'foo',
             'kind': 'chunk',
-            'build-system': 'dummy',
+            'build-system': 'manual',
         })
         text = self.loader.save_to_string(morph)
 
@@ -539,14 +539,14 @@ build-system: dummy
         self.assertEqual(text, '''\
 name: foo
 kind: chunk
-build-system: dummy
+build-system: manual
 ''')
 
     def test_saves_to_file(self):
         morph = morphlib.morphology.Morphology({
             'name': 'foo',
             'kind': 'chunk',
-            'build-system': 'dummy',
+            'build-system': 'manual',
         })
         self.loader.save_to_file(self.filename, morph)
 
@@ -558,7 +558,7 @@ build-system: dummy
         self.assertEqual(text, '''\
 name: foo
 kind: chunk
-build-system: dummy
+build-system: manual
 ''')
 
     def test_validate_does_not_set_defaults(self):
@@ -966,11 +966,12 @@ build-system: dummy
         )
         s = self.loader.save_to_string(m)
 
-    def test_smoketest_strip_commands(self):
-        dummy_buildsystem = morphlib.buildsystem.DummyBuildSystem()
-        loader = morphlib.morphloader.MorphologyLoader(
-            lookup_build_system=lambda x: dummy_buildsystem)
-        m = morphlib.morphology.Morphology(
-            {'name': 'test', 'kind': 'chunk', 'build-system': 'dummy'})
-        loader.set_commands(m)
-        self.assertEqual(m['strip-commands'], dummy_buildsystem.strip_commands)
+
+    def test_unknown_build_system(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'chunk',
+            'name': 'foo',
+            'build-system': 'monkey scientist',
+        })
+        with self.assertRaises(morphlib.morphloader.UnknownBuildSystemError):
+            s = self.loader.set_commands(m)

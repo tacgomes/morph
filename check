@@ -134,6 +134,7 @@ then
     echo 'Checking source code for silliness'
     if ! (git ls-files --cached |
           grep -v '\.gz$' |
+          grep -v '\.json-schema$' |
           grep -Ev 'tests[^/]*/.*\.std(out|err)' |
           grep -vF 'tests.build/build-system-autotools.script' |
           xargs -r scripts/check-silliness); then

@@ -250,7 +250,37 @@ another to hold a chunk.
     mkdir "$DATADIR/gits/morphs"
     cd "$DATADIR/gits/morphs"
     git init .
-    echo 'version: 6' > VERSION
+    echo 'version: 7' > VERSION
+
+    install -m644 -D /dev/stdin << EOF "DEFAULTS"
+    # This is a simplified version of the DEFAULTS file supplied with the
+    # Baserock reference system definitions.
+    build-systems:
+      autotools:
+        configure-commands:
+        - ./configure
+        build-commands:
+        - make
+        install-commands:
+        - make install
+    split-rules:
+      chunk:
+      - artifact: -devel
+        include:
+        - (usr/)?include/.*
+        - (usr/)?lib/.*\.a
+        - (usr/)?share/man/.*
+      - artifact: -runtime
+        include:
+        - .*
+      stratum:
+      - artifact: -devel
+        include:
+        - .*-devel
+      - artifact: -runtime
+        include:
+        - .*-runtime
+    EOF
 
     arch=$(run_morph print-architecture)
     install -m644 -D /dev/stdin << EOF "systems/test-system.morph"
@@ -333,7 +363,7 @@ another to hold a chunk.
     install-commands:
     - copy files
     system-integration:
-        test-chunk-bins:
+        test-chunk-runtime:
             00-passwd:
             - |
               create file /etc/passwd

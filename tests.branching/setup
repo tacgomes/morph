@@ -47,7 +47,10 @@ mkdir "$DATADIR/morphs"
 ## Create a link to this repo that has a .git suffix
 ln -s "$DATADIR/morphs" "$DATADIR/morphs.git"
 
-echo 'version: 6' > "$DATADIR/morphs/VERSION"
+echo 'version: 7' > "$DATADIR/morphs/VERSION"
+
+# We don't build anything, so empty DEFAULTS file is fine.
+echo '' > "$DATADIR/morphs/DEFAULTS"
 
 cat <<EOF > "$DATADIR/morphs/hello-system.morph"
 name: hello-system
