@@ -608,11 +608,15 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             with cache.get(chunk) as chunk_file:
                 morphlib.bins.unpack_binary_from_file(chunk_file, target)
 
+        target_metadata_dir = os.path.join(target, 'baserock')
+        if not os.path.exists(target_metadata_dir):
+            os.mkdir(target_metadata_dir)
+
         target_metadata = os.path.join(
-                target, 'baserock', '%s.meta' % stratum_artifact.name)
-        with cache.get_artifact_metadata(stratum_artifact, 'meta') as meta_src:
-            with morphlib.savefile.SaveFile(target_metadata, 'w') as meta_dst:
-                shutil.copyfileobj(meta_src, meta_dst)
+                target_metadata_dir, '%s.meta' % stratum_artifact.name)
+        with cache.get_artifact_metadata(stratum_artifact, 'meta') as src_meta:
+            with morphlib.savefile.SaveFile(target_metadata, 'w') as dst_meta:
+                shutil.copyfileobj(src_meta, dst_meta)
 
     def unpack_strata(self, path):
         '''Unpack strata into a directory.'''
