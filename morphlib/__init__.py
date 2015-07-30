@@ -61,6 +61,7 @@ import cachedrepo
 import cachekeycomputer
 import cmdline_parse_utils
 import definitions_repo
+import definitions_version
 import extensions
 import extractedtarball
 import fsutils

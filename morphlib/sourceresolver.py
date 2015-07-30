@@ -28,12 +28,12 @@ import cliapp
 import morphlib
 from morphlib.util import sanitise_morphology_path
 
+
 tree_cache_size = 10000
 tree_cache_filename = 'trees.cache.pickle'
 buildsystem_cache_size = 10000
 buildsystem_cache_filename = 'detected-chunk-buildsystems.cache.pickle'
 
-supported_versions = [3, 4, 5, 6]
 
 class PickleCacheManager(object): # pragma: no cover
     '''Cache manager for PyLRU that reads and writes to Pickle files.
@@ -109,17 +109,6 @@ class MorphologyReferenceNotFoundError(SourceResolverError): # pragma: no cover
                                      "Couldn't find morphology: %s "
                                      "referenced in %s"
                                      % (filename, reference_file))
-
-
-class UnknownVersionError(SourceResolverError): # pragma: no cover
-    def __init__(self, version):
-        SourceResolverError.__init__(
-            self, "Definitions format version %s is not supported" % version)
-
-
-class InvalidVersionFileError(SourceResolverError): #pragma: no cover
-    def __init__(self):
-        SourceResolverError.__init__(self, "invalid VERSION file")
 
 
 # Callers may want to give the user a special error message if we hit an
@@ -294,44 +283,11 @@ class SourceResolver(object):
 
         return text
 
-    @staticmethod
-    def _parse_version_file(version_file): # pragma : no cover
-        '''Parse VERSION file and return the version of the format if:
-
-        VERSION is a YAML file
-        and it's a dict
-        and has the key 'version'
-        and the type stored in the 'version' key is an int
-
-        otherwise returns None
-
-        '''
-
-        yaml_obj = yaml.safe_load(version_file)
-
-        return (yaml_obj['version'] if yaml_obj is not None
-                                    and isinstance(yaml_obj, dict)
-                                    and 'version' in yaml_obj
-                                    and isinstance(yaml_obj['version'], int)
-
-                                    else None)
-
     def _check_version_file(self, definitions_checkout_dir): # pragma: no cover
-        version_file = self._get_file_contents_from_definitions(
+        version_text = self._get_file_contents_from_definitions(
                 definitions_checkout_dir, 'VERSION')
 
-        if version_file == None:
-            raise InvalidVersionFileError()
-
-        version = self._parse_version_file(version_file)
-
-        if version == None:
-            raise InvalidVersionFileError()
-
-        if version not in supported_versions:
-            raise UnknownVersionError(version)
-
-        return version
+        return morphlib.definitions_version.check_version_file(version_text)
 
     def _get_morphology(self, resolved_morphologies, definitions_checkout_dir,
                         definitions_repo, definitions_absref, morph_loader,
