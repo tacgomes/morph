@@ -77,3 +77,5 @@ def check_version_file(version_text):  # pragma: no cover
 
     if version not in SUPPORTED_VERSIONS:
         raise UnknownVersionError(version)
+
+    return version

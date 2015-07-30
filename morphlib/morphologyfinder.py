@@ -33,16 +33,8 @@ class MorphologyFinder(object):
         self.gitdir = gitdir
         self.ref = ref
 
-    def read_morphology(self, filename):
-        '''Return the un-parsed text of a morphology.
-        
-        For the given morphology name, locate and return the contents
-        of the morphology as a string.
-
-        Parsing of this morphology into a form useful for manipulating
-        is handled by the MorphologyLoader class.
-        
-        '''
+    def read_file(self, filename):
+        '''Return the text of a file inside the Git repo.'''
         return self.gitdir.read_file(filename, self.ref)
 
     def list_morphologies(self):

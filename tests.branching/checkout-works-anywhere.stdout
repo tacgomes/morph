@@ -7,6 +7,7 @@ d ./master/test
 d ./master/test/morphs
 d ./master/test/morphs/.git
 f ./master/.morph-system-branch/config
+f ./master/test/morphs/VERSION
 f ./master/test/morphs/hello-stratum.morph
 f ./master/test/morphs/hello-system.morph
 Workspace after checking out master from within a new branch:
@@ -23,8 +24,10 @@ d ./newbranch/test
 d ./newbranch/test/morphs
 d ./newbranch/test/morphs/.git
 f ./master/.morph-system-branch/config
+f ./master/test/morphs/VERSION
 f ./master/test/morphs/hello-stratum.morph
 f ./master/test/morphs/hello-system.morph
 f ./newbranch/.morph-system-branch/config
+f ./newbranch/test/morphs/VERSION
 f ./newbranch/test/morphs/hello-stratum.morph
 f ./newbranch/test/morphs/hello-system.morph

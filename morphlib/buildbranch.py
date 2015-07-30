@@ -151,37 +151,40 @@ class BuildBranch(object):
             index.add_files_from_working_tree(changed)
         return changes_made
 
-    @staticmethod
-    def _hash_morphologies(gd, morphologies, loader):
+    def _hash_morphologies(self, gd, morphologies):
         '''Hash morphologies and return object info'''
+        loader = self.get_morphology_loader()
         for morphology in morphologies:
             loader.unset_defaults(morphology)
             sha1 = gd.store_blob(loader.save_to_string(morphology))
             yield 0o100644, sha1, morphology.filename
 
-    def load_all_morphologies(self, loader):
+    def get_morphology_loader(self):
         if self._sb:
-            return self._sb.load_all_morphologies(loader)
+            return self._sb.get_morphology_loader()
         else:
-            return self._root.load_all_morphologies(loader)
+            return self._root.get_morphology_loader()
 
-    def inject_build_refs(self, loader, use_local_repos,
-                          inject_cb=lambda **kwargs: None):
+    def load_all_morphologies(self):
+        if self._sb:
+            return self._sb.load_all_morphologies()
+        else:
+            return self._root.load_all_morphologies()
+
+    def inject_build_refs(self, use_local_repos, inject_cb=lambda **kwargs:
+                          None):
         '''Update system and stratum morphologies to point to our branch.
 
         For all edited repositories, this alter the temporary GitIndex
         of the morphs repositories to point their temporary build branch
         versions.
 
-        `loader` is a MorphologyLoader that is used to convert morphology
-        files into their in-memory representations and back again.
-
         '''
         root_repo = self._root.remote_url
         root_ref = self._root.HEAD
         morphs = morphlib.morphset.MorphologySet()
 
-        for morph in self.load_all_morphologies(loader):
+        for morph in self.load_all_morphologies():
             morphs.add_morphology(morph)
 
         sb_info = {}
@@ -216,7 +219,7 @@ class BuildBranch(object):
         # TODO: Prevent it hashing unchanged morphologies, while still
         # hashing uncommitted ones.
         self._root_index.add_files_from_index_info(
-            self._hash_morphologies(self._root, morphs.morphologies, loader))
+            self._hash_morphologies(self._root, morphs.morphologies))
 
     def update_build_refs(self, name, email, uuid,
                           commit_cb=lambda **kwargs: None):
@@ -362,7 +365,7 @@ class BuildBranch(object):
 
 
 @contextlib.contextmanager
-def pushed_build_branch(bb, loader, changes_need_pushing, name, email,
+def pushed_build_branch(bb, changes_need_pushing, name, email,
                         build_uuid, status):
     with contextlib.closing(bb) as bb:
         def report_add(gd, build_ref, changed):
@@ -385,8 +388,7 @@ def pushed_build_branch(bb, loader, changes_need_pushing, name, email,
             status(msg='Injecting temporary build refs '\
                            'into morphologies in %(dirname)s',
                        dirname=gd.dirname, chatty=True)
-        bb.inject_build_refs(loader=loader,
-                             use_local_repos=not changes_need_pushing,
+        bb.inject_build_refs(use_local_repos=not changes_need_pushing,
                              inject_cb=report_inject)
 
         def report_commit(gd, build_ref):

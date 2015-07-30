@@ -27,7 +27,6 @@ create_chunk() {
     cd "$1"
 
     cat <<EOF > "$1/$2.morph"
-build-system: dummy
 kind: chunk
 name: $2
 EOF

@@ -7,6 +7,7 @@ d ./newbranch/test
 d ./newbranch/test/morphs
 d ./newbranch/test/morphs/.git
 f ./newbranch/.morph-system-branch/config
+f ./newbranch/test/morphs/VERSION
 f ./newbranch/test/morphs/hello-stratum.morph
 f ./newbranch/test/morphs/hello-system.morph
 f ./newbranch/test/morphs/this.is.alfred

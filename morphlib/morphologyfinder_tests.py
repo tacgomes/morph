@@ -83,29 +83,29 @@ class MorphologyFinderTests(unittest.TestCase):
     def test_read_morph_in_HEAD(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         mf = morphlib.morphologyfinder.MorphologyFinder(gd, 'HEAD')
-        self.assertEqual(mf.read_morphology('bar.morph'),
+        self.assertEqual(mf.read_file('bar.morph'),
                          "dummy morphology text")
 
     def test_read_morph_in_master(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         mf = morphlib.morphologyfinder.MorphologyFinder(gd, 'master')
-        self.assertEqual(mf.read_morphology('bar.morph'),
+        self.assertEqual(mf.read_file('bar.morph'),
                          "dummy morphology text")
 
     def test_read_morph_raises_with_invalid_ref(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         mf = morphlib.morphologyfinder.MorphologyFinder(gd, 'invalid_ref')
         self.assertRaises(morphlib.gitdir.InvalidRefError,
-                          mf.read_morphology, 'bar')
+                          mf.read_file, 'bar')
 
     def test_read_morph_in_work_tree(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         mf = morphlib.morphologyfinder.MorphologyFinder(gd)
-        self.assertEqual(mf.read_morphology('foo.morph'),
+        self.assertEqual(mf.read_file('foo.morph'),
                          "altered morphology text")
 
     def test_read_morph_raises_no_worktree_no_ref(self):
         gd = morphlib.gitdir.GitDirectory(self.mirror)
         mf = morphlib.morphologyfinder.MorphologyFinder(gd)
         self.assertRaises(morphlib.gitdir.NoWorkingTreeError,
-                          mf.read_morphology, 'bar.morph')
+                          mf.read_file, 'bar.morph')

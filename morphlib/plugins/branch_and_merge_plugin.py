@@ -333,7 +333,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
         '''Read in all the morphologies in the root repository.'''
         self.app.status(msg='Loading in all morphologies')
         morphs = morphlib.morphset.MorphologySet()
-        for morph in sb.load_all_morphologies(loader):
+        for morph in sb.load_all_morphologies():
             morphs.add_morphology(morph)
         return morphs
 
@@ -453,7 +453,7 @@ class BranchAndMergePlugin(cliapp.Plugin):
             gd.branch(system_branch, base_ref)
             gd.checkout(system_branch)
 
-            loader = morphlib.morphloader.MorphologyLoader()
+            loader = sb.get_morphology_loader()
             morphs = self._load_all_sysbranch_morphologies(sb, loader)
 
             morphs.repoint_refs(sb.root_repository_url,

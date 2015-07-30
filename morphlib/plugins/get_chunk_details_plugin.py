@@ -49,13 +49,12 @@ class GetChunkDetailsPlugin(cliapp.Plugin):
 
         definitions_repo = morphlib.definitions_repo.open(
             '.', search_for_root=True, search_workspace=True, app=self.app)
-        loader = morphlib.morphloader.MorphologyLoader()
 
         aliases = self.app.settings['repo-alias']
         self.resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
 
         found = 0
-        for morph in definitions_repo.load_all_morphologies(loader):
+        for morph in definitions_repo.load_all_morphologies():
             if morph['kind'] == 'stratum':
                 if (stratum_name == None or
                         morph['name'] == stratum_name):

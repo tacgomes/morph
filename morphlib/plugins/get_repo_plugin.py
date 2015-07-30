@@ -122,10 +122,9 @@ class GetRepoPlugin(cliapp.Plugin):
 
         definitions_repo = morphlib.definitions_repo.open(
             '.', search_for_root=True, search_workspace=True, app=self.app)
-        loader = morphlib.morphloader.MorphologyLoader()
 
         self.app.status(msg='Loading in all morphologies')
-        for morph in definitions_repo.load_all_morphologies(loader):
+        for morph in definitions_repo.load_all_morphologies():
             if morph['kind'] == 'stratum':
                 for chunk in morph['chunks']:
                     if chunk['name'] == chunk_name:

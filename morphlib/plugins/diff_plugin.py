@@ -108,7 +108,7 @@ class DiffPlugin(cliapp.Plugin):
                 definitions = mf.list_morphologies()
             system_paths = set()
             for definition in definitions:
-                m = ml.parse_morphology_text(mf.read_morphology(definition),
+                m = ml.parse_morphology_text(mf.read_file(definition),
                                              definition)
                 if m.get('kind') == 'system' or 'strata' in m:
                     system_paths.add(definition)

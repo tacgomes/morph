@@ -124,10 +124,8 @@ class DefinitionsRepo(gitdir.GitDirectory):
             bb = morphlib.buildbranch.BuildBranch(
                 build_ref_prefix, uuid, definitions_repo=self)
 
-        loader = morphlib.morphloader.MorphologyLoader()
         pbb = morphlib.buildbranch.pushed_build_branch(
-            bb, loader=loader,
-            changes_need_pushing=push, name=git_user_name,
+            bb, changes_need_pushing=push, name=git_user_name,
             email=git_user_email, build_uuid=uuid,
             status=status_cb)
         return pbb   # (repo_url, commit, original_ref)
@@ -228,11 +226,29 @@ class DefinitionsRepo(gitdir.GitDirectory):
                     'to "origin", or use the --local-changes=include feature '
                     'of Morph.' % (e.ref, e.repo_url, ref))
 
-    def load_all_morphologies(self, loader):
+    def get_morphology_loader(self):
+        '''Return a MorphologyLoader instance.
+
+        This may read the VERSION and DEFAULTS file and pass appropriate
+        information to the MorphologyLoader constructor.
+
+        '''
+        mf = morphlib.morphologyfinder.MorphologyFinder(self)
+
+        version_text = mf.read_file('VERSION')
+        morphlib.definitions_version.check_version_file(version_text)
+
+        loader = morphlib.morphloader.MorphologyLoader()
+
+        return loader
+
+    def load_all_morphologies(self, loader=None):
+        loader = loader or self.get_morphology_loader()
+
         mf = morphlib.morphologyfinder.MorphologyFinder(self)
         for filename in (f for f in mf.list_morphologies()
                          if not self.is_symlink(f)):
-            text = mf.read_morphology(filename)
+            text = mf.read_file(filename)
             m = loader.load_from_string(text, filename=filename)
             m.repo_url = self.remote_url
             m.ref = self.HEAD

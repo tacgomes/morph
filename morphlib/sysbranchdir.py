@@ -207,8 +207,11 @@ class SystemBranchDirectory(object):
                 for dirname in
                 morphlib.util.find_leaves(self.root_directory, '.git'))
 
-    def load_all_morphologies(self, loader): # pragma: no cover
-        return self.definitions_repo.load_all_morphologies(loader)
+    def get_morphology_loader(self):  # pragma: no cover
+        return self.definitions_repo.get_morphology_loader()
+
+    def load_all_morphologies(self):  # pragma: no cover
+        return self.definitions_repo.load_all_morphologies()
 
 
 def create(root_directory, root_repository_url, system_branch_name):
