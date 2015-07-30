@@ -81,6 +81,10 @@ int copy_entry(const char *fpath, const struct stat *sb, int typeflag,
                struct FTW *ftwbuf) {
     int ret = 0;
     char *target_path = NULL;
+    if (strncmp(fpath, "./.git", 6) == 0) {
+        /* Skip ./.git directory and its contents. */
+        return 0;
+    }
     if (asprintf(&target_path, "%s/%s", getenv("DESTDIR"), fpath) == -1) {
         return -1;
     }
@@ -93,7 +97,7 @@ int copy_entry(const char *fpath, const struct stat *sb, int typeflag,
             }
             break;
         case FTW_D:
-        case FTW_DNR:
+        case FTW_DNR: {
             /* Copy directory */
             if (mkdir(target_path, sb->st_mode)) {
                 if (errno != EEXIST) {
@@ -102,6 +106,7 @@ int copy_entry(const char *fpath, const struct stat *sb, int typeflag,
                 }
             }
             break;
+        }
         case FTW_NS:
         case FTW_SL:
         case FTW_SLN: {
