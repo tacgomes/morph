@@ -247,6 +247,7 @@ class SourceResolver(object):
             with open(fp) as f:
                 return f.read()
         else:
+            logging.debug("Didn't find %s in definitions", filename)
             return None
 
     def _get_file_contents_from_repo(self, reponame,
