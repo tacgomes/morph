@@ -24,6 +24,7 @@ import time
 import traceback
 import subprocess
 import tempfile
+import warnings
 
 import cliapp
 
@@ -445,6 +446,12 @@ class ChunkBuilder(BuilderBase):
                 split_rules.partition(filepaths(destdir))
 
         system_integration = morphology.get(sys_tag) or {}
+
+        for artifact in system_integration.keys():
+            if artifact not in source.artifacts:
+                warnings.warn(
+                    "Chunk %s has system-integration commands for "
+                    "non-existent artifact %s." % (source.name, artifact))
 
         with self.build_watch('create-chunks'):
             for chunk_artifact_name, chunk_artifact \
