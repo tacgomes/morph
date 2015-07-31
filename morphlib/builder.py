@@ -350,7 +350,7 @@ class ChunkBuilder(BuilderBase):
 
                 with open(logfilepath, 'a') as log:
                     self.app.status(msg='Running %(key)s', key=key)
-                    log.write('# %s\n' % step)
+                    log.write('### %s ###\n' % key.upper())
 
                 for cmd in cmds:
                     if cmd is False: cmd = "false"
@@ -365,9 +365,6 @@ class ChunkBuilder(BuilderBase):
                         extra_env['MAKEFLAGS'] = '-j1'
 
                     try:
-                        with open(logfilepath, 'a') as log:
-                            log.write('# # %s\n' % cmd)
-
                         # flushing is needed because writes from python and
                         # writes from being the output in Popen have different
                         # buffers, but flush handles both
@@ -375,7 +372,7 @@ class ChunkBuilder(BuilderBase):
                             stdout.flush()
 
                         with open(os.devnull) as devnull:
-                            self.runcmd(['sh', '-c', cmd],
+                            self.runcmd(['sh', '-x', '-c', cmd],
                                         extra_env=extra_env,
                                         cwd=relative_builddir,
                                         stdin=devnull,

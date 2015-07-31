@@ -34,7 +34,9 @@ name: plugh
 kind: chunk
 configure-commands:
   - "echo Second chunk: prefix $PREFIX"
-  - "echo Path: $(echo $PATH | grep -o '/plover')"
+  - |
+    set +x
+    echo Path: $(echo $PATH | grep -o '/plover')
 EOF
 
 git add xyzzy.morph
