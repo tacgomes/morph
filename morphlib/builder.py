@@ -303,8 +303,6 @@ class ChunkBuilder(BuilderBase):
                     os.rename(temppath, logpath)
                 else:
                     logging.error("Couldn't find build log at %s", temppath)
-
-                self.staging_area.abort()
                 raise
 
             self.staging_area.chroot_close()

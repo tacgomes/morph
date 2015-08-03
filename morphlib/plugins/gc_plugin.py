@@ -17,6 +17,7 @@ import logging
 import os
 import shutil
 import time
+import fcntl
 
 import fs.osfs
 import cliapp
@@ -82,7 +83,32 @@ class GCPlugin(cliapp.Plugin):
         # assumes that they exist in various places.
         self.app.status(msg='Cleaning up temp dir %(temp_path)s',
                         temp_path=temp_path, chatty=True)
-        for subdir in ('deployments', 'failed', 'chunks'):
+
+        self.app.status(msg='Removing temp subdirectory: staging')
+        staging_dir = os.path.join(temp_path, 'staging')
+        subdirs = (f for f in os.listdir(staging_dir)
+                   if os.path.isdir(os.path.join(staging_dir, f)))
+        for subdir in subdirs:
+            fd = None
+            prefix_dir = os.path.join(staging_dir, subdir)
+            try:
+                fd = os.open(prefix_dir, os.O_RDONLY)
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                chroot_script = os.path.join('%s.sh' % prefix_dir)
+                if os.path.exists(chroot_script):
+                    os.remove(chroot_script)
+                log_file = os.path.join('%s.log' % prefix_dir)
+                if os.path.exists(log_file):
+                    os.remove(log_file)
+                if os.path.exists(prefix_dir):
+                    shutil.rmtree(prefix_dir)
+            except IOError:
+                pass
+            finally:
+                if fd is not None:
+                    os.close(fd)
+
+        for subdir in ('deployments', 'chunks'):
             if morphlib.util.get_bytes_free_in_path(temp_path) >= min_space:
                 self.app.status(msg='Not Removing subdirectory '
                                     '%(subdir)s, enough space already cleared',

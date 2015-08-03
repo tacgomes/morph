@@ -135,8 +135,19 @@ class StagingAreaTests(unittest.TestCase):
         self.sa.remove()
         self.assertFalse(os.path.exists(self.staging))
 
-    def test_supports_non_isolated_mode(self):
-        sa = morphlib.stagingarea.StagingArea(
+
+class StagingAreaNonIsolatedTests(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.staging = os.path.join(self.tempdir, 'staging')
+        self.build_env = FakeBuildEnvironment()
+        self.sa = morphlib.stagingarea.StagingArea(
             object(), self.staging, self.build_env, use_chroot=False)
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def test_supports_non_isolated_mode(self):
         filename = os.path.join(self.staging, 'foobar')
-        self.assertEqual(sa.relative(filename), filename)
+        self.assertEqual(self.sa.relative(filename), filename)

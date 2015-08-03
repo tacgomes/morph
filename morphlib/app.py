@@ -284,7 +284,6 @@ class Morph(cliapp.Application):
         tmpdir = self.settings['tempdir']
         for required_dir in (os.path.join(tmpdir, 'chunks'),
                              os.path.join(tmpdir, 'staging'),
-                             os.path.join(tmpdir, 'failed'),
                              os.path.join(tmpdir, 'deployments'),
                              self.settings['cachedir']):
             if not os.path.exists(required_dir):

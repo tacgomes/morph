@@ -20,6 +20,7 @@ import stat
 import cliapp
 from urlparse import urlparse
 import tempfile
+import fcntl
 
 import morphlib
 
@@ -57,6 +58,25 @@ class StagingArea(object):
             full_path = [os.path.normpath(dirname + p) for p in rel_path]
             path = full_path + os.environ['PATH'].split(':')
         self.env['PATH'] = ':'.join(path)
+
+
+        # Keep trying until we have created a directory with an
+        # exclusive lock on it, as if the user runs `morph gc` in
+        # parallel the staging area directory could have been removed
+        # or have its exclusive lock associated with the `morph gc`
+        # process
+        while True:
+            try:
+                fd = os.open(dirname, os.O_RDONLY)
+                fcntl.flock(fd, fcntl.LOCK_EX)
+                if os.path.exists(dirname):
+                    self.staging_area_fd = fd
+                    break
+                else:
+                    os.close(fd) # pragma: no cover
+            except OSError: # pragma: no cover
+                if not os.path.exists(dirname):
+                    os.makedirs(dirname)
 
     # Wrapper to be overridden by unit tests.
     def _mkdir(self, dirname):  # pragma: no cover
@@ -170,9 +190,6 @@ class StagingArea(object):
             #       the other renamed its tempdir here first.
             os.rename(savedir, unpacked_artifact)
 
-        if not os.path.exists(self.dirname):
-            self._mkdir(self.dirname)
-
         self.hardlink_all_files(unpacked_artifact, self.dirname)
 
     def remove(self):
@@ -185,6 +202,7 @@ class StagingArea(object):
         '''
 
         shutil.rmtree(self.dirname)
+        os.close(self.staging_area_fd)
 
     to_mount_in_staging = (
         ('dev/shm', 'tmpfs', 'none'),
@@ -303,21 +321,5 @@ class StagingArea(object):
             msg = morphlib.util.error_message_for_containerised_commandline(
                 argv, err, container_config)
             raise cliapp.AppException(
-                'In staging area %s: %s' % (self._failed_location(), msg))
-
-    def _failed_location(self):  # pragma: no cover
-        '''Path this staging area will be moved to if an error occurs.'''
-        return os.path.join(self._app.settings['tempdir'], 'failed',
-                            os.path.basename(self.dirname))
-
-    def abort(self): # pragma: no cover
-        '''Handle what to do with a staging area in the case of failure.
-           This may either remove it or save it for later inspection.
-        '''
-        # TODO: when we add the option to throw away failed builds,
-        #       hook it up here
-
-        dest_dir = self._failed_location()
-        os.rename(self.dirname, dest_dir)
-        self.dirname = dest_dir
+                'In staging area %s: %s' % (self.dirname, msg))
 

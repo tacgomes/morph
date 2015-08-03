@@ -366,11 +366,7 @@ class BuildCommand(object):
                                                     use_chroot,
                                                     extra_env=extra_env,
                                                     extra_path=extra_path)
-            try:
-                self.install_dependencies(staging_area, deps, source)
-            except BaseException:
-                staging_area.abort()
-                raise
+            self.install_dependencies(staging_area, deps, source)
         else:
             staging_area = self.create_staging_area(build_env, False)
 
