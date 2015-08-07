@@ -373,13 +373,15 @@ class ChunkBuilder(BuilderBase):
                         if stdout:
                             stdout.flush()
 
-                        self.runcmd(['sh', '-c', cmd],
-                                    extra_env=extra_env,
-                                    cwd=relative_builddir,
-                                    stdout=stdout or subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    logfile=logfilepath,
-                                    ccache_dir=ccache_dir)
+                        with open(os.devnull) as devnull:
+                            self.runcmd(['sh', '-c', cmd],
+                                        extra_env=extra_env,
+                                        cwd=relative_builddir,
+                                        stdin=devnull,
+                                        stdout=stdout or subprocess.PIPE,
+                                        stderr=subprocess.STDOUT,
+                                        logfile=logfilepath,
+                                        ccache_dir=ccache_dir)
 
                         if stdout:
                             stdout.flush()
