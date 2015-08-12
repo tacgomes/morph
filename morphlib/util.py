@@ -649,21 +649,6 @@ def containerised_cmdline(args, cwd='.', root='/', binds=(),
     return unshared_cmdline(cmdargs, root=root, **kwargs)
 
 
-def error_message_for_containerised_commandline(
-        argv, err, container_kwargs):  # pragma: no cover
-    '''Return a semi-readable error message for a containerised command.'''
-
-    # This function should do some formatting of the container_kwargs dict,
-    # rather than just dumping it in the error message, but that is better than
-    # nothing.
-
-    argv_string = ' '.join(map(pipes.quote, argv))
-    return 'Command failed: %s:\n' \
-           'Containerisation settings: %s\n' \
-           'Error output:\n%s' \
-           % (argv_string, container_kwargs, err)
-
-
 def write_from_dict(filepath, d, validate=lambda x, y: True): #pragma: no cover
     '''Takes a dictionary and appends the contents to a file
 

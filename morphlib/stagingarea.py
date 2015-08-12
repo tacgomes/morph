@@ -314,12 +314,17 @@ class StagingArea(object):
         else:
             exit, out, err = self._app.runcmd_unchecked(cmdline, **kwargs)
 
-        if exit == 0:
-            return out
-        else:
+        if exit != 0:
             logging.debug('Command returned code %i', exit)
-            msg = morphlib.util.error_message_for_containerised_commandline(
-                argv, err, container_config)
-            raise cliapp.AppException(
-                'In staging area %s: %s' % (self.dirname, msg))
+            chroot_script = self.dirname + '.sh'
+            shell_command = ['env', '-i', '--']
+            for k, v in kwargs['env'].iteritems():
+                shell_command += ["%s=%s" % (k, v)]
+            shell_command += [os.path.join(os.sep, 'bin', 'sh')]
+            cmdline = morphlib.util.containerised_cmdline(
+                shell_command, **container_config)
+            with open(chroot_script, 'w') as f:
+                f.write(' '.join(map(cliapp.shell_quote, cmdline)))
+        return exit
+
 

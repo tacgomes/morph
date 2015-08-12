@@ -30,7 +30,6 @@ import cliapp
 
 import morphlib
 from morphlib.artifactcachereference import ArtifactCacheReference
-from morphlib.util import error_message_for_containerised_commandline
 import morphlib.gitversion
 
 SYSTEM_INTEGRATION_PATH = os.path.join('baserock', 'system-integration')
@@ -297,7 +296,7 @@ class ChunkBuilder(BuilderBase):
                 if os.path.isfile(temppath):
                     with open(temppath) as f:
                         for line in f:
-                            logging.error('OUTPUT FROM FAILED BUILD: %s' %
+                            logging.error('BUILD OUTPUT: %s' %
                                           line.rstrip('\n'))
 
                     os.rename(temppath, logpath)
@@ -362,31 +361,37 @@ class ChunkBuilder(BuilderBase):
                     else:
                         extra_env['MAKEFLAGS'] = '-j1'
 
-                    try:
-                        # flushing is needed because writes from python and
-                        # writes from being the output in Popen have different
-                        # buffers, but flush handles both
-                        if stdout:
-                            stdout.flush()
+                    # flushing is needed because writes from python and
+                    # writes from being the output in Popen have different
+                    # buffers, but flush handles both
+                    if stdout:
+                        stdout.flush()
 
-                        with open(os.devnull) as devnull:
-                            self.runcmd(['sh', '-x', '-c', cmd],
-                                        extra_env=extra_env,
-                                        cwd=relative_builddir,
-                                        stdin=devnull,
-                                        stdout=stdout or subprocess.PIPE,
-                                        stderr=subprocess.STDOUT,
-                                        logfile=logfilepath,
-                                        ccache_dir=ccache_dir)
+                    with open(os.devnull) as devnull:
+                        exit_code = self.runcmd(['sh', '-x', '-c', cmd],
+                                                extra_env=extra_env,
+                                                cwd=relative_builddir,
+                                                stdin=devnull,
+                                                stdout=stdout or
+                                                       subprocess.PIPE,
+                                                stderr=subprocess.STDOUT,
+                                                logfile=logfilepath,
+                                                ccache_dir=ccache_dir)
 
-                        if stdout:
-                            stdout.flush()
-                    except cliapp.AppException as e:
+                    if stdout:
+                        stdout.flush()
+
+                    if exit_code != 0:
                         if not stdout:
                             with open(logfilepath, 'r') as log:
-                                self.app.output.write("%s failed\n" % step)
                                 shutil.copyfileobj(log, self.app.output)
-                        raise e
+                            self.app.output.write("\n")
+                            shutil.copyfile(
+                                logfilepath,
+                                self.staging_area.dirname + '.log')
+                        raise cliapp.AppException(
+                            "In staging area %s: %s failed (exit_code=%s)" %
+                            (self.staging_area.dirname, step, exit_code))
 
     def write_system_integration_commands(self, destdir,
             integration_commands, artifact_name): # pragma: no cover
@@ -565,8 +570,6 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                     tar.close()
                 except BaseException as e:
                     logging.error(traceback.format_exc())
-                    self.app.status(msg='Error while building system',
-                                    error=True)
                     handle.abort()
                     raise
                 else:
@@ -674,26 +677,45 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
             ('dev/shm', 'tmpfs', 'none'),
             ('tmp',     'tmpfs', 'none'),
         )
-        try:
-            for bin in sorted(os.listdir(sys_integration_dir)):
-                argv = [os.path.join(SYSTEM_INTEGRATION_PATH, bin)]
-                container_config = dict(
-                    root=rootdir, mounts=to_mount, mount_proc=True)
-                cmdline = morphlib.util.containerised_cmdline(
-                    argv, **container_config)
-                exit, out, err = self.app.runcmd_unchecked(
-                    cmdline, env=env)
-                if exit != 0:
-                    logging.debug('Command returned code %i', exit)
-                    msg = error_message_for_containerised_commandline(
-                        argv, err, container_config)
-                    raise cliapp.AppException(msg)
-        except BaseException as e:
-            self.app.status(
-                    msg='Error while running system integration commands',
-                    error=True)
-            raise
 
+        for bin in sorted(os.listdir(sys_integration_dir)):
+            argv = [os.path.join(SYSTEM_INTEGRATION_PATH, bin)]
+            container_config = dict(
+                root=rootdir, mounts=to_mount, mount_proc=True)
+            cmdline = morphlib.util.containerised_cmdline(
+                argv, **container_config)
+
+            logfilepath = os.path.dirname(rootdir) + '.log'
+            teecmd = ['tee', '-a', logfilepath]
+            exit_code, out, err = self.app.runcmd_unchecked(
+                cmdline, teecmd, env=env,
+                stderr=subprocess.STDOUT)
+
+            if exit_code != 0:
+                logging.debug('Command returned code %i', exit_code)
+
+                chroot_script = os.path.dirname(rootdir) + '.sh'
+                shell_command = ['env', '-i', '--']
+                for k, v in env.iteritems():
+                    shell_command += ["%s=%s" % (k, v)]
+                shell_command += [os.path.join(os.sep, 'bin', 'sh')]
+                with open(chroot_script, 'w') as f:
+                    cmdline = morphlib.util.containerised_cmdline(
+                        shell_command, **container_config)
+                    f.write(' '.join(map(cliapp.shell_quote, cmdline)))
+
+                with open(logfilepath, 'r') as log:
+                    shutil.copyfileobj(log, self.app.output)
+                    self.app.output.write("\n")
+                    log.seek(0)
+                    for line in log:
+                        logging.error('INTEGRATION OUTPUT: %s' %
+                                      line.rstrip('\n'))
+
+                raise cliapp.AppException(
+                    "In staging area %s: system integration "
+                    "commands failed (exit_code=%s)"
+                    % (os.path.dirname(rootdir), exit_code))
 
 class Builder(object):  # pragma: no cover
 

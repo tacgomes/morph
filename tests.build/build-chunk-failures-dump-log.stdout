@@ -1,4 +1,3 @@
-build failed
 ### CONFIGURE-COMMANDS ###
 + echo dummy configure
 dummy configure
@@ -6,3 +5,4 @@ dummy configure
 + echo The next command will fail
 The next command will fail
 + false
+
