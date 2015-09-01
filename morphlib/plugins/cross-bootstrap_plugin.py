@@ -59,7 +59,7 @@ class BootstrapSystemBuilder(morphlib.builder.BuilderBase):
         with self.build_watch('overall-build'):
             for system_name, artifact in self.source.artifacts.iteritems():
                 handle = self.local_artifact_cache.put(artifact)
-                fs_root = self.staging_area.destdir(self.source)
+                fs_root = self.staging_area.real_destdir()
                 try:
                     self.unpack_binary_chunks(fs_root)
                     self.unpack_sources(fs_root)
@@ -301,7 +301,7 @@ class CrossBootstrapPlugin(cliapp.Plugin):
         system_artifact.source.cross_sources = cross_sources
         system_artifact.source.native_sources = native_sources
         staging_area = build_command.create_staging_area(
-            build_env, use_chroot=False)
+            system_artifact.source, build_env, use_chroot=False)
         builder = BootstrapSystemBuilder(
             self.app, staging_area, build_command.lac, build_command.rac,
             system_artifact.source, build_command.lrc, 1, False)

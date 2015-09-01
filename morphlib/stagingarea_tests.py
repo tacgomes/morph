@@ -64,6 +64,7 @@ class FakeApplication(object):
 class StagingAreaTests(unittest.TestCase):
 
     def setUp(self):
+        self.source = FakeSource()
         self.tempdir = tempfile.mkdtemp()
         self.cachedir = os.path.join(self.tempdir, 'cachedir')
         os.mkdir(self.cachedir)
@@ -72,8 +73,8 @@ class StagingAreaTests(unittest.TestCase):
         self.created_dirs = []
         self.build_env = FakeBuildEnvironment()
         self.sa = morphlib.stagingarea.StagingArea(
-            FakeApplication(self.cachedir, self.tempdir), self.staging,
-            self.build_env)
+            FakeApplication(self.cachedir, self.tempdir), self.source,
+            self.staging, self.build_env)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -98,35 +99,21 @@ class StagingAreaTests(unittest.TestCase):
                 files.append(x[len(root):] or '/')
         return files
 
-    def fake_mkdir(self, dirname):
-        self.created_dirs.append(dirname)
-
     def test_remembers_specified_directory(self):
         self.assertEqual(self.sa.dirname, self.staging)
 
-    def test_creates_build_directory(self):
-        source = FakeSource()
-        self.sa._mkdir = self.fake_mkdir
-        dirname = self.sa.builddir(source)
-        self.assertEqual(self.created_dirs, [dirname])
-        self.assertTrue(dirname.startswith(self.staging))
-
-    def test_creates_install_directory(self):
-        source = FakeSource()
-        self.sa._mkdir = self.fake_mkdir
-        dirname = self.sa.destdir(source)
-        self.assertEqual(self.created_dirs, [dirname])
-        self.assertTrue(dirname.startswith(self.staging))
-
     def test_makes_relative_name(self):
-        filename = os.path.join(self.staging, 'foobar')
+        filename = 'foobar'
         self.assertEqual(self.sa.relative(filename), '/foobar')
 
     def test_installs_artifact(self):
         chunk_tar = self.create_chunk()
         with open(chunk_tar, 'rb') as f:
             self.sa.install_artifact(f)
-        self.assertEqual(self.list_tree(self.staging), ['/', '/file.txt'])
+        self.assertEqual(self.list_tree(self.staging),
+                         ['/', '/file.txt',
+                          self.sa.relative_destdir(),
+                          self.sa.relative_builddir()])
 
     def test_removes_everything(self):
         chunk_tar = self.create_chunk()
@@ -139,11 +126,13 @@ class StagingAreaTests(unittest.TestCase):
 class StagingAreaNonIsolatedTests(unittest.TestCase):
 
     def setUp(self):
+        self.source = FakeSource()
         self.tempdir = tempfile.mkdtemp()
         self.staging = os.path.join(self.tempdir, 'staging')
         self.build_env = FakeBuildEnvironment()
         self.sa = morphlib.stagingarea.StagingArea(
-            object(), self.staging, self.build_env, use_chroot=False)
+            object(), self.source, self.staging, self.build_env,
+            use_chroot=False)
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)

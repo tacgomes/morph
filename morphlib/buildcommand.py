@@ -362,13 +362,14 @@ class BuildCommand(object):
                 use_chroot = True
                 setup_mounts = True
 
-            staging_area = self.create_staging_area(build_env,
+            staging_area = self.create_staging_area(source,
+                                                    build_env,
                                                     use_chroot,
                                                     extra_env=extra_env,
                                                     extra_path=extra_path)
             self.install_dependencies(staging_area, deps, source)
         else:
-            staging_area = self.create_staging_area(build_env, False)
+            staging_area = self.create_staging_area(source, build_env, False)
 
         self.build_and_cache(staging_area, source, setup_mounts)
         self.remove_staging_area(staging_area)
@@ -440,15 +441,15 @@ class BuildCommand(object):
                     name=artifact.name)
                 fetch_files(to_fetch)
 
-    def create_staging_area(self, build_env, use_chroot=True, extra_env={},
-                            extra_path=[]):
+    def create_staging_area(self, source, build_env, use_chroot=True,
+                            extra_env={}, extra_path=[]):
         '''Create the staging area for building a single artifact.'''
 
         self.app.status(msg='Creating staging area')
         staging_dir = tempfile.mkdtemp(
             dir=os.path.join(self.app.settings['tempdir'], 'staging'))
         staging_area = morphlib.stagingarea.StagingArea(
-            self.app, staging_dir, build_env, use_chroot, extra_env,
+            self.app, source, staging_dir, build_env, use_chroot, extra_env,
             extra_path)
         return staging_area
 

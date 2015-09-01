@@ -39,17 +39,19 @@ class StagingArea(object):
 
     _base_path = ['/sbin', '/usr/sbin', '/bin', '/usr/bin']
 
-    def __init__(self, app, dirname, build_env, use_chroot=True, extra_env={},
-                 extra_path=[]):
+    def __init__(self, app, source, dirname, build_env, use_chroot=True,
+                 extra_env={}, extra_path=[]):
         self._app = app
+        self.source = source
         self.dirname = dirname
-        self.builddirname = None
-        self.destdirname = None
         self._bind_readonly_mount = None
 
         self.use_chroot = use_chroot
         self.env = build_env.env
         self.env.update(extra_env)
+
+        os.makedirs(self.real_builddir())
+        os.makedirs(self.real_destdir())
 
         if use_chroot:
             path = extra_path + build_env.extra_path + self._base_path
@@ -78,47 +80,33 @@ class StagingArea(object):
                 if not os.path.exists(dirname):
                     os.makedirs(dirname)
 
-    # Wrapper to be overridden by unit tests.
-    def _mkdir(self, dirname):  # pragma: no cover
-        os.makedirs(dirname)
+    def relative(self, path):
+        '''Return a path relative to the staging area.'''
 
-    def _dir_for_source(self, source, suffix):
-        dirname = os.path.join(self.dirname,
-                               '%s.%s' % (str(source.name), suffix))
-        self._mkdir(dirname)
-        return dirname
+        if self.use_chroot:
+            return os.path.join(os.sep, path)
+        else:
+            return os.path.join(self.dirname, path)
 
-    def builddir(self, source):
-        '''Create a build directory for a given source project.
+    def relative_builddir(self):
+        return self.relative('%s.build' % self.source.name)
 
-        Return path to directory.
+    def relative_destdir(self):
+        return self.relative('%s.inst' % self.source.name)
 
-        '''
+    def real_builddir(self):
+        '''Build directory for a given source project '''
 
-        return self._dir_for_source(source, 'build')
+        return os.path.join(self.dirname, '%s.build' % (self.source.name))
 
-    def destdir(self, source):
-        '''Create an installation target directory for a given source project.
+    def real_destdir(self):
+        '''Installation target directory for a given source project.
 
         This is meant to be used as $DESTDIR when installing chunks.
-        Return path to directory.
 
         '''
 
-        return self._dir_for_source(source, 'inst')
-
-    def relative(self, filename):
-        '''Return a filename relative to the staging area.'''
-
-        if not self.use_chroot:
-            return filename
-
-        dirname = self.dirname
-        if not dirname.endswith('/'):
-            dirname += '/'
-
-        assert filename.startswith(dirname)
-        return filename[len(dirname) - 1:]  # include leading slash
+        return os.path.join(self.dirname, '%s.inst' % (self.source.name))
 
     def hardlink_all_files(self, srcpath, destpath): # pragma: no cover
         '''Hardlink every file in the path to the staging-area
@@ -209,12 +197,12 @@ class StagingArea(object):
     )
     to_mount_in_bootstrap = ()
 
-    def ccache_dir(self, source): #pragma: no cover
+    def ccache_dir(self): #pragma: no cover
         ccache_dir = self._app.settings['compiler-cache-dir']
         if not os.path.isdir(ccache_dir):
             os.makedirs(ccache_dir)
         # Get a path for the repo's ccache
-        ccache_url = source.repo.url
+        ccache_url = self.source.repo.url
         ccache_path = urlparse(ccache_url).path
         ccache_repobase = os.path.basename(ccache_path)
         if ':' in ccache_repobase: # the basename is a repo-alias
@@ -238,27 +226,6 @@ class StagingArea(object):
             os.makedirs(ccache_destdir)
         return ccache_repodir
 
-    def chroot_open(self, source, setup_mounts): # pragma: no cover
-        '''Setup staging area for use as a chroot.'''
-
-        assert self.builddirname == None and self.destdirname == None
-
-        builddir = self.builddir(source)
-        destdir = self.destdir(source)
-        self.builddirname = builddir
-        self.destdirname = destdir
-
-        return builddir, destdir
-
-    def chroot_close(self): # pragma: no cover
-        '''Undo changes by chroot_open.
-
-        This should be called after the staging area is no longer needed.
-
-        '''
-        # No cleanup is currently required
-        pass
-
     def runcmd(self, argv, **kwargs):  # pragma: no cover
         '''Run a command in a chroot in the staging area.'''
         assert 'env' not in kwargs
@@ -272,7 +239,8 @@ class StagingArea(object):
         chroot_dir = self.dirname if self.use_chroot else '/'
         temp_dir = kwargs["env"].get("TMPDIR", "/tmp")
 
-        staging_dirs = [self.builddirname, self.destdirname]
+        staging_dirs = [self.real_builddir(), self.real_destdir()]
+
         if self.use_chroot:
             staging_dirs += ["dev", "proc", temp_dir.lstrip('/')]
         do_not_mount_dirs = [os.path.join(self.dirname, d)

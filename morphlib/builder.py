@@ -271,8 +271,8 @@ class ChunkBuilder(BuilderBase):
     def build_and_cache(self):  # pragma: no cover
         with self.build_watch('overall-build'):
 
-            builddir, destdir = self.staging_area.chroot_open(
-                self.source, self.setup_mounts)
+            builddir = self.staging_area.real_builddir()
+            destdir = self.staging_area.real_destdir()
 
             stdout = (self.app.output
                 if self.app.settings['build-log-on-stdout'] else None)
@@ -285,14 +285,13 @@ class ChunkBuilder(BuilderBase):
 
             try:
                 self.get_sources(builddir)
-                self.run_commands(builddir, destdir, temppath, stdout)
+                self.run_commands(temppath, stdout)
                 self.create_devices(destdir)
 
                 os.rename(temppath, logpath)
             except BaseException as e:
                 logging.error('Caught exception: %s' % str(e))
                 logging.info('Cleaning up staging area')
-                self.staging_area.chroot_close()
                 if os.path.isfile(temppath):
                     with open(temppath) as f:
                         for line in f:
@@ -304,21 +303,20 @@ class ChunkBuilder(BuilderBase):
                     logging.error("Couldn't find build log at %s", temppath)
                 raise
 
-            self.staging_area.chroot_close()
             built_artifacts = self.assemble_chunk_artifacts(destdir)
 
         self.save_build_times()
         return built_artifacts
 
 
-    def run_commands(self, builddir, destdir,
-                     logfilepath, stdout=None):  # pragma: no cover
+    def run_commands(self, logfilepath, stdout=None):  # pragma: no cover
         m = self.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
-        relative_builddir = self.staging_area.relative(builddir)
-        relative_destdir = self.staging_area.relative(destdir)
-        ccache_dir = self.staging_area.ccache_dir(self.source)
+        relative_builddir = self.staging_area.relative_builddir()
+        relative_destdir = self.staging_area.relative_destdir()
+        ccache_dir = self.staging_area.ccache_dir()
+
         extra_env = { 'DESTDIR': relative_destdir }
 
         steps = [
@@ -552,7 +550,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 handle = self.local_artifact_cache.put(artifact)
 
                 try:
-                    fs_root = self.staging_area.destdir(self.source)
+                    fs_root = self.staging_area.real_destdir()
                     self.unpack_strata(fs_root)
                     self.write_metadata(fs_root, a_name)
                     self.run_system_integration_commands(fs_root)
