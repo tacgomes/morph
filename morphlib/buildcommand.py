@@ -418,7 +418,8 @@ class BuildCommand(object):
 
             try:
                 for remote, local in to_fetch:
-                    if app.settings['quiet']:
+                    if app.settings['quiet'] or (
+                            app.settings['progress'] == 'never'):
                         shutil.copyfileobj(remote, local)
                     else:
                         do_fetch(name, remote, local)

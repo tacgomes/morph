@@ -28,8 +28,8 @@ class FakeApplication(object):
 
     def __init__(self):
         self.settings = {
-            'debug': True,
-            'verbose': True
+            'verbose': True,
+            'progress': 'always'
         }
 
     def status(self, msg):

@@ -258,7 +258,7 @@ class CachedRepo(object):
 
         try:
             self.gitdir.update_remotes(
-                echo_stderr=self.app.settings['verbose'])
+                echo_stderr=self.app.settings['progress'] == 'always')
             self.already_updated = True
         except cliapp.AppException:
             raise UpdateError(self)

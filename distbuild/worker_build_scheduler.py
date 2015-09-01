@@ -549,7 +549,7 @@ class WorkerConnection(distbuild.StateMachine):
         argv = [
             self._morph_instance,
             'worker-build',
-            '--build-log-on-stdout',
+            '--show-build',
             job.artifact.name,
         ]
 

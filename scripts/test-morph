@@ -34,7 +34,7 @@ if [ "$1" = "--find-system-artifact" ]; then
         "$SRCDIR/morph" --no-default-config \
         --tarball-server= --cache-server= \
         --cachedir-min-space=0 --tempdir-min-space=0 \
-        --config="$DATADIR/morph.conf" --debug "$@" > $DATADIR/stdout
+        --config="$DATADIR/morph.conf" --verbose "$@" > $DATADIR/stdout
 
     ARTIFACT=$(grep "system \S\+-rootfs is cached at" "$DATADIR/stdout" | \
         sed -nre "s/^.*system \S+-rootfs is cached at (\S+)$/\1/p")

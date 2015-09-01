@@ -57,10 +57,22 @@ defaults = {
 class Morph(cliapp.Application):
 
     def add_settings(self):
-        self.settings.boolean(['verbose', 'v'],
-                              'write build log on stdout')
         self.settings.boolean(['quiet', 'q'],
                               'show no output unless there is an error')
+        self.settings.boolean(['verbose', 'v'],
+                              'show what is happening in more detail')
+        self.settings.choice(['progress'],
+                             ['bar', 'never', 'always'],
+                             'when the progress status should be shown. '
+                             'Options: bar (default), never, always.  `bar` '
+                             'will display the status if the associated '
+                             'activity supports a progress bar that can be '
+                             'cleared out from the output once the activity '
+                             'finishes')
+        self.settings.boolean(['show-build'],
+                              'show the build output')
+        self.settings.boolean(['debug', 'd'],
+                              'DEPRECATED: please use `--verbose` instead')
 
         self.settings.boolean(['help', 'h'],
                               'show this help message and exit')
@@ -89,11 +101,7 @@ class Morph(cliapp.Application):
                               'automatically',
                               group=group_advanced)
         self.settings.boolean(['build-log-on-stdout'],
-                              'internal option for use by distbuild to'
-                              'transfer logs from the worker to the'
-                              'initiator in real time')
-        self.settings.boolean(['debug', 'd'],
-                              'show what is happening in much detail',
+                              'DEPRECATED: please use `--show-build` instead',
                               group=group_advanced)
         self.settings.string_list(['repo-alias'],
                                   'list of URL prefix definitions, in the '
@@ -277,6 +285,15 @@ class Morph(cliapp.Application):
                 raise InvalidUrlError('tarball-server',
                                       self.settings['tarball-server'])
 
+        def deprecate(app, old_option, new_option):
+            if self.settings[old_option]:
+                self.status(msg='WARNING: Option `--%s` is deprecated for '
+                                'removal. Please use option `--%s` instead'
+                            % (old_option, new_option), error=False)
+
+        deprecate(self, 'debug', 'verbose')
+        deprecate(self, 'build-log-on-stdout', 'show-build')
+
         if 'MORPH_DUMP_PROCESSED_CONFIG' in os.environ:
             self.settings.dump_config(sys.stdout)
             sys.exit(0)
@@ -331,7 +348,7 @@ class Morph(cliapp.Application):
         * ``msg`` is the message text; it can use ``%(foo)s`` to embed the
           value of keyword argument ``foo``
         * ``chatty`` should be true when the message is only informative,
-          and only useful for users who want to know everything (--debug)
+          and only useful for users who want to know everything (--verbose)
         * ``error`` should be true when it is an error message
 
         All other keywords are ignored unless embedded in ``msg``.
@@ -347,7 +364,7 @@ class Morph(cliapp.Application):
         error = kwargs.get('error', False)
         chatty = kwargs.get('chatty', False)
         quiet = self.settings['quiet']
-        debug = self.settings['debug']
+        verbose = self.settings['verbose']
 
         if error:
             logging.error(text)
@@ -356,7 +373,7 @@ class Morph(cliapp.Application):
         else:
             logging.info(text)
 
-        ok = debug or error or (not quiet and not chatty)
+        ok = verbose or error or (not quiet and not chatty)
         if ok:
             self._write_status(text)
 
@@ -383,7 +400,7 @@ class Morph(cliapp.Application):
         else:
             print_command = True
 
-        if print_command and self.settings['debug']:
+        if print_command and self.settings['verbose']:
             # Don't call self.status() here, to avoid writing the message to
             # the log as well as to the console. The cliapp.runcmd() function
             # will also log the command, and it's messy having it logged twice.

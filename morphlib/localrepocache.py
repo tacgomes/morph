@@ -127,7 +127,8 @@ class LocalRepoCache(object):
         progress_cb = morphlib.util.get_callback_for_object_size(
                 reponame, content_len)
         with tempfile.NamedTemporaryFile() as f:
-            if self._app.settings['quiet']:
+            if self._app.settings['quiet'] or (
+                    self._app.settings['progress'] == 'never'):
                 shutil.copyfileobj(url_obj, f)
             else:
                 morphlib.util.copyfileobj(url_obj, f, callback=progress_cb)
@@ -214,7 +215,7 @@ class LocalRepoCache(object):
 
         try:
             self._git(['clone', '--mirror', '-n', repourl, target],
-                      echo_stderr=self._app.settings['debug'])
+                      echo_stderr=self._app.settings['progress'] == 'always')
         except cliapp.AppException as e:
             errors.append('Unable to clone from %s to %s: %s' %
                           (repourl, target, e))

@@ -275,7 +275,7 @@ class ChunkBuilder(BuilderBase):
             destdir = self.staging_area.real_destdir()
 
             stdout = (self.app.output
-                if self.app.settings['build-log-on-stdout'] else None)
+                if self.app.settings['show-build'] else None)
 
             cache = self.local_artifact_cache
             logpath = cache.get_source_metadata_filename(
