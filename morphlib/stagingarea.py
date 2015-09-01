@@ -21,6 +21,7 @@ import cliapp
 from urlparse import urlparse
 import tempfile
 import fcntl
+import pipes
 
 import morphlib
 
@@ -292,7 +293,7 @@ class StagingArea(object):
             cmdline = morphlib.util.containerised_cmdline(
                 shell_command, **container_config)
             with open(chroot_script, 'w') as f:
-                f.write(' '.join(map(cliapp.shell_quote, cmdline)))
+                f.write(' '.join(map(pipes.quote, cmdline)))
         return exit
 
 

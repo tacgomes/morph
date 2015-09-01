@@ -25,6 +25,7 @@ import traceback
 import subprocess
 import tempfile
 import warnings
+import pipes
 
 import cliapp
 
@@ -697,7 +698,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 with open(chroot_script, 'w') as f:
                     cmdline = morphlib.util.containerised_cmdline(
                         shell_command, **container_config)
-                    f.write(' '.join(map(cliapp.shell_quote, cmdline)))
+                    f.write(' '.join(map(pipes.quote, cmdline)))
 
                 with open(logfilepath, 'r') as log:
                     shutil.copyfileobj(log, self.app.output)
