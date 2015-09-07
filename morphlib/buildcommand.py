@@ -533,7 +533,7 @@ class BuildCommand(object):
             staging_area.install_artifact(handle)
 
         if target_source.build_mode == 'staging':
-            morphlib.builder.ldconfig(self.app.runcmd, staging_area.dirname)
+            morphlib.builder.ldconfig(self.app, staging_area.dirname)
 
     def build_and_cache(self, staging_area, source, setup_mounts):
         '''Build a source and put its artifacts into the local cache.'''

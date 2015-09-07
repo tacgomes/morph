@@ -84,7 +84,7 @@ def set_mtime_recursively(root):  # pragma: no cover
                 os.utime(pathname, (now, now))
         os.utime(dirname, (now, now))
 
-def ldconfig(runcmd, rootdir):  # pragma: no cover
+def ldconfig(app, rootdir):  # pragma: no cover
     '''Run ldconfig for the filesystem below ``rootdir``.
 
     Essentially, ``rootdir`` specifies the root of a new system.
@@ -104,7 +104,8 @@ def ldconfig(runcmd, rootdir):  # pragma: no cover
 
     conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
     if os.path.exists(conf):
-        logging.debug('Running ldconfig for %s' % rootdir)
+        app.status(msg="Running ldconfig for %(rootdir)s",
+                   rootdir=rootdir, chatty=True)
         cache = os.path.join(rootdir, 'etc', 'ld.so.cache')
 
         # The following trickery with $PATH is necessary during the Baserock
@@ -115,9 +116,10 @@ def ldconfig(runcmd, rootdir):  # pragma: no cover
         env = dict(os.environ)
         old_path = env['PATH']
         env['PATH'] = '%s:/sbin:/usr/sbin:/usr/local/sbin' % old_path
-        runcmd(['ldconfig', '-r', rootdir], env=env)
+        app.runcmd(['ldconfig', '-r', rootdir], env=env)
     else:
-        logging.debug('No %s, not running ldconfig' % conf)
+        app.status(msg="No %(conf)s, not running ldconfig",
+                   conf=conf, chatty=True)
 
 
 def download_depends(constituents, lac, rac, metadatas=None):
@@ -636,7 +638,7 @@ class SystemBuilder(BuilderBase):  # pragma: no cover
                 for stratum_artifact in self.source.dependencies:
                     self.unpack_one_stratum(stratum_artifact, path)
 
-            ldconfig(self.app.runcmd, path)
+            ldconfig(self.app, path)
 
     def write_metadata(self, instdir, artifact_name):
         BuilderBase.write_metadata(self, instdir, artifact_name)
