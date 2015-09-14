@@ -101,9 +101,6 @@ def ldconfig(runcmd, rootdir):  # pragma: no cover
 
     '''
 
-    # FIXME: use the version in ROOTDIR, since even in
-    # bootstrap it will now always exist due to being part of build-essential
-
     conf = os.path.join(rootdir, 'etc', 'ld.so.conf')
     if os.path.exists(conf):
         logging.debug('Running ldconfig for %s' % rootdir)
