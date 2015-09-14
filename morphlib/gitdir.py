@@ -468,7 +468,7 @@ class GitDirectory(object):
             # Exact error is logged already by the runcmd() function.
             raise NoGitRepoError(self.dirname)
 
-    def clone_into(self, dst, ref=None):
+    def clone_into(self, dst, ref=None): # pragma: no cover
         morphlib.git.clone_into(cliapp.runcmd, self.dirname, dst, ref=ref)
 
     def checkout(self, branch_name): # pragma: no cover
