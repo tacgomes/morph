@@ -121,9 +121,10 @@ class BuildOutput(object):
 
 class BuildStepFinished(object):
 
-    def __init__(self, request_id, step_name):
+    def __init__(self, request_id, step_name, worker_name):
         self.id = request_id
         self.step_name = step_name
+        self.worker_name = worker_name
 
 
 class BuildStepFailed(object):
@@ -810,7 +811,7 @@ class BuildController(distbuild.StateMachine):
             'Got build result for %s: %s', artifact.name, repr(event.msg))
 
         finished = BuildStepFinished(
-            self._request['id'], build_step_name(artifact))
+            self._request['id'], build_step_name(artifact), event.worker_name)
         self.mainloop.queue_event(BuildController, finished)
 
         artifact.state = BUILT

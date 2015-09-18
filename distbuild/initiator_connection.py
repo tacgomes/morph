@@ -368,7 +368,8 @@ class InitiatorConnection(distbuild.StateMachine):
         if event.id in self.our_ids:
             msg = distbuild.message('step-finished',
                 id=self._route_map.get_incoming_id(event.id),
-                step_name=event.step_name)
+                step_name=event.step_name,
+                worker_name=event.worker_name)
             self.jm.send(msg)
             self._log_send(msg)
 

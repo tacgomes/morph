@@ -61,6 +61,7 @@ _required_fields = {
     'step-finished': [
         'id',
         'step_name',
+        'worker_name',
     ],
     'step-failed': [
         'id',

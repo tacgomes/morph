@@ -70,10 +70,11 @@ class WorkerBuildCaching(object):
 
 class WorkerBuildFinished(object):
 
-    def __init__(self, msg, cache_key):
+    def __init__(self, msg, cache_key, worker_name):
         self.msg = msg
         self.artifact_cache_key = cache_key
-        
+        self.worker_name = worker_name
+
 class WorkerBuildFailed(object):
 
     def __init__(self, msg, cache_key):
@@ -688,7 +689,7 @@ class WorkerConnection(distbuild.StateMachine):
             logging.debug('Shared artifact cache population done')
 
             finished_event = WorkerBuildFinished(
-                job._exec_response, job.artifact.cache_key)
+                job._exec_response, job.artifact.cache_key, job.who.name())
             self.mainloop.queue_event(WorkerConnection, finished_event)
 
             self.mainloop.queue_event(self, _Cached())

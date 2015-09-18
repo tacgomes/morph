@@ -239,6 +239,10 @@ class Initiator(distbuild.StateMachine):
         step_name = msg['step_name']
         if step_name in self._step_outputs:
             status = 'Finished building %s' % step_name
+
+            if 'worker_name' in msg:
+                status += ' on %s' % msg['worker_name']
+
             self._app.status(msg=status)
 
             self._write_status_to_build_log(self._get_output(msg), status)
