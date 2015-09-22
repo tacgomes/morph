@@ -522,61 +522,6 @@ We can create a new branch, off master.
     if [ $MATCH_1 == "creates" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
-We can create a new branch, off another system branch.
-
-    IMPLEMENTS WHEN the user creates a system branch called (\S+), based on (\S+)
-    cd "$DATADIR/workspace"
-    run_morph branch test:morphs "$MATCH_1" "$MATCH_2"
-
-Attempt to branch a system branch from a root that had no systems.
-
-    IMPLEMENTS WHEN the user attempts to branch a repository with no systems
-    cd "$DATADIR/workspace"
-    attempt_morph branch test:test-chunk foo
-
-Pushing all changes in a system branch checkout to the git server.
-
-    IMPLEMENTS WHEN the user pushes the system branch called (\S+) to the git server
-    cd "$DATADIR/workspace/$MATCH_1/"
-    run_morph foreach -- sh -c 'git push -u origin HEAD 2>&1'
-
-Report workspace path.
-
-    IMPLEMENTS WHEN the user reports the workspace from the directory (\S+)
-    cd "$DATADIR/workspace/$MATCH_1"
-    run_morph workspace > "$DATADIR/workspace-reported"
-
-    IMPLEMENTS THEN the workspace is reported correctly
-    assert_equal $(cat "$DATADIR/workspace-reported") "$DATADIR/workspace"
-
-    IMPLEMENTS WHEN the user attempts to report the workspace from a non-workspace directory
-    cd "$DATADIR"
-    attempt_morph workspace
-
-Report system branch name:
-
-    IMPLEMENTS WHEN the user (attempts to report|reports) the system branch from the directory (\S+)
-    cd "$DATADIR/workspace/$MATCH_2"
-    set $DATADIR/system-branch.reported
-    if [ $MATCH_1 == reports ]; then run_morph show-system-branch > "$@"
-    else attempt_morph show-system-branch > "$@"; fi
-
-    IMPLEMENTS THEN the system branch is reported as (.*)
-    echo "$MATCH_1" > "$DATADIR/system-branch.actual"
-    diff -u "$DATADIR/system-branch.actual" "$DATADIR/system-branch.reported"
-
-Report system branch root repository.
-
-    IMPLEMENTS WHEN the user (attempts to report|reports) the system branch root repository from the directory (.*)
-    cd "$DATADIR/workspace/$MATCH_2"
-    set $DATADIR/branch-root.reported
-    if [ $MATCH_1 == "reports" ]; then run_morph show-branch-root > "$@"
-    else attempt_morph show-branch-root > "$@"; fi
-
-    IMPLEMENTS THEN the system branch root repository is reported as (.*)
-    echo "$DATADIR/$MATCH_1" > "$DATADIR/branch-root.actual"
-    diff -u "$DATADIR/branch-root.actual" "$DATADIR/branch-root.reported"
-
 Editing morphologies with `morph edit`.
 
     IMPLEMENTS THEN in branch (\S+), stratum (\S+) refs (\S+) in (\S+)
