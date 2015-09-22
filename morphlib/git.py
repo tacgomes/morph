@@ -233,6 +233,7 @@ def copy_repository(runcmd, repo, destdir, is_mirror=True):
         return
 
     runcmd(['cp', '-a', repo, os.path.join(destdir, '.git')])
+    runcmd(['chown', '-R', '%s:%s' % (os.getuid(), os.getgid()), destdir])
     # core.bare should be false so that git believes work trees are possible
     gitcmd(runcmd, 'config', 'core.bare', 'false', cwd=destdir)
     # we do not want the origin remote to behave as a mirror for pulls
