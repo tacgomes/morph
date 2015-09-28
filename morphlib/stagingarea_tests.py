@@ -95,9 +95,9 @@ class StagingAreaTests(unittest.TestCase):
         files = []
         for dirname, subdirs, basenames in os.walk(root):
             paths = [os.path.join(dirname, x) for x in basenames]
-            for x in [dirname] + sorted(paths):
+            for x in [dirname] + paths:
                 files.append(x[len(root):] or '/')
-        return files
+        return sorted(files)
 
     def test_remembers_specified_directory(self):
         self.assertEqual(self.sa.dirname, self.staging)
@@ -111,9 +111,9 @@ class StagingAreaTests(unittest.TestCase):
         with open(chunk_tar, 'rb') as f:
             self.sa.install_artifact(f)
         self.assertEqual(self.list_tree(self.staging),
-                         ['/', '/file.txt',
-                          self.sa.relative_destdir(),
-                          self.sa.relative_builddir()])
+                         sorted( ['/', '/file.txt',
+                                  self.sa.relative_destdir(),
+                                  self.sa.relative_builddir()]))
 
     def test_removes_everything(self):
         chunk_tar = self.create_chunk()
