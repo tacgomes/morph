@@ -107,7 +107,11 @@ class GetRepoPlugin(cliapp.Plugin):
 
                 try:
                     self._clone_repo(cached_repo, dirname,
-                                    ref or chunk_spec['ref'])
+                                     ref or chunk_spec['ref'])
+                except morphlib.gitdir.InvalidRefError:
+                    raise cliapp.AppException(
+                             "Cannot get '%s', repo has no commit at ref %s."
+                             % (chunk_spec['name'], ref or chunk_spec['ref']))
                 except BaseException as e:
                     logging.debug('Removing %s due to %s', dirname, e)
                     shutil.rmtree(dirname)
