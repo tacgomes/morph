@@ -27,13 +27,14 @@ class MutualDependencyError(cliapp.AppException):
             self, 'Cyclic dependency between %s and %s detected' % (a, b))
 
 
-class DependencyOrderError(cliapp.AppException):
+class UnknownDependencyError(cliapp.AppException):
 
     def __init__(self, stratum_source, chunk, dependency_name):
         cliapp.AppException.__init__(
-            self, 'In stratum %s, chunk %s references its dependency %s '
-            'before it is defined' %
-            (stratum_source, chunk, dependency_name))
+            self, 'In stratum %s, chunk %s references a dependency %s '
+            'that is not defined anywhere in that stratum' %
+            (stratum_source.name, chunk, dependency_name))
+
 
 
 class ArtifactResolver(object):
@@ -173,20 +174,32 @@ class ArtifactResolver(object):
         # 'name' here is the chunk artifact name
         name_to_processed_artifacts = {}
 
-        for info in source.morphology['chunks']:
+        def lookup_chunk_ref(chunk_ref):
             filename = morphlib.util.sanitise_morphology_path(
-                info.get('morph', info['name']))
-            chunk_source = self._source_pool.lookup(
-                info['repo'],
-                info['ref'],
-                filename)[0]
+                chunk_ref.get('morph', chunk_ref['name']))
+            source = self._source_pool.lookup(
+                chunk_ref['repo'], chunk_ref['ref'], filename)[0]
+            return source
 
+        # First, create a lookup table of chunk name -> Artifact instance.
+        for info in source.morphology['chunks']:
+            chunk_source = lookup_chunk_ref(info)
             chunk_name = chunk_source.name
 
             # Resolve now to avoid a search for the parent morphology later
             chunk_source.build_mode = info['build-mode']
             chunk_source.prefix = info['prefix']
 
+            # Add these chunks to the processed artifacts, so other
+            # chunks may refer to them.
+            name_to_processed_artifacts[info['name']] = \
+                [chunk_source.artifacts[n] for n
+                 in chunk_source.split_rules.artifacts]
+
+        # Now work out the build dependencies for the chunks in this stratum.
+        for info in source.morphology['chunks']:
+            chunk_source = lookup_chunk_ref(info)
+            chunk_name = chunk_source.name
             build_depends = info.get('build-depends', None)
 
             # Add our stratum's build depends as dependencies of this chunk
@@ -195,10 +208,11 @@ class ArtifactResolver(object):
 
             # Add dependencies between chunks mentioned in this stratum
             if build_depends is not None:
-                for name in build_depends: # pragma: no cover
+                for name in build_depends:
                     if name not in name_to_processed_artifacts:
-                        raise DependencyOrderError(
+                        raise UnknownDependencyError(
                             source, info['name'], name)
+
                     other_artifacts = name_to_processed_artifacts[name]
                     for other_artifact in other_artifacts:
                         chunk_source.add_dependency(other_artifact)
@@ -214,11 +228,5 @@ class ArtifactResolver(object):
                 # Only return chunks required to build strata we need
                 if chunk_artifact not in artifacts:
                     artifacts.append(chunk_artifact)
-
-            # Add these chunks to the processed artifacts, so other
-            # chunks may refer to them.
-            name_to_processed_artifacts[info['name']] = \
-                [chunk_source.artifacts[n] for n
-                 in chunk_source.split_rules.artifacts]
 
         return artifacts

@@ -223,11 +223,9 @@ class ArtifactResolverTests(unittest.TestCase):
 
         artifacts = self.resolver._resolve_artifacts(pool)
 
-        self.assertEqual(
-            set(artifacts),
-            set(itertools.chain.from_iterable(
-                    s.artifacts.itervalues()
-                    for s in pool)))
+        all_artifacts_in_source_pool = itertools.chain.from_iterable(
+            source.artifacts.itervalues() for source in pool)
+        self.assertEqual(set(artifacts), set(all_artifacts_in_source_pool))
 
         stratum_artifacts = set(a for a in artifacts
                                 if a.source in stratum_sources)
@@ -287,7 +285,7 @@ class ArtifactResolverTests(unittest.TestCase):
         self.assertRaises(morphlib.artifactresolver.MutualDependencyError,
                           self.resolver._resolve_artifacts, pool)
 
-    def test_detection_of_chunk_dependencies_in_invalid_order(self):
+    def test_handles_chunk_dependencies_out_of_invalid_order(self):
         pool = morphlib.sourcepool.SourcePool()
 
         loader = morphlib.morphloader.MorphologyLoader()
@@ -329,9 +327,45 @@ class ArtifactResolverTests(unittest.TestCase):
         for chunk2 in sources:
             pool.add(chunk2)
 
-        self.assertRaises(morphlib.artifactresolver.DependencyOrderError,
-                          self.resolver._resolve_artifacts, pool)
+        artifacts = self.resolver._resolve_artifacts(pool)
 
+        all_artifacts_in_source_pool = itertools.chain.from_iterable(
+            source.artifacts.itervalues() for source in pool)
+        self.assertEqual(set(artifacts), set(all_artifacts_in_source_pool))
+
+    def test_handles_invalid_chunk_dependencies(self):
+        pool = morphlib.sourcepool.SourcePool()
+
+        loader = morphlib.morphloader.MorphologyLoader()
+        morph = loader.load_from_string(
+            '''
+                name: stratum
+                kind: stratum
+                build-depends: []
+                chunks:
+                    - name: chunk1
+                      repo: repo
+                      ref: original/ref
+                      build-system: manual
+                      build-depends:
+                          - undefined-chunk
+            ''')
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'stratum.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
+        for stratum in sources:
+            pool.add(stratum)
+
+        morph = get_chunk_morphology('chunk1')
+        sources = morphlib.source.make_sources(
+            'repo', 'original/ref', 'chunk1.morph', 'sha1', 'tree', morph,
+            default_split_rules=default_split_rules)
+        for chunk1 in sources:
+            pool.add(chunk1)
+
+        with self.assertRaises(
+                morphlib.artifactresolver.UnknownDependencyError):
+            artifacts = self.resolver._resolve_artifacts(pool)
 
 # TODO: Expand test suite to include better dependency checking, many
 #       tests were removed due to the fundamental change in how artifacts
