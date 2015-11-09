@@ -93,10 +93,12 @@ def make_concurrency(cores=None):
     '''
 
     n = cpu_count() if cores is None else cores
-    # Experimental results (ref. Kinnison) says a factor of 1.5
-    # gives about the optimal result for build times, since much of
-    # builds are I/O bound, not CPU bound.
-    return max(int(n * 1.5 + 0.5), 1)
+    # Research shows that max-jobs should be == cores by default, up to max.
+    # 20 cores.
+    #
+    # http://listmaster.pepperfish.net/pipermail/
+    #   baserock-dev-baserock.org/2015-September/013264.html
+    return min(n, 20)
 
 
 def create_cachedir(settings):  # pragma: no cover
