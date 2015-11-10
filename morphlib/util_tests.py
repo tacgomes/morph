@@ -54,17 +54,11 @@ class SanitiseMorphologyPathTests(unittest.TestCase):
 
 class MakeConcurrencyTests(unittest.TestCase):
 
-    def test_returns_2_for_1_core(self):
-        self.assertEqual(morphlib.util.make_concurrency(cores=1), 2)
+    def test_concurrency_is_num_cores(self):
+        self.assertEqual(morphlib.util.make_concurrency(cores=2), 2)
 
-    def test_returns_3_for_2_cores(self):
-        self.assertEqual(morphlib.util.make_concurrency(cores=2), 3)
-
-    def test_returns_5_for_3_cores(self):
-        self.assertEqual(morphlib.util.make_concurrency(cores=3), 5)
-
-    def test_returns_6_for_4_cores(self):
-        self.assertEqual(morphlib.util.make_concurrency(cores=4), 6)
+    def test_concurrency_is_maximum_20(self):
+        self.assertEqual(morphlib.util.make_concurrency(cores=21), 20)
 
 
 class FindParentOfTests(unittest.TestCase):
