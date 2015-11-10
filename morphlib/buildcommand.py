@@ -404,28 +404,11 @@ class BuildCommand(object):
             meta = remote.info()
             content_len = int(meta.getheaders('Content-Length')[0])
             logging.debug('Artifact content length: %s', content_len)
+            progress_cb = morphlib.util.get_callback_for_object_size(
+                    name, content_len)
+            morphlib.util.copyfileobj(remote, local, callback=progress_cb)
 
-            if content_len < 1024:
-                report_progress = lambda count: bar.show(count)
-                expected_size = content_len
-                unit = 'bytes'
-            elif content_len >= 1024 and content_len < 1024 ** 2:
-                report_progress = lambda count: bar.show(count / float(1024))
-                expected_size = content_len / float(1024)
-                unit = 'KB'
-            else:
-                report_progress = lambda count: bar.show(count
-                                                          / float((1024 ** 2)))
-                expected_size = content_len / float((1024 ** 2))
-                unit = 'MB'
-
-            bar = morphlib.util.ProgressBar(name,
-                                            expected_size, unit)
-
-            morphlib.util.copyfileobj(remote, local,
-                                      callback=report_progress)
-
-        def fetch_files(name, to_fetch):
+        def fetch_files(app, name, to_fetch):
             '''Fetch a set of files atomically.
 
             If an error occurs during the transfer of any files, all downloaded
@@ -435,7 +418,10 @@ class BuildCommand(object):
 
             try:
                 for remote, local in to_fetch:
-                    do_fetch(name, remote, local)
+                    if app.settings['quiet']:
+                        shutil.copyfileobj(remote, local)
+                    else:
+                        do_fetch(name, remote, local)
             except BaseException:
                 for remote, local in to_fetch:
                     local.abort()
@@ -465,7 +451,7 @@ class BuildCommand(object):
                 self.app.status(
                     msg='Fetching to local cache: artifact %(name)s',
                     name=artifact.name)
-                fetch_files(artifact.name, to_fetch)
+                fetch_files(self.app, artifact.name, to_fetch)
 
     def create_staging_area(self, source, build_env, use_chroot=True,
                             extra_env={}, extra_path=[]):

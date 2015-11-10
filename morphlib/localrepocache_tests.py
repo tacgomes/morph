@@ -135,7 +135,8 @@ class LocalRepoCacheTests(unittest.TestCase):
         self.assertEqual(self.fetched, [])
 
     def test_fetches_tarball_when_it_exists(self):
-        self.lrc._fetch = lambda url, path: self.fetched.append(url)
+        self.lrc._fetch = (
+                lambda FakeApp, url, path: self.fetched.append(url))
 
         with morphlib.gitdir_tests.monkeypatch(
                 morphlib.cachedrepo.CachedRepo, 'update', lambda self: None):

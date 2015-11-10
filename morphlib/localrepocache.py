@@ -18,6 +18,8 @@ import urlparse
 import string
 import sys
 import tempfile
+import urllib2
+import shutil
 
 import cliapp
 import fs.osfs
@@ -110,28 +112,27 @@ class LocalRepoCache(object):
 
         morphlib.git.gitcmd(self._app.runcmd, *args, **kwargs)
 
-    def _fetch(self, url, path):  # pragma: no cover
+    def _fetch(self, reponame, url, path):  # pragma: no cover
         '''Fetch contents of url into a file.
 
         This method is meant to be overridden by unit tests.
 
         '''
+
         self._app.status(msg="Trying to fetch %(tarball)s to seed the cache",
                          tarball=url, chatty=True)
 
-        if self._app.settings['verbose']:
-            verbosity_flags = []
-            kwargs = dict(stderr=sys.stderr)
-        else:
-            verbosity_flags = ['--quiet']
-            kwargs = dict()
-
-        def wget_command():
-            return ['wget'] + verbosity_flags + ['-O-', url]
-
-        self._app.runcmd(wget_command(),
-                         ['tar', '--no-same-owner', '-xf', '-'],
-                         cwd=path, **kwargs)
+        url_obj = urllib2.urlopen(url)
+        content_len = int(url_obj.info().getheaders('Content-Length')[0])
+        progress_cb = morphlib.util.get_callback_for_object_size(
+                reponame, content_len)
+        with tempfile.NamedTemporaryFile() as f:
+            if self._app.settings['quiet']:
+                shutil.copyfileobj(url_obj, f)
+            else:
+                morphlib.util.copyfileobj(url_obj, f, callback=progress_cb)
+            self._app.runcmd(['tar', '--no-same-owner', '-xf', f.name,
+                              '-C', path])
 
     def _mkdtemp(self, dirname):  # pragma: no cover
         '''Creates a temporary directory.
@@ -163,12 +164,12 @@ class LocalRepoCache(object):
         path = self._cache_name(url)
         return self.fs.exists(path)
 
-    def _clone_with_tarball(self, repourl, path):
+    def _clone_with_tarball(self, reponame, repourl, path):
         tarball_url = urlparse.urljoin(self._tarball_base_url,
                                        self._escape(repourl)) + '.tar'
         try:
             self.fs.makedir(path)
-            self._fetch(tarball_url, path)
+            self._fetch(reponame, tarball_url, path)
             self._git(['config', 'remote.origin.url', repourl], cwd=path)
             self._git(['config', 'remote.origin.mirror', 'true'], cwd=path)
             self._git(['config', 'remote.origin.fetch', '+refs/*:refs/*'],
@@ -199,7 +200,7 @@ class LocalRepoCache(object):
         repourl = self._resolver.pull_url(reponame)
         path = self._cache_name(repourl)
         if self._tarball_base_url:
-            ok, error = self._clone_with_tarball(repourl, path)
+            ok, error = self._clone_with_tarball(reponame, repourl, path)
             if ok:
                 repo = self.get_repo(reponame)
                 repo.update()

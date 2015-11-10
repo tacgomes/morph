@@ -779,6 +779,22 @@ class ProgressBar(object):
         sys.stderr.write(s)
         sys.stderr.flush()
 
+def get_callback_for_object_size(name, object_size): #pragma: no cover
+    if object_size < 1024:
+        progress_cb = lambda count: bar.show(count)
+        expected_size = object_size
+        unit = 'bytes'
+    elif object_size >= 1024 and object_size < 1024 ** 2:
+        progress_cb = lambda count: bar.show(count / float(1024))
+        expected_size = object_size / float(1024)
+        unit = 'KiB'
+    else:
+        progress_cb = lambda count: bar.show(count /
+                                             float((1024 ** 2)))
+        expected_size = object_size / float((1024 ** 2))
+        unit = 'MiB'
+    bar = ProgressBar(name, expected_size, unit)
+    return progress_cb
 
 def schemas_directory():  # pragma: no cover
     '''Returns a path to the schemas/ subdirectory of the 'morphlib' module.'''
