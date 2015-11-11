@@ -70,7 +70,6 @@ class StagingAreaTests(unittest.TestCase):
         os.mkdir(self.cachedir)
         os.mkdir(os.path.join(self.cachedir, 'artifacts'))
         self.staging = os.path.join(self.tempdir, 'staging')
-        self.created_dirs = []
         self.build_env = FakeBuildEnvironment()
         self.sa = morphlib.stagingarea.StagingArea(
             FakeApplication(self.cachedir, self.tempdir), self.source,

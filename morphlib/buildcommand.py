@@ -45,8 +45,6 @@ class BuildCommand(object):
     '''
 
     def __init__(self, app, build_env = None):
-        self.supports_local_build = True
-
         self.app = app
         self.lac, self.rac = self.new_artifact_caches()
         self.lrc, self.rrc = self.new_repo_caches()

@@ -121,9 +121,6 @@ class SystemBranchDirectory(object):
 
         return os.path.join(self.root_directory, relative)
 
-    def relative_to_root_repo(self, path): # pragma: no cover
-        return self.definitions_repo.relative_path(path)
-
     def get_git_directory_name(self, repo_url):
         '''Return directory pathname for a given git repository.
 

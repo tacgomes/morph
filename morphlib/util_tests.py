@@ -67,7 +67,6 @@ class FindParentOfTests(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         os.makedirs(os.path.join(self.tempdir, 'a', 'b', 'c'))
         self.a = os.path.join(self.tempdir, 'a')
-        self.b = os.path.join(self.tempdir, 'a', 'b')
         self.c = os.path.join(self.tempdir, 'a', 'b', 'c')
 
     def tearDown(self):

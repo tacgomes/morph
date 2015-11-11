@@ -498,19 +498,6 @@ class GitDirectory(object):
             argv.append(base_ref)
         morphlib.git.gitcmd(self._runcmd, *argv)
 
-    def is_currently_checked_out(self, ref): # pragma: no cover
-        '''Is ref currently checked out?'''
-
-        # Try the ref name directly first. If that fails, prepend origin/
-        # to it. (FIXME: That's a kludge, and should be fixed.)
-        try:
-            parsed_ref = morphlib.git.gitcmd(self._runcmd, 'rev-parse', ref)
-        except cliapp.AppException:
-            parsed_ref = morphlib.git.gitcmd(self._runcmd, 'rev-parse',
-                                             'origin/%s' % ref)
-        parsed_head = morphlib.git.gitcmd(self._runcmd, 'rev-parse', 'HEAD')
-        return parsed_ref.strip() == parsed_head.strip()
-
     def get_file_from_ref(self, ref, filename): # pragma: no cover
         '''Get file contents from git by ref and filename.
 
@@ -601,19 +588,6 @@ class GitDirectory(object):
                                        '--verify', ref).strip()
         except cliapp.AppException as e:
             raise InvalidRefError(self, ref)
-
-    def disambiguate_ref(self, ref): # pragma: no cover
-        try:
-            out = morphlib.git.gitcmd(self._runcmd, 'rev-parse',
-                                      '--symbolic-full-name', ref)
-            return out.strip()
-        except cliapp.AppException: # ref not found
-            if ref.startswith('refs/heads/'):
-                return ref
-            elif ref.startswith('heads/'):
-                return 'refs/' + ref
-            else:
-                return 'refs/heads/' + ref
 
     def get_upstream_of_branch(self, branch): # pragma: no cover
         try:
@@ -720,16 +694,6 @@ class GitDirectory(object):
 
         '''
         return self._store_object(contents=blob_contents, type='blob')
-
-    def store_commit(self, commit_contents): # pragma: no cover
-        '''Hash `commit_contents`, store it in git and return the sha1.
-
-        `commit_contents` must either be a string or a value suitable to
-        pass to subprocess.Popen i.e. a file descriptor or file object
-        with fileno() method.
-
-        '''
-        return self._store_object(contents=commit_contents, type='commit')
 
     def _store_object(self, contents, type):
         if isinstance(contents, basestring):

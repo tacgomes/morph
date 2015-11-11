@@ -15,18 +15,6 @@
 import os
 import re
 
-
-def create_image(runcmd, image_name, size): # pragma: no cover
-    # FIXME a pure python implementation may be better
-    runcmd(['dd', 'if=/dev/zero', 'of=' + image_name, 'bs=1',
-            'seek=%d' % size, 'count=0'])
-
-
-def partition_image(runcmd, image_name): # pragma: no cover
-    # FIXME make this more flexible with partitioning options
-    runcmd(['sfdisk', image_name], feed_stdin='1,,83,*\n')
-
-
 def setup_device_mapping(runcmd, image_name): # pragma: no cover
     findstart = re.compile(r"start=\s+(\d+),")
     out = runcmd(['sfdisk', '-d', image_name])
@@ -40,10 +28,6 @@ def setup_device_mapping(runcmd, image_name): # pragma: no cover
 
     device = runcmd(['losetup', '--show', '-o', str(start), '-f', image_name])
     return device.strip()
-
-
-def create_fs(runcmd, partition): # pragma: no cover
-    runcmd(['mkfs.btrfs', '-L', 'baserock', partition])
 
 
 def mount(runcmd, partition, mount_point, fstype=None): # pragma: no cover

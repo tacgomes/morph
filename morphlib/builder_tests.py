@@ -140,12 +140,6 @@ class BuilderBaseTests(unittest.TestCase):
     def fake_runcmd(self, argv, *args, **kwargs):
         self.commands_run.append(argv)
 
-    def fake_open(self, filename, mode):
-        self.open_filename = filename
-        self.open_handle = StringIO.StringIO()
-        self.open_handle.close = lambda: None
-        return self.open_handle
-
     def setUp(self):
         self.commands_run = []
         self.app = FakeApp(self.fake_runcmd)

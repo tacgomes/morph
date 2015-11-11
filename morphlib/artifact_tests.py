@@ -43,11 +43,6 @@ class ArtifactTests(unittest.TestCase):
                                                     'tree', morph)
         self.artifact_name = 'chunk-runtime'
         self.artifact = self.source.artifacts[self.artifact_name]
-        self.other_source, = morphlib.source.make_sources('repo', 'ref',
-                                                          'chunk.morph',
-                                                          'sha1', 'tree',
-                                                          morph)
-        self.other = self.other_source.artifacts[self.artifact_name]
 
     def test_constructor_sets_source(self):
         self.assertEqual(self.artifact.source, self.source)

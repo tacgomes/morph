@@ -45,7 +45,6 @@ class StagingArea(object):
         self._app = app
         self.source = source
         self.dirname = dirname
-        self._bind_readonly_mount = None
 
         self.use_chroot = use_chroot
         self.env = build_env.env

@@ -252,26 +252,6 @@ class BranchAndMergePlugin(cliapp.Plugin):
                 morph.dirty = False
         logging.debug('Saving dirty morphologies: done')
 
-    def _checkout(self, lrc, sb, repo_url, ref):
-        logging.debug(
-            'Checking out %s (%s) into %s' %
-                (repo_url, ref, sb.root_directory))
-        cached_repo = lrc.get_updated_repo(repo_url)
-        gd = sb.clone_cached_repo(cached_repo, ref)
-        gd.update_submodules(self.app)
-        gd.update_remotes()
-
-    def _load_morphology_from_file(self, loader, dirname, filename):
-        full_filename = os.path.join(dirname, filename)
-        return loader.load_from_file(full_filename)
-
-    def _load_morphology_from_git(self, loader, gd, ref, filename):
-        try:
-            text = gd.get_file_from_ref(ref, filename)
-        except cliapp.AppException:
-            text = gd.get_file_from_ref('origin/%s' % ref, filename)
-        return loader.load_from_string(text, filename)
-
     def show_system_branch(self, args):
         '''Show the name of the current system branch.'''
 

@@ -198,17 +198,10 @@ class SystemBranchDirectoryTests(unittest.TestCase):
 
     def test_lists_git_directories(self):
 
-        def fake_git_clone(dirname, url, branch):
-            os.mkdir(dirname)
-            subdir = os.path.join(dirname, '.git')
-            os.mkdir(subdir)
-
         sb = morphlib.sysbranchdir.create(
             self.root_directory,
             self.root_repository_url,
             self.system_branch_name)
-
-        sb._git_clone = fake_git_clone
 
         cached_repo = self.create_fake_cached_repo()
         sb.clone_cached_repo(cached_repo, 'master')

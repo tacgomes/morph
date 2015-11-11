@@ -234,25 +234,6 @@ class SourceResolver(object):
             logging.debug("Didn't find %s in definitions", filename)
             return None
 
-    def _get_file_contents(self, definitions_checkout_dir, definitions_repo,
-                           definitions_absref, reponame, sha1,
-                           filename):
-        '''Read the file at the specified location.
-
-        Returns None if the file does not exist in the specified commit.
-
-        '''
-        text = None
-
-        if reponame == definitions_repo and \
-                sha1 == definitions_absref:
-            text = self._get_file_contents_from_definitions(
-                    definitions_checkout_dir, filename)
-        else:
-            text = self._get_file_contents_from_repo(reponame, sha1, filename)
-
-        return text
-
     def _check_version_file(self, definitions_checkout_dir):
         version_text = self._get_file_contents_from_definitions(
                 definitions_checkout_dir, 'VERSION')
