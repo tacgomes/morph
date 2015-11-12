@@ -58,6 +58,17 @@ class MissingFieldError(MorphologyValidationError):
             'Missing field %s from morphology %s' % (field, morphology_name))
 
 
+class InvalidStringError(MorphologyValidationError):
+
+    def __init__(self, field, spec, morph_filename):
+        self.field = field
+        self.spec = spec
+        self.morph_filename = morph_filename
+        MorphologyValidationError.__init__(
+            self, "Field '%(field)s' must be a non-empty string in %(spec)s"\
+                  " for morphology %(morph_filename)s" % locals())
+
+
 class InvalidFieldError(MorphologyValidationError):
 
     def __init__(self, field, morphology_name):
@@ -117,27 +128,6 @@ class DuplicateChunkError(MorphologyValidationError):
         MorphologyValidationError.__init__(
             self, 'Duplicate chunk %(chunk_name)s '\
                   'in stratum %(stratum_name)s' % locals())
-
-
-class EmptyRefError(MorphologyValidationError):
-
-    def __init__(self, ref_location, morph_filename):
-        self.ref_location = ref_location
-        self.morph_filename = morph_filename
-        MorphologyValidationError.__init__(
-            self, 'Empty ref found for %(ref_location)s '\
-                  'in %(morph_filename)s' % locals())
-
-
-class ChunkSpecRefNotStringError(MorphologyValidationError):
-
-    def __init__(self, ref_value, chunk_name, stratum_name):
-        self.ref_value = ref_value
-        self.chunk_name = chunk_name
-        self.stratum_name = stratum_name
-        MorphologyValidationError.__init__(
-            self, 'Ref %(ref_value)s for %(chunk_name)s '\
-                  'in stratum %(stratum_name)s is not a string' % locals())
 
 
 class ChunkSpecConflictingFieldsError(MorphologyValidationError):
@@ -534,15 +524,20 @@ class MorphologyLoader(object):
         for spec in morph['chunks']:
             chunk_name = spec.get('alias', spec['name'])
 
-            # All chunk refs must be strings.
-            if 'ref' in spec:
-                ref = spec['ref']
-                if ref == None:
-                    raise EmptyRefError(
-                        spec.get('alias', spec['name']), morph.filename)
-                elif not isinstance(ref, basestring):
-                    raise ChunkSpecRefNotStringError(
-                        ref, spec.get('alias', spec['name']), morph.filename)
+            # All chunks repos must be strings
+
+            def validate_chunk_str_field(field, spec, morph_filename):
+                if field not in spec:
+                    raise MissingFieldError('%s in %s' % (field, spec),
+                                            morph.filename)
+                val = spec[field]
+                if not val or not isinstance(val, basestring) or (
+                        not val.strip()):
+                   raise InvalidStringError(
+                        field, spec, morph_filename)
+
+            validate_chunk_str_field('repo', spec, morph.filename)
+            validate_chunk_str_field('ref', spec, morph.filename)
 
             # The build-depends field must be a list.
             if 'build-depends' in spec:

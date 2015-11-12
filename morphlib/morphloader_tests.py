@@ -208,6 +208,58 @@ build-system: manual
         self.assertRaises(
             morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
 
+    def test_validate_requires_chunk_repos_to_exist(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'ref': 'master',
+                    'build-depends': []
+                }
+            ]
+        })
+        with self.assertRaises(
+                morphlib.morphloader.MissingFieldError):
+            self.loader.validate(m)
+
+    def test_validate_requires_chunk_repos_in_stratum_to_be_strings(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'repo': 1,
+                    'ref': 'master',
+                    'build-depends': []
+                }
+            ]
+        })
+        with self.assertRaises(
+                morphlib.morphloader.InvalidStringError):
+            self.loader.validate(m)
+
+    def test_validate_requires_chunk_refs_to_exist(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'repo': 'test:repo',
+                    'build-depends': []
+                }
+            ]
+        })
+        with self.assertRaises(
+                morphlib.morphloader.MissingFieldError):
+            self.loader.validate(m)
+
     def test_validate_requires_chunk_refs_in_stratum_to_be_strings(self):
         m = morphlib.morphology.Morphology({
             'kind': 'stratum',
@@ -223,25 +275,7 @@ build-system: manual
             ]
         })
         with self.assertRaises(
-                morphlib.morphloader.ChunkSpecRefNotStringError):
-            self.loader.validate(m)
-
-    def test_fails_to_validate_stratum_with_empty_refs_for_a_chunk(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-            'name': 'foo',
-            'build-depends': [],
-            'chunks' : [
-                {
-                    'name': 'chunk',
-                    'repo': 'test:repo',
-                    'ref': None,
-                    'build-depends': []
-                }
-            ]
-        })
-        with self.assertRaises(
-                morphlib.morphloader.EmptyRefError):
+                morphlib.morphloader.InvalidStringError):
             self.loader.validate(m)
 
     def test_fails_to_validate_stratum_which_build_depends_on_self(self):
