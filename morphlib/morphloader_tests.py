@@ -666,7 +666,7 @@ build-system: manual
             'name': 'foo',
             'chunks': [
                 {
-                    'name': 'bar',
+                    'repo': 'bar',
                     "ref": "bar",
                     'build-mode': 'staging',
                     'build-depends': [],
@@ -769,14 +769,14 @@ build-system: manual
                          [{'morph': 'foo'},
                           {'morph': 'bar'}])
 
-    def test_sets_stratum_chunks_repo_from_name(self):
+    def test_sets_stratum_chunks_name_from_repo(self):
         m = morphlib.morphology.Morphology(
             {
                 "name": "foo",
                 "kind": "stratum",
                 "chunks": [
                     {
-                        "name": "le-chunk",
+                        "repo": "le-chunk",
                         "ref": "ref",
                         "build-system": "manual",
                         "build-depends": [],
@@ -786,9 +786,9 @@ build-system: manual
 
         self.loader.set_defaults(m)
         self.loader.validate(m)
-        self.assertEqual(m['chunks'][0]['repo'], 'le-chunk')
+        self.assertEqual(m['chunks'][0]['name'], 'le-chunk')
 
-    def test_collapses_stratum_chunks_repo_from_name(self):
+    def test_collapses_stratum_chunks_name_from_repo(self):
         m = morphlib.morphology.Morphology(
             {
                 "name": "foo",
@@ -806,7 +806,7 @@ build-system: manual
             })
 
         self.loader.unset_defaults(m)
-        self.assertTrue('repo' not in m['chunks'][0])
+        self.assertTrue('name' not in m['chunks'][0])
 
     def test_convertes_max_jobs_to_an_integer(self):
         m = morphlib.morphology.Morphology(
