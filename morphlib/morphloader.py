@@ -389,7 +389,7 @@ class MorphologyLoader(object):
                 morphlib.buildsystem.ManualBuildSystem()
 
     def load_from_string(self, string,
-                         filename='string'):  # pragma: no cover
+                         filename='string'):
         '''Load a morphology from a string.
 
         Return the Morphology object.
@@ -494,11 +494,6 @@ class MorphologyLoader(object):
             if name in names:
                 raise DuplicateStratumError(morph['name'], name)
             names.add(name)
-
-        # We allow the ARMv7 little-endian architecture to be specified
-        # as armv7 and armv7l. Normalise.
-        if morph['arch'] == 'armv7':
-            morph['arch'] = 'armv7l'
 
         # Architecture name must be known.
         if morph['arch'] not in morphlib.valid_archs:
