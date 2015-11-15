@@ -66,16 +66,6 @@ class GitIndexTests(unittest.TestCase):
         idx.set_to_tree(gd.HEAD)
         self.assertEqual(list(idx.get_uncommitted_changes()),[])
 
-    def test_add_files_from_index_info(self):
-        gd = morphlib.gitdir.GitDirectory(self.dirname)
-        idx = gd.get_index(os.path.join(self.tempdir, 'index'))
-        filepath = os.path.join(gd.dirname, 'foo')
-        with open(filepath, 'r') as f:
-            sha1 = gd.store_blob(f)
-            idx.add_files_from_index_info(
-                [(os.stat(filepath).st_mode, sha1, 'foo')])
-        self.assertEqual(list(idx.get_uncommitted_changes()),[])
-
     def test_add_files_from_working_tree(self):
         gd = morphlib.gitdir.GitDirectory(self.dirname)
         idx = gd.get_index()
