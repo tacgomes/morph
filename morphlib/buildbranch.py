@@ -151,76 +151,6 @@ class BuildBranch(object):
             index.add_files_from_working_tree(changed)
         return changes_made
 
-    def _hash_morphologies(self, gd, morphologies):
-        '''Hash morphologies and return object info'''
-        loader = self.get_morphology_loader()
-        for morphology in morphologies:
-            loader.unset_defaults(morphology)
-            sha1 = gd.store_blob(loader.save_to_string(morphology))
-            yield 0o100644, sha1, morphology.filename
-
-    def get_morphology_loader(self):
-        if self._sb:
-            return self._sb.get_morphology_loader()
-        else:
-            return self._root.get_morphology_loader()
-
-    def load_all_morphologies(self):
-        if self._sb:
-            return self._sb.load_all_morphologies()
-        else:
-            return self._root.load_all_morphologies()
-
-    def inject_build_refs(self, use_local_repos, inject_cb=lambda **kwargs:
-                          None):
-        '''Update system and stratum morphologies to point to our branch.
-
-        For all edited repositories, this alter the temporary GitIndex
-        of the morphs repositories to point their temporary build branch
-        versions.
-
-        '''
-        root_repo = self._root.remote_url
-        root_ref = self._root.HEAD
-        morphs = morphlib.morphset.MorphologySet()
-
-        for morph in self.load_all_morphologies():
-            morphs.add_morphology(morph)
-
-        sb_info = {}
-        for gd, (build_ref, index) in self._to_push.iteritems():
-            if gd == self._root:
-                repo, ref = root_repo, root_ref
-            else:
-                # This branch can only run if we are in a Morph system branch
-                # checkout, because only there will we consider chunk repos.
-                repo, ref = gd.get_config('morph.repository'), gd.HEAD
-            sb_info[repo, ref] = (gd, build_ref)
-
-        def filter(m, kind, spec):
-            return (spec.get('repo'), spec.get('ref')) in sb_info
-        def process(m, kind, spec):
-            repo, ref = spec['repo'], spec['ref']
-            gd, build_ref = sb_info[repo, ref]
-            if (repo, ref) == (root_repo, root_ref):
-                spec['repo'] = None
-                spec['ref'] = None
-                return True
-            if use_local_repos:
-                spec['repo'] = urlparse.urljoin('file://', gd.dirname)
-            spec['ref'] = build_ref
-            return True
-
-        morphs.traverse_specs(process, filter)
-
-        if any(m.dirty for m in morphs.morphologies):
-            inject_cb(gd=self._root)
-
-        # TODO: Prevent it hashing unchanged morphologies, while still
-        # hashing uncommitted ones.
-        self._root_index.add_files_from_index_info(
-            self._hash_morphologies(self._root, morphs.morphologies))
-
     def update_build_refs(self, name, email, uuid,
                           commit_cb=lambda **kwargs: None):
         '''Commit changes in temporary GitIndexes to temporary branches.
@@ -233,8 +163,7 @@ class BuildBranch(object):
         the repositories in the SystemBranch with:
         1.  The tree of anything currently in the temporary GitIndex.
             This is the same as the current commit on HEAD unless
-            `add_uncommitted_changes` or `inject_build_refs` have
-            been called.
+            `add_uncommitted_changes` have been called.
         2.  the parent of the previous temporary commit, or the last
             commit of the working tree if there has been no previous
             commits
@@ -383,13 +312,6 @@ def pushed_build_branch(bb, changes_need_pushing, name, email,
             # the cached copy of the root repo.
             yield bb.root_repo_url, bb.root_commit, bb.root_ref
             return
-
-        def report_inject(gd):
-            status(msg='Injecting temporary build refs '\
-                           'into morphologies in %(dirname)s',
-                       dirname=gd.dirname, chatty=True)
-        bb.inject_build_refs(use_local_repos=not changes_need_pushing,
-                             inject_cb=report_inject)
 
         def report_commit(gd, build_ref):
             status(msg='Committing changes in %(dirname)s '\
