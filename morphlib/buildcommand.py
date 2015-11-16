@@ -56,7 +56,7 @@ class BuildCommand(object):
             msg='Building %(repo_name)s %(ref)s %(filename)s',
             repo_name=repo_name, ref=ref, filename=filename)
 
-        self.app.status(msg='Deciding on task order')
+        self.app.status(msg='Traversing morphologies for %s' % filename)
         srcpool = self.create_source_pool(
             repo_name, ref, [filename], original_ref)
         self.validate_sources(srcpool)
@@ -186,10 +186,9 @@ class BuildCommand(object):
     def resolve_artifacts(self, srcpool):
         '''Resolve the artifacts that will be built for a set of sources'''
 
-        self.app.status(msg='Creating artifact resolver', chatty=True)
         ar = morphlib.artifactresolver.ArtifactResolver()
 
-        self.app.status(msg='Resolving artifacts', chatty=True)
+        self.app.status(msg='Creating artifact dependency graph')
         root_artifacts = ar.resolve_root_artifacts(srcpool)
 
         if len(root_artifacts) > 1:
