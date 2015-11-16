@@ -171,7 +171,8 @@ class DefinitionsRepo(gitdir.GitDirectory):
                 git_user_email=git_user_email, status_cb=status_cb)
             with temporary_branch as (repo_url, commit, original_ref):
                 if status_cb:
-                    status_cb(msg='Deciding on task order')
+                    status_cb(msg='Traversing morphologies for %s' %
+                                  system_filename)
 
                 yield morphlib.sourceresolver.create_source_pool(
                     lrc, rrc, repo_url, commit, [system_filename],
@@ -182,7 +183,8 @@ class DefinitionsRepo(gitdir.GitDirectory):
             commit = self.resolve_ref_to_commit(ref)
 
             if status_cb:
-                status_cb(msg='Deciding on task order')
+                status_cb(msg='Traversing morphologies for %s' %
+                              system_filename)
 
             try:
                 yield morphlib.sourceresolver.create_source_pool(
