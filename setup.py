@@ -160,6 +160,7 @@ setup(name='morph',
               'commit',
               'tree',
               'ref',
+              'schemas/*',
           ]
       },
       data_files=[('share/man/man1', glob.glob('*.[1-8]'))],
