@@ -15,6 +15,7 @@
 # =*= License: GPL-2 =*=
 
 
+import os
 import collections
 import warnings
 import yaml
@@ -88,6 +89,13 @@ class InvalidTypeError(MorphologyValidationError):
         self.msg = (
             'Field %s expected type %s, got %s in morphology %s' %
             (field, expected, actual, morphology_name))
+
+
+class InvalidPathError(MorphologyValidationError):
+
+    def __init__(self, path, spec, morph_filename):
+        self.msg = ("Invalid path '%s' in %s from morphology %s"
+                    % (path, spec, morph_filename))
 
 
 class UnknownArchitectureError(MorphologyValidationError):
@@ -236,6 +244,7 @@ class MorphologyDumper(yaml.SafeDumper):
         'build-mode',
         'artifacts',
         'max-jobs',
+        'extra-sources',
         'products',
         'chunks',
         'build-system',
@@ -347,6 +356,7 @@ class MorphologyLoader(object):
             'strip-commands': None,
             'post-strip-commands': None,
             'devices': [],
+            'extra-sources': [],
             'products': [],
             'max-jobs': None,
             'build-system': 'manual',
@@ -554,6 +564,27 @@ class MorphologyLoader(object):
                 raise ChunkSpecNoBuildInstructionsError(
                     chunk_name, morph.filename)
 
+            def validate_extra_sources(extra_sources, morph_filename):
+                for extra_source in extra_sources:
+                    validate_chunk_str_field('repo', extra_source,
+                                             morph.filename)
+                    path = extra_source.get('path')
+                    if not path:
+                        raise MissingFieldError("'path' in %s" % extra_source,
+                                                morph.filename)
+                    path = os.path.normpath(path)
+                    if os.path.isabs(path) or path.startswith('..') or (
+                            path == '.') or not path.strip():
+                        raise InvalidPathError(extra_source['path'],
+                                               extra_source,
+                                               morph_filename)
+                    if 'extra-sources' in extra_source:
+                        validate_extra_sources(extra_source['extra-sources'],
+                                               morph.filename)
+
+            if 'extra-sources' in spec:
+                validate_extra_sources(spec['extra-sources'], morph.filename)
+
     @classmethod
     def _validate_chunk(cls, morphology):
         errors = []
@@ -706,6 +737,9 @@ class MorphologyLoader(object):
             if 'prefix' not in spec:
                 spec['prefix'] = \
                     self._static_defaults['chunk']['prefix']
+            if 'extra-sources' not in spec:
+                spec['extra-sources'] = \
+                    self._static_defaults['chunk']['extra-sources']
 
     def _unset_stratum_defaults(self, morph):
         for spec in morph['chunks']:
@@ -717,6 +751,9 @@ class MorphologyLoader(object):
             if 'prefix' in spec and spec['prefix'] == \
                     self._static_defaults['chunk']['prefix']:
                 del spec['prefix']
+            if 'extra-sources' in spec and spec['extra-sources'] == \
+                    self._static_defaults['chunk']['extra-sources']:
+                del spec['extra-sources']
 
     def _set_chunk_defaults(self, morph):
         if morph['max-jobs'] is not None:

@@ -226,6 +226,7 @@ class BuildPlugin(cliapp.Plugin):
         '''
         bc = morphlib.buildcommand.BuildCommand(self.app)
         bc.validate_sources(source_pool)
+        bc.source_pool = source_pool
         root = bc.resolve_artifacts(source_pool)
         if not component_names:
             component_names = [root.source.name]

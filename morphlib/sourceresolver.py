@@ -145,7 +145,7 @@ class SourceResolver(object):
     The third layer of caching is a simple commit SHA1 -> tree SHA mapping. It
     turns out that even if all repos are available locally, running
     'git rev-parse' on hundreds of repos requires a lot of IO and can take
-    several minutes. Likewise, on a slow network connection it is time
+    several /minutes. Likewise, on a slow network connection it is time
     consuming to keep querying the remote repo cache. This third layer of
     caching works around both of those issues.
 
@@ -289,8 +289,59 @@ class SourceResolver(object):
 
         return morph
 
+    def _resolve_subtrees(self, parent_reponame, parent_ref, extra_sources,
+                          resolved_trees):
+
+        subtrees = []
+
+        def resolve_extra_refs(reponame, ref, extra_sources, base_path):
+            for extra_source in extra_sources:
+                if (extra_source['repo'], extra_source['path']) in (
+                        resolved_trees):
+                    tree = resolved_trees[(extra_source['repo'],
+                                           extra_source['path'])]
+                else:
+                    subref = extra_source.get('ref')
+                    if not subref:
+                        if self.lrc.has_repo(reponame):
+                            repo = self.lrc.get_repo(reponame)
+                            if self.update and (
+                                    repo.requires_update_for_ref(ref)):
+                                self.status(msg='Updating cached git '
+                                                'repository %(reponame)s for '
+                                                'ref %(ref)s',
+                                            reponame=reponame, ref=ref)
+                                repo.update()
+                        else:
+                            # TODO Add support to the cache server for
+                            # retrieving the submodule commit from a path
+                            self.status(msg='Updating cached git repository '
+                                            '%(reponame)s for ref %(ref)s',
+                                        reponame=reponame, ref=ref)
+                            repo = self.lrc.get_updated_repo(reponame, ref)
+                        subref = repo.get_submodule_commit(
+                                ref, extra_source['path'])
+                    _, tree = self._resolve_ref(resolved_trees,
+                                                 extra_source['repo'], subref)
+                    resolved_trees[(extra_source['repo'],
+                                    extra_source['path'])] = tree
+                path = os.path.normpath(os.path.join(base_path,
+                                                     extra_source['path']))
+                subtrees.append({'path': path, 'tree': tree})
+                if 'extra-sources' in extra_source:
+                    resolve_extra_refs(extra_source['repo'],
+                                       extra_source['ref'],
+                                       extra_source['extra-sources'],
+                                       path)
+
+        if extra_sources:
+            resolve_extra_refs(parent_reponame, parent_ref,
+                               extra_sources, '.')
+        return subtrees
+
     def _process_definitions_with_children(self,
                                            resolved_morphologies,
+                                           resolved_trees,
                                            definitions_checkout_dir,
                                            definitions_repo,
                                            definitions_ref,
@@ -301,7 +352,7 @@ class SourceResolver(object):
                                            visit,
                                            predefined_split_rules):
         definitions_queue = collections.deque(system_filenames)
-        chunk_queue = set()
+        chunk_queue = []
 
         def get_morphology(filename):
             return self._get_morphology(resolved_morphologies,
@@ -317,7 +368,7 @@ class SourceResolver(object):
 
             visit(definitions_repo, definitions_ref, filename,
                   definitions_absref, definitions_tree, morphology,
-                  predefined_split_rules)
+                  predefined_split_rules, [])
 
             if morphology['kind'] == 'cluster':
                 raise cliapp.AppException(
@@ -332,6 +383,9 @@ class SourceResolver(object):
                         sanitise_morphology_path(s['morph'])
                         for s in morphology['build-depends'])
                 for c in morphology['chunks']:
+                    extra_sources = c.get('extra-sources')
+                    subtrees = self._resolve_subtrees(c['repo'], c['ref'],
+                            extra_sources, resolved_trees)
                     if 'morph' in c:
                         # Now, does this path actually exist?
                         path = c['morph']
@@ -341,14 +395,15 @@ class SourceResolver(object):
                             raise MorphologyReferenceNotFoundError(
                                 path, filename)
 
-                        chunk_queue.add((c['repo'], c['ref'], path, None))
+                        chunk_queue.append((c['repo'], c['ref'], path, None,
+                                           subtrees))
                     else:
                         # We invent a filename here, so that the rest of the
                         # Morph code doesn't need to know about the predefined
                         # build instructions.
                         chunk_name = c['name'] + '.morph'
-                        chunk_queue.add((c['repo'], c['ref'], chunk_name,
-                                         c['build-system']))
+                        chunk_queue.append((c['repo'], c['ref'], chunk_name,
+                                           c['build-system'], subtrees))
 
         return chunk_queue
 
@@ -362,8 +417,8 @@ class SourceResolver(object):
 
     def process_chunk(self, resolved_morphologies, resolved_trees,
                       definitions_checkout_dir, morph_loader, chunk_repo,
-                      chunk_ref, filename, chunk_buildsystem, visit,
-                      predefined_split_rules):
+                      chunk_ref, filename, chunk_buildsystem, subtrees,
+                      visit, predefined_split_rules):
         absref, tree = self._resolve_ref(resolved_trees, chunk_repo, chunk_ref)
 
         if chunk_buildsystem is None:
@@ -384,10 +439,10 @@ class SourceResolver(object):
                 morph_loader, buildsystem, filename)
 
         visit(chunk_repo, chunk_ref, filename, absref, tree, morphology,
-              predefined_split_rules)
+              predefined_split_rules, subtrees)
 
     def traverse_morphs(self, definitions_repo, definitions_ref,
-                        system_filenames,
+                        system_filenames, pool,
                         visit=lambda rn, rf, fn, arf, m: None,
                         definitions_original_ref=None):
 
@@ -414,6 +469,7 @@ class SourceResolver(object):
 
             definitions_version = self._check_version_file(
                 definitions_checkout_dir)
+            pool.definitions_version = definitions_version
 
             predefined_build_systems, predefined_split_rules = \
                 self._get_defaults(
@@ -426,17 +482,21 @@ class SourceResolver(object):
             # will all live in the same Git repository, and will point to
             # various chunk morphologies.
             chunk_queue = self._process_definitions_with_children(
-                    resolved_morphologies, definitions_checkout_dir,
-                    definitions_repo, definitions_ref, definitions_absref,
+                    resolved_morphologies, resolved_trees,
+                    definitions_checkout_dir, definitions_repo,
+                    definitions_ref, definitions_absref,
                     definitions_tree, morph_loader, system_filenames, visit,
                     predefined_split_rules)
 
             # Now process all the chunks involved in the build.
-            for repo, ref, filename, buildsystem in chunk_queue:
+            for repo, ref, filename, buildsystem, extra_sources in (
+                    chunk_queue):
                 self.process_chunk(resolved_morphologies, resolved_trees,
                                    definitions_checkout_dir, morph_loader,
-                                   repo, ref, filename, buildsystem, visit,
+                                   repo, ref, filename, buildsystem,
+                                   extra_sources, visit,
                                    predefined_split_rules)
+
 
 class DuplicateChunkError(morphlib.Error):
 
@@ -485,10 +545,10 @@ def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
     pool = morphlib.sourcepool.SourcePool()
 
     def add_to_pool(reponame, ref, filename, absref, tree, morphology,
-                    predefined_split_rules):
+                    predefined_split_rules, subtrees):
         sources = morphlib.source.make_sources(
             reponame, ref, filename, absref, tree, morphology,
-            predefined_split_rules)
+            predefined_split_rules, subtrees)
         for source in sources:
             pool.add(source)
 
@@ -498,7 +558,7 @@ def create_source_pool(lrc, rrc, repo, ref, filenames, cachedir,
     resolver = SourceResolver(lrc, rrc, tree_cache_manager, update_repos,
                               status_cb)
     resolver.traverse_morphs(repo, ref, filenames,
-                             visit=add_to_pool,
+                             pool, visit=add_to_pool,
                              definitions_original_ref=original_ref)
 
     # No two chunks may have the same name

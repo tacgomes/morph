@@ -189,6 +189,7 @@ class ArtifactResolver(object):
             # Resolve now to avoid a search for the parent morphology later
             chunk_source.build_mode = info['build-mode']
             chunk_source.prefix = info['prefix']
+            chunk_source.extra_sources = info['extra-sources']
 
             # Add these chunks to the processed artifacts, so other
             # chunks may refer to them.

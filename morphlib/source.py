@@ -78,7 +78,7 @@ class Source(object):
 
 
 def make_sources(reponame, ref, filename, absref, tree, morphology,
-                 default_split_rules={}):
+                 default_split_rules={}, subtrees=[]):
     kind = morphology['kind']
     if kind in ('system', 'chunk'):
         unifier = getattr(morphlib.artifactsplitrule,
@@ -92,6 +92,7 @@ def make_sources(reponame, ref, filename, absref, tree, morphology,
                                         filename, split_rules)
         source.artifacts = {name: morphlib.artifact.Artifact(source, name)
                      for name in split_rules.artifacts}
+        source.subtrees = subtrees
         yield source
     elif kind == 'stratum': # pragma: no cover
         unifier = morphlib.artifactsplitrule.unify_stratum_matches

@@ -166,6 +166,12 @@ int run_commands(FILE *cmdstream){
         } else if (strstr(line, "printvar ") == line) {
             char const *var = line + sizeof("printvar ") - 1;
             fprintf(stdout, "%s\n", getenv(var));
+        } else if (strstr(line, "file exists ") == line) {
+            char const *filename = line + sizeof("file exists ") -1;
+            fprintf(stderr, "FILENAME: %s\n", filename);
+            struct stat st;
+            int result = stat(filename, &st);
+            return result != 0;
         } else if (strstr(line, "create file ") == line) {
             char const *filename = line + sizeof("create file ") -1;
             FILE *outfile = fopen(filename, "w");

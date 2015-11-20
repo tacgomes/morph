@@ -35,7 +35,8 @@ import morphlib.gitversion
 
 SYSTEM_INTEGRATION_PATH = os.path.join('baserock', 'system-integration')
 
-def extract_sources(app, repo_cache, repo, sha1, srcdir): #pragma: no cover
+def extract_sources(app, definitions_version, repo_cache, repo, sha1,
+                    destdir, source): #pragma: no cover
     '''Get sources from git to a source directory, including submodules'''
 
     def extract_repo(repo, sha1, destdir):
@@ -57,12 +58,48 @@ def extract_sources(app, repo_cache, repo, sha1, srcdir): #pragma: no cover
                 sub_dir = os.path.join(destdir, sub.path)
                 tuples.append((cached_repo, sub.commit, sub_dir))
             return tuples
+        return []
 
-    todo = [(repo, sha1, srcdir)]
-    while todo:
-        repo, sha1, srcdir = todo.pop()
-        todo += extract_repo(repo, sha1, srcdir)
-    set_mtime_recursively(srcdir)
+    def extract_repo_version_8(repo, ref, extra_sources,
+                               rootdir, destdir):
+
+        app.status(msg='Extracting %(source)s into %(path)s',
+                   source=repo.original_name,
+                   path=destdir)
+        repo.checkout(ref, destdir)
+        morphlib.git.reset_workdir(app.runcmd, destdir)
+
+        for extra_source in extra_sources:
+            subrepo = repo_cache.get_repo(extra_source['repo'])
+            path = os.path.normpath(extra_source['path'])
+            checkout_dir = os.path.join(destdir, path)
+            if os.path.exists(checkout_dir):
+                if os.listdir(checkout_dir):
+                    raise cliapp.AppException(
+                            "Failed to clone '%s': the directory '%s' "
+                            "is not empty" %
+                            (subrepo.original_name, os.path.join(
+                                    rootdir, path)))
+            else:
+                os.makedirs(checkout_dir)
+            subref = extra_source.get('ref')
+            if not subref:
+                subref = repo.get_submodule_commit(ref, path)
+
+            extract_repo_version_8(subrepo, subref,
+                                   extra_source.get('extra-sources', []),
+                                   rootdir,
+                                   os.path.join(destdir, checkout_dir))
+    if definitions_version >= 8:
+        extract_repo_version_8(repo, sha1, source.extra_sources,
+                               os.path.basename(destdir), destdir)
+    else:
+        todo = [(repo, sha1, destdir)]
+        while todo:
+            repo, sha1, destdir = todo.pop()
+            todo += extract_repo(repo, sha1, destdir)
+
+    set_mtime_recursively(destdir)
 
 def set_mtime_recursively(root):  # pragma: no cover
     '''Set the mtime for every file in a directory tree to the same.
@@ -147,7 +184,7 @@ class BuilderBase(object):
 
     def __init__(self, app, staging_area, local_artifact_cache,
                  remote_artifact_cache, source, repo_cache, max_jobs,
-                 setup_mounts):
+                 setup_mounts, definitions_version):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
@@ -157,6 +194,7 @@ class BuilderBase(object):
         self.max_jobs = max_jobs
         self.build_watch = morphlib.stopwatch.Stopwatch()
         self.setup_mounts = setup_mounts
+        self.definitions_version = definitions_version
 
     def save_build_times(self):
         '''Write the times captured by the stopwatch'''
@@ -312,7 +350,6 @@ class ChunkBuilder(BuilderBase):
     def run_commands(self, logfilepath, stdout=None):  # pragma: no cover
         m = self.source.morphology
         bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
-
         relative_builddir = self.staging_area.relative_builddir()
         relative_destdir = self.staging_area.relative_destdir()
         ccache_dir = self.staging_area.ccache_dir()
@@ -375,7 +412,6 @@ class ChunkBuilder(BuilderBase):
                                                 stderr=subprocess.STDOUT,
                                                 logfile=logfilepath,
                                                 ccache_dir=ccache_dir)
-
                     if stdout:
                         stdout.flush()
 
@@ -491,7 +527,8 @@ class ChunkBuilder(BuilderBase):
 
     def get_sources(self, srcdir):  # pragma: no cover
         s = self.source
-        extract_sources(self.app, self.repo_cache, s.repo, s.sha1, srcdir)
+        extract_sources(self.app, self.definitions_version, self.repo_cache,
+                        s.repo, s.sha1, srcdir, s)
 
 
 class StratumBuilder(BuilderBase):
@@ -726,7 +763,8 @@ class Builder(object):  # pragma: no cover
     }
 
     def __init__(self, app, staging_area, local_artifact_cache,
-                 remote_artifact_cache, repo_cache, max_jobs, setup_mounts):
+                 remote_artifact_cache, repo_cache, max_jobs, setup_mounts,
+                 definitions_version):
         self.app = app
         self.staging_area = staging_area
         self.local_artifact_cache = local_artifact_cache
@@ -734,6 +772,7 @@ class Builder(object):  # pragma: no cover
         self.repo_cache = repo_cache
         self.max_jobs = max_jobs
         self.setup_mounts = setup_mounts
+        self.definitions_version = definitions_version
 
     def build_and_cache(self, source):
         kind = source.morphology['kind']
@@ -741,7 +780,8 @@ class Builder(object):  # pragma: no cover
                                self.local_artifact_cache,
                                self.remote_artifact_cache, source,
                                self.repo_cache, self.max_jobs,
-                               self.setup_mounts)
+                               self.setup_mounts,
+                               self.definitions_version)
         self.app.status(msg='Builder.build: artifact %s with %s' %
                        (source.name, repr(o)),
                        chatty=True)

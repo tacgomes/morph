@@ -245,6 +245,10 @@ class CachedRepo(object):
         else:
             return False
 
+    def get_submodule_commit(self, parent_ref, submodule_path):
+        return self.gitdir.get_submodule_commit(parent_ref, # pragma: no cover
+                submodule_path)
+
     def update(self):
         '''Updates the cached repository using its origin remote.
 

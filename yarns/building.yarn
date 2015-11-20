@@ -89,6 +89,24 @@ Morph Building Tests
     AND there are 2 artifacts named core-runtime in the cache
     FINALLY the git server is shut down
 
+    SCENARIO test recursive sources for a chunk
+    GIVEN a workspace
+    AND a git server
+    GIVEN a chunk with dependencies
+    WHEN the user checks out the system branch called master
+    WHEN the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    FINALLY the git server is shut down
+
+    SCENARIO test recursive sources with non-empty path
+    GIVEN a workspace
+    AND a git server
+    GIVEN a chunk with recursive sources with non-empty paths
+    WHEN the user checks out the system branch called master
+    WHEN the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph failed
+    FINALLY the git server is shut down
+
 System integrations
 -------------------
 

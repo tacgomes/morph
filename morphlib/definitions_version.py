@@ -24,7 +24,7 @@ import yaml
 import morphlib
 
 
-SUPPORTED_VERSIONS = [6, 7]
+SUPPORTED_VERSIONS = [6, 7, 8]
 
 
 class DefinitionsVersionError(cliapp.AppException):

@@ -278,6 +278,63 @@ build-system: manual
                 morphlib.morphloader.InvalidStringError):
             self.loader.validate(m)
 
+    def test_fails_to_validate_stratum_with_a_missing_path(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'repo': 'test:repo',
+                    'ref': 'master',
+                    'build-system': 'manual',
+                    'build-depends': [],
+                    'extra-sources':
+                        [
+                            {
+                                'repo': 'foo',
+                                'path': 'somepath',
+                                'extra-sources':
+                                    [
+                                        {
+                                            'repo': 'bar',
+                                            'ref': 'master'
+                                        }
+                                    ]
+                            }
+                        ]
+                }
+            ]
+        })
+        self.assertRaises(
+            morphlib.morphloader.MissingFieldError, self.loader.validate, m)
+
+    def test_fails_to_validate_stratum_with_invalid_path(self):
+        m = morphlib.morphology.Morphology({
+            'kind': 'stratum',
+            'name': 'foo',
+            'build-depends': [],
+            'chunks': [
+                {
+                    'name': 'chunk',
+                    'repo': 'test:repo',
+                    'ref': 'master',
+                    'build-system': 'manual',
+                    'build-depends': [],
+                    'extra-sources':
+                        [
+                            {
+                                'repo': 'foo',
+                                'path': '../foo'
+                            }
+                        ]
+                }
+            ]
+        })
+        self.assertRaises(
+            morphlib.morphloader.InvalidPathError, self.loader.validate, m)
+
     def test_fails_to_validate_stratum_which_build_depends_on_self(self):
         text = '''\
 name: bad-stratum
@@ -601,6 +658,7 @@ build-system: manual
                 'pre-strip-commands': None,
                 'post-strip-commands': None,
 
+                'extra-sources': [],
                 'products': [],
                 'system-integration': [],
                 'devices': [],
@@ -654,6 +712,7 @@ build-system: manual
                         "morph": "bar",
                         'build-mode': 'bootstrap',
                         'build-depends': [],
+                        'extra-sources': [],
                         'prefix': '/usr',
                     },
                 ],
@@ -670,6 +729,7 @@ build-system: manual
                     "ref": "bar",
                     'build-mode': 'staging',
                     'build-depends': [],
+                    'extra-sources': [],
                     'prefix': '/usr',
                 },
             ],

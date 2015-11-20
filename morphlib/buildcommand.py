@@ -100,6 +100,7 @@ class BuildCommand(object):
             original_ref=original_ref,
             update_repos=not self.app.settings['no-git-update'],
             status_cb=self.app.status)
+        self.source_pool = srcpool
         return srcpool
 
     def validate_sources(self, srcpool):
@@ -392,9 +393,25 @@ class BuildCommand(object):
     def fetch_sources(self, source):
         '''Update the local git repository cache with the sources.'''
 
+        def fetch_extra_sources(lrc, parent_repo, parent_ref, extra_sources):
+            for extra_source in extra_sources:
+                ref = extra_source.get('ref')
+                if not ref:
+                    ref = parent_repo.get_submodule_commit(
+                            parent_ref, extra_source['path'])
+                repo = self.lrc.get_updated_repo(extra_source['repo'],
+                                                 ref=ref)
+                fetch_extra_sources(lrc, repo, ref,
+                                    extra_source.get('extra-sources', []))
+
         repo_name = source.repo_name
         source.repo = self.lrc.get_updated_repo(repo_name, ref=source.sha1)
-        self.lrc.ensure_submodules(source.repo, source.sha1)
+        if source.morphology['kind'] == 'chunk':
+            if self.source_pool.definitions_version >= 8:
+                fetch_extra_sources(self.lrc, source.repo, source.sha1,
+                                    source.extra_sources)
+            else:
+                self.lrc.ensure_submodules(source.repo, source.sha1)
 
     def cache_artifacts_locally(self, artifacts):
         '''Get artifacts missing from local cache from remote cache.'''
@@ -540,7 +557,8 @@ class BuildCommand(object):
                         name=source.name, sha1=source.sha1[:7])
         builder = morphlib.builder.Builder(
             self.app, staging_area, self.lac, self.rac, self.lrc,
-            self.app.settings['max-jobs'], setup_mounts)
+            self.app.settings['max-jobs'], setup_mounts,
+            self.source_pool.definitions_version)
         return builder.build_and_cache(source)
 
 class InitiatorBuildCommand(BuildCommand):

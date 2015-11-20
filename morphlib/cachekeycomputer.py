@@ -96,6 +96,11 @@ class CacheKeyComputer(object):
             keys['split-rules'] = [(a, [rgx.pattern for rgx in r._regexes])
                                    for (a, r) in source.split_rules]
 
+            # Avoid adding the 'extra-trees' key if there were no
+            # extra-sources, to avoid unnecessary rebuilds
+            if source.subtrees: # pragma no cover
+                keys['extra-trees'] = source.subtrees
+
             # Include morphology contents, since it doesn't always come
             # from the source tree
             keys['devices'] = morphology.get('devices')
