@@ -552,34 +552,6 @@ We can create a new branch, off master.
     if [ $MATCH_1 == "creates" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
-Editing morphologies with `morph edit`.
-
-    IMPLEMENTS THEN in branch (\S+), stratum (\S+) refs (\S+) in (\S+)
-    "$SRCDIR/scripts/yaml-extract" \
-        "$DATADIR/workspace/$MATCH_1/test/morphs/$MATCH_2" \
-        chunks name="$MATCH_3" ref > "$DATADIR/ref.actual"
-    echo "$MATCH_4" > "$DATADIR/ref.wanted"
-    diff -u "$DATADIR/ref.wanted" "$DATADIR/ref.actual"
-
-    IMPLEMENTS THEN in branch (\S+), (system|stratum) (\S+) refers to (\S+) without (\S+)
-    if [ $MATCH_2 == system ]; then field=strata; else field=build-depends; fi
-    "$SRCDIR/scripts/yaml-extract" \
-      "$DATADIR/workspace/$MATCH_1/test/morphs/$MATCH_3" \
-      "$field" name="$MATCH_4" "$MATCH_5" 2>&1 |
-      grep -qFe "Object does not contain $MATCH_5"
-
-    IMPLEMENTS WHEN the user edits the chunk (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
-    run_morph edit "$MATCH_1"
-
-    IMPLEMENTS THEN the edited chunk (\S+) has git branch (\S+)
-    ls -l "$DATADIR/workspace/$MATCH_2"
-    chunkdir="$(slashify_colons "$MATCH_1")"
-    cd "$DATADIR/workspace/$MATCH_2/$chunkdir"
-    git rev-parse --abbrev-ref HEAD > "$DATADIR/git-branch.actual"
-    echo "$MATCH_2" > "$DATADIR/git-branch.wanted"
-    diff -u "$DATADIR/git-branch.wanted" "$DATADIR/git-branch.actual"
-
 Cloning chunk repos with `morph get-repo`.
 
     IMPLEMENTS WHEN the user gets the repo for chunk (\S+) in branch (\S+)
