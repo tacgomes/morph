@@ -7,44 +7,19 @@ Tests for check we don't introduce some bugs again.
 Testing if we can build after checking out from a tag.
 
     SCENARIO    morph build works after checkout from a tag
-    GIVEN       a workspace
-    AND         a git server
-    WHEN        the user checks out the system tag called test-tag
+    GIVEN       a git server
+    WHEN        the user clones definitions
     THEN        morph build the system systems/test-system.morph of the tag test-tag
     FINALLY     the git server is shut down
-
-
-Running `morph branch` when the branch directory exists doesn't
-remove the existing directory.
-
-    SCENARIO    re-running 'morph branch' fails, original branch untouched
-    GIVEN       a workspace
-    AND         a git server
-    WHEN        the user creates a system branch called foo
-    THEN        the system branch foo is checked out
-
-The branch is checked out correctly, now it should fail if the user executes
-`morph branch` with the same branch name.
-
-    WHEN        the user attempts to create a system branch called foo
-    THEN        morph failed
-    AND         the branch error message includes the string "File exists"
-
-The branch still checked out.
-
-    AND         the system branch foo is checked out
-    FINALLY     the git server is shut down
-
 
 It doesn't make much sense to be able to build a system with only
 bootstrap chunks, since they will have been constructed without a staging
 area, hence their results cannot be trusted.
 
     SCENARIO    building a system with only bootstrap chunks fails
-    GIVEN       a workspace
-    AND         a git server
+    GIVEN       a git server
     AND         a system containing only bootstrap chunks called bootstrap-system.morph
-    WHEN        the user checks out the system branch called master
+    WHEN        the user clones definitions
     AND         the user attempts to build the system bootstrap-system.morph in branch master
     THEN        the build error message includes the string "No non-bootstrap chunks found"
     FINALLY     the git server is shut down
@@ -56,18 +31,18 @@ from a source it depended on, but not the number of artifacts from that
 source it depended on.
 
     SCENARIO changing the artifacts a system uses
-    GIVEN    a workspace
-    AND      a git server
+    GIVEN    a git server
     AND      system systems/test-system.morph uses core-runtime from core
     AND      stratum strata/core.morph has match rules: [{artifact: core-runtime, include: [.*-devel]}, {artifact: core-devel, include: [.*-runtime]}]
-    WHEN     the user checks out the system branch called master
     GIVEN    a cluster called test-cluster.morph in system branch master
     AND      a system in cluster test-cluster.morph in branch master called test-system
     AND      system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND      system test-system in cluster test-cluster.morph in branch master has deployment type: tar
-    WHEN     the user builds the system systems/test-system.morph in branch master
-    GIVEN    stratum strata/core.morph in system branch master has match rules: [{artifact: core-runtime, include: [.*-runtime]}, {artifact: core-devel, include: [.*-devel]}]
-    WHEN     the user builds the system systems/test-system.morph in branch master
+    WHEN     the user clones definitions
+    AND      the user builds the system systems/test-system.morph in branch master
+    GIVEN    stratum strata/core.morph in branch master has match rules: [{artifact: core-runtime, include: [.*-runtime]}, {artifact: core-devel, include: [.*-devel]}]
+    WHEN     the user pulls definitions from origin master
+    AND      the user builds the system systems/test-system.morph in branch master
     AND      the user deploys the cluster test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"
     THEN     tarball test.tar contains baserock/test-chunk-runtime.meta
     FINALLY  the git server is shut down

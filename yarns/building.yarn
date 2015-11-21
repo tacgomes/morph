@@ -2,38 +2,34 @@ Morph Building Tests
 ======================
 
     SCENARIO attempting to build a system morphology which has never been committed
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
-    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
     AND the user attempts to build the system systems/base-system.morph in branch master
     THEN morph succeeded
     FINALLY the git server is shut down
 
     SCENARIO build system with relative path
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
-    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
-    AND from the directory workspace/master/test/morphs/systems the user attempts to morph build the system base-system.morph
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
+    AND from the directory definitions/systems the user attempts to morph build the system base-system.morph
     THEN morph succeeded
     FINALLY the git server is shut down
 
     SCENARIO build system with relative path (second variant)
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
-    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
-    AND from the directory workspace/master/test/morphs/systems the user attempts to morph build the system ../systems/base-system.morph
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
+    AND from the directory definitions/systems the user attempts to morph build the system ../systems/base-system.morph
     THEN morph succeeded
     FINALLY the git server is shut down
 
     SCENARIO build system with absolute path
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
-    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
-    AND from the directory workspace/master/test/morphs/systems the user attempts to morph build the system using the absolute path to base-system.morph
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
+    AND from the directory definitions/systems the user attempts to morph build the system using the absolute path to base-system.morph
     THEN morph succeeded
     FINALLY the git server is shut down
 
@@ -47,20 +43,19 @@ so every library path in `/etc/ld.so.conf` can be found, and it can look
 up libraries more quickly.
 
     SCENARIO using system integrations
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
+    GIVEN a git server
+    WHEN the user clones definitions
     AND the user attempts to build the system systems/test-system.morph in branch master
     THEN morph succeeded
 
 In our example, we have a system integration that creates /etc/passwd,
 so when we deploy the system, we can check whether it exists.
 
-    GIVEN a cluster called test-cluster.morph in system branch master
-    AND a system in cluster test-cluster.morph in branch master called test-system
-    AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
-    AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
-    WHEN the user attempts to deploy the cluster test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"
+    GIVEN a cluster called clusters/test-cluster.morph in system branch master
+    AND a system in cluster clusters/test-cluster.morph in branch master called test-system
+    AND system test-system in cluster clusters/test-cluster.morph in branch master builds systems/test-system.morph
+    AND system test-system in cluster clusters/test-cluster.morph in branch master has deployment type: tar
+    WHEN the user attempts to deploy the cluster clusters/test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"
     THEN morph succeeded
     AND tarball test.tar contains etc/passwd
     FINALLY the git server is shut down
@@ -70,16 +65,15 @@ Distbuilding
 
     SCENARIO distbuilding
     ASSUMING the morph-cache-server can be run
-    GIVEN a workspace
-    AND a git server
+    GIVEN a git server
     AND a communal cache server
     AND a distbuild worker
     AND a distbuild controller
 
 Distbuilding works much the same way as regular building.
 
-    WHEN the user checks out the system branch called master
-    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in system branch master
+    WHEN the user clones definitions
+    AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
     THEN morph distbuild the system systems/base-system.morph of the branch master
 
 Distbuilt systems can be deployed locally, since the building process
@@ -106,9 +100,8 @@ Empty strata don't build
 ------------------------
 
     SCENARIO empty-strata
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called empty-stratum
+    GIVEN a git server
+    WHEN the user clones definitions
     AND the user attempts to build the system systems/empty-stratum-system.morph in branch empty-stratum
     THEN morph failed
     FINALLY the git server is shut down
@@ -117,9 +110,8 @@ Partial building
 ----------------
 
     SCENARIO partial building
-    GIVEN a workspace
-    AND a git server
-    WHEN the user checks out the system branch called master
+    GIVEN a git server
+    WHEN the user clones definitions
     AND the user attempts to build build-essential from the system systems/test-system.morph in branch master
     THEN morph succeeded
     FINALLY the git server is shut down

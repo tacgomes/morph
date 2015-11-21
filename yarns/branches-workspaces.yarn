@@ -14,13 +14,13 @@ we use.
 Note that we only require a definitions repo here to allow us to obtain
 a list of shas so we can verify each sha has been anchored.
 
-    GIVEN    a definitions repo
+    WHEN     the user clones definitions
 
 The `morph anchor` command must be given a semantic name, to make the anchor
 refs less opaque to humans, and allow anchor ref cleanup by semantic name, such
 as when a given release is no longer supported.
 
-    WHEN     the user attempts to anchor systems/test-system.morph with semantic name foo-release in branch master
+    AND      the user attempts to anchor systems/test-system.morph with semantic name foo-release in branch master
     THEN     morph succeeded
 
 After the `morph anchor` command completes, there are branches on the git
@@ -148,9 +148,10 @@ Manifests
 Generating a manifest works
 
     SCENARIO    morph generates a manifest
-    GIVEN       a workspace
+    GIVEN       a git server
     AND         a system artifact
-    WHEN        morph generates a manifest
+    WHEN        the user clones definitions
+    AND         morph generates a manifest
     THEN        the manifest is generated
 
 A CSV manifest can also be generated.
@@ -166,22 +167,21 @@ Definition diffing
 ------------------
 
     SCENARIO diff reporting changes
-    GIVEN    a workspace
-    AND      a git server
+    GIVEN    a git server
 
-    WHEN     the user checks out the system branch called master
+    WHEN     the user clones definitions
     AND      chunk repository test-chunk is re-tagged as test-tag
-    AND      chunk test-chunk in stratum strata/core.morph in system branch master is updated to use HEAD from chunk repository test-chunk
-    AND      the user commits all changes in system branch master
-    AND      the user requests a definition diff on all systems on branches HEAD and HEAD^ in system branch master
+    AND      chunk test-chunk in stratum strata/core.morph in branch master is updated to use HEAD from chunk repository test-chunk
+    AND      the user commits all changes in branch master
+    AND      the user requests a definition diff on all systems on branches HEAD and HEAD^ in branch master
 
     THEN     morph succeeded
     AND      morph output test-tag
 
 ### diff implementations
 
-    IMPLEMENTS WHEN the user requests a definition diff on all systems on branches (\S+) and (\S+) in system branch (\S+)
-    repo="$DATADIR/workspace/$MATCH_3/test/morphs"
+    IMPLEMENTS WHEN the user requests a definition diff on all systems on branches (\S+) and (\S+) in branch (\S+)
+    repo="$DATADIR/definitions"
     attempt_morph diff "$repo" "$MATCH_1" - "$repo" "$MATCH_2" -
 
 Certify

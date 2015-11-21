@@ -4,8 +4,11 @@ IMPLEMENTS implementations
 Implementation sections for definitions repo
 ---------------------------------------------
 
-    IMPLEMENTS GIVEN a definitions repo
+    IMPLEMENTS WHEN the user clones definitions
     git clone "$(cat $DATADIR/definitions-repo-url)" "$DATADIR/definitions"
+
+    IMPLEMENTS WHEN the user pulls definitions from (\S+) (\S+)
+    run_in "$DATADIR/definitions" git pull "$MATCH_1" "$MATCH_2"
 
     IMPLEMENTS WHEN the user creates a new definitions branch (\S+), based on (\S+)
     run_in "$DATADIR/definitions" git branch "$MATCH_1" "$MATCH_2"
@@ -13,29 +16,8 @@ Implementation sections for definitions repo
     IMPLEMENTS WHEN the user checks out definitions branch (\S+)
     run_in "$DATADIR/definitions" git checkout "$MATCH_1"
 
-Implementation sections for workspaces
---------------------------------------
-
-We'll use `$DATADIR/workspace` as the workspace directory that is used.
-
-    IMPLEMENTS GIVEN no workspace
-    true
-
-    IMPLEMENTS GIVEN an empty workspace directory
-    mkdir "$DATADIR/workspace"
-
-    IMPLEMENTS GIVEN a non-empty workspace directory
-    mkdir "$DATADIR/workspace"
-    touch "$DATADIR/workspace/random-file"
-
-We run `morph init` in two different ways: either the simple way,
-letting yarn catch errors, or in a way that catches the error so
-we can test it later in a THEN step.
-
-    IMPLEMENTS WHEN the user (attempts to initialise|initialises) a workspace
-    set init "$DATADIR/workspace"
-    if [ $MATCH_1 == "initialises" ]; then run_morph "$@"
-    else attempt_morph "$@"; fi
+Implementation sections for checking morph exit status
+------------------------------------------------------
 
     IMPLEMENTS THEN morph failed
     case $(cat "$DATADIR/morph-exit") in
@@ -53,21 +35,6 @@ we can test it later in a THEN step.
 
     IMPLEMENTS THEN morph output (.*)
     grep -q "$MATCH_1" "$DATADIR/out-latest"
-
-We need to check that a workspace creation worked. This requires the
-directory to exist, and its `.morph` subdirectory to exist, and nothing
-else.
-
-    IMPLEMENTS THEN an empty workspace exists
-    is_dir "$DATADIR/workspace"
-    is_dir "$DATADIR/workspace/.morph"
-    assert_equal $(ls -A "$DATADIR/workspace" | wc -l) 1
-
-Tests for things other than `morph init` just want to have a workspace
-created.
-
-    IMPLEMENTS GIVEN a workspace
-    run_morph init "$DATADIR/workspace"
 
 Implementation sections related to a simulated Trove
 ----------------------------------------------------
@@ -515,43 +482,6 @@ You need an architecture to build a system, we don't default to the host archite
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1."
 
-Implementation sections for system branch operations
-----------------------------------------------------
-
-Checkout out an existing system branch. We parameterise this so the
-same phrase can be used to check out any system branch.
-
-    IMPLEMENTS WHEN the user (attempts to check|checks) out the system (branch|tag) called (\S+)
-    cd "$DATADIR/workspace"
-    set checkout test:morphs "$MATCH_3"
-    if [ $MATCH_1 == "checks" ]; then run_morph "$@"
-    else attempt_morph "$@"; fi
-
-Attempt to check out a system branch from a root that has no systems.
-
-    IMPLEMENTS WHEN the user attempts to check out from a repository with no systems
-    cd "$DATADIR/workspace"
-    attempt_morph checkout test:test-chunk master
-
-    IMPLEMENTS WHEN the user attempts to check out the system branch from (\S+) called (\S+)
-    cd "$DATADIR/workspace"
-    attempt_morph branch-from-image --metadata-dir "$DATADIR/$MATCH_1/baserock" "$MATCH_2"
-
-We also need to verify that a system branch has been checked out.
-
-    IMPLEMENTS THEN the system branch (\S+) is checked out
-    is_dir "$DATADIR/workspace/$MATCH_1/test/morphs"
-    is_file "$DATADIR/workspace/$MATCH_1/test/morphs/systems/test-system.morph"
-    is_file "$DATADIR/workspace/$MATCH_1/test/morphs/strata/core.morph"
-
-We can create a new branch, off master.
-
-    IMPLEMENTS WHEN the user (attempts to create|creates) a system branch called (\S+)
-    cd "$DATADIR/workspace"
-    set branch test:morphs "$MATCH_2"
-    if [ $MATCH_1 == "creates" ]; then run_morph "$@"
-    else attempt_morph "$@"; fi
-
 Cloning chunk repos with `morph get-repo`.
 
     IMPLEMENTS WHEN the user gets the repo for chunk (\S+) in branch (\S+)
@@ -593,10 +523,12 @@ To produce buildable morphologies, we need them to be of the same
 architecture as the machine doing the testing. This uses `morph
 print-architecture` to get a value appropriate for morph.
 
-    IMPLEMENTS WHEN the user creates an uncommitted system morphology called (\S+) for our architecture in system branch (\S+)
+    IMPLEMENTS WHEN the user creates an uncommitted system morphology called (\S+) for our architecture in branch (\S+)
     arch=$(run_morph print-architecture)
     name="$(basename "${MATCH_1%.*}")"
-    install -m644 -D /dev/stdin << EOF "$DATADIR/workspace/$MATCH_2/test/morphs/$MATCH_1"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_2"
+    install -m644 -D /dev/stdin << EOF "$MATCH_1"
     arch: $arch
     configuration-extensions: []
     description: A system called $name for architectures $arch
@@ -608,6 +540,7 @@ print-architecture` to get a value appropriate for morph.
     -   name: core
         morph: strata/core.morph
     EOF
+    git checkout -
 
 Reporting status of checked out repositories:
 
@@ -699,9 +632,11 @@ Generating a manifest.
     fi
     die "Expected CSV manifest not found"
 
-    IMPLEMENTS WHEN the user commits all changes in system branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_1/test/morphs"
+    IMPLEMENTS WHEN the user commits all changes in branch (\S+)
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_1"
     git commit -a --allow-empty -m 'Commit all changes'
+    git checkout -
 
 Implementations for `morph certify`
 -----------------------------------
@@ -785,13 +720,15 @@ Implementation sections for building
 ====================================
 
     IMPLEMENTS WHEN the user (attempts to )?((dist)?build)s? the system (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_5/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_5"
     set "$MATCH_2" "$MATCH_4"
     if [ "$MATCH_1" != "attempts to " ]; then run_morph "$@"
     else attempt_morph "$@"; fi
 
     IMPLEMENTS WHEN the user (attempts to )?((dist)?build)s? (\S+) from the system (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_6/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_5"
     set "$MATCH_2" "$MATCH_5" "$MATCH_4"
     if [ "$MATCH_1" != "attempts to " ]; then run_morph "$@"
     else attempt_morph "$@"; fi
@@ -800,7 +737,8 @@ Implementation sections for cross-bootstrapping
 ===============================================
 
     IMPLEMENTS THEN the user cross-bootstraps the system (\S+) in branch (\S+) of repo (\S+) to the arch (\S+)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_2"
     set -- cross-bootstrap "$MATCH_4" "$MATCH_3" "$MATCH_2" "$MATCH_1"
     run_morph "$@"
 
@@ -816,8 +754,9 @@ them, so they can be added to the end of the implements section.
     then
         cd "$DATADIR/$MATCH_2"
     else
-        cd "$DATADIR/workspace/$MATCH_7/test/morphs"
+        cd "$DATADIR/definitions"
     fi
+    git checkout "$MATCH_7"
 
     if [ "$MATCH_5" != "" ]
     then
@@ -832,26 +771,32 @@ them, so they can be added to the end of the implements section.
     fi
     if [ "$MATCH_3" = "deploys" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
+    git checkout -
 
     IMPLEMENTS WHEN the user (attempts to deploy|deploys) (.*) from cluster (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_4/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_4"
     set -- deploy "$MATCH_3"
     systems=$(echo "$MATCH_2" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
     set -- "$@" $systems
     if [ "$MATCH_1" = "deploys" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
+    git checkout -
 
     IMPLEMENTS WHEN the user (attempts to partially deploy|partially deploys) (.*) from cluster (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_4/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_4"
     set -- deploy "$MATCH_3"
     systems=$(echo "$MATCH_2" | sed -e 's/, /\n/g' -e 's/ and /\n/g')
     echo "partial=True" >> "$DATADIR/morph.conf"
     set -- "$@" $systems
     if [ "$MATCH_1" = "partially deploys" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
+    git checkout -
 
     IMPLEMENTS WHEN the user (attempts to upgrade|upgrades) the (system|cluster) (\S+) in branch (\S+)( with options (.*))?
-    cd "$DATADIR/workspace/$MATCH_4/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_4"
     set -- upgrade "$MATCH_3"
     if [ "$MATCH_5" != '' ]; then
         # eval used so word splitting in the text is preserved
@@ -859,6 +804,7 @@ them, so they can be added to the end of the implements section.
     fi
     if [ "$MATCH_1" = "upgrades" ]; then run_morph "$@"
     else attempt_morph "$@"; fi
+    git checkout -
 
 Implementations sections for reading error messages
 ===================================================
@@ -1001,11 +947,13 @@ Implementations for building systems
 ------------------------------------
 
     IMPLEMENTS THEN morph ((dist)?build) the system (\S+) of the (branch|tag) (\S+)
-    cd "$DATADIR/workspace/$MATCH_5/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_5"
     run_morph "$MATCH_1" "$MATCH_3"
 
     IMPLEMENTS WHEN the user builds (\S+) of the (\S+) (branch|tag)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_2"
     run_morph build "$MATCH_1"
 
     IMPLEMENTS WHEN from the directory (\S+) the user attempts to morph build the system (\S+)
@@ -1044,68 +992,67 @@ Altering morphologies in their source repositories
     git add "$MATCH_1"
     git commit -m "Make $MATCH_1 match $MATCH_2"
 
-    IMPLEMENTS WHEN chunk repository (\S+) is re-tagged as (\S+)
-    cd "$DATADIR/gits/$MATCH_1"
-    git commit --allow-empty -m "Prepare for $MATCH_2"
-    git tag -af -m "Release $MATCH_2" "$MATCH_2"
-
-Altering morphologies in the workspace
---------------------------------------
-
-### Altering strata ###
-
-    IMPLEMENTS GIVEN stratum (\S+) in system branch (\S+) has match rules: (.*)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
-    "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
-      "$MATCH_1" "$MATCH_3"
-
-    IMPLEMENTS WHEN chunk (\S+) in stratum (\S+) in system branch (\S+) is updated to use (\S+) from chunk repository (\S+)
-    cd "$DATADIR/workspace/$MATCH_3/test/morphs"
-    sha1=$(cd "$DATADIR/gits/$MATCH_5" && git rev-parse "$MATCH_4")
-    "$SRCDIR/scripts/edit-morph" update-stratum-chunk-ref \
-      "$MATCH_2" "$MATCH_1" "$sha1"
-
 ### Altering clusters ###
 
     IMPLEMENTS GIVEN a cluster called (\S+) in system branch (\S+)
-    name="$MATCH_1"
+    cluster="$MATCH_1"
     branch="$MATCH_2"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-init \
-        "$DATADIR/workspace/$branch/test/morphs/$name"
+        "$DATADIR/gits/morphs/$cluster"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Add cluster $cluster"
+    run_in "$DATADIR/gits/morphs" git checkout -
 
     IMPLEMENTS GIVEN a (sub)?system in cluster (\S+) in branch (\S+) called (\S+)
     cluster="$MATCH_2"
     branch="$MATCH_3"
     name="$MATCH_4"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-init \
-        "$DATADIR/workspace/$branch/test/morphs/$cluster" "$name"
+        "$DATADIR/gits/morphs/$cluster" "$name"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Add system/subsystem $name to cluster $cluster"
+    run_in "$DATADIR/gits/morphs" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) builds (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     morphology="$MATCH_5"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-morphology \
-        "$DATADIR/workspace/$branch/test/morphs/$cluster" "$name" \
+        "$DATADIR/gits/morphs/$cluster" "$name" \
         "$morphology"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Make system $name in cluster $cluster build $morphology"
+    run_in "$DATADIR/gits/morphs" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment type: (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     type="$MATCH_5"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-type \
-        "$DATADIR/workspace/$branch/test/morphs/$cluster" "$name" \
+        "$DATADIR/gits/morphs/$cluster" "$name" \
         "$type"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Add system $name to cluster $cluster"
+    run_in "$DATADIR/gits/morphs" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment location: (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     location="$MATCH_5"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-location \
-        "$DATADIR/workspace/$branch/test/morphs/$cluster" "$name" \
+        "$DATADIR/gits/morphs/$cluster" "$name" \
         "$location"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Set deploy location of system $name in cluster $cluster"
+    run_in "$DATADIR/gits/morphs" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment variable: ([^=]+)=(.*)
     name="$MATCH_2"
@@ -1113,9 +1060,38 @@ Altering morphologies in the workspace
     branch="$MATCH_4"
     key="$MATCH_5"
     val="$MATCH_6"
+    run_in "$DATADIR/gits/morphs" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-variable \
-        "$DATADIR/workspace/$branch/test/morphs/$cluster" "$name" \
+        "$DATADIR/gits/morphs/$cluster" "$name" \
         "$key" "$val"
+    run_in "$DATADIR/gits/morphs" git add "$cluster"
+    run_in "$DATADIR/gits/morphs" git commit -m "Set deploy variable for system $name in cluster $cluster"
+    run_in "$DATADIR/gits/morphs" git checkout -
+
+    IMPLEMENTS GIVEN stratum (\S+) in branch (\S+) has match rules: (.*)
+    run_in "$DATADIR/gits/morphs" git checkout "$MATCH_2"
+    "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
+      "$DATADIR/gits/morphs/$MATCH_1" "$MATCH_3"
+    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
+    run_in "$DATADIR/gits/morphs" git commit -m "Make $MATCH_1 match $MATCH_2"
+    run_in "$DATADIR/gits/morphs" git checkout -
+
+
+Altering morphologies in the definitions repo
+---------------------------------------------
+
+    IMPLEMENTS WHEN chunk (\S+) in stratum (\S+) in branch (\S+) is updated to use (\S+) from chunk repository (\S+)
+    cd "$DATADIR/definitions"
+    git checkout "$MATCH_3"
+    sha1=$(cd "$DATADIR/gits/$MATCH_5" && git rev-parse "$MATCH_4")
+    "$SRCDIR/scripts/edit-morph" update-stratum-chunk-ref \
+      "$MATCH_2" "$MATCH_1" "$sha1"
+    git checkout -
+
+    IMPLEMENTS WHEN chunk repository (\S+) is re-tagged as (\S+)
+    cd "$DATADIR/gits/$MATCH_1"
+    git commit --allow-empty -m "Prepare for $MATCH_2"
+    git tag -af -m "Release $MATCH_2" "$MATCH_2"
 
 
 Distbuild

@@ -2,10 +2,9 @@ Morph Cross-Building Tests
 ==========================
 
     SCENARIO building a system for a different architecture
-    GIVEN a workspace
-    AND a git server
+    GIVEN a git server
     AND a system called base-system-testarch.morph for the test architecture in the git server
-    WHEN the user checks out the system branch called master
+    WHEN the user clones definitions
     AND the user attempts to build the system base-system-testarch.morph in branch master
     THEN morph failed
     AND the build error message includes the string "Are you trying to cross-build?"
@@ -16,10 +15,9 @@ Morph Cross-Bootstrap Tests
 ===========================
 
     SCENARIO cross-bootstrapping a system for a different architecture
-    GIVEN a workspace
-    AND a git server
+    GIVEN a git server
     AND a system called base-system-testarch.morph for the test architecture in the git server
-    WHEN the user checks out the system branch called master
+    WHEN the user clones definitions
     THEN the user cross-bootstraps the system base-system-testarch.morph in branch master of repo test:morphs to the arch testarch
     FINALLY the git server is shut down
 
@@ -27,10 +25,9 @@ Architecture validation Tests
 =============================
 
     SCENARIO building a system with no architecture
-    GIVEN a workspace
-    AND a git server
+    GIVEN a git server
     AND a system called base-system-noarch.morph with no architecture in the git server
-    WHEN the user checks out the system branch called master
+    WHEN the user clones definitions
     AND the user attempts to build the system base-system-testarch.morph in branch master
     THEN morph failed
     FINALLY the git server is shut down
