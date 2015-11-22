@@ -542,49 +542,6 @@ print-architecture` to get a value appropriate for morph.
     EOF
     git checkout -
 
-Reporting status of checked out repositories:
-
-    IMPLEMENTS THEN morph reports no outstanding changes in (\S+)
-    cd "$DATADIR/workspace/$MATCH_1"
-    run_morph status > "$DATADIR/morph.stdout"
-    grep '^No repos have outstanding changes.' "$DATADIR/morph.stdout"
-
-    IMPLEMENTS THEN morph reports changes in (\S+) in (\S+) only
-    cd "$DATADIR/workspace/$MATCH_1"
-    run_morph status > "$DATADIR/morph.stdout"
-
-    # morph status is expected to produce records like this:
-    #    On branch GITBRANCH, root baserock:baserock/morphs
-    #        GITREPO: uncommitted changes
-    # We check thet GITREPO matches $MATCH_2.
-
-    awk '/: uncommitted changes$/ { print substr($1,1,length($1)-1) }' \
-        "$DATADIR/morph.stdout" > "$DATADIR/changed.actual"
-    echo "$MATCH_2" > "$DATADIR/changed.wanted"
-    diff -u "$DATADIR/changed.wanted" "$DATADIR/changed.actual"
-
-    IMPLEMENTS THEN morph reports changes in (\S+) in (\S+) and (\S+)
-    cd "$DATADIR/workspace/$MATCH_1"
-    run_morph status > "$DATADIR/morph.stdout"
-    echo "status morph.stdout:"
-    cat "$DATADIR/morph.stdout"
-    awk '/: uncommitted changes$/ { print substr($1,1,length($1)-1) }' \
-        "$DATADIR/morph.stdout" | sort > "$DATADIR/changed.actual"
-    (echo "$MATCH_2"; echo "$MATCH_3") | sort > "$DATADIR/changed.wanted"
-    diff -u "$DATADIR/changed.wanted" "$DATADIR/changed.actual"
-
-    IMPLEMENTS WHEN creating file (\S+) in (\S+) in branch (\S+)
-    touch "$DATADIR/workspace/$MATCH_3/$MATCH_2/$MATCH_1"
-
-    IMPLEMENTS WHEN adding file (\S+) in (\S+) in branch (\S+) to git
-    chunkdir="$(slashify_colons "$MATCH_2")"
-    cd "$DATADIR/workspace/$MATCH_3/$chunkdir"
-    git add "$MATCH_1"
-
-    IMPLEMENTS WHEN committing changes in (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_2/$(slashify_colons "$MATCH_1")"
-    git commit -a -m test-commit
-
 Generating a manifest.
 
     IMPLEMENTS GIVEN a system artifact
