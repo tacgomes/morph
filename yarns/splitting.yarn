@@ -90,7 +90,7 @@ Implementations
     IMPLEMENTS GIVEN chunk (\S+) includes the default splitting rules
     # Append default products rules
     name="$(basename "${MATCH_1%.*}")"
-    cat <<EOF >>"$DATADIR/gits/morphs/$MATCH_1.morph"
+    cat <<EOF >>"$DATADIR/gits/definitions/$MATCH_1.morph"
     products:
     - artifact: $name-bins
       include: [ "(usr/)?s?bin/.*" ]
@@ -117,12 +117,12 @@ Implementations
     - artifact: $name-misc
       include: [ .* ]
     EOF
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1.morph"
-    run_in "$DATADIR/gits/morphs" git commit -m 'Add default splitting rules'
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1.morph"
+    run_in "$DATADIR/gits/definitions" git commit -m 'Add default splitting rules'
 
     IMPLEMENTS GIVEN stratum (\S+) includes the default splitting rules
     name=$(basename "${MATCH_1%.*}")
-    cat <<EOF >"$DATADIR/gits/morphs/$MATCH_1"
+    cat <<EOF >"$DATADIR/gits/definitions/$MATCH_1"
     name: $name
     kind: stratum
     build-depends:
@@ -155,11 +155,11 @@ Implementations
             test-chunk-devel: $name-devel
             test-chunk-doc: $name-devel
     EOF
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m 'Add default splitting rules'
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m 'Add default splitting rules'
 
     IMPLEMENTS GIVEN system (\S+) includes the default splitting rules
-    cat << EOF >> "$DATADIR/gits/morphs/$MATCH_1"
+    cat << EOF >> "$DATADIR/gits/definitions/$MATCH_1"
     strata:
     -   name: build-essential
         morph: strata/build-essential.morph
@@ -169,23 +169,23 @@ Implementations
         - core-runtime
         - core-devel
     EOF
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m 'Add default splitting rules'
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m 'Add default splitting rules'
 
     IMPLEMENTS GIVEN stratum (\S+) has chunks that aren't used in (\S+)
     # Create an extra chunk that will never successfully build
-    cat >"$DATADIR/gits/morphs/unbuildable-chunk.morph" <<EOF
+    cat >"$DATADIR/gits/definitions/unbuildable-chunk.morph" <<EOF
     name: unbuildable-chunk
     kind: chunk
     install-commands:
     - "false"
     EOF
-    run_in "$DATADIR/gits/morphs" git add unbuildable-chunk.morph
-    run_in "$DATADIR/gits/morphs" git commit -m 'Add unbuildable chunk'
+    run_in "$DATADIR/gits/definitions" git add unbuildable-chunk.morph
+    run_in "$DATADIR/gits/definitions" git commit -m 'Add unbuildable chunk'
 
     # Create a stratum that has an artifact that doesn't include any
     # artifacts from unbuildable-chunk
-    cat >>"$DATADIR/gits/morphs/$MATCH_1" <<EOF
+    cat >>"$DATADIR/gits/definitions/$MATCH_1" <<EOF
     products:
     - artifact: $MATCH_2
       include:
@@ -205,5 +205,5 @@ Implementations
       build-depends:
       - test-chunk
     EOF
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m "add $MATCH_2 to stratum"
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m "add $MATCH_2 to stratum"

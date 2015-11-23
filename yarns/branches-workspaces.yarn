@@ -159,7 +159,7 @@ A CSV manifest can also be generated.
     SCENARIO morph generates a csv manifest
     GIVEN    a git server
 
-    WHEN     morph generates a manifest for system systems/test-system.morph at ref HEAD in repository test:morphs
+    WHEN     morph generates a manifest for system systems/test-system.morph at ref HEAD in repository test:definitions
     THEN     morph succeeded
     AND      the csv manifest is generated
 
@@ -193,7 +193,7 @@ a system is likely to have a reproducible result.
     SCENARIO using morph certify
     GIVEN    a git server
 
-    WHEN     the user certifies the system systems/test-system.morph at ref HEAD in repository test:morphs
+    WHEN     the user certifies the system systems/test-system.morph at ref HEAD in repository test:definitions
     THEN     morph succeeded
     AND      morph output Reproducibility certification PASSED
 
@@ -206,5 +206,5 @@ artifact in a system. This name includes the cache key of the artifact.
     SCENARIO using morph list-artifacts
     GIVEN    a git server
 
-    WHEN     the user lists the artifacts which make up the system systems/test-system.morph at ref HEAD in repository test:morphs
+    WHEN     the user lists the artifacts which make up the system systems/test-system.morph at ref HEAD in repository test:definitions
     THEN     morph succeeded
