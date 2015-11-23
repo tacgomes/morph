@@ -359,11 +359,7 @@ def find_root(dirname, subdir_name):
     '''Find parent of a directory, at or above a given directory.
 
     The sought-after directory is indicated by the existence of a
-    subdirectory of the indicated name. For example, dirname might
-    be the current working directory of the process, and subdir_name
-    might be ".morph"; then the returned value would be the Morph
-    workspace root directory, which has a subdirectory called
-    ".morph".
+    subdirectory of the indicated name.
 
     Return path to desired directory, or None if not found.
 

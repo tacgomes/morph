@@ -85,9 +85,7 @@ import sourcepool
 import sourceresolver
 import stagingarea
 import stopwatch
-import sysbranchdir
 import util
-import workspace
 
 import yamlparse
 

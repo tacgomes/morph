@@ -24,7 +24,6 @@ import tempfile
 import cliapp
 
 import morphlib
-import sysbranchdir
 
 
 class ExtensionError(morphlib.Error):
@@ -67,12 +66,10 @@ def _list_extensions(kind):
     repo_extension_filenames = []
     try:
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True)
+            '.', search_for_root=True)
         repo_extension_filenames = \
                 _list_repo_extension_filenames(definitions_repo, kind)
-    except (morphlib.workspace.NotInWorkspace,
-            sysbranchdir.NotInSystemBranch,
-            morphlib.definitions_repo.DefinitionsRepoNotFound):
+    except morphlib.definitions_repo.DefinitionsRepoNotFound:
         # Squash this and just return no system branch extensions
         pass
     morph_extension_filenames = _list_morph_extension_filenames(kind)
@@ -129,7 +126,7 @@ class get_extension_filename():
         try:
             ext_contents = _get_repo_extension_contents(
                 self.definitions_repo, self.name, self.kind)
-        except (IOError, cliapp.AppException, sysbranchdir.NotInSystemBranch):
+        except (IOError, cliapp.AppException):
             # Not found: look for it in the Morph code.
             ext_filename = _get_morph_extension_filename(self.name, self.kind)
             if not os.path.exists(ext_filename):

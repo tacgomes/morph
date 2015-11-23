@@ -335,7 +335,7 @@ class DeployPlugin(cliapp.Plugin):
             '/', 0)
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
 
         cluster_filename = morphlib.util.sanitise_morphology_path(args[0])
         cluster_filename = definitions_repo.relative_path(cluster_filename)

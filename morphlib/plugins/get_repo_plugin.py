@@ -125,7 +125,7 @@ class GetRepoPlugin(cliapp.Plugin):
         found = 0
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
 
         self.app.status(msg='Loading in all morphologies')
         for morph in definitions_repo.load_all_morphologies():
