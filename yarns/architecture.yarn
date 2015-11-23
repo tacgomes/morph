@@ -20,14 +20,3 @@ Morph Cross-Bootstrap Tests
     WHEN the user clones definitions
     THEN the user cross-bootstraps the system base-system-testarch.morph in branch master of repo test:definitions to the arch testarch
     FINALLY the git server is shut down
-
-Architecture validation Tests
-=============================
-
-    SCENARIO building a system with no architecture
-    GIVEN a git server
-    AND a system called base-system-noarch.morph with no architecture in the git server
-    WHEN the user clones definitions
-    AND the user attempts to build the system base-system-testarch.morph in branch master
-    THEN morph failed
-    FINALLY the git server is shut down

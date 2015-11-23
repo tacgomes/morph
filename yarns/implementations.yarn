@@ -463,38 +463,6 @@ have a morphology using the test architecture.
     run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
     run_in "$DATADIR/gits/definitions" git commit -m "Added $MATCH_1 and strata morphologies."
 
-You need an architecture to build a system, we don't default to the host architecture.
-
-    IMPLEMENTS GIVEN a system called (\S+) with no architecture in the git server
-    name="$(basename "${MATCH_1%.*}")"
-    cat << EOF > "$DATADIR/gits/definitions/$MATCH_1"
-    configuration-extensions: []
-    description: A system called $name for test architecture
-    kind: system
-    name: $name
-    strata:
-    -   name: build-essential
-        morph: strata/build-essential.morph
-    -   name: core
-        morph: strata/core.morph
-    EOF
-
-    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
-    run_in "$DATADIR/gits/definitions" git commit -m "Added $MATCH_1."
-
-    IMPLEMENTS THEN the repo for chunk (\S+) was cloned into the directory (\S+)
-    if [[ -d "$DATADIR/$MATCH_2" ]]; then
-        exit 0
-    fi
-    exit 1
-
-    IMPLEMENTS THEN the repo in directory (\S+) has HEAD (\S+)
-    cd "$DATADIR/$MATCH_1"
-    if [ "$MATCH_2" == `git rev-parse --abbrev-ref HEAD` ]; then
-        exit 0
-    fi
-    exit 1
-
 To produce buildable morphologies, we need them to be of the same
 architecture as the machine doing the testing. This uses `morph
 print-architecture` to get a value appropriate for morph.
