@@ -482,30 +482,6 @@ You need an architecture to build a system, we don't default to the host archite
     run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
     run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1."
 
-Cloning chunk repos with `morph get-repo`.
-
-    IMPLEMENTS WHEN the user gets the repo for chunk (\S+) in branch (\S+)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
-    run_morph get-repo "$MATCH_1"
-
-    IMPLEMENTS WHEN the user (gets|attempts to get) the repo for chunk (\S+) from branch (\S+) in directory (\S+)
-    cd "$DATADIR/workspace/$MATCH_3/test/morphs"
-    if [ $MATCH_1 == gets ]; then
-        run_morph get-repo "$MATCH_2" "$DATADIR/$MATCH_3";
-    else
-        attempt_morph get-repo "$MATCH_2" "$DATADIR/$MATCH_3";
-    fi
-
-    IMPLEMENTS WHEN the user gets the repo for chunk (\S+) from branch (\S+) in directory (\S+) at ref (\S+)
-    cd "$DATADIR/workspace/$MATCH_2/test/morphs"
-    run_morph get-repo "$MATCH_1" "$DATADIR/$MATCH_3" --ref "$MATCH_4"
-
-    IMPLEMENTS THEN the repo for chunk (\S+) was cloned into the system branch (\S+)
-    if [[ -d "$DATADIR/workspace/$MATCH_2/test/$MATCH_1" ]]; then
-        exit 0
-    fi
-    exit 1
-
     IMPLEMENTS THEN the repo for chunk (\S+) was cloned into the directory (\S+)
     if [[ -d "$DATADIR/$MATCH_2" ]]; then
         exit 0
@@ -606,72 +582,6 @@ Implementations for `morph list-artifacts`
 
     IMPLEMENTS WHEN the user lists the artifacts which make up the system (\S+) at ref (\S+) in repository (\S+)
     attempt_morph list-artifacts "$MATCH_3" "$MATCH_2" "$MATCH_1"
-
-Implementations for temporary build branch handling
----------------------------------------------------
-
-    IMPLEMENTS GIVEN the workspace contains no temporary build branches
-    build_ref_prefix=testtrove/builds/
-    cd "$DATADIR/workspace"
-    # Want to use -execdir here, but busybox find doesn't support it
-    find . -name .git -print | while read gitdir; do (
-        cd "$(dirname "$gitdir")"
-        eval "$(git for-each-ref --shell \
-                    --format='git update-ref -d %(refname) %(objectname)' \
-                    "refs/heads/$build_ref_prefix")"
-    ); done
-
-    IMPLEMENTS GIVEN the git server contains no temporary build branches
-    build_ref_prefix=refs/heads/testtrove/builds/
-    cd "$DATADIR/gits"
-    # Want to use -execdir here, but busybox find doesn't support it
-    find . -name .git -print | while read gitdir; do (
-        cd "$(dirname "$gitdir")"
-        eval "$(git for-each-ref --shell \
-                    --format='git update-ref -d %(refname) %(objectname)' \
-                    "$build_ref_prefix")"
-        git config receive.denyCurrentBranch ignore
-        rm -f .git/morph-pushed-branches
-        mkdir -p .git/hooks
-        cat >.git/hooks/post-receive <<'EOF'
-    #!/bin/sh
-    touch "$GIT_DIR/hook-ever-run"
-    exec cat >>"$GIT_DIR/morph-pushed-branches"
-    EOF
-        chmod +x .git/hooks/post-receive
-    ); done
-
-    IMPLEMENTS GIVEN we can build with local branches
-    sed -i -e '/push-build-branches/d' "$DATADIR/morph.conf"
-
-    IMPLEMENTS GIVEN we must build from pushed branches
-    cat >>"$DATADIR/morph.conf" <<'EOF'
-    push-build-branches = True
-    EOF
-
-    IMPLEMENTS THEN the (\S+) repository in the workspace for (\S+) has temporary build branches
-    build_ref_prefix=refs/heads/testtrove/builds/
-    cd "$DATADIR/workspace/$MATCH_2/$(slashify_colons "test:$MATCH_1")"
-    git for-each-ref | grep -F "$build_ref_prefix"
-
-    IMPLEMENTS THEN the (\S+) repository in the workspace for (\S+) has no temporary build branches
-    build_ref_prefix=refs/heads/testtrove/builds/
-    cd "$DATADIR/workspace/$MATCH_2/$(slashify_colons "test:$MATCH_1")"
-    if git for-each-ref | grep -F "$build_ref_prefix"; then
-        die Did not expect repo to contain build branches
-    fi
-
-    IMPLEMENTS THEN no temporary build branches were pushed to the (\S+) repository
-    build_ref_prefix=refs/heads/testtrove/builds/
-    cd "$DATADIR/gits/$MATCH_1/.git"
-    if test -e morph-pushed-branches && grep -F "$build_ref_prefix" morph-pushed-branches; then
-        die Did not expect any pushed build branches
-    fi
-
-    IMPLEMENTS THEN temporary build branches were pushed to the (\S+) repository
-    build_ref_prefix=refs/heads/testtrove/builds/
-    cd "$DATADIR/gits/$MATCH_1/.git"
-    test -e morph-pushed-branches && grep -F "$build_ref_prefix" morph-pushed-branches
 
 Implementation sections for building
 ====================================
@@ -907,11 +817,6 @@ Implementations for building systems
     cd "$DATADIR/definitions"
     git checkout "$MATCH_5"
     run_morph "$MATCH_1" "$MATCH_3"
-
-    IMPLEMENTS WHEN the user builds (\S+) of the (\S+) (branch|tag)
-    cd "$DATADIR/definitions"
-    git checkout "$MATCH_2"
-    run_morph build "$MATCH_1"
 
     IMPLEMENTS WHEN from the directory (\S+) the user attempts to morph build the system (\S+)
     cd "$DATADIR/$MATCH_1"
