@@ -76,39 +76,6 @@ die()
     exit 1
 }
 
-
-# Tests often need to check that specific files or directories exist
-# and have the right ownerships etc. Here's some shell functions to
-# test that kind of thing.
-
-is_dir()
-{
-    if [ ! -d "$1" ]
-    then
-        die "Expected $1 to be a directory"
-    fi
-}
-
-is_file()
-{
-    if [ ! -f "$1" ]
-    then
-        die "Expected $1 to be a regular file"
-    fi
-}
-
-
-# General assertions.
-
-assert_equal()
-{
-    if [ "$1" != "$2" ]
-    then
-        die "Expected '$1' and '$2' to be equal"
-    fi
-}
-
-
 # Sometimes it's nice to run a command in a different directory, without
 # having to bother changing the directory before and after the command,
 # or spawning subshells. This function helps with that.
@@ -117,49 +84,6 @@ run_in()
 {
     (cd "$1" && shift && exec "$@")
 }
-
-
-# Extract all refs in all given morphologies. Each ref is reported
-# as filename:ref. The referred-to repository is not listed.
-
-list_refs()
-{
-    awk '/ ref: / { printf "%s %s\n", FILENAME, $NF }' "$@"
-}
-
-
-# Is a ref petrified? Or a specific branch?
-
-is_petrified_or_branch()
-{
-    if echo "$1" |
-       awk -v "branch=$2" '$NF ~ /[0-9a-fA-F]{40}/ || $NF == branch' |
-        grep .
-    then
-        return 0
-    else
-        return 1
-    fi
-}
-
-
-# Are named morphologies petrified? Die if not. First arg is the
-# branch that is allowed in addition to SHA1s.
-
-assert_morphologies_are_petrified()
-{
-    local branch="$1"
-    shift
-    list_refs "$@" |
-    while read filename ref
-    do
-        if ! is_petrified_or_branch "$ref" "$branch"
-        then
-            die "Found non-SHA1 ref in $filename: $ref"
-        fi
-    done
-}
-
 
 # Added until it's fixed in upstream.
 # It's a solution to create an empty home directory each execution
@@ -178,15 +102,6 @@ then
      email = tomjon@codethink.co.uk
 EOF
 fi
-
-
-# Change colons to slashes. This is used when converting an aliases
-# repository URL (e.g., test:morphs) into a directory path.
-
-slashify_colons()
-{
-    echo "$1" | sed s,:,/,g
-}
 
 start_cache_server(){
     mkfifo "$1"
