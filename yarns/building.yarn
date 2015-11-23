@@ -89,7 +89,7 @@ repos cached locally.
 >   AND system test-system in cluster test-cluster.morph in branch master has deployment location: test-system
 >   WHEN the user attempts to deploy the cluster test-cluster.morph in branch master
 >   THEN morph succeeded
->   AND file workspace/master/test/morphs/test-system exists
+>   AND file definitions/test-system exists
 
     FINALLY the distbuild controller is terminated
     AND the distbuild worker is terminated
