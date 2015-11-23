@@ -86,7 +86,6 @@ import sourceresolver
 import stagingarea
 import stopwatch
 import sysbranchdir
-import systemmetadatadir
 import util
 import workspace
 
