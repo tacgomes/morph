@@ -214,8 +214,8 @@ another to hold a chunk.
 
     # Create a repo for the morphologies.
 
-    mkdir "$DATADIR/gits/morphs"
-    cd "$DATADIR/gits/morphs"
+    mkdir "$DATADIR/gits/definitions"
+    cd "$DATADIR/gits/definitions"
     git init .
     echo 'version: 7' > VERSION
 
@@ -261,8 +261,8 @@ another to hold a chunk.
       morph: strata/core.morph
     EOF
 
-    mkdir "$DATADIR/gits/morphs/clusters"
-    cd "$DATADIR/gits/morphs"
+    mkdir "$DATADIR/gits/definitions/clusters"
+    cd "$DATADIR/gits/definitions"
     install -m644 -D /dev/stdin << EOF "clusters/test-cluster.morph"
     name: test-cluster
     kind: cluster
@@ -413,7 +413,7 @@ another to hold a chunk.
         --enable=receive-pack #allow push
     GIT_DAEMON_PORT="$(cat "$port_file")"
 
-    echo "git://127.0.0.1:$GIT_DAEMON_PORT/morphs" > "$DATADIR/definitions-repo-url"
+    echo "git://127.0.0.1:$GIT_DAEMON_PORT/definitions" > "$DATADIR/definitions-repo-url"
 
     # Create the Morph configuration file so we can access the repos
     # using test:foo URL aliases.
@@ -445,7 +445,7 @@ have a morphology using the test architecture.
 
     IMPLEMENTS GIVEN a system called (\S+) for the test architecture in the git server
     name="$(basename "${MATCH_1%.*}")"
-    cat << EOF > "$DATADIR/gits/morphs/$MATCH_1"
+    cat << EOF > "$DATADIR/gits/definitions/$MATCH_1"
     arch: testarch
     configuration-extensions: []
     description: A system called $name for test architecture
@@ -458,16 +458,16 @@ have a morphology using the test architecture.
         morph: strata/core.morph
     EOF
 
-    run_in "$DATADIR/gits/morphs" git add "strata/build-essential.morph"
-    run_in "$DATADIR/gits/morphs" git add "strata/core.morph"
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1 and strata morphologies."
+    run_in "$DATADIR/gits/definitions" git add "strata/build-essential.morph"
+    run_in "$DATADIR/gits/definitions" git add "strata/core.morph"
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m "Added $MATCH_1 and strata morphologies."
 
 You need an architecture to build a system, we don't default to the host architecture.
 
     IMPLEMENTS GIVEN a system called (\S+) with no architecture in the git server
     name="$(basename "${MATCH_1%.*}")"
-    cat << EOF > "$DATADIR/gits/morphs/$MATCH_1"
+    cat << EOF > "$DATADIR/gits/definitions/$MATCH_1"
     configuration-extensions: []
     description: A system called $name for test architecture
     kind: system
@@ -479,8 +479,8 @@ You need an architecture to build a system, we don't default to the host archite
         morph: strata/core.morph
     EOF
 
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m "Added $MATCH_1."
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m "Added $MATCH_1."
 
     IMPLEMENTS THEN the repo for chunk (\S+) was cloned into the directory (\S+)
     if [[ -d "$DATADIR/$MATCH_2" ]]; then
@@ -843,12 +843,12 @@ Altering morphologies in their source repositories
 
     IMPLEMENTS GIVEN system (\S+) uses (.+) from (\S+)
     "$SRCDIR/scripts/edit-morph" set-system-artifact-depends \
-      "$DATADIR/gits/morphs/$MATCH_1" "$MATCH_3" "$MATCH_2"
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m "Make $MATCH_1 only use $MATCH_2"
+      "$DATADIR/gits/definitions/$MATCH_1" "$MATCH_3" "$MATCH_2"
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m "Make $MATCH_1 only use $MATCH_2"
 
     IMPLEMENTS GIVEN stratum (\S+) has match rules: (.*)
-    cd "$DATADIR/gits/morphs"
+    cd "$DATADIR/gits/definitions"
     "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
       "$MATCH_1" "$MATCH_2"
     git add "$MATCH_1"
@@ -859,62 +859,62 @@ Altering morphologies in their source repositories
     IMPLEMENTS GIVEN a cluster called (\S+) in branch (\S+)
     cluster="$MATCH_1"
     branch="$MATCH_2"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-init \
-        "$DATADIR/gits/morphs/$cluster"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Add cluster $cluster"
-    run_in "$DATADIR/gits/morphs" git checkout -
+        "$DATADIR/gits/definitions/$cluster"
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Add cluster $cluster"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN a (sub)?system in cluster (\S+) in branch (\S+) called (\S+)
     cluster="$MATCH_2"
     branch="$MATCH_3"
     name="$MATCH_4"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-init \
-        "$DATADIR/gits/morphs/$cluster" "$name"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Add system/subsystem $name to cluster $cluster"
-    run_in "$DATADIR/gits/morphs" git checkout -
+        "$DATADIR/gits/definitions/$cluster" "$name"
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Add system/subsystem $name to cluster $cluster"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) builds (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     morphology="$MATCH_5"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-morphology \
-        "$DATADIR/gits/morphs/$cluster" "$name" \
+        "$DATADIR/gits/definitions/$cluster" "$name" \
         "$morphology"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Make system $name in cluster $cluster build $morphology"
-    run_in "$DATADIR/gits/morphs" git checkout -
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Make system $name in cluster $cluster build $morphology"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment type: (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     type="$MATCH_5"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-type \
-        "$DATADIR/gits/morphs/$cluster" "$name" \
+        "$DATADIR/gits/definitions/$cluster" "$name" \
         "$type"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Add system $name to cluster $cluster"
-    run_in "$DATADIR/gits/morphs" git checkout -
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Add system $name to cluster $cluster"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment location: (\S+)
     name="$MATCH_2"
     cluster="$MATCH_3"
     branch="$MATCH_4"
     location="$MATCH_5"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-location \
-        "$DATADIR/gits/morphs/$cluster" "$name" \
+        "$DATADIR/gits/definitions/$cluster" "$name" \
         "$location"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Set deploy location of system $name in cluster $cluster"
-    run_in "$DATADIR/gits/morphs" git checkout -
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Set deploy location of system $name in cluster $cluster"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN (sub)?system (\S+) in cluster (\S+) in branch (\S+) has deployment variable: ([^=]+)=(.*)
     name="$MATCH_2"
@@ -922,21 +922,21 @@ Altering morphologies in their source repositories
     branch="$MATCH_4"
     key="$MATCH_5"
     val="$MATCH_6"
-    run_in "$DATADIR/gits/morphs" git checkout "$branch"
+    run_in "$DATADIR/gits/definitions" git checkout "$branch"
     "$SRCDIR/scripts/edit-morph" cluster-system-set-deploy-variable \
-        "$DATADIR/gits/morphs/$cluster" "$name" \
+        "$DATADIR/gits/definitions/$cluster" "$name" \
         "$key" "$val"
-    run_in "$DATADIR/gits/morphs" git add "$cluster"
-    run_in "$DATADIR/gits/morphs" git commit -m "Set deploy variable for system $name in cluster $cluster"
-    run_in "$DATADIR/gits/morphs" git checkout -
+    run_in "$DATADIR/gits/definitions" git add "$cluster"
+    run_in "$DATADIR/gits/definitions" git commit -m "Set deploy variable for system $name in cluster $cluster"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
     IMPLEMENTS GIVEN stratum (\S+) in branch (\S+) has match rules: (.*)
-    run_in "$DATADIR/gits/morphs" git checkout "$MATCH_2"
+    run_in "$DATADIR/gits/definitions" git checkout "$MATCH_2"
     "$SRCDIR/scripts/edit-morph" set-stratum-match-rules \
-      "$DATADIR/gits/morphs/$MATCH_1" "$MATCH_3"
-    run_in "$DATADIR/gits/morphs" git add "$MATCH_1"
-    run_in "$DATADIR/gits/morphs" git commit -m "Make $MATCH_1 match $MATCH_2"
-    run_in "$DATADIR/gits/morphs" git checkout -
+      "$DATADIR/gits/definitions/$MATCH_1" "$MATCH_3"
+    run_in "$DATADIR/gits/definitions" git add "$MATCH_1"
+    run_in "$DATADIR/gits/definitions" git commit -m "Make $MATCH_1 match $MATCH_2"
+    run_in "$DATADIR/gits/definitions" git checkout -
 
 
 Altering morphologies in the definitions repo

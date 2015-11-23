@@ -54,7 +54,7 @@ Implementations
     IMPLEMENTS GIVEN a system containing only bootstrap chunks called (\S+)
     arch=$(run_morph print-architecture)
     name="$(basename "${MATCH_1%.*}")"
-    install -m644 -D /dev/stdin <<EOF "$DATADIR/gits/morphs/$MATCH_1"
+    install -m644 -D /dev/stdin <<EOF "$DATADIR/gits/definitions/$MATCH_1"
     name: $name
     kind: system
     arch: $arch
@@ -62,7 +62,7 @@ Implementations
     - morph: strata/bootstrap-stratum.morph
     EOF
 
-    install -m644 -D /dev/stdin << EOF "$DATADIR/gits/morphs/strata/bootstrap-stratum.morph"
+    install -m644 -D /dev/stdin << EOF "$DATADIR/gits/definitions/strata/bootstrap-stratum.morph"
     name: bootstrap-stratum
     kind: stratum
     chunks:
@@ -75,8 +75,8 @@ Implementations
       build-depends: []
     EOF
     sed -e 's/name: test-chunk/name: bootstrap-chunk/g' \
-        "$DATADIR/gits/morphs/test-chunk.morph" \
-        > "$DATADIR/gits/morphs/bootstrap-chunk.morph"
+        "$DATADIR/gits/definitions/test-chunk.morph" \
+        > "$DATADIR/gits/definitions/bootstrap-chunk.morph"
 
-    run_in "$DATADIR/gits/morphs" git add .
-    run_in "$DATADIR/gits/morphs" git commit -m "Add bootstrap-system"
+    run_in "$DATADIR/gits/definitions" git add .
+    run_in "$DATADIR/gits/definitions" git commit -m "Add bootstrap-system"
