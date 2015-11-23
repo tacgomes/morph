@@ -19,25 +19,21 @@ for information on the format.
 `morph --help` will provide some information, though a full guide is
 really required. Meanwhile a short usage to build a disk image:
 
-    morph init workspace
-    cd workspace
-    morph checkout baserock:baserock/definitions master
-    cd master/baserock/baserock/definitions
+    git clone git://git.baserock.org/baserock/baserock/definitions
+    cd definitions
     morph build systems/base-system-x86_64-generic.morph
 
 For deploying you need to create a cluster morphology. Here is an
 example to deploy to a raw disk image.
 
-    name: foo
+    name: base-system-x86_64-rawdisk
     kind: cluster
     systems:
     - morph: systems/base-system-x86_64-generic.morph
-      repo: baserock:baserock/definitions
-      ref: master
       deploy:
           my-raw-disk-image:
-              type: rawdisk
-              location: /src/tmp/testdev.img
+              type: extensions/rawdisk
+              location: base-system-x86_64.img
               DISK_SIZE: 4G
 
 To deploy it, you only need to run `morph deploy` with the cluster morphology
