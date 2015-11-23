@@ -856,7 +856,7 @@ Altering morphologies in their source repositories
 
 ### Altering clusters ###
 
-    IMPLEMENTS GIVEN a cluster called (\S+) in system branch (\S+)
+    IMPLEMENTS GIVEN a cluster called (\S+) in branch (\S+)
     cluster="$MATCH_1"
     branch="$MATCH_2"
     run_in "$DATADIR/gits/morphs" git checkout "$branch"

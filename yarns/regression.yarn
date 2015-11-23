@@ -34,7 +34,7 @@ source it depended on.
     GIVEN    a git server
     AND      system systems/test-system.morph uses core-runtime from core
     AND      stratum strata/core.morph has match rules: [{artifact: core-runtime, include: [.*-devel]}, {artifact: core-devel, include: [.*-runtime]}]
-    GIVEN    a cluster called test-cluster.morph in system branch master
+    GIVEN    a cluster called test-cluster.morph in branch master
     AND      a system in cluster test-cluster.morph in branch master called test-system
     AND      system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND      system test-system in cluster test-cluster.morph in branch master has deployment type: tar

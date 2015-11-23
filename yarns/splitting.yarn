@@ -45,7 +45,7 @@ The best way to test that only using some stratum artifacts works is
 to check which files the output has, so we deploy a tarball and inspect
 its contents.
 
-    GIVEN a cluster called test-cluster.morph in system branch master
+    GIVEN a cluster called test-cluster.morph in branch master
     AND a system in cluster test-cluster.morph in branch master called test-system
     AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
