@@ -55,7 +55,7 @@ class BuildPlugin(cliapp.Plugin):
         return 'usage: morph %s %s' % (cmd, self.app.cmd_synopsis[cmd])
 
     def distbuild_morphology(self, args):
-        '''Distbuild a system, outside of a system branch.
+        '''Distbuild a system without having to clone a definitions repo.
 
         Command line arguments:
 
@@ -80,7 +80,7 @@ class BuildPlugin(cliapp.Plugin):
         self._distbuild(repo, ref, filename, component_names=component_names)
 
     def distbuild(self, args):
-        '''Distbuild a system image in the current system branch
+        '''Distbuild a system image in the current definitions repo
 
         Command line arguments:
 
@@ -114,7 +114,7 @@ class BuildPlugin(cliapp.Plugin):
             raise cliapp.AppException(self._cmd_usage('distbuild'))
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
 
         filename = args[0]
         filename = morphlib.util.sanitise_morphology_path(filename)
@@ -180,7 +180,7 @@ class BuildPlugin(cliapp.Plugin):
             component_names=component_names)
 
     def build_morphology(self, args):
-        '''Build a system, outside of a system branch.
+        '''Build a system without having to clone a definitions repo.
 
         Command line arguments:
 
@@ -189,11 +189,6 @@ class BuildPlugin(cliapp.Plugin):
         * `FILENAME` is a morphology filename at that ref.
         * `COMPONENT...` is the names of one or more chunks or strata to
           build. If none are given then the system at FILENAME is built.
-
-        You probably want `morph build` instead. However, in some
-        cases it is more convenient to not have to create a Morph
-        workspace and check out the relevant system branch, and only
-        just run the build. For those times, this command exists.
 
         This subcommand does not automatically commit changes to a
         temporary branch, so you can only build from properly committed
@@ -272,7 +267,7 @@ class BuildPlugin(cliapp.Plugin):
             raise cliapp.AppException(self._cmd_usage('build'))
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
 
         filename = args[0]
         filename = morphlib.util.sanitise_morphology_path(filename)

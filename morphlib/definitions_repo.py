@@ -45,20 +45,11 @@ class FileOutsideRepo(cliapp.AppException):
 class DefinitionsRepo(gitdir.GitDirectory):
     '''Represents a definitions.git repo checked out locally.
 
-    This can either be a normal Git clone, or a Git clone inside an old-style
-    Morph workspace.
-
-    If the repo is inside a Morph workspace, certain behaviours are enabled for
-    consistency with old versions of Morph. See function documentation for
-    details.
-
     '''
-    def __init__(self, path, search_for_root=False, system_branch=None,
-                 allow_missing=False):
+    def __init__(self, path, search_for_root=False, allow_missing=False):
         morphlib.gitdir.GitDirectory.__init__(
             self, path, search_for_root=search_for_root,
             allow_missing=allow_missing)
-        self.system_branch = system_branch
 
     @property
     def HEAD(self):
@@ -67,32 +58,14 @@ class DefinitionsRepo(gitdir.GitDirectory):
         In a normal Git checkout, this will return whatever ref is checked out
         as the working tree (HEAD, in Git terminology).
 
-        If this definitions repo is in an old-style Morph system branch, it
-        will return the ref that was checked out with `morph branch` or `morph
-        checkout`, which will NOT necessarily correspond to what is checked out
-        in the Git repo.
-
         '''
-        if self.system_branch is None:
-            return morphlib.gitdir.GitDirectory.HEAD.fget(self)
-        else:
-            return self.system_branch.get_config('branch.name')
+        return morphlib.gitdir.GitDirectory.HEAD.fget(self)
 
     @property
     def remote_url(self):
-        '''Return the 'upstream' URL of this repo.
+        '''Return the 'upstream' URL of this repo.'''
 
-        If this repo is inside a Morph system branch checkout, this will be
-        whatever URL was passed to `morph checkout` or `morph branch`. That may
-        be a keyed URL such as baserock:baserock/definitions.
-
-        Otherwise, the fetch URL of the 'origin' remote is returned.
-
-        '''
-        if self.system_branch is None:
-            return self.get_remote('origin').get_fetch_url()
-        else:
-            return self.system_branch.root_repository_url
+        return self.get_remote('origin').get_fetch_url()
 
     def branch_with_local_changes(self, uuid, push=True, build_ref_prefix=None,
                                   git_user_name=None, git_user_email=None,
@@ -118,11 +91,7 @@ class DefinitionsRepo(gitdir.GitDirectory):
             status_cb(msg='Looking for uncommitted changes (pass '
                           '--local-changes=ignore to skip)')
 
-        if self.system_branch:
-            bb = morphlib.buildbranch.BuildBranch(
-                build_ref_prefix, uuid, system_branch=self.system_branch)
-        else:
-            bb = morphlib.buildbranch.BuildBranch(
+        bb = morphlib.buildbranch.BuildBranch(
                 build_ref_prefix, uuid, definitions_repo=self)
 
         pbb = morphlib.buildbranch.pushed_build_branch(
@@ -365,22 +334,7 @@ class DefinitionsRepoWithApp(DefinitionsRepo):
             status_cb=self.app.status,
             update_repos=(not self.app.settings['no-git-update']))
 
-
-def _system_branch(path):
-    '''Open an old-style Morph system branch in an old-style Morph workspace.
-
-    Raises morphlib.workspace.NotInWorkspace or
-    morphlib.sysbranchdir.NotInSystemBranch if either workspace or
-    system-branch are not found.
-
-    '''
-    morphlib.workspace.open(path)
-    system_branch = morphlib.sysbranchdir.open_from_within(path)
-    return system_branch
-
-
-def _local_definitions_repo(path, search_for_root, system_branch=None,
-                            app=None):
+def _local_definitions_repo(path, search_for_root, app=None):
     '''Open a local Git repo containing Baserock definitions, at 'path'.
 
     Raises morphlib.gitdir.NoGitRepoError if there is no repo found at 'path'.
@@ -388,15 +342,14 @@ def _local_definitions_repo(path, search_for_root, system_branch=None,
     '''
     if app:
         gitdir = morphlib.definitions_repo.DefinitionsRepoWithApp(
-            app, path, search_for_root=search_for_root,
-            system_branch=system_branch)
+            app, path, search_for_root=search_for_root)
     else:
         gitdir = morphlib.definitions_repo.DefinitionsRepo(
-            path, search_for_root=search_for_root, system_branch=system_branch)
+            path, search_for_root=search_for_root)
     return gitdir
 
 
-def open(path, search_for_root=False, search_workspace=False, app=None):
+def open(path, search_for_root=False, app=None):
     '''Open the definitions.git repo at 'path'.
 
     Returns a DefinitionsRepo instance.
@@ -408,40 +361,12 @@ def open(path, search_for_root=False, search_workspace=False, app=None):
     path entered manually by the user, you may want to set this to False to
     avoid confusion.
 
-    If 'search_workspace' is True, this function will check if 'path' is inside
-    an old-style Morph workspace. If it is, there will be two changes to its
-    behaviour. First, the definitions.git will be returned even if 'path' is
-    inside a different repo, because the old-style Morph system branch will
-    identify which is the correct definitions.git repo. Second, the value
-    returned for HEAD will not be the ref checked out in the definitions.git
-    repo, but rather the ref that was passed to `morph checkout` or `morph
-    branch` when the system branch was originally checked out. This behaviour
-    may seem confusing if you are new to Morph, but in fact Morph forced users
-    to work this way for several years, so we need preserve this behaviour for
-    a while to avoid disrupting existing users.
-
     '''
-    sb = None
 
-    if search_workspace:
-        try:
-            sb = _system_branch(path)
-        except (morphlib.workspace.NotInWorkspace,
-                morphlib.sysbranchdir.NotInSystemBranch):
-            logging.debug('Did not find old-style Morph system branch')
-
-    if sb:
-        path = sb.get_git_directory_name(sb.root_repository_url)
+    try:
         definitions_repo = _local_definitions_repo(
-            path=path, search_for_root=False, system_branch=sb, app=app)
-        logging.info('Opened definitions repo %s from Morph system branch %s',
-                     definitions_repo, sb)
-    else:
-        try:
-            definitions_repo = _local_definitions_repo(
-                path, search_for_root=search_for_root, app=app)
-        except morphlib.gitdir.NoGitRepoError:
-            raise DefinitionsRepoNotFound()
-        logging.info('Opened definitions repo %s', definitions_repo)
-
+            path, search_for_root=search_for_root, app=app)
+    except morphlib.gitdir.NoGitRepoError:
+        raise DefinitionsRepoNotFound()
+    logging.info('Opened definitions repo %s', definitions_repo)
     return definitions_repo

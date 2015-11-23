@@ -59,7 +59,7 @@ class ShowBuildLog(cliapp.Plugin):
         morphlib.buildcommand.BuildCommand._validate_architecture = validate
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
         source_pool_context = definitions_repo.source_pool(
             ref=definitions_repo.HEAD, system_filename=system)
         with source_pool_context as source_pool:

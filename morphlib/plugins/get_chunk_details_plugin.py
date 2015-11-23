@@ -48,7 +48,7 @@ class GetChunkDetailsPlugin(cliapp.Plugin):
                 '(see help)')
 
         definitions_repo = morphlib.definitions_repo.open(
-            '.', search_for_root=True, search_workspace=True, app=self.app)
+            '.', search_for_root=True, app=self.app)
 
         aliases = self.app.settings['repo-alias']
         self.resolver = morphlib.repoaliasresolver.RepoAliasResolver(aliases)
