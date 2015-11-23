@@ -25,14 +25,12 @@ set -e
 run_style=false
 run_unit_tests=false
 run_cmdtests=false
-run_slow_cmdtests=false
 run_yarns=false
 snapshot=''
 if [ "$#" -eq 0 ]; then
     run_style=true
     run_unit_tests=true
     run_cmdtests=true
-    run_slow_cmdtests=false
     run_yarns=true
 fi
 while [ "$#" -gt 0 ]
@@ -42,7 +40,6 @@ do
         run_style=true
         run_unit_tests=true
         run_cmdtests=true
-        run_slow_cmdtests=true
         run_yarns=true
         ;;
     --style)
@@ -62,12 +59,6 @@ do
         ;;
     --no-cmdtests)
         run_cmdtests=false
-        ;;
-    --slow-cmdtests)
-        run_slow_cmdtests=true
-        ;;
-    --no-slow-cmdtests)
-        run_slow_cmdtests=false
         ;;
     --yarns)
         run_yarns=true
@@ -178,13 +169,6 @@ then
     cmdtest tests
 else
     echo "NOT RUNNING test"
-fi
-
-if "$run_slow_cmdtests"
-then
-    cmdtest tests.branching
-else
-    echo "NOT RUNNING test.branching"
 fi
 
 # Building systems requires the 'filter' parameter of tarfile.TarFile.add():
