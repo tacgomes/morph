@@ -60,7 +60,7 @@ the same code paths as a real upgrade.
 
     SCENARIO deploying a cluster morphology as rawdisk and then upgrading it
     GIVEN a git server
-    GIVEN a cluster called clusters/test-cluster.morph in system branch master
+    GIVEN a cluster called clusters/test-cluster.morph in branch master
     AND a system in cluster clusters/test-cluster.morph in branch master called test-system
     AND system test-system in cluster clusters/test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster clusters/test-cluster.morph in branch master has deployment type: rawdisk
@@ -88,7 +88,7 @@ It is convenient to be able to deploy one system inside another.
 
     SCENARIO deploying a cluster morphology with nested systems
     GIVEN a git server
-    GIVEN a cluster called test-cluster.morph in system branch master
+    GIVEN a cluster called test-cluster.morph in branch master
     AND a system in cluster test-cluster.morph in branch master called test-system
     AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
@@ -134,7 +134,7 @@ There's a few ways of creating an initramfs. We could:
     SCENARIO deploying a system with an initramfs
     ASSUMING there is space for 5 512M disk images
     GIVEN a git server
-    GIVEN a cluster called C.morph in system branch master
+    GIVEN a cluster called C.morph in branch master
     AND a system in cluster C.morph in branch master called S
 
 2.2 needs a nested system that is deployed with the initramfs write
@@ -211,7 +211,7 @@ with only one definition.
 
     SCENARIO partially deploying a cluster morphology
     GIVEN a git server
-    GIVEN a cluster called test-cluster.morph in system branch master
+    GIVEN a cluster called test-cluster.morph in branch master
     AND a system in cluster test-cluster.morph in branch master called test-system
     AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
