@@ -252,3 +252,21 @@ Oh, and the one line should contain no spaces, either.
     then
         die "stderr is not empty"
     fi
+
+Showing help for extensions
+---------------------------
+
+    SCENARIO morph shows help for extensions
+    WHEN morph help is run for an extension
+    THEN morph succeeded
+
+    SCENARIO morph help shows an error for a non-existent extension
+    WHEN morph help is run for a non-existent extension
+    THEN morph failed
+    AND the help error message includes the string "ERROR: Unknown subcommand or extension"
+
+    IMPLEMENTS WHEN morph help is run for an extension
+    attempt_morph help tar.write > "$DATADIR/stdout" 2> "$DATADIR/stderr"
+
+    IMPLEMENTS WHEN morph help is run for a non-existent extension
+    attempt_morph help nonexistent.write > "$DATADIR/stdout" 2> "$DATADIR/stderr"

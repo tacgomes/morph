@@ -676,7 +676,7 @@ them, so they can be added to the end of the implements section.
 Implementations sections for reading error messages
 ===================================================
 
-    IMPLEMENTS THEN the (branch|build|checkout|deploy|edit|init) error message includes the string "(.*)"
+    IMPLEMENTS THEN the (branch|build|checkout|deploy|edit|init|help) error message includes the string "(.*)"
     grep "$MATCH_2" "$DATADIR/result-$MATCH_1"
 
 IMPLEMENTS for test file and directory handling

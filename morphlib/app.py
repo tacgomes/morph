@@ -427,9 +427,12 @@ class Morph(cliapp.Application):
             text = '%s\n\n%s' % (usage, description)
             self.output.write(text)
         elif topic in extensions.list_extensions():
+            definitions_repo = morphlib.definitions_repo.open(
+                    '.', False, self)
             name, kind = os.path.splitext(topic)
             try:
                 with extensions.get_extension_filename(
+                        definitions_repo,
                         name,
                         kind + '.help', executable=False) as fname:
                     with open(fname, 'r') as f:
