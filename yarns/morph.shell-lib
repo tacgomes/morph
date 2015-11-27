@@ -26,6 +26,23 @@ case "$PYTHONPATH" in
 esac
 export PYTHONPATH
 
+# Added until it's fixed in upstream.
+# It's a solution to create an empty home directory each execution
+export HOME="$DATADIR/home"
+if [ ! -d "$HOME" ]
+then
+    mkdir "$HOME"
+fi
+
+# Generating a default git user to run the tests
+if ! test -r "$HOME/.gitconfig"
+then
+    cat > "$HOME/.gitconfig" <<EOF
+[user]
+     name = Tomjon Codethinker
+     email = tomjon@codethink.co.uk
+EOF
+fi
 
 # Run Morph from the source tree, ignoring any configuration files.
 # This way the test suite is not affected by any configuration the user
@@ -36,7 +53,12 @@ run_morph()
 {
     {
         set +e
-        "$SRCDIR"/morph --debug \
+        debug='--debug'
+        quiet="$(echo "$@" | grep '\-\-quiet')"
+        if $(echo "$@" | grep -q '\-\-quiet'); then
+            debug=
+        fi
+        "$SRCDIR"/morph $debug \
             --cachedir-min-space=0 --tempdir-min-space=0 \
             --no-default-config --config "$DATADIR/morph.conf" \
             --log="$DATADIR/log-$1"  \
@@ -85,23 +107,18 @@ run_in()
     (cd "$1" && shift && exec "$@")
 }
 
-# Added until it's fixed in upstream.
-# It's a solution to create an empty home directory each execution
-export HOME="$DATADIR/home"
-if [ ! -d "$HOME" ]
-then
-    mkdir "$HOME"
-fi
-
-# Generating a default git user to run the tests
-if ! test -r "$HOME/.gitconfig"
-then
-    cat > "$HOME/.gitconfig" <<EOF
-[user]
-     name = Tomjon Codethinker
-     email = tomjon@codethink.co.uk
-EOF
-fi
+find_alias () {
+    ALIASES="$1"
+    WHICH="$2"
+    for alias in $ALIASES; do
+        alias=$(echo $alias | sed -e's/,$//')
+        prefix=$(echo $alias | cut -d= -f1)
+        if test "x$WHICH" = "x$prefix"; then
+            echo $alias
+            exit 0
+        fi
+    done
+}
 
 start_cache_server(){
     mkfifo "$1"

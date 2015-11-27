@@ -1,0 +1,94 @@
+Trove Aliases
+=============
+
+    SCENARIO trove-id (and by corollary trove-host) work properly
+    GIVEN a morph configuration to test the aliases
+    AND a list of raw aliases
+    AND a list of processed aliases
+    THEN all raw aliases should be in processed aliases unchanged
+    THEN all aliases in the processed aliases which do not come from the raw aliases should contain the trove host
+    THEN processed aliases do contain a baserock and an upstream alias since those are implicit in morph's behaviour
+    THEN fudge prefix has been correctly expanded as though it were fudge=fudge#ssh#ssh
+
+    IMPLEMENTS GIVEN a morph configuration to test the aliases
+    cat << EOF > "$DATADIR/morph.conf"
+    [config]
+    repo-alias = test=file://$DATADIR/%s#file://$DATADIR/%s
+    cachedir = $DATADIR/cache
+    log = $DATADIR/morph.log
+    no-distcc = true
+    quiet = true
+    EOF
+
+    IMPLEMENTS GIVEN a list of raw aliases
+    run_morph \
+        --trove-host="TROVEHOST" \
+        --trove-id="fudge" \
+        --trove-id="github" \
+        --dump-config > "$DATADIR/raw-configdump"
+    grep repo-alias "$DATADIR"/raw-configdump | cut -d\  -f3- > \
+            "$DATADIR"/raw-aliases
+
+    IMPLEMENTS GIVEN a list of processed aliases
+    export MORPH_DUMP_PROCESSED_CONFIG=1
+    run_morph \
+        --trove-host="TROVEHOST" \
+        --trove-id="fudge" \
+        --trove-id="github" \
+        > "$DATADIR/processed-configdump"
+    grep repo-alias "$DATADIR"/processed-configdump | cut -d\  -f3- > \
+            "$DATADIR"/processed-aliases
+
+    IMPLEMENTS THEN all raw aliases should be in processed aliases unchanged
+    # All raw aliases should be in processed aliases unchanged.  As part
+    # of this, we're also validating that the 'github' prefix we pass in
+    # does not affect the alias output since it is overridden by
+    # repo-alias.
+    RAW_ALIAS="$(cat "$DATADIR"/raw-aliases)"
+    PROCESSED_ALIAS="$(cat "$DATADIR"/processed-aliases)"
+    for raw_alias in $RAW_ALIAS; do
+        raw_alias=$(echo $raw_alias | sed -e's/,$//')
+        raw_prefix=$(echo $raw_alias | cut -d= -f1)
+        processed_alias=$(find_alias "$PROCESSED_ALIAS" "$raw_prefix")
+        if test "x$raw_alias" != "x$processed_alias"; then
+            die "Raw $raw_alias not in processed aliases"
+        fi
+    done
+
+    IMPLEMENTS THEN all aliases in the processed aliases which do not come from the raw aliases should contain the trove host
+    # All aliases in the processed aliases which do not come from the
+    # raw aliases should contain the trove host.
+    RAW_ALIAS="$(cat "$DATADIR"/raw-aliases)"
+    PROCESSED_ALIAS="$(cat "$DATADIR"/processed-aliases)"
+    for processed_alias in $PROCESSED_ALIAS; do
+        processed_alias=$(echo $processed_alias | sed -e's/,$//')
+        processed_prefix=$(echo $processed_alias | cut -d= -f1)
+        raw_alias=$(find_alias "$RAW_ALIAS" "$processed_prefix")
+        if test "x$raw_alias" = "x"; then
+            grep_out=$(echo "$processed_alias" | grep TROVEHOST)
+            if test "x$grep_out" = "x"; then
+                die "Processed $processed_alias does not mention TROVEHOST"
+            fi
+        fi
+    done
+
+    IMPLEMENTS THEN processed aliases do contain a baserock and an upstream alias since those are implicit in morph's behaviour
+    # Validate that the processed aliases do contain a baserock and an
+    # upstream alias since those are implicit in morph's behaviour.
+    PROCESSED_ALIAS="$(cat "$DATADIR"/processed-aliases)"
+    for prefix in baserock upstream; do
+        processed_alias=$(find_alias "$PROCESSED_ALIAS" "$prefix")
+        if test "x$processed_alias" = "x"; then
+            die "Processed aliases lack $prefix prefix"
+        fi
+    done
+
+    IMPLEMENTS THEN fudge prefix has been correctly expanded as though it were fudge=fudge#ssh#ssh
+    # Validate that the fudge prefix has been correctly expanded as
+    # though it were fudge=fudge#ssh#ssh
+    PROCESSED_ALIAS="$(cat "$DATADIR"/processed-aliases)"
+    fudge_alias=$(find_alias "$PROCESSED_ALIAS" "fudge")
+    desired_fudge="fudge=ssh://git@TROVEHOST/fudge/%s#ssh://git@TROVEHOST/fudge/%s"
+    if test "x$fudge_alias" != "x$desired_fudge"; then
+        die  "Fudge alias was '$fudge_alias' where we wanted '$desired_fudge'"
+    fi

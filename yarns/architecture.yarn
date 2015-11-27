@@ -1,5 +1,5 @@
-Morph Cross-Building Tests
-==========================
+Morph Architecture Tests
+========================
 
     SCENARIO building a system for a different architecture
     GIVEN a git server
@@ -10,19 +10,22 @@ Morph Cross-Building Tests
     AND the build error message includes the string "Are you trying to cross-build?"
     FINALLY the git server is shut down
 
-
-Morph Cross-Bootstrap Tests
-===========================
-
     SCENARIO cross-bootstrapping a system for a different architecture
     GIVEN a git server
     AND a system called base-system-testarch.morph for the test architecture in the git server
     WHEN the user clones definitions
-    THEN the user cross-bootstraps the system base-system-testarch.morph in branch master of repo test:definitions to the arch testarch
+    AND the user attempts to cross-bootstrap the system base-system-testarch.morph in branch master of repo test:definitions to the arch testarch
+    THEN morph succeeded
     FINALLY the git server is shut down
 
-Architecture validation Tests
-=============================
+    SCENARIO cross-bootstrapping a system for an unknown architecture
+    GIVEN a git server
+    AND a system called base-system-testarch.morph for the test architecture in the git server
+    WHEN the user clones definitions
+    AND the user attempts to cross-bootstrap the system base-system-testarch.morph in branch master of repo test:definitions to the arch unknown-archicture
+    THEN morph failed
+    AND the cross-bootstrap error message includes the string "Unsupported architecture "unknown-archicture"
+    FINALLY the git server is shut down
 
     SCENARIO building a system with no architecture
     GIVEN a git server

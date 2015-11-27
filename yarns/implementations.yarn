@@ -102,7 +102,6 @@ another to hold a chunk.
     # that the file exists, rather than its contents, we can use /dev/null
     # as the source.
 
-    
     for bindir in bin sbin; do
         install -D /dev/null "$DESTDIR/$PREFIX/$bindir/test"
     done
@@ -452,10 +451,10 @@ have a morphology using the test architecture.
     kind: system
     name: $name
     strata:
-    -   name: build-essential
-        morph: strata/build-essential.morph
-    -   name: core
-        morph: strata/core.morph
+    - name: build-essential
+      morph: strata/build-essential.morph
+    - name: core
+      morph: strata/core.morph
     EOF
 
     run_in "$DATADIR/gits/definitions" git add "strata/build-essential.morph"
@@ -603,11 +602,13 @@ Implementation sections for building
 Implementation sections for cross-bootstrapping
 ===============================================
 
-    IMPLEMENTS THEN the user cross-bootstraps the system (\S+) in branch (\S+) of repo (\S+) to the arch (\S+)
+    IMPLEMENTS WHEN the user (attempts to )?cross-bootstraps? the system (\S+) in branch (\S+) of repo (\S+) to the arch (\S+)
     cd "$DATADIR/definitions"
-    git checkout "$MATCH_2"
-    set -- cross-bootstrap "$MATCH_4" "$MATCH_3" "$MATCH_2" "$MATCH_1"
-    run_morph "$@"
+    git checkout "$MATCH_3"
+    set -- cross-bootstrap "$MATCH_5" "$MATCH_4" "$MATCH_3" "$MATCH_2"
+    if [ "$MATCH_1" != "attempts to " ]; then run_morph "$@"
+    else attempt_morph "$@"; fi
+    echo $@ >&2
 
 Implementation sections for deployment
 ======================================
@@ -676,7 +677,7 @@ them, so they can be added to the end of the implements section.
 Implementations sections for reading error messages
 ===================================================
 
-    IMPLEMENTS THEN the (branch|build|checkout|deploy|edit|init) error message includes the string "(.*)"
+    IMPLEMENTS THEN the (branch|build|cross-bootstrap|checkout|deploy|edit|init) error message includes the string "(.*)"
     grep "$MATCH_2" "$DATADIR/result-$MATCH_1"
 
 IMPLEMENTS for test file and directory handling
@@ -825,6 +826,139 @@ Implementations for building systems
     IMPLEMENTS WHEN from the directory (\S+) the user attempts to morph build the system using the absolute path to (\S+)
     cd "$DATADIR/$MATCH_1"
     attempt_morph build "$(pwd)/$MATCH_2"
+
+    IMPLEMENTS THEN the system artifact for (\S+) is on the cache
+    system_name="$MATCH_1"
+    system_artifact=$(ls "$DATADIR/cache/artifacts/"*"$system_name"-rootfs)
+    tar tf "$system_artifact" | LC_ALL=C sort | sed '/^\.\/./s:^\./::' | grep -v '^baserock/'
+
+    IMPLEMENTS THEN the logs were saved to the artifact cache
+    sources="$DATADIR/cached-sources"
+    find "$DATADIR/cache/artifacts" -name '*.chunk.*' |
+        sed 's|\.chunk\..*||' | sort -u >"$sources"
+    found=false
+    # list of sources in cache is not piped because while loop changes variable
+    while read source; do
+        [ -e "$source".build-log ] || continue
+        found=true
+        break
+    done <"$sources"
+    $found
+
+    IMPLEMENTS THEN the build log for chunk (\S+) contains (\S+)
+    chunk_name="$MATCH_1"
+    string="$MATCH_2"
+    artifact=$(ls "$DATADIR/cache/artifacts/"*chunk\."$chunk_name"-devel)
+    cachekey="$(echo "$(basename "$artifact")" | cut -d. -f1)"
+    logfile="$DATADIR/cache/artifacts/$cachekey.build-log"
+    grep -q "$string" "$logfile"
+
+    IMPLEMENTS WHEN the user defines build commands for chunk (\S+) that will fail in branch (\S+)
+    chunk_name="$MATCH_1"
+    branch="$MATCH_2"
+    cd "$DATADIR"/definitions
+    git checkout "$branch"
+    cat << EOF > "${chunk_name}".morph
+    name: hello
+    kind: chunk
+    configure-commands:
+    - echo dummy configure
+    build-commands:
+    - echo The next command will fail
+    - false
+    EOF
+    git add "${chunk_name}".morph
+    git commit -m "Update ${chunk_name} build commands"
+    git checkout -
+
+    IMPLEMENTS GIVEN a chunk with submodules
+    mkdir "$DATADIR/gits/child-chunk"
+    cd "$DATADIR/gits/child-chunk"
+    git init .
+    touch submodule-file
+    git add .
+    git commit -m "Initial commit"
+    mkdir "$DATADIR/gits/parent-chunk"
+    cd "$DATADIR/gits/parent-chunk"
+    git init .
+    git commit --allow-empty -m "Initial commit"
+    git submodule add -b master file://$DATADIR/gits/child-chunk
+    git commit -m "Add child-chunk submodule"
+
+    IMPLEMENTS WHEN the user adds the chunk with submodules to an existing stratum in branch (\S+)
+    branch="$MATCH_1"
+    cd "$DATADIR/definitions"
+    git checkout "$branch"
+    cat << EOF >> strata/core.morph
+    - name: parent-chunk
+      morph: parent-chunk.morph
+      repo: test:parent-chunk
+      ref: master
+    EOF
+    cat << EOF > parent-chunk.morph
+    name: parent-chunk
+    kind: chunk
+    build-system: manual
+    build-commands:
+    - file exists child-chunk/submodule-file
+    EOF
+    git add strata/core.morph parent-chunk.morph
+    git commit -m "Add parent-chunk to core"
+    git checkout -
+
+    IMPLEMENTS WHEN the user adds the chunk with custom prefixes to an existing stratum in branch (\S+)
+    branch="$MATCH_1"
+    cd "$DATADIR"/definitions
+    git checkout "$branch"
+    cat << EOF >> strata/core.morph
+    - name: xyzzy
+      morph: xyzzy.morph
+      repo: test:test-chunk
+      ref: master
+      build-depends: []
+      prefix: /plover
+    - name: plugh
+      morph: plugh.morph
+      repo: test:test-chunk
+      ref: master
+      build-depends:
+      - xyzzy
+    EOF
+    cat << EOF > xyzzy.morph
+    name: xyzzy
+    kind: chunk
+    build-mode: manual
+    install-commands:
+    - printvar PREFIX
+    EOF
+    cat << EOF > plugh.morph
+    name: plugh
+    kind: chunk
+    build-mode: manual
+    install-commands:
+    - printvar PREFIX
+    - printvar PATH
+    EOF
+    git add strata/core.morph xyzzy.morph plugh.morph
+    git commit -m "Add moar stuff"
+    git checkout -
+
+    IMPLEMENTS WHEN the user changes the build commands for chunk (\S+) in branch (\S+)
+    chunk_name="$MATCH_1"
+    branch="$MATCH_2"
+    cd "$DATADIR"/definitions
+    git checkout "$branch"
+    cat << EOF >> "${chunk_name}".morph
+    post-install-commands:
+    - create file foo
+    EOF
+    git checkout -
+
+    IMPLEMENTS THEN there are (\S+) artifacts named (\S+) in the cache
+    expected_num="$MATCH_1"
+    artifact_name="$MATCH_2"
+    num_artifacts="$(ls -l "$DATADIR"/cache/artifacts/*"$artifact_name" | wc -l)"
+    test "$expected_num" -eq "$num_artifacts"
 
 Implementations for tarball inspection
 --------------------------------------
