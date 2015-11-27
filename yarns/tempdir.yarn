@@ -1,0 +1,26 @@
+Temporary Directory
+===================
+
+    SCENARIO morph honours the temporary directory given
+    GIVEN a git server
+    WHEN the user clones definitions
+    THEN the user is able to build the system systems/test-system.morph in branch master using the specified temporary directory
+
+    IMPLEMENTS THEN the user is able to build the system (\S+) in branch (\S+) using the specified temporary directory
+    system="$MATCH_1"
+    branch="$MATCH_2"
+
+    export TMPDIR
+    TMPDIR="$DATADIR"/unwritable-tmp
+    install -m 000 -d "$TMPDIR"
+    mkdir "$DATADIR"/tmp
+
+    cd "$DATADIR"/definitions
+    git checkout "$branch"
+    morph --tempdir="$DATADIR"/tmp \
+          --cachedir-min-space=0 \
+          --tempdir-min-space=0 \
+          --no-default-config \
+          --config "$DATADIR"/morph.conf \
+          build "$system"
+    git checkout -

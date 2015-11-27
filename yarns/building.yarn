@@ -1,6 +1,14 @@
 Morph Building Tests
 ======================
 
+    SCENARIO building a system morphology
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    AND the system artifact for test-system is in the cache
+    FINALLY the git server is shut down
+
     SCENARIO attempting to build a system morphology which has never been committed
     GIVEN a git server
     WHEN the user clones definitions
@@ -31,6 +39,54 @@ Morph Building Tests
     AND the user creates an uncommitted system morphology called systems/base-system.morph for our architecture in branch master
     AND from the directory definitions/systems the user attempts to morph build the system using the absolute path to base-system.morph
     THEN morph succeeded
+    FINALLY the git server is shut down
+
+    SCENARIO build a chunk with build commands that will fail
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user defines build commands for chunk test-chunk that will fail, in branch master
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph failed
+    AND the build error message includes the string "build failed (exit_code=1)"
+    FINALLY the git server is shut down
+
+    SCENARIO build log is saved when a chunk is built
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    AND the build logs for the chunks were saved to the artifact cache
+    FINALLY the git server is shut down
+
+    SCENARIO building a chunk containing submodules
+    GIVEN a git server
+    AND a chunk with submodules
+    WHEN the user clones definitions
+    AND the user adds the chunk with submodules to an existing stratum in branch master
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    FINALLY the git server is shut down
+
+    SCENARIO building a chunk using a custom prefix
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user adds the chunk with custom prefixes to an existing stratum in branch master
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    THEN the build log for chunk xyzzy contains /plover
+    THEN the build log for chunk plugh contains /usr
+    THEN the build log for chunk plugh contains /plover/bin
+    FINALLY the git server is shut down
+
+    SCENARIO modifying chunk causes its stratum to be rebuilt
+    GIVEN a git server
+    WHEN the user clones definitions
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    WHEN the user changes the build commands for chunk test-chunk in branch master
+    AND the user attempts to build the system systems/test-system.morph in branch master
+    THEN morph succeeded
+    AND there are 2 artifacts named core-runtime in the cache
     FINALLY the git server is shut down
 
 System integrations

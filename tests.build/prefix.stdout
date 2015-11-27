@@ -1,8 +1,0 @@
-### CONFIGURE-COMMANDS ###
-+ echo First chunk: prefix /plover
-First chunk: prefix /plover
-### CONFIGURE-COMMANDS ###
-+ echo Second chunk: prefix /usr
-Second chunk: prefix /usr
-+ set +x
-Path: /plover

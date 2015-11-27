@@ -1,8 +1,0 @@
-### CONFIGURE-COMMANDS ###
-+ echo dummy configure
-dummy configure
-### BUILD-COMMANDS ###
-+ echo The next command will fail
-The next command will fail
-+ false
-

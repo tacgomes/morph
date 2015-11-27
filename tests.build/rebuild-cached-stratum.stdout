@@ -1,8 +1,0 @@
-first build:
- chunk.hello-chunk
- stratum.hello-stratum
- stratum.hello-stratum.meta
-second build:
- chunk.hello-chunk
- stratum.hello-stratum
- stratum.hello-stratum.meta

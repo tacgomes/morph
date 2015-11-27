@@ -270,3 +270,201 @@ Showing help for extensions
 
     IMPLEMENTS WHEN morph help is run for a non-existent extension
     attempt_morph help nonexistent.write > "$DATADIR/stdout" 2> "$DATADIR/stderr"
+
+Showing dependencies
+--------------------
+
+    SCENARIO showing the dependencies for a system
+    GIVEN a git server
+    AND a system with two reasonable-sized strata in branch master of definitions
+    WHEN the user runs the show-dependencies command for system xfce-system.morph in branch master
+    THEN the result shows the dependencies of the system
+
+    IMPLEMENTS GIVEN a system with two reasonable-sized strata in branch (\S+) of definitions
+    branch="$MATCH_1"
+    cd "$DATADIR"/gits/definitions
+    git checkout "$branch"
+    echo "version: 6" > VERSION
+    git add VERSION
+    cat << EOF > gtk-stack.morph
+    name: gtk-stack
+    kind: stratum
+    build-depends: []
+    chunks:
+    - name: freetype
+      repo: test:test-chunk
+      ref: master
+      build-mode: bootstrap
+      build-system: manual
+    - name: fontconfig
+      repo: test:test-chunk
+      ref: master
+      build-mode: bootstrap
+      build-system: manual
+    - name: cairo
+      repo: test:test-chunk
+      ref: master
+      build-mode: bootstrap
+      build-system: manual
+    - name: pango
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - freetype
+      - fontconfig
+    - name: glib
+      repo: test:test-chunk
+      ref: master
+      build-mode: bootstrap
+      build-system: manual
+    - name: gdk-pixbuf
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - glib
+    - name: gtk
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - cairo
+      - gdk-pixbuf
+      - glib
+      - pango
+    - name: dbus
+      repo: test:test-chunk
+      ref: master
+      build-mode: bootstrap
+      build-system: manual
+    - name: dbus-glib
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - dbus
+      - glib
+    EOF
+    git add gtk-stack.morph
+
+    cat <<EOF > xfce-core.morph
+    name: xfce-core
+    kind: stratum
+    build-depends:
+    - morph: gtk-stack
+    chunks:
+    - name: libxfce4util
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+    - name: xfconf
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4util
+    - name: libxfce4ui
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - xfconf
+    - name: exo
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4util
+    - name: garcon
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4util
+    - name: thunar
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - exo
+    - name: tumbler
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+    - name: xfce4-panel
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - exo
+      - garcon
+    - name: xfce4-settings
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - exo
+      - xfconf
+    - name: xfce4-session
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - exo
+      - xfconf
+    - name: xfwm4
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - xfconf
+    - name: xfdesktop
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - xfconf
+    - name: xfce4-appfinder
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - garcon
+      - xfconf
+    - name: gtk-xfce-engine
+      repo: test:test-chunk
+      ref: master
+      build-system: manual
+      build-depends:
+      - libxfce4ui
+      - garcon
+      - xfconf
+    EOF
+    git add xfce-core.morph
+
+    cat << EOF > xfce-system.morph
+    name: xfce-system
+    kind: system
+    arch: $("$SRCDIR/scripts/test-morph" print-architecture)
+    strata:
+    - morph: xfce-core
+    EOF
+    git add xfce-system.morph
+    git commit -m "Add xfce-system"
+    git checkout -
+
+    IMPLEMENTS WHEN the user runs the show-dependencies command for system (\S+) in branch (\S+)
+    system="$MATCH_1"
+    branch="$MATCH_2"
+    run_morph show-dependencies --quiet test:definitions "$branch" "$system" | sed 's/test://'
+
+    IMPLEMENTS THEN the result shows the dependencies of the system
+    diff "$SRCDIR"/yarns/xfce-system-dependencies "$DATADIR"/out-show-dependencies

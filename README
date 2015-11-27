@@ -78,7 +78,7 @@ write extensions from your checkout correctly.
 
 Run the test suite with this command:
 
-    ./check --full
+    ./check
 
 If your /tmp is a tmpfs you may need to set TMPDIR to a different path,
 as there are tests for large disk image deploys.

@@ -24,24 +24,16 @@ set -e
 
 run_style=false
 run_unit_tests=false
-run_cmdtests=false
 run_yarns=false
 snapshot=''
 if [ "$#" -eq 0 ]; then
     run_style=true
     run_unit_tests=true
-    run_cmdtests=true
     run_yarns=true
 fi
 while [ "$#" -gt 0 ]
 do
     case "$1" in
-    --full)
-        run_style=true
-        run_unit_tests=true
-        run_cmdtests=true
-        run_yarns=true
-        ;;
     --style)
         run_style=true
         ;;
@@ -53,12 +45,6 @@ do
         ;;
     --no-unit-tests)
         run_unit_tests=false
-        ;;
-    --cmdtests)
-        run_cmdtests=true
-        ;;
-    --no-cmdtests)
-        run_cmdtests=false
         ;;
     --yarns)
         run_yarns=true
@@ -126,8 +112,7 @@ then
     if ! (git ls-files --cached |
           grep -v '\.gz$' |
           grep -v '\.json-schema$' |
-          grep -Ev 'tests[^/]*/.*\.std(out|err)' |
-          grep -vF 'tests.build/build-system-autotools.script' |
+          grep -v 'yarns/xfce-system-dependencies' |
           xargs -r scripts/check-silliness); then
         exit 1
     fi
@@ -158,25 +143,4 @@ then
     yarn --env "PYTHONPATH=$PYTHONPATH" --env "TMPDIR=$TMPDIR" $snapshot \
     --tempdir "$TMPDIR" -s yarns/morph.shell-lib \
         yarns/*.yarn
-fi
-
-# cmdtest tests.
-
-HOME="$(pwd)/scripts"
-
-if "$run_cmdtests"
-then
-    cmdtest tests
-else
-    echo "NOT RUNNING test"
-fi
-
-# Building systems requires the 'filter' parameter of tarfile.TarFile.add():
-# this was introduced in Python 2.7
-if ! "$run_cmdtests"; then
-    echo "NOT RUNNING tests.build"
-elif ! (python --version 2>&1 | grep -q '^Python 2\.[78]'); then
-    echo "NOT RUNNING tests.build (requires Python 2.7)"
-else
-    cmdtest tests.build
 fi

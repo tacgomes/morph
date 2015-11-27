@@ -163,6 +163,9 @@ int run_commands(FILE *cmdstream){
                 ret = 1;
                 break;
             }
+        } else if (strstr(line, "printvar ") == line) {
+            char const *var = line + sizeof("printvar ") - 1;
+            fprintf(stdout, "%s\n", getenv(var));
         } else if (strstr(line, "create file ") == line) {
             char const *filename = line + sizeof("create file ") -1;
             FILE *outfile = fopen(filename, "w");
@@ -178,6 +181,12 @@ int run_commands(FILE *cmdstream){
                 break;
             }
             fclose(outfile);
+        } else if (strstr(line, "file exists ") == line) {
+            char const *filename = line + sizeof("file exists ") -1;
+            fprintf(stderr, "FILENAME: %s\n", filename);
+            struct stat st;
+            int result = stat(filename, &st);
+            return result != 0;
         } else if (line[0] == '#' || strstr(line, "set ") == line) {
             /* Comments and set commands are ignored */
             continue;
@@ -201,7 +210,8 @@ int main(int argc, char *argv[]) {
         FILE *cmdstream = fopen(argv[1], "r");
         return run_commands(cmdstream);
     } else {
-        fprintf(stderr, "Usage: %s -c COMMAND|%s SCRIPT\n", argv[0], argv[0]);
+        fprintf(stderr, "Usage: %s -x -c COMMAND|%s SCRIPT\n",
+                argv[0], argv[0]);
         return 1;
     }
 }
