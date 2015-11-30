@@ -33,15 +33,8 @@ class ComponentNotInSystemError(morphlib.Error):
 class BuildPlugin(cliapp.Plugin):
 
     def enable(self):
-        self.app.add_subcommand('build-morphology', self.build_morphology,
-                                arg_synopsis='REPO REF FILENAME '
-                                             '[COMPONENT...]')
         self.app.add_subcommand('build', self.build,
                                 arg_synopsis='SYSTEM [COMPONENT...]')
-        self.app.add_subcommand('distbuild-morphology',
-                                self.distbuild_morphology,
-                                arg_synopsis='REPO REF FILENAME '
-                                             '[COMPONENT...]')
         self.app.add_subcommand('distbuild', self.distbuild,
                                 arg_synopsis='SYSTEM [COMPONENT...]')
         self.app.add_subcommand('distbuild-start', self.distbuild_start,
@@ -53,31 +46,6 @@ class BuildPlugin(cliapp.Plugin):
 
     def _cmd_usage(self, cmd):
         return 'usage: morph %s %s' % (cmd, self.app.cmd_synopsis[cmd])
-
-    def distbuild_morphology(self, args):
-        '''Distbuild a system without having to clone a definitions repo.
-
-        Command line arguments:
-
-        * `REPO` is a git repository URL.
-        * `REF` is a branch or other commit reference in that repository.
-        * `FILENAME` is a morphology filename at that ref.
-        * `COMPONENT...` is the names of one or more chunks or strata to
-          build. If none are given the the system at FILENAME is built.
-
-        See 'help distbuild' and 'help build-morphology' for more information.
-
-        '''
-        MINARGS = 3
-
-        if len(args) < MINARGS:
-            raise cliapp.AppException(self._cmd_usage('distbuild-morphology'))
-
-        repo, ref, filename = args[0:MINARGS]
-        filename = morphlib.util.sanitise_morphology_path(filename)
-        component_names = args[MINARGS:]
-
-        self._distbuild(repo, ref, filename, component_names=component_names)
 
     def distbuild(self, args):
         '''Distbuild a system image in the current definitions repo
@@ -178,53 +146,6 @@ class BuildPlugin(cliapp.Plugin):
         build_command.build(
             repo_url, commit, filename, original_ref=original_ref,
             component_names=component_names)
-
-    def build_morphology(self, args):
-        '''Build a system without having to clone a definitions repo.
-
-        Command line arguments:
-
-        * `REPO` is a git repository URL.
-        * `REF` is a branch or other commit reference in that repository.
-        * `FILENAME` is a morphology filename at that ref.
-        * `COMPONENT...` is the names of one or more chunks or strata to
-          build. If none are given then the system at FILENAME is built.
-
-        This subcommand does not automatically commit changes to a
-        temporary branch, so you can only build from properly committed
-        sources that have been pushed to the git server.
-
-        Example:
-
-            morph build-morphology baserock:baserock/definitions \\
-                master systems/devel-system-x86_64-generic.morph
-
-        Partial build example:
-
-            morph build-morphology baserock:baserock/definitions \\
-                master systems/devel-system-x86_64-generic.morph \\
-                build-essential
-
-        '''
-        MINARGS = 3
-
-        if len(args) < MINARGS:
-            raise cliapp.AppException(self._cmd_usage('build-morphology'))
-
-        repo, ref, filename = args[0:MINARGS]
-        filename = morphlib.util.sanitise_morphology_path(filename)
-        component_names = args[MINARGS:]
-
-        # Raise an exception if there is not enough space
-        morphlib.util.check_disk_available(
-            self.app.settings['tempdir'],
-            self.app.settings['tempdir-min-space'],
-            self.app.settings['cachedir'],
-            self.app.settings['cachedir-min-space'])
-
-        build_command = morphlib.buildcommand.BuildCommand(self.app)
-        srcpool = build_command.create_source_pool(repo, ref, [filename])
-        self._build(srcpool, filename, component_names=component_names)
 
     def build(self, args):
         '''Build a system image in the current definitions repo.
