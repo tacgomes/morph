@@ -37,7 +37,8 @@ default_split_rules = {
 class CacheKeyComputerTests(unittest.TestCase):
 
     def setUp(self):
-        loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         self.source_pool = morphlib.sourcepool.SourcePool()
         for name, text in {
             'chunk.morph': '''

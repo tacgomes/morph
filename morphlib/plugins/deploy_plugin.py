@@ -340,11 +340,10 @@ class DeployPlugin(cliapp.Plugin):
         cluster_filename = morphlib.util.sanitise_morphology_path(args[0])
         cluster_filename = definitions_repo.relative_path(cluster_filename)
 
-        loader = morphlib.morphloader.MorphologyLoader()
+        loader = definitions_repo.get_morphology_loader()
         cluster_text = definitions_repo.read_file(cluster_filename)
         cluster_morphology = loader.load_from_string(cluster_text,
                                                      filename=cluster_filename)
-
         if cluster_morphology['kind'] != 'cluster':
             raise cliapp.AppException(
                 "Error: morph deployment commands are only supported for "
@@ -357,7 +356,7 @@ class DeployPlugin(cliapp.Plugin):
         for system in cluster_morphology['systems']:
             all_deployments.update(system['deploy'].iterkeys())
             if 'subsystems' in system:
-                all_subsystems.update(loader._get_subsystem_names(system))
+                all_subsystems.update(loader.get_subsystem_names(system))
         for item in args[1:]:
             if not item in all_deployments:
                 break

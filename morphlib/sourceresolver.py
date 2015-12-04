@@ -412,8 +412,10 @@ class SourceResolver(object):
                 self._get_defaults(
                     definitions_checkout_dir, definitions_version)
 
+            schemas = morphlib.util.read_schemas(definitions_version)
             morph_loader = morphlib.morphloader.MorphologyLoader(
-                predefined_build_systems=predefined_build_systems)
+                predefined_build_systems=predefined_build_systems,
+                schemas=schemas)
 
             # First, process the system and its stratum morphologies. These
             # will all live in the same Git repository, and will point to

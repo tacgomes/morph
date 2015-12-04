@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import unittest
 import warnings
+import yaml
 
 import morphlib
 
@@ -48,7 +49,8 @@ def stratum_template(name):
 class MorphologyLoaderTests(unittest.TestCase):
 
     def setUp(self):
-        self.loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        self.loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         self.tempdir = tempfile.mkdtemp()
         self.filename = os.path.join(self.tempdir, 'foo.morph')
 
@@ -83,166 +85,10 @@ build-system: manual
         self.assertRaises(
             morphlib.morphloader.MissingFieldError, self.loader.validate, m)
 
-    def test_fails_to_validate_chunk_with_no_fields(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'chunk',
-        })
+    def test_fails_to_validate_morphology_not_compliant_with_schema(self):
         self.assertRaises(
-            morphlib.morphloader.MissingFieldError, self.loader.validate, m)
-
-    def test_fails_to_validate_chunk_with_invalid_field(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'chunk',
-            'name': 'foo',
-            'invalid': 'field',
-        })
-        self.assertRaises(
-            morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
-
-    def test_validate_requires_products_list(self):
-        m = morphlib.morphology.Morphology(
-            kind='chunk',
-            name='foo',
-            products={
-                'foo-runtime': ['.'],
-                'foo-devel': ['.'],
-            })
-        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
-            self.loader.validate(m)
-        e = cm.exception
-        self.assertEqual(e.field, 'products')
-        self.assertEqual(e.expected, list)
-        self.assertEqual(e.actual, dict)
-        self.assertEqual(e.morphology_name, 'foo')
-
-    def test_validate_requires_products_list_of_mappings(self):
-        m = morphlib.morphology.Morphology(
-            kind='chunk',
-            name='foo',
-            products=[
-                'foo-runtime',
-            ])
-        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
-            self.loader.validate(m)
-        e = cm.exception
-        self.assertEqual(e.field, 'products[0]')
-        self.assertEqual(e.expected, dict)
-        self.assertEqual(e.actual, str)
-        self.assertEqual(e.morphology_name, 'foo')
-
-    def test_validate_requires_products_list_required_fields(self):
-        m = morphlib.morphology.Morphology(
-            kind='chunk',
-            name='foo',
-            products=[
-                {
-                    'factiart': 'foo-runtime',
-                    'cludein': [],
-                }
-            ])
-        with self.assertRaises(morphlib.morphloader.MultipleValidationErrors) \
-        as cm:
-            self.loader.validate(m)
-        exs = cm.exception.errors
-        self.assertEqual(type(exs[0]), morphlib.morphloader.MissingFieldError)
-        self.assertEqual(exs[0].field, 'products[0].artifact')
-        self.assertEqual(type(exs[1]), morphlib.morphloader.MissingFieldError)
-        self.assertEqual(exs[1].field, 'products[0].include')
-        self.assertEqual(type(exs[2]), morphlib.morphloader.InvalidFieldError)
-        self.assertEqual(exs[2].field, 'products[0].cludein')
-        self.assertEqual(type(exs[3]), morphlib.morphloader.InvalidFieldError)
-        self.assertEqual(exs[3].field, 'products[0].factiart')
-
-    def test_validate_requires_products_list_include_is_list(self):
-        m = morphlib.morphology.Morphology(
-            kind='chunk',
-            name='foo',
-            products=[
-                {
-                    'artifact': 'foo-runtime',
-                    'include': '.*',
-                }
-            ])
-        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
-            self.loader.validate(m)
-        ex = cm.exception
-        self.assertEqual(ex.field, 'products[0].include')
-        self.assertEqual(ex.expected, list)
-        self.assertEqual(ex.actual, str)
-        self.assertEqual(ex.morphology_name, 'foo')
-
-    def test_validate_requires_products_list_include_is_list_of_strings(self):
-        m = morphlib.morphology.Morphology(
-            kind='chunk',
-            name='foo',
-            products=[
-                {
-                    'artifact': 'foo-runtime',
-                    'include': [
-                        123,
-                    ]
-                }
-            ])
-        with self.assertRaises(morphlib.morphloader.InvalidTypeError) as cm:
-            self.loader.validate(m)
-        ex = cm.exception
-        self.assertEqual(ex.field, 'products[0].include[0]')
-        self.assertEqual(ex.expected, str)
-        self.assertEqual(ex.actual, int)
-        self.assertEqual(ex.morphology_name, 'foo')
-
-
-    def test_fails_to_validate_stratum_with_no_fields(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-        })
-        self.assertRaises(
-            morphlib.morphloader.MissingFieldError, self.loader.validate, m)
-
-    def test_fails_to_validate_stratum_with_invalid_field(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-            'name': 'foo',
-            'invalid': 'field',
-        })
-        self.assertRaises(
-            morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
-
-    def test_validate_requires_chunk_refs_in_stratum_to_be_strings(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-            'name': 'foo',
-            'build-depends': [],
-            'chunks': [
-                {
-                    'name': 'chunk',
-                    'repo': 'test:repo',
-                    'ref': 1,
-                    'build-depends': []
-                }
-            ]
-        })
-        with self.assertRaises(
-                morphlib.morphloader.ChunkSpecRefNotStringError):
-            self.loader.validate(m)
-
-    def test_fails_to_validate_stratum_with_empty_refs_for_a_chunk(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-            'name': 'foo',
-            'build-depends': [],
-            'chunks' : [
-                {
-                    'name': 'chunk',
-                    'repo': 'test:repo',
-                    'ref': None,
-                    'build-depends': []
-                }
-            ]
-        })
-        with self.assertRaises(
-                morphlib.morphloader.EmptyRefError):
-            self.loader.validate(m)
+            morphlib.morphloader.MorphologyValidationError,
+            self.loader.load_from_string, 'kind: chunk', 'test')
 
     def test_fails_to_validate_stratum_which_build_depends_on_self(self):
         text = '''\
@@ -258,25 +104,6 @@ chunks:
             morphlib.morphloader.DependsOnSelfError,
             self.loader.load_from_string, text, 'strata/bad-stratum.morph')
 
-    def test_fails_to_validate_system_with_no_fields(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'system',
-        })
-        self.assertRaises(
-            morphlib.morphloader.MissingFieldError, self.loader.validate, m)
-
-    def test_fails_to_validate_system_with_invalid_field(self):
-        m = morphlib.morphology.Morphology(
-            kind="system",
-            name="foo",
-            arch="blah",
-            strata=[
-                {'morph': 'bar'},
-            ],
-            invalid='field')
-        self.assertRaises(
-            morphlib.morphloader.InvalidFieldError, self.loader.validate, m)
-
     def test_fails_to_validate_morphology_with_unknown_kind(self):
         m = morphlib.morphology.Morphology({
             'kind': 'invalid',
@@ -289,17 +116,13 @@ chunks:
             {
                 "kind": "system",
                 "name": "foo",
-                "arch": "x86-64",
+                "arch": "x86_64",
                 "strata": [
                     {
                         "morph": "stratum",
-                        "repo": "test1",
-                        "ref": "ref"
                     },
                     {
                         "morph": "stratum",
-                        "repo": "test2",
-                        "ref": "ref"
                     }
                 ]
             })
@@ -355,20 +178,6 @@ chunks:
         m['chunks'][0]['build-mode'] = 'bootstrap'
         self.loader.validate(m)
 
-    def test_validate_stratum_build_deps_are_list(self):
-        m = stratum_template("stratum-invalid-bdeps")
-        m['build-depends'] = 0.1
-        self.assertRaises(
-            morphlib.morphloader.InvalidTypeError,
-            self.loader.validate, m)
-
-    def test_validate_chunk_build_deps_are_list(self):
-        m = stratum_template("stratum-invalid-bdeps")
-        m['chunks'][0]['build-depends'] = 0.1
-        self.assertRaises(
-            morphlib.morphloader.InvalidTypeError,
-            self.loader.validate, m)
-
     def test_validate_chunk_has_build_instructions(self):
         m = stratum_template("stratum-no-build-instructions")
         del m['chunks'][0]['build-system']
@@ -383,67 +192,20 @@ chunks:
             morphlib.morphloader.ChunkSpecConflictingFieldsError,
             self.loader.validate, m)
 
-    def test_validate_requires_chunks_in_strata(self):
-        m = stratum_template("stratum-no-chunks")
-        del m['chunks']
-        self.assertRaises(
-            morphlib.morphloader.EmptyStratumError,
-            self.loader.validate, m)
-
-    def test_validate_requires_strata_in_system(self):
-        m = morphlib.morphology.Morphology(
-            name='system',
-            kind='system',
-            arch='testarch')
-        self.assertRaises(
-            morphlib.morphloader.MissingFieldError,
-            self.loader.validate, m)
-
-    def test_validate_requires_list_of_strata_in_system(self):
-        for v in (None, {}):
-            m = morphlib.morphology.Morphology(
-                name='system',
-                kind='system',
-                arch='testarch',
-                strata=v)
-            with self.assertRaises(
-                morphlib.morphloader.SystemStrataNotListError) as cm:
-
-                self.loader.validate(m)
-            self.assertEqual(cm.exception.strata_type, type(v))
-
-    def test_validate_requires_non_empty_strata_in_system(self):
-        m = morphlib.morphology.Morphology(
-            name='system',
-            kind='system',
-            arch='testarch',
-            strata=[])
-        self.assertRaises(
-            morphlib.morphloader.EmptySystemError,
-            self.loader.validate, m)
-
-    def test_validate_requires_stratum_specs_in_system(self):
-        m = morphlib.morphology.Morphology(
-            name='system',
-            kind='system',
-            arch='testarch',
-            strata=["foo"])
-        with self.assertRaises(
-            morphlib.morphloader.SystemStratumSpecsNotMappingError) as cm:
-
-            self.loader.validate(m)
-        self.assertEqual(cm.exception.strata, ["foo"])
-
     def test_validate_requires_unique_deployment_names_in_cluster(self):
-        subsystem = [{'morph': 'baz', 'deploy': {'foobar': None}}]
+        subsystem = [{'morph': 'baz',
+                      'deploy': {
+                        'foobar': { 'type': 'foo', 'location': 'bar'}}}]
         m = morphlib.morphology.Morphology(
             name='cluster',
             kind='cluster',
             systems=[{'morph': 'foo',
-                      'deploy': {'deployment': {}},
+                      'deploy':
+                          {'deployment': {'type': 'foo', 'location': 'bar'}},
                       'subsystems': subsystem},
                      {'morph': 'bar',
-                      'deploy': {'deployment': {}},
+                      'deploy':
+                          {'deployment': {'type': 'foo', 'location': 'bar'}},
                       'subsystems': subsystem}])
         with self.assertRaises(
                 morphlib.morphloader.DuplicateDeploymentNameError) as cm:
@@ -537,7 +299,6 @@ build-system: manual
             'name': 'foo',
         })
         self.loader.set_defaults(m)
-        self.loader.validate(m)
         self.assertEqual(
             dict(m),
             {

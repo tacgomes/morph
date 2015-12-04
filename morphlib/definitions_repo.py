@@ -216,8 +216,10 @@ class DefinitionsRepo(gitdir.GitDirectory):
         defaults = morphlib.defaults.Defaults(version,
                                               text=defaults_text)
 
+        schemas = morphlib.util.read_schemas(version)
         loader = morphlib.morphloader.MorphologyLoader(
-            predefined_build_systems=defaults.build_systems())
+            predefined_build_systems=defaults.build_systems(),
+            schemas=schemas)
 
         return loader
 

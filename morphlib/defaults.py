@@ -16,7 +16,6 @@
 
 
 import cliapp
-import jsonschema
 import yaml
 
 import os
@@ -53,12 +52,9 @@ class Defaults(object):
             # It's OK to be empty, I guess.
             return build_systems, split_rules
 
-        try:
-            # It would be nice if this could give line numbers when it spotted
-            # errors. Seems tricky.
-            jsonschema.validate(data, self.schema)
-        except jsonschema.ValidationError as e:
-            raise cliapp.AppException('Invalid DEFAULTS file: %s' % e.message)
+        error = morphlib.util.validate_json(data, self.schema, 'DEFAULTS')
+        if error:
+            raise cliapp.AppException(error)
 
         build_system_data = data.get('build-systems', {})
         for name, commands in build_system_data.items():

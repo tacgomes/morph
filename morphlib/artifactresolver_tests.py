@@ -45,7 +45,8 @@ def get_chunk_morphology(name, artifact_names=[]):
         text = yaml.dump({'name': name,
                           'kind': 'chunk'}, default_flow_style=False)
 
-    loader = morphlib.morphloader.MorphologyLoader()
+    schemas = morphlib.util.read_schemas()
+    loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
     morph = loader.load_from_string(text)
     return morph
 
@@ -78,7 +79,8 @@ def get_stratum_morphology(name, chunks=[], build_depends=[]):
                           "build-depends": build_depends_list},
                          default_flow_style=False)
 
-    loader = morphlib.morphloader.MorphologyLoader()
+    schemas = morphlib.util.read_schemas()
+    loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
     morph = loader.load_from_string(text)
     return morph
 
@@ -248,7 +250,8 @@ class ArtifactResolverTests(unittest.TestCase):
                                 for dep in chunk_artifact.dependents))
 
     def test_detection_of_mutual_dependency_between_two_strata(self):
-        loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         pool = morphlib.sourcepool.SourcePool()
 
         chunk = get_chunk_morphology('chunk1')
@@ -290,8 +293,8 @@ class ArtifactResolverTests(unittest.TestCase):
 
     def test_handles_chunk_dependencies_out_of_invalid_order(self):
         pool = morphlib.sourcepool.SourcePool()
-
-        loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         morph = loader.load_from_string(
             '''
                 name: stratum
@@ -338,8 +341,8 @@ class ArtifactResolverTests(unittest.TestCase):
 
     def test_handles_invalid_chunk_dependencies(self):
         pool = morphlib.sourcepool.SourcePool()
-
-        loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         morph = loader.load_from_string(
             '''
                 name: stratum

@@ -16,13 +16,15 @@
 
 import cliapp
 
+import morphlib
 from morphlib.buildcommand import BuildCommand
 from morphlib.cmdline_parse_utils import (definition_lists_synopsis,
                                           parse_definition_lists)
 from morphlib.morphologyfinder import MorphologyFinder
 from morphlib.morphloader import MorphologyLoader
 from morphlib.morphset import MorphologySet
-from morphlib.util import new_repo_caches
+
+from morphlib.definitions_version import check_version_file
 
 
 class DiffPlugin(cliapp.Plugin):
@@ -99,9 +101,12 @@ class DiffPlugin(cliapp.Plugin):
 
         def get_systems((reponame, ref, definitions)):
             'Convert a definition path list into a list of systems'
-            ml = MorphologyLoader()
             repo = self.bc.lrc.get_updated_repo(reponame, ref=ref)
             mf = MorphologyFinder(gitdir=repo.gitdir, ref=ref)
+            version_text = mf.read_file('VERSION')
+            definitons_version = check_version_file(version_text)
+            schemas = morphlib.util.read_schemas(definitons_version)
+            ml = MorphologyLoader(schemas=schemas)
             # We may have been given an empty set of definitions as input, in
             # which case we instead use every we find.
             if not definitions:

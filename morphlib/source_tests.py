@@ -30,7 +30,9 @@ class SourceTests(unittest.TestCase):
         self.original_ref = 'original/ref'
         self.sha1 = 'CAFEF00D'
         self.tree = 'F000000D'
-        loader = morphlib.morphloader.MorphologyLoader()
+
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         self.morphology = loader.load_from_string(self.morphology_text)
         self.filename = 'foo.morph'
         self.source, = morphlib.source.make_sources(self.repo_name,

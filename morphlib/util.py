@@ -24,6 +24,8 @@ import subprocess
 import textwrap
 import tempfile
 import sys
+import yaml
+import jsonschema
 
 import fs.osfs
 
@@ -776,7 +778,47 @@ class ProgressBar(object):
         sys.stderr.flush()
 
 
-def schemas_directory(version):  # pragma: no cover
+def schemas_directory(version=None): # pragma: no cover
     '''Returns a path to the schemas/ subdirectory of the 'morphlib' module.'''
+    if not version:
+        version = morphlib.definitions_version.SUPPORTED_VERSIONS[-1]
     code_dir = os.path.dirname(morphlib.__file__)
     return os.path.join(code_dir, 'schemas', str(version))
+
+def read_schemas(version=None): # pragma: no cover
+    schemas = {}
+    schemas_dir = schemas_directory(version)
+    for f in os.listdir(schemas_dir):
+        kind, ext = os.path.splitext(f)
+        if ext == '.json-schema':
+            with open(os.path.join(schemas_dir, f)) as ff:
+                schemas[kind] = yaml.load(ff)
+    return schemas
+
+def validate_json(json, schema, filename): # pragma: no cover
+
+    def path_to_string(path):
+        basename, _ = os.path.splitext(
+                os.path.basename(filename))
+        if basename != filename:
+            path_str = '{filename}: {basename}'.format(filename=filename,
+                                                       basename=basename)
+        else:
+            path_str = '{filename}'.format(filename=filename)
+        for p in path:
+            if isinstance(p, basestring):
+                path_str += '->{subpath}'.format(subpath=p)
+            else:
+                path_str += '[{index}]'.format(index=p)
+        return path_str
+
+    try:
+        jsonschema.validate(json, schema)
+    except jsonschema.ValidationError as e:
+        path_str = path_to_string(e.path)
+        instance = ''
+        if isinstance(e.instance, dict) and e.instance != json:
+            instance = ' on %s' % e.instance
+        return '{path}: {message}{instance}'.format(path=path_str,
+                                                    message=e.message,
+                                                    instance=instance)

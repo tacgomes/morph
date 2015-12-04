@@ -23,7 +23,8 @@ import morphlib
 class RemoteArtifactCacheTests(unittest.TestCase):
 
     def setUp(self):
-        loader = morphlib.morphloader.MorphologyLoader()
+        schemas = morphlib.util.read_schemas()
+        loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
         morph = loader.load_from_string(
             '''
                 name: chunk
