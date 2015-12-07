@@ -776,7 +776,7 @@ class ProgressBar(object):
         sys.stderr.flush()
 
 
-def schemas_directory():  # pragma: no cover
+def schemas_directory(version):  # pragma: no cover
     '''Returns a path to the schemas/ subdirectory of the 'morphlib' module.'''
     code_dir = os.path.dirname(morphlib.__file__)
-    return os.path.join(code_dir, 'schemas')
+    return os.path.join(code_dir, 'schemas', str(version))

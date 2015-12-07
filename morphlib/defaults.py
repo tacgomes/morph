@@ -32,8 +32,9 @@ class Defaults(object):
         self._build_systems = {}
         self._split_rules = {}
 
-        schema_path = os.path.join(morphlib.util.schemas_directory(),
-                                   'defaults.json-schema')
+        schema_path = os.path.join(
+                morphlib.util.schemas_directory(definitions_version),
+                'defaults.json-schema')
         with open(schema_path) as f:
             self.schema = yaml.load(f)
 
