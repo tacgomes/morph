@@ -311,7 +311,6 @@ class ChunkBuilder(BuilderBase):
 
     def run_commands(self, logfilepath, stdout=None):  # pragma: no cover
         m = self.source.morphology
-        bs = morphlib.buildsystem.lookup_build_system(m['build-system'])
 
         relative_builddir = self.staging_area.relative_builddir()
         relative_destdir = self.staging_area.relative_destdir()

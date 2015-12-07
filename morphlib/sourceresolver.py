@@ -255,15 +255,8 @@ class SourceResolver(object):
         defaults_text = self._get_file_contents_from_definitions(
             definitions_checkout_dir, 'DEFAULTS')
 
-        if definitions_version < 7:
-            if defaults_text is not None:
-                warnings.warn(
-                    "Ignoring DEFAULTS file, because these definitions are "
-                    "version %i" % definitions_version)
-                defaults_text = None
-        else:
-            if defaults_text is None:
-                warnings.warn("No DEFAULTS file found.")
+        if defaults_text is None:
+            warnings.warn("No DEFAULTS file found.")
 
         defaults = morphlib.defaults.Defaults(definitions_version,
                                               text=defaults_text)
@@ -377,7 +370,7 @@ class SourceResolver(object):
             # Chunk uses one of the predefined build systems. In this case
             # 'filename' will be faked (name of chunk + '.morph').
 
-            buildsystem = morphlib.buildsystem.lookup_build_system(
+            buildsystem = morph_loader.lookup_build_system(
                 chunk_buildsystem)
 
             morphology = self._create_morphology_for_build_system(
