@@ -284,8 +284,6 @@ Showing dependencies
     branch="$MATCH_1"
     cd "$DATADIR"/gits/definitions
     git checkout "$branch"
-    echo "version: 6" > VERSION
-    git add VERSION
     cat << EOF > gtk-stack.morph
     name: gtk-stack
     kind: stratum
@@ -467,4 +465,302 @@ Showing dependencies
     run_morph show-dependencies --quiet test:definitions "$branch" "$system" | sed 's/test://'
 
     IMPLEMENTS THEN the result shows the dependencies of the system
-    diff "$SRCDIR"/yarns/xfce-system-dependencies "$DATADIR"/out-show-dependencies
+    cat << EOF > "$DATADIR"/xfce-system-dependencies
+    dependency graph for test:definitions|master|xfce-system.morph:
+      test:definitions|master|xfce-system.morph|xfce-system|xfce-system-rootfs
+        -> test:definitions|master|xfce-core.morph|xfce-core-devel|xfce-core-devel
+        -> test:definitions|master|xfce-core.morph|xfce-core-runtime|xfce-core-runtime
+      test:definitions|master|xfce-core.morph|xfce-core-devel|xfce-core-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|gtk-xfce-engine.morph|gtk-xfce-engine.morph|gtk-xfce-engine.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|thunar.morph|thunar.morph|thunar.morph-devel
+        -> test:test-chunk|master|tumbler.morph|tumbler.morph|tumbler.morph-devel
+        -> test:test-chunk|master|xfce4-appfinder.morph|xfce4-appfinder.morph|xfce4-appfinder.morph-devel
+        -> test:test-chunk|master|xfce4-panel.morph|xfce4-panel.morph|xfce4-panel.morph-devel
+        -> test:test-chunk|master|xfce4-session.morph|xfce4-session.morph|xfce4-session.morph-devel
+        -> test:test-chunk|master|xfce4-settings.morph|xfce4-settings.morph|xfce4-settings.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfdesktop.morph|xfdesktop.morph|xfdesktop.morph-devel
+        -> test:test-chunk|master|xfwm4.morph|xfwm4.morph|xfwm4.morph-devel
+      test:test-chunk|master|gtk-xfce-engine.morph|gtk-xfce-engine.morph|gtk-xfce-engine.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-appfinder.morph|xfce4-appfinder.morph|xfce4-appfinder.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfdesktop.morph|xfdesktop.morph|xfdesktop.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfwm4.morph|xfwm4.morph|xfwm4.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-session.morph|xfce4-session.morph|xfce4-session.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-settings.morph|xfce4-settings.morph|xfce4-settings.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-panel.morph|xfce4-panel.morph|xfce4-panel.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+      test:test-chunk|master|tumbler.morph|tumbler.morph|tumbler.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+      test:test-chunk|master|thunar.morph|thunar.morph|thunar.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+      test:definitions|master|xfce-core.morph|xfce-core-runtime|xfce-core-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|gtk-xfce-engine.morph|gtk-xfce-engine.morph|gtk-xfce-engine.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+        -> test:test-chunk|master|thunar.morph|thunar.morph|thunar.morph-runtime
+        -> test:test-chunk|master|tumbler.morph|tumbler.morph|tumbler.morph-runtime
+        -> test:test-chunk|master|xfce4-appfinder.morph|xfce4-appfinder.morph|xfce4-appfinder.morph-runtime
+        -> test:test-chunk|master|xfce4-panel.morph|xfce4-panel.morph|xfce4-panel.morph-runtime
+        -> test:test-chunk|master|xfce4-session.morph|xfce4-session.morph|xfce4-session.morph-runtime
+        -> test:test-chunk|master|xfce4-settings.morph|xfce4-settings.morph|xfce4-settings.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+        -> test:test-chunk|master|xfdesktop.morph|xfdesktop.morph|xfdesktop.morph-runtime
+        -> test:test-chunk|master|xfwm4.morph|xfwm4.morph|xfwm4.morph-runtime
+      test:test-chunk|master|gtk-xfce-engine.morph|gtk-xfce-engine.morph|gtk-xfce-engine.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-appfinder.morph|xfce4-appfinder.morph|xfce4-appfinder.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfdesktop.morph|xfdesktop.morph|xfdesktop.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfwm4.morph|xfwm4.morph|xfwm4.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-session.morph|xfce4-session.morph|xfce4-session.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-settings.morph|xfce4-settings.morph|xfce4-settings.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfce4-panel.morph|xfce4-panel.morph|xfce4-panel.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+      test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|tumbler.morph|tumbler.morph|tumbler.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+      test:test-chunk|master|thunar.morph|thunar.morph|thunar.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+      test:test-chunk|master|exo.morph|exo.morph|exo.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|garcon.morph|garcon.morph|garcon.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|exo.morph|exo.morph|exo.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|libxfce4ui.morph|libxfce4ui.morph|libxfce4ui.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+      test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|xfconf.morph|xfconf.morph|xfconf.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+      test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+      test:test-chunk|master|libxfce4util.morph|libxfce4util.morph|libxfce4util.morph-runtime
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+      test:definitions|master|gtk-stack.morph|gtk-stack-runtime|gtk-stack-runtime
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-runtime
+        -> test:test-chunk|master|dbus-glib.morph|dbus-glib.morph|dbus-glib.morph-runtime
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-runtime
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-runtime
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-runtime
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+        -> test:test-chunk|master|gtk.morph|gtk.morph|gtk.morph-runtime
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-runtime
+      test:test-chunk|master|dbus-glib.morph|dbus-glib.morph|dbus-glib.morph-runtime
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-devel
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+      test:test-chunk|master|gtk.morph|gtk.morph|gtk.morph-runtime
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-devel
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-runtime
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-devel
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-devel
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-runtime
+      test:definitions|master|gtk-stack.morph|gtk-stack-devel|gtk-stack-devel
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-devel
+        -> test:test-chunk|master|dbus-glib.morph|dbus-glib.morph|dbus-glib.morph-devel
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-devel
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-devel
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-devel
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|gtk.morph|gtk.morph|gtk.morph-devel
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-devel
+      test:test-chunk|master|dbus-glib.morph|dbus-glib.morph|dbus-glib.morph-devel
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-devel
+        -> test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+      test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-runtime
+      test:test-chunk|master|dbus.morph|dbus.morph|dbus.morph-devel
+      test:test-chunk|master|gtk.morph|gtk.morph|gtk.morph-devel
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-devel
+        -> test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-runtime
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-devel
+        -> test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-devel
+        -> test:test-chunk|master|pango.morph|pango.morph|pango.morph-runtime
+      test:test-chunk|master|pango.morph|pango.morph|pango.morph-runtime
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-devel
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-runtime
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-devel
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-runtime
+      test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-runtime
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+      test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-runtime
+      test:test-chunk|master|gdk-pixbuf.morph|gdk-pixbuf.morph|gdk-pixbuf.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+        -> test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+      test:test-chunk|master|glib.morph|glib.morph|glib.morph-runtime
+      test:test-chunk|master|glib.morph|glib.morph|glib.morph-devel
+      test:test-chunk|master|pango.morph|pango.morph|pango.morph-devel
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-devel
+        -> test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-runtime
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-devel
+        -> test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-runtime
+      test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-runtime
+      test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-runtime
+      test:test-chunk|master|cairo.morph|cairo.morph|cairo.morph-devel
+      test:test-chunk|master|fontconfig.morph|fontconfig.morph|fontconfig.morph-devel
+      test:test-chunk|master|freetype.morph|freetype.morph|freetype.morph-devel
+    EOF
+    diff "$DATADIR"/xfce-system-dependencies "$DATADIR"/out-show-dependencies
