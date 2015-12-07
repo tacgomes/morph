@@ -49,6 +49,7 @@ its contents.
     AND a system in cluster test-cluster.morph in branch master called test-system
     AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
+    AND system test-system in cluster test-cluster.morph in branch master has deployment location: it-will-be-overriden
     WHEN the user clones definitions
     AND the user builds the system systems/test-system.morph in branch master
     AND the user attempts to deploy the cluster test-cluster.morph in branch master with options test-system.location="$DATADIR/test.tar"

@@ -92,6 +92,7 @@ It is convenient to be able to deploy one system inside another.
     AND a system in cluster test-cluster.morph in branch master called test-system
     AND system test-system in cluster test-cluster.morph in branch master builds systems/test-system.morph
     AND system test-system in cluster test-cluster.morph in branch master has deployment type: tar
+    AND system test-system in cluster test-cluster.morph in branch master has deployment location: it-will-be-overriden
 
 After the usual setup, we also add a subsystem to the cluster.
 

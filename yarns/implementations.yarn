@@ -922,14 +922,14 @@ Implementations for building systems
     cat << EOF > xyzzy.morph
     name: xyzzy
     kind: chunk
-    build-mode: manual
+    build-system: manual
     install-commands:
     - printvar PREFIX
     EOF
     cat << EOF > plugh.morph
     name: plugh
     kind: chunk
-    build-mode: manual
+    build-system: manual
     install-commands:
     - printvar PREFIX
     - printvar PATH
