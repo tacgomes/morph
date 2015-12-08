@@ -655,14 +655,14 @@ build-system: manual
               'deploy-defaults': {},
               'deploy': {}}])
 
-    def test_sets_stratum_chunks_repo_from_name(self):
+    def test_sets_stratum_chunks_name_from_repo(self):
         m = morphlib.morphology.Morphology(
             {
                 "name": "foo",
                 "kind": "stratum",
                 "chunks": [
                     {
-                        "name": "le-chunk",
+                        "repo": "le-chunk",
                         "ref": "ref",
                         "build-system": "manual",
                         "build-depends": [],
@@ -672,7 +672,7 @@ build-system: manual
 
         self.loader.set_defaults(m)
         self.loader.validate(m)
-        self.assertEqual(m['chunks'][0]['repo'], 'le-chunk')
+        self.assertEqual(m['chunks'][0]['name'], 'le-chunk')
 
     def test_convertes_max_jobs_to_an_integer(self):
         m = morphlib.morphology.Morphology(

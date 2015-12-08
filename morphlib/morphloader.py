@@ -696,8 +696,8 @@ class MorphologyLoader(object):
 
     def _set_stratum_defaults(self, morph):
         for spec in morph['chunks']:
-            if 'repo' not in spec:
-                spec['repo'] = spec['name']
+            if 'name' not in spec:
+                spec['name'] = spec['repo']
             if 'build-mode' not in spec:
                 spec['build-mode'] = \
                     self._static_defaults['chunk']['build-mode']
