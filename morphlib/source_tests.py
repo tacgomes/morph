@@ -21,8 +21,8 @@ import morphlib
 class SourceTests(unittest.TestCase):
 
     morphology_text = '''
-            name: foo
-            kind: chunk
+    name: foo
+    kind: chunk
     '''
 
     def setUp(self):

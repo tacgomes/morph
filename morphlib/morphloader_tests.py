@@ -22,27 +22,24 @@ import tempfile
 import unittest
 import warnings
 import yaml
+import textwrap
 
 import morphlib
 
 
 def stratum_template(name):
     '''Returns a valid example stratum, with one chunk reference.'''
-    m = morphlib.morphology.Morphology({
-        "name": name,
-        "kind": "stratum",
-        "build-depends": [
-            { "morph": "foo" },
-        ],
-        "chunks": [
-            {
-                "name": "chunk",
-                "repo": "test:repo",
-                "ref": "sha1",
-                "build-system": "manual",
-            }
-        ]
-    })
+    m = morphlib.morphology.Morphology(yaml.load('''
+    name: name
+    kind: stratum
+    build-depends:
+    - morph: foo
+    chunks:
+    - name: chunk
+      repo: test:repo
+      ref: sha1
+      build-system: manual
+    '''))
     return m
 
 
@@ -58,11 +55,11 @@ class MorphologyLoaderTests(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     def test_parses_yaml_from_string(self):
-        string = '''\
-name: foo
-kind: chunk
-build-system: manual
-'''
+        string = '''
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''
         morph = self.loader.load_from_string(string, 'test')
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
@@ -79,9 +76,9 @@ build-system: manual
             self.loader.load_from_string, '- item1\n- item2\n', 'test')
 
     def test_fails_to_validate_dict_without_kind(self):
-        m = morphlib.morphology.Morphology({
-            'invalid': 'field',
-        })
+        m = morphlib.morphology.Morphology(
+            invalid='field'
+        )
         self.assertRaises(
             morphlib.morphloader.MissingFieldError, self.loader.validate, m)
 
@@ -91,79 +88,67 @@ build-system: manual
             self.loader.load_from_string, 'kind: chunk', 'test')
 
     def test_fails_to_validate_stratum_which_build_depends_on_self(self):
-        text = '''\
-name: bad-stratum
-kind: stratum
-build-depends:
-- morph: strata/bad-stratum.morph
-chunks:
-- name: chunk
-  repo: test:repo
-  ref: foo'''
+        text = '''
+        name: bad-stratum
+        kind: stratum
+        build-depends:
+        - morph: strata/bad-stratum.morph
+        chunks:
+        - name: chunk
+          repo: test:repo
+          ref: foo
+        '''
         self.assertRaises(
             morphlib.morphloader.DependsOnSelfError,
             self.loader.load_from_string, text, 'strata/bad-stratum.morph')
 
     def test_fails_to_validate_morphology_with_unknown_kind(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'invalid',
-        })
+        m = morphlib.morphology.Morphology(
+            kind='invalid'
+        )
         self.assertRaises(
             morphlib.morphloader.UnknownKindError, self.loader.validate, m)
 
     def test_validate_requires_unique_stratum_names_within_a_system(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "kind": "system",
-                "name": "foo",
-                "arch": "x86_64",
-                "strata": [
-                    {
-                        "morph": "stratum",
-                    },
-                    {
-                        "morph": "stratum",
-                    }
-                ]
-            })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: system
+        name: foo
+        arch: x86_64
+        strata:
+        - morph: stratum
+        - morph: stratum
+        '''))
         self.assertRaises(morphlib.morphloader.DuplicateStratumError,
                           self.loader.validate, m)
 
     def test_validate_requires_unique_chunk_names_within_a_stratum(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "kind": "stratum",
-                "name": "foo",
-                "build-depends": [
-                    {"morph": "bar"},
-                ],
-                "chunks": [
-                    {
-                        "name": "chunk",
-                        "repo": "test1",
-                        "ref": "ref"
-                    },
-                    {
-                        "name": "chunk",
-                        "repo": "test2",
-                        "ref": "ref"
-                    }
-                ]
-            })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: stratum
+        name: foo
+        build-depends:
+        - morph: bar
+        chunks:
+        - name: chunk
+          repo: test1
+          ref: ref
+        - name: chunk
+          repo: test2
+          ref: ref
+        '''))
         self.assertRaises(morphlib.morphloader.DuplicateChunkError,
                           self.loader.validate, m)
 
     def test_validate_requires_a_valid_architecture(self):
-        m = morphlib.morphology.Morphology(
-            kind="system",
-            name="foo",
-            arch="blah",
-            strata=[
-                {'morph': 'bar'},
-            ])
+        text = '''
+        kind: system
+        name: foo
+        arch: blah
+        strata:
+        - morph: bar
+        '''
         self.assertRaises(
             morphlib.morphloader.UnknownArchitectureError,
-            self.loader.validate, m)
+            self.loader.load_from_string, text)
 
     def test_validate_requires_build_deps_or_bootstrap_mode_for_strata(self):
         m = stratum_template("stratum-no-bdeps-no-bootstrap")
@@ -215,24 +200,22 @@ chunks:
         self.assertIn('deployment', ex.duplicates)
 
     def test_loads_yaml_from_string(self):
-        string = '''\
-name: foo
-kind: chunk
-build-system: manual
-'''
+        string = '''
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''
         morph = self.loader.load_from_string(string)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
         self.assertEqual(morph['build-system'], 'manual')
 
     def test_loads_json_from_string(self):
-        string = '''\
-{
-    "name": "foo",
-    "kind": "chunk",
-    "build-system": "manual"
-}
-'''
+        string = '''
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''
         morph = self.loader.load_from_string(string)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
@@ -240,38 +223,38 @@ build-system: manual
 
     def test_loads_from_file(self):
         with open(self.filename, 'w') as f:
-            f.write('''\
-name: foo
-kind: chunk
-build-system: manual
-''')
+            f.write('''
+            name: foo
+            kind: chunk
+            build-system: manual
+            ''')
         morph = self.loader.load_from_file(self.filename)
         self.assertEqual(morph['kind'], 'chunk')
         self.assertEqual(morph['name'], 'foo')
         self.assertEqual(morph['build-system'], 'manual')
 
     def test_saves_to_string(self):
-        morph = morphlib.morphology.Morphology({
-            'name': 'foo',
-            'kind': 'chunk',
-            'build-system': 'manual',
-        })
+        morph = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''))
         text = self.loader.save_to_string(morph)
 
         # The following verifies that the YAML is written in a normalised
         # fashion.
-        self.assertEqual(text, '''\
-name: foo
-kind: chunk
-build-system: manual
-''')
+        self.assertEqual(text, textwrap.dedent('''\
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''))
 
     def test_saves_to_file(self):
-        morph = morphlib.morphology.Morphology({
-            'name': 'foo',
-            'kind': 'chunk',
-            'build-system': 'manual',
-        })
+        morph = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''))
         self.loader.save_to_file(self.filename, morph)
 
         with open(self.filename) as f:
@@ -279,179 +262,157 @@ build-system: manual
 
         # The following verifies that the YAML is written in a normalised
         # fashion.
-        self.assertEqual(text, '''\
-name: foo
-kind: chunk
-build-system: manual
-''')
+        self.assertEqual(text, textwrap.dedent('''\
+        name: foo
+        kind: chunk
+        build-system: manual
+        '''))
 
     def test_validate_does_not_set_defaults(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'chunk',
-            'name': 'foo',
-        })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: chunk
+        name: foo
+        '''))
         self.loader.validate(m)
         self.assertEqual(sorted(m.keys()), sorted(['kind', 'name']))
 
     def test_sets_defaults_for_chunks(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'chunk',
-            'name': 'foo',
-        })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: chunk
+        name: foo
+        '''))
         self.loader.set_defaults(m)
-        self.assertEqual(
-            dict(m),
-            {
-                'kind': 'chunk',
-                'name': 'foo',
-                'description': '',
-                'build-system': 'manual',
-                'build-mode': 'staging',
+        self.assertEqual(dict(m), yaml.load('''
+        kind: chunk
+        name: foo
+        description: ''
+        build-system: manual
+        build-mode: staging
 
-                'configure-commands': None,
-                'pre-configure-commands': None,
-                'post-configure-commands': None,
+        configure-commands:
+        pre-configure-commands:
+        post-configure-commands:
 
-                'build-commands': None,
-                'pre-build-commands': None,
-                'post-build-commands': None,
+        build-commands:
+        pre-build-commands:
+        post-build-commands:
 
-                'test-commands': None,
-                'pre-test-commands': None,
-                'post-test-commands': None,
+        test-commands:
+        pre-test-commands:
+        post-test-commands:
 
-                'install-commands': None,
-                'pre-install-commands': None,
-                'post-install-commands': None,
+        install-commands:
+        pre-install-commands:
+        post-install-commands:
 
-                'strip-commands': None,
-                'pre-strip-commands': None,
-                'post-strip-commands': None,
+        strip-commands:
+        pre-strip-commands:
+        post-strip-commands:
 
-                'products': [],
-                'system-integration': [],
-                'devices': [],
-                'max-jobs': None,
-                'prefix': '/usr',
-            })
+        products: []
+        system-integration: []
+        devices: []
+        max-jobs:
+        prefix: /usr'''))
 
     def test_sets_defaults_for_strata(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'stratum',
-            'name': 'foo',
-            'chunks': [
-                {
-                    'name': 'bar',
-                    'repo': 'bar',
-                    'ref': 'bar',
-                    'morph': 'bar',
-                    'build-mode': 'bootstrap',
-                    'build-depends': [],
-                },
-            ],
-        })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: stratum
+        name: foo
+        chunks:
+        - name: bar
+          repo: bar
+          ref: bar
+          morph: bar
+          build-mode: bootstrap
+          build-depends: []
+        '''))
         self.loader.set_defaults(m)
         self.loader.validate(m)
-        self.assertEqual(
-            dict(m),
-            {
-                'kind': 'stratum',
-                'name': 'foo',
-                'description': '',
-                'build-depends': [],
-                'chunks': [
-                    {
-                        'name': 'bar',
-                        "repo": "bar",
-                        "ref": "bar",
-                        "morph": "bar",
-                        'build-mode': 'bootstrap',
-                        'build-depends': [],
-                        'prefix': '/usr',
-                    },
-                ],
-                'products': [],
-            })
+        self.assertEqual(dict(m), yaml.load('''
+        kind: stratum
+        name: foo
+        description: ''
+        build-depends: []
+        chunks:
+        - name: bar
+          repo: bar
+          ref: bar
+          morph: bar
+          build-mode: bootstrap
+          build-depends: []
+          prefix: '/usr'
+        products: []
+        '''))
 
     def test_sets_defaults_for_system(self):
-        m = morphlib.morphology.Morphology(
-            kind='system',
-            name='foo',
-            arch='testarch',
-            strata=[
-                {
-                    'morph': 'bar',
-                },
-            ])
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: system
+        name: foo
+        arch: testarch
+        strata:
+        - morph: bar
+        '''))
         self.loader.set_defaults(m)
-        self.assertEqual(
-            {
-                'kind': 'system',
-                'name': 'foo',
-                'description': '',
-                'arch': 'testarch',
-                'strata': [
-                    {
-                        'morph': 'bar',
-                    },
-                ],
-                'configuration-extensions': [],
-            },
-            dict(m))
+        self.assertEqual(dict(m), yaml.load('''
+        kind: system
+        name: foo
+        description: ''
+        arch: testarch
+        strata:
+        - morph: bar
+        configuration-extensions: []
+        '''))
 
     def test_sets_defaults_for_cluster(self):
-        m = morphlib.morphology.Morphology(
-            name='foo',
-            kind='cluster',
-            systems=[
-                {'morph': 'foo'},
-                {'morph': 'bar'}])
+        m = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: cluster
+        systems:
+        - morph: foo
+        - morph: bar
+        '''))
         self.loader.set_defaults(m)
         self.loader.validate(m)
-        self.assertEqual(m['systems'],
-            [{'morph': 'foo',
-              'deploy-defaults': {},
-              'deploy': {}},
-             {'morph': 'bar',
-              'deploy-defaults': {},
-              'deploy': {}}])
+        self.assertEqual(m['systems'], yaml.load('''
+        - morph: foo
+          deploy-defaults: {}
+          deploy: {}
+        - morph: bar
+          deploy-defaults: {}
+          deploy: {}
+        '''))
 
     def test_sets_stratum_chunks_name_from_repo(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "foo",
-                "kind": "stratum",
-                "chunks": [
-                    {
-                        "repo": "le-chunk",
-                        "ref": "ref",
-                        "build-system": "manual",
-                        "build-depends": [],
-                    }
-                ]
-            })
-
+        m = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: stratum
+        chunks:
+        - repo: le-chunk
+          ref: ref
+          build-system: manual
+          build-depends: []
+        '''))
         self.loader.set_defaults(m)
         self.loader.validate(m)
         self.assertEqual(m['chunks'][0]['name'], 'le-chunk')
 
     def test_convertes_max_jobs_to_an_integer(self):
-        m = morphlib.morphology.Morphology(
-            {
-                "name": "foo",
-                "kind": "chunk",
-                "max-jobs": "42"
-            })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: chunk
+        max-jobs: "42"
+        '''))
         self.loader.set_defaults(m)
         self.assertEqual(m['max-jobs'], 42)
 
     def test_parses_simple_cluster_morph(self):
         string = '''
-            name: foo
-            kind: cluster
-            systems:
-            - morph: bar
-              deploy: {}
+        name: foo
+        kind: cluster
+        systems:
+        - morph: bar
+          deploy: {}
         '''
         m = self.loader.load_from_string(string, 'test')
         self.loader.set_defaults(m)
@@ -470,24 +431,19 @@ build-system: manual
 
     def test_unordered_asciibetically_after_ordered(self):
         # We only get morphologies with arbitrary keys in clusters
-        m = morphlib.morphology.Morphology(
-            name='foo',
-            kind='cluster',
-            systems=[
-                {
-                    'morph': 'system-name',
-                    'repo': 'test:morphs',
-                    'ref': 'master',
-                    'deploy': {
-                        'deployment-foo': {
-                            'type': 'tarball',
-                            'location': '/tmp/path.tar',
-                            'HOSTNAME': 'aasdf',
-                        }
-                    }
-                }
-            ]
-        )
+        m = morphlib.morphology.Morphology(yaml.load('''
+        name: foo
+        kind: cluster
+        systems:
+          morph: system-name
+          repo: test:morphs
+          ref: master
+          deploy:
+            deployment-foo:
+              type: tarball
+              location: /tmp/path.tar
+              HOSTNAME: aasdf
+        '''))
         s = self.loader.save_to_string(m)
         # root field order
         self.assertLess(s.find('name'), s.find('kind'))
@@ -537,10 +493,10 @@ build-system: manual
 
 
     def test_unknown_build_system(self):
-        m = morphlib.morphology.Morphology({
-            'kind': 'chunk',
-            'name': 'foo',
-            'build-system': 'monkey scientist',
-        })
+        m = morphlib.morphology.Morphology(yaml.load('''
+        kind: chunk
+        name: foo
+        build-system: monkeyscientist
+        '''))
         with self.assertRaises(morphlib.morphloader.UnknownBuildSystemError):
             s = self.loader.set_commands(m)

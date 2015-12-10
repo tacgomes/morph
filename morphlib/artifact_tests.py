@@ -24,21 +24,20 @@ class ArtifactTests(unittest.TestCase):
     def setUp(self):
         schemas = morphlib.util.read_schemas()
         loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
-        morph = loader.load_from_string(
-                '''
-                name: chunk
-                kind: chunk
-                products:
-                    - artifact: chunk-runtime
-                      include:
-                        - usr/bin
-                        - usr/sbin
-                        - usr/lib
-                        - usr/libexec
-                    - artifact: chunk-devel
-                      include:
-                        - usr/include
-                ''')
+        morph = loader.load_from_string('''
+        name: chunk
+        kind: chunk
+        products:
+        - artifact: chunk-runtime
+          include:
+            - usr/bin
+            - usr/sbin
+            - usr/lib
+            - usr/libexec
+        - artifact: chunk-devel
+          include:
+            - usr/include
+        ''')
         self.source, = morphlib.source.make_sources('repo', 'ref',
                                                     'chunk.morph', 'sha1',
                                                     'tree', morph)

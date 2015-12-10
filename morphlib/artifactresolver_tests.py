@@ -295,24 +295,23 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
         schemas = morphlib.util.read_schemas()
         loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
-        morph = loader.load_from_string(
-            '''
-                name: stratum
-                kind: stratum
-                build-depends: []
-                chunks:
-                    - name: chunk1
-                      repo: repo
-                      ref: original/ref
-                      build-system: manual
-                      build-depends:
-                          - chunk2
-                    - name: chunk2
-                      repo: repo
-                      ref: original/ref
-                      build-system: manual
-                      build-depends: []
-            ''')
+        morph = loader.load_from_string('''
+        name: stratum
+        kind: stratum
+        build-depends: []
+        chunks:
+        - name: chunk1
+          repo: repo
+          ref: original/ref
+          build-system: manual
+          build-depends:
+          - chunk2
+        - name: chunk2
+          repo: repo
+          ref: original/ref
+          build-system: manual
+          build-depends: []
+        ''')
         sources = morphlib.source.make_sources(
             'repo', 'original/ref', 'stratum.morph', 'sha1', 'tree', morph,
             default_split_rules=default_split_rules)
@@ -343,19 +342,18 @@ class ArtifactResolverTests(unittest.TestCase):
         pool = morphlib.sourcepool.SourcePool()
         schemas = morphlib.util.read_schemas()
         loader = morphlib.morphloader.MorphologyLoader(schemas=schemas)
-        morph = loader.load_from_string(
-            '''
-                name: stratum
-                kind: stratum
-                build-depends: []
-                chunks:
-                    - name: chunk1
-                      repo: repo
-                      ref: original/ref
-                      build-system: manual
-                      build-depends:
-                          - undefined-chunk
-            ''')
+        morph = loader.load_from_string('''
+        name: stratum
+        kind: stratum
+        build-depends: []
+        chunks:
+        - name: chunk1
+          repo: repo
+          ref: original/ref
+          build-system: manual
+          build-depends:
+          - undefined-chunk
+        ''')
         sources = morphlib.source.make_sources(
             'repo', 'original/ref', 'stratum.morph', 'sha1', 'tree', morph,
             default_split_rules=default_split_rules)

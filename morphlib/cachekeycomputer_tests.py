@@ -61,35 +61,35 @@ class CacheKeyComputerTests(unittest.TestCase):
                 kind: stratum
                 build-depends: []
                 chunks:
-                    - name: chunk
-                      morph: chunk.morph
-                      repo: repo
-                      ref: original/ref
-                      build-depends: []
+                - name: chunk
+                  morph: chunk.morph
+                  repo: repo
+                  ref: original/ref
+                  build-depends: []
             ''',
             'stratum2.morph': '''
                 name: stratum2
                 kind: stratum
                 build-depends: []
                 chunks:
-                    - name: chunk2
-                      morph: chunk2.morph
-                      repo: repo
-                      ref: original/ref
-                      build-depends: []
-                    - name: chunk3
-                      morph: chunk3.morph
-                      repo: repo
-                      ref: original/ref
-                      build-depends: []
+                - name: chunk2
+                  morph: chunk2.morph
+                  repo: repo
+                  ref: original/ref
+                  build-depends: []
+                - name: chunk3
+                  morph: chunk3.morph
+                  repo: repo
+                  ref: original/ref
+                  build-depends: []
             ''',
             'system.morph': '''
                 name: system
                 kind: system
                 arch: testarch
                 strata:
-                    - morph: stratum
-                    - morph: stratum2
+                - morph: stratum
+                - morph: stratum2
             ''',
         }.iteritems():
             morph = loader.load_from_string(text)
